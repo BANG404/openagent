@@ -37,6 +37,27 @@ function fixture() {
 }
 
 describe("concurrent plugin installation", () => {
+  test("dismissing a result preserves running work and notifies reopened surfaces", async () => {
+    const f = fixture();
+    const pending = deferred<string>();
+    const run = f.start("graph", () => pending.promise);
+    await f.start("goal", async () => "goal");
+    f.queue.dismiss("graph");
+    expect(f.queue.isInstalling("graph")).toBe(true);
+    f.queue.dismiss("goal");
+    let visible: PluginInstallTask[] = [];
+    const close = f.queue.subscribe((tasks) => {
+      visible = tasks;
+    });
+    expect(visible.map((task) => task.key)).toEqual(["graph"]);
+    pending.reject(new Error("download failed"));
+    await run;
+    expect(visible[0].status).toBe("error");
+    f.queue.dismiss("graph");
+    expect(visible).toEqual([]);
+    close();
+  });
+
   test("a reopened surface observes running tasks and their eventual result", async () => {
     const f = fixture();
     const install = deferred<string>();

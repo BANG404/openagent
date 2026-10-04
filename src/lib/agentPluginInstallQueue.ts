@@ -34,6 +34,14 @@ export class AgentPluginInstallQueue {
     return this.tasks[key]?.status === "running";
   }
 
+  dismiss(key: string): void {
+    if (!this.tasks[key] || this.isInstalling(key)) return;
+    const remaining = { ...this.tasks };
+    delete remaining[key];
+    this.tasks = remaining;
+    for (const changed of this.observers) changed(this.snapshot());
+  }
+
   private publish(task: PluginInstallTask): void {
     this.tasks = { ...this.tasks, [task.key]: task };
     for (const changed of this.observers) changed(this.snapshot());

@@ -1,0 +1,95 @@
+[scenario]
+name = "plugin control clarity and dismissible installation results"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "enablement and host access are visibly named independent controls"
+action = "eval"
+script = '''(async () => {
+  const probe = window.__pluginSettingsProbe;
+  const card = document.querySelector('.plugin-accordion-item[data-plugin-id="openagent-settings-probe"]');
+  if (!card) throw new Error('settings fixture is missing');
+  const header = card.querySelector('.plugin-accordion-header');
+  const row = card.querySelector('.plugin-host-access-row');
+  const enabled = header.querySelector('[role=switch]');
+  const access = row?.querySelector('[role=switch]');
+  if (!enabled || !access || header.querySelectorAll('[role=switch]').length !== 1) {
+    throw new Error('enablement and permission are not separated');
+  }
+  if (header.querySelector('label')?.textContent.trim() !== probe.enable ||
+      row.querySelector('label')?.textContent.trim() !== probe.access ||
+      row.querySelector('.detail-hint')?.textContent.trim() !== probe.hint) {
+    throw new Error('control purposes or permission explanation are not localized');
+  }
+  if (row.getBoundingClientRect().height === 0) throw new Error('collapsed card hides host authorization');
+  if (card.querySelector('.plugin-accordion-copy').textContent.includes(probe.hint)) {
+    throw new Error('permission warning is duplicated in the summary');
+  }
+  const turn = async (control, state) => {
+    if ((control.getAttribute('aria-checked') === 'true') !== state) control.click();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    if ((control.getAttribute('aria-checked') === 'true') !== state) throw new Error('switch did not respond');
+  };
+  await turn(access, false);
+  await turn(enabled, false);
+  await turn(enabled, true);
+  if (access.getAttribute('aria-checked') !== 'false') throw new Error('enablement granted host access');
+  await turn(access, true);
+  await turn(enabled, false);
+  if (access.getAttribute('aria-checked') !== 'true') throw new Error('enablement erased independent authorization');
+  await turn(access, false);
+  await turn(enabled, true);
+  return 'independent named controls passed';
+})()'''
+
+[[step]]
+name = "completed and failed notices dismiss independently while background work survives"
+action = "eval"
+script = '''(async () => {
+  const {desktopPluginInstallQueue: queue} = await import('/src/lib/agentPluginInstallQueue.ts');
+  const probe = window.__pluginSettingsProbe;
+  const make = (key, install) => queue.run({key, pluginId:key, label:'Graph', subscribe:async()=>()=>{}, install, activate:async()=>{}});
+  probe.finish = null;
+  void make('settings-running', () => new Promise(resolve => {probe.finish = resolve;}));
+  await make('settings-success', async () => true);
+  await make('settings-error', async () => {throw new Error('settings fixture failure');});
+  await new Promise(resolve => setTimeout(resolve, 0));
+  const notice = document.querySelector('.plugin-install-notice[data-plugin-id="settings-success"]');
+  const error = document.querySelector('.plugin-install-notice[data-plugin-id="settings-error"]');
+  const running = document.querySelector('[data-plugin-id="settings-running"][data-install-status="running"]');
+  if (!notice || notice.querySelector('.notice-copy').textContent.trim() !== probe.success) {
+    throw new Error('success notice did not name the installed package in a localized sentence');
+  }
+  if (!notice.querySelector('svg') || getComputedStyle(notice).backgroundColor !== 'rgba(0, 0, 0, 0)') {
+    throw new Error('success notice regressed to a filled banner or lost its icon');
+  }
+  if (!error?.textContent.includes('settings fixture failure') || !error.querySelector('button')) {
+    throw new Error('failure notice lost its diagnostic or dismissal');
+  }
+  if (!running?.querySelector('progress') || running.querySelector('button')) throw new Error('running task can be dismissed');
+  notice.querySelector('button').click();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  if (queue.snapshot().some(task => task.key === 'settings-success') || !queue.isInstalling('settings-running') || !document.body.contains(error)) {
+    throw new Error('dismissing success changed other tasks');
+  }
+  error.querySelector('button').click();
+  probe.finish(true);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  queue.dismiss('settings-running');
+  return 'result dismissal preserved other work';
+})()'''
+
+[[step]]
+name = "dismissed notices stay gone when settings reopens"
+action = "eval"
+script = '''(async () => {
+  document.querySelector('[role=dialog] button[aria-label="Close"], [role=dialog] button[aria-label="关闭"]').click();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  document.querySelector('#application-integrations-menu').click();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  [...document.querySelectorAll('[role=menuitem]')].find(item => /Plugins|插件/.test(item.textContent)).click();
+  await new Promise(resolve => setTimeout(resolve, 300));
+  if (document.querySelector('.plugin-install-notice[data-plugin-id^="settings-"]')) throw new Error('dismissed results returned');
+  return 'dismissal survived reopening';
+})()'''

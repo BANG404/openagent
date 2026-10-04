@@ -29,7 +29,8 @@
     type NormalizedMcpServerConfig,
   } from "$lib/config";
   import { agentPluginUpdateErrorKey } from "$lib/agentPluginUpdateCheck";
-  import type { PluginInstallTask } from "$lib/agentPluginInstallQueue";
+  import { desktopPluginInstallQueue, type PluginInstallTask } from "$lib/agentPluginInstallQueue";
+  import PluginInstallNotice from "./PluginInstallNotice.svelte";
   import type { OfficialPluginCatalogItem } from "$lib/officialPluginRegistry";
   import { applyDocumentTheme } from "$lib/appTheme";
   import { reportFrontendDiagnostic } from "$lib/frontendDiagnostics";
@@ -342,23 +343,27 @@
     </header>
     {#each view.agentPluginInstallTasks as task (task.key)}
       {#if task.status !== "running" || view.pluginManagementView !== "marketplace" || !view.officialPluginCards.some((plugin: OfficialPluginCatalogItem) => plugin.id === task.pluginId)}
-        <div
-          class={task.status === "running"
-            ? "plugin-install-progress"
-            : `provider-status ${task.status}`}
-          data-plugin-id={task.pluginId ?? task.key}
-          data-install-status={task.status}
-          data-stage={task.progress.stage}
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          {#if task.status === "running"}
+        {#if task.status === "running"}
+          <div
+            class="plugin-install-progress"
+            data-plugin-id={task.pluginId ?? task.key}
+            data-install-status={task.status}
+            data-stage={task.progress.stage}
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
             <progress aria-label={`${task.label} · ${view.agentPluginInstallMessage(task)}`}
             ></progress>
-          {/if}
-          <span>{task.label} · {view.agentPluginInstallMessage(task)}</span>
-        </div>
+            <span>{task.label} · {view.agentPluginInstallMessage(task)}</span>
+          </div>
+        {:else}
+          <PluginInstallNotice
+            {task}
+            message={view.agentPluginInstallMessage(task)}
+            ondismiss={() => desktopPluginInstallQueue.dismiss(task.key)}
+          />
+        {/if}
       {/if}
     {/each}
     {#if view.pluginManagementView === "marketplace"}
@@ -637,12 +642,6 @@
                       ? $t("pluginDesktopControlDescription")
                       : (plugin.description ?? plugin.id)}</span
                   >
-                  {#if plugin.id === desktopControlPluginId}
-                    <span class="detail-hint">{$t("pluginCuaDriverHint")}</span>
-                  {/if}
-                  {#if view.pluginRequestsHostAccess(plugin)}
-                    <span class="detail-hint">{$t("pluginHostAccessHint")}</span>
-                  {/if}
                   {#if plugin.license || plugin.homepage}
                     <span class="detail-hint"
                       >{[plugin.license, plugin.homepage].filter(Boolean).join(" · ")}</span
@@ -658,7 +657,11 @@
               </Accordion.Trigger>
               {#if plugin.id === desktopControlPluginId}
                 <div class="plugin-accordion-actions">
+                  <label class="plugin-enable-label" for={`plugin-enable-${plugin.id}`}
+                    >{$t("pluginEnable")}</label
+                  >
                   <Switch
+                    id={`plugin-enable-${plugin.id}`}
                     checked={view.cuaDriver.enabled}
                     onCheckedChange={(enabled) => view.setCuaDriverEnabled(enabled)}
                     ariaLabel={$t("pluginDesktopControl")}
@@ -666,23 +669,34 @@
                 </div>
               {:else}
                 <div class="plugin-accordion-actions">
+                  <label class="plugin-enable-label" for={`plugin-enable-${plugin.id}`}
+                    >{$t("pluginEnable")}</label
+                  >
                   <Switch
+                    id={`plugin-enable-${plugin.id}`}
                     checked={view.agentPluginEnabled(plugin.id)}
                     onCheckedChange={(enabled) => view.setAgentPluginEnabled(plugin.id, enabled)}
                     ariaLabel={plugin.name}
                   />
                 </div>
               {/if}
-              {#if view.pluginRequestsHostAccess(plugin)}
-                <div class="plugin-accordion-actions">
-                  <Switch
-                    checked={view.agentPluginHostAccess(plugin.id)}
-                    onCheckedChange={(granted) => view.setAgentPluginHostAccess(plugin.id, granted)}
-                    ariaLabel={$t("pluginHostAccess")}
-                  />
-                </div>
-              {/if}
             </Accordion.Header>
+            {#if view.pluginRequestsHostAccess(plugin)}
+              <div class="plugin-host-access-row">
+                <div class="plugin-host-access-copy">
+                  <label class="label-text" for={`plugin-host-access-${plugin.id}`}
+                    >{$t("pluginHostAccess")}</label
+                  >
+                  <span class="detail-hint">{$t("pluginHostAccessHint")}</span>
+                </div>
+                <Switch
+                  id={`plugin-host-access-${plugin.id}`}
+                  checked={view.agentPluginHostAccess(plugin.id)}
+                  onCheckedChange={(granted) => view.setAgentPluginHostAccess(plugin.id, granted)}
+                  ariaLabel={$t("pluginHostAccess")}
+                />
+              </div>
+            {/if}
             <Accordion.Content class="plugin-accordion-content">
               <div class="plugin-tools-heading">
                 <div class="plugin-tools-title">

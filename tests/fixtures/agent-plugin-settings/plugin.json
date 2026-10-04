@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "openagent-settings-probe",
+  "version": "1.0.0",
+  "description": "A process-free fixture for independent enablement and host authorization controls.",
+  "extensions": {
+    "openagent": {
+      "capabilities": ["host-access"]
+    }
+  }
+}

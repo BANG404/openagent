@@ -1625,6 +1625,34 @@
   display: flex;
   align-items: center;
   padding: 0 16px 0 4px;
+  gap: 8px;
+}
+
+.plugin-enable-label {
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.plugin-host-access-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0 16px;
+  padding: 12px 0 16px;
+  border-top: 1px solid var(--mica-divider);
+}
+
+.plugin-host-access-copy {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 4px;
+}
+
+.plugin-host-access-copy label {
+  cursor: pointer;
 }
 
 .plugin-accordion-content {

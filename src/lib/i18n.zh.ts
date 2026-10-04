@@ -377,8 +377,9 @@ export const zh = {
   pluginDesktopControl: "桌面控制",
   pluginCuaDriverHint: "该插件请求使用真实电脑环境。只有你在下方明确授权后才会获得访问。",
   pluginHostAccess: "允许访问真实电脑",
-  pluginHostAccessHint:
-    "该插件请求使用真实电脑环境。开启后它的进程将不再受沙箱限制，请确认你信任此插件。",
+  pluginEnable: "启用插件",
+  pluginInstallSuccess: "已安装 {name}",
+  pluginHostAccessHint: "授权后，插件可访问真实电脑，其进程将不受沙箱限制。请仅向可信插件授权。",
   pluginTools: "可用工具",
   pluginToolsHint: "选择 Cua Driver 可以暴露给 Agent 的桌面操作。",
   pluginToolsEmpty: "点击测试连接以发现 Cua Driver 工具。",

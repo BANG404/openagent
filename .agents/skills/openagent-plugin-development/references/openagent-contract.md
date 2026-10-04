@@ -58,6 +58,20 @@ All Runtime and desktop entry points use this resolver, so a temporary
 mismatch between legacy and normalized settings cannot expose one path after a
 plugin is disabled.
 
+Installed-plugin cards show a named enablement switch in the header. A package
+requesting host access has a separate, always-visible permission row below the
+header, with a visible label and wrapping explanation of the sandbox exemption.
+Enablement and host authorization remain independent; enabling a package never
+grants host access. Do not place both switches together as unlabeled controls or
+repeat the same authorization warning in the card summary.
+
+Installation results use compact, neutral text with a success/error icon and a
+localized sentence naming the package, rather than a filled provider-status
+banner. Completed and failed results can be dismissed independently from the
+window-wide install queue and stay dismissed when Settings reopens. Running
+tasks cannot be dismissed; their progress and duplicate-install guard survive
+surface closure. Verify these controls with `test:blackbox:plugin-settings`.
+
 Runtime hosts that need to emit a plugin message resolve its namespaced tag
 through the installed-plugin policy resolver. The resolver checks the plugin
 root and namespace before returning the audience rule; raw tags and tags owned

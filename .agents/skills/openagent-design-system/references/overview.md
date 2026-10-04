@@ -28,7 +28,9 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   settings rows must not collapse into one generic loading template.
 - **Settings enablement switches:** show the switch alone. Do not repeat its
   enabled or disabled state with adjacent text, dots, or labels; expose the
-  control name through its accessible label.
+  control name through its accessible label. When a card has multiple independent
+  switches, visibly name their purposes and separate permission controls into
+  labeled rows; purpose labels do not repeat the switch's current state.
 - **Transient scrollbars:** scrollbars across the application keep their
   layout footprint but hide their thumb while idle. Scrolling within a
   scrollable region reveals its scrollbar temporarily; nested,

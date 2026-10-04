@@ -132,6 +132,18 @@ live process is sitting in.
 
 ## Agent plugin update coverage
 
+Plugin control clarity and installation-result dismissal use the process-free
+`tests/fixtures/agent-plugin-settings` package and the committed
+`tests/blackbox/plugin-settings.toml` scenario. Start
+`bun tauri dev --multi-instance plugin-settings`, set `TAURI_PILOT_SOCKET` to
+that instance, and run `bun run test:blackbox:plugin-settings`. The runner covers
+independent enablement/host authorization, always-visible localized permission
+copy, completed/error result dismissal, background task preservation, and
+Settings reopening in light/English and dark/Chinese. It seeds only transient
+queue results, requires no provider or network, and restores appearance and
+window size. Set `BLACKBOX_NATIVE_WINDOW_HANDLE` for native Windows captures;
+artifacts default to a system temporary directory.
+
 Plugin install/removal uses `tests/blackbox/plugin-install.toml` and
 `plugin-uninstall.toml`, driven by `bun run test:blackbox:plugin-lifecycle`.
 Start `bun tauri dev --multi-instance plugin-lifecycle` with an isolated

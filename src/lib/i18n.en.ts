@@ -386,8 +386,10 @@ const en: Record<TranslationKeys, string> = {
   pluginCuaDriverHint:
     "Requests access to the real computer environment. Grant it explicitly below when you trust this plugin.",
   pluginHostAccess: "Allow real computer access",
+  pluginEnable: "Enable plugin",
+  pluginInstallSuccess: "Installed {name}",
   pluginHostAccessHint:
-    "This plugin requested real computer access. When enabled, its processes run with the host environment and are not sandboxed.",
+    "Grants access to the real computer and allows plugin processes to run outside the sandbox. Only grant access to plugins you trust.",
   pluginTools: "Available tools",
   pluginToolsHint: "Choose which desktop actions Cua Driver exposes to the Agent.",
   pluginToolsEmpty: "Test the connection to discover Cua Driver tools.",
