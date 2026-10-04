@@ -52,6 +52,14 @@ Publish accepted package commits before advancing their parent gitlinks so clean
 CI checkouts can retrieve the pinned revisions. Plugin source changes alone do
 not select native or embedding checks.
 
+The pre-push source boundary checks every commit introduced by a push using
+`.githooks/public-host-sources.txt`. Retain entries for retired public Tauri
+resource adapters while their introduction remains in unpublished history.
+`cua_driver_resource.rs` was a desktop-owned upstream binary downloader before
+the Cua Driver plugin took over provisioning; its historical entry permits
+publishing that existing native boundary. Current Cua provisioning remains
+package-owned, and private Runtime sources require the SDK repository.
+
 The always-present `CI / Required` job remains the authoritative aggregate for
 each CI invocation. For pull requests, a trusted `workflow_run` reporter copies
 only the latest conclusion to `Required PR Head` on the immutable head SHA.
