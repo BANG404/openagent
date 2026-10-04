@@ -47,14 +47,6 @@ below the fold. The role editor surface is the current example.
 Top-bar settings windows place their active section content directly in the
 window surface; they do not render a separate left navigation rail.
 
-Automation switches its two sections through compact horizontal tabs, without
-a navigation rail. It uses the same collection/editor arrangement: rules
-or scheduled tasks on the left, editable fields on the right, with independent
-shared ScrollAreas. The selected item uses the neutral interaction fill. Keep
-create/save and cancel beside the form, refresh beside the collection, and
-show loading, pending submission, and failure states in place. Narrow content
-stacks the two bounded panes and reduces form fields to one column.
-
 Memory Management keeps scope and refresh in its toolbar, user-written memory
 beside the searchable Agent memory list, and backup/cleanup in a collapsed
 disclosure. The editor footer owns saved/unsaved feedback, Save, and Discard.

@@ -49,6 +49,12 @@ repeatedly copy a full background output buffer.
 
 ## Syncing commits from WSL
 
+The post-commit hook tests prefer the installed `bash.exe` on PATH, with the
+standard Git installation directory as a fallback. Keep portable Git Bash
+ahead of the Windows WSL launcher on PATH when running Windows preflight.
+Set `OPENAGENT_TEST_BASH` to an explicit Git Bash executable when a custom
+installation or PATH ordering requires it; this override takes precedence.
+
 The WSL checkout and the native Windows checkout should remain separate Git
 working trees. Configure the existing Windows checkout as a local source remote
 from WSL once. Replace `Ubuntu` if the distribution has another name:
@@ -74,8 +80,3 @@ unavailable, the WSL commit is kept and the hook prints a warning. Install the
 repository hooks with `bun install` if `.githooks` is not active yet. Keep
 `node_modules`, `target`, and other generated directories native to each
 operating system.
-
-The post-commit tests resolve Windows Bash from the selected Git installation's
-`--exec-path`, including portable Git installations. Set `OPENAGENT_TEST_BASH`
-to an explicit Git Bash executable when the installation uses a custom layout.
-The tests do not require Git to be installed under `Program Files`.

@@ -13,8 +13,6 @@
     AgentPluginUpdateSummary,
     AgentRole,
     AppConfig,
-    AutomationHookConfig,
-    AutomationHookEvent,
     PermissionProfile,
     ProviderConfig,
   } from "$lib/types";
@@ -1443,6 +1441,7 @@
           disabled={view.memoryLoading || view.memorySaving || view.memoryBusy || view.memoryDirty}
         >
           <SegmentedControl
+            fitContent
             value={view.memoryScope}
             onValueChange={(value) => (view.memoryScope = value)}
             items={[
@@ -1467,13 +1466,6 @@
           tone="quiet"
           onclick={() => view.refreshMemory()}
           disabled={view.memoryLoading || view.memorySaving || view.memoryBusy}
-        />
-        <SettingsActionButton
-          label={$t("memoryExtractNow")}
-          icon="sparkles"
-          tone="quiet"
-          onclick={view.extractMemory}
-          disabled={view.memoryExtracting || view.memoryBusy || !view.memoryScopeAvailable()}
         />
       </div>
     </div>

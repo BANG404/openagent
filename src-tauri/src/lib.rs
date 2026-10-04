@@ -715,7 +715,6 @@ fn frontend_window_query(label: &str) -> &'static str {
         "settings-agent" => "?settings-window=agent",
         "settings-integrations" => "?settings-window=integrations",
         "settings-memory" => "?settings-window=memory",
-        "settings-automation" => "?settings-window=automation",
         "settings-about" => "?settings-window=about",
         _ => "",
     }
@@ -3576,14 +3575,6 @@ fn settings_window_spec(kind: &str) -> Option<SettingsWindowSpec> {
             initial_width: 780.0,
             initial_height: 560.0,
         }),
-        "automation" => Some(SettingsWindowSpec {
-            label: "settings-automation",
-            title: "OpenAgent Automation",
-            default_section: "lifecycle",
-            sections: &["lifecycle", "schedules"],
-            initial_width: 900.0,
-            initial_height: 640.0,
-        }),
         "about" => Some(SettingsWindowSpec {
             label: "settings-about",
             title: "About OpenAgent",
@@ -5208,7 +5199,6 @@ fn run_with_mode(agent_server: bool) {
                 .skip_initial_state("settings-agent")
                 .skip_initial_state("settings-integrations")
                 .skip_initial_state("settings-memory")
-                .skip_initial_state("settings-automation")
                 .skip_initial_state("settings-about")
                 .build(),
         )
@@ -6136,12 +6126,10 @@ mod tests {
         assert!(integrations.sections.contains(&"channels"));
         assert!(integrations.sections.contains(&"extensions"));
         assert!(integrations.sections.contains(&"plugins"));
-        let automation = settings_window_spec("automation").expect("automation window");
-        assert_eq!(automation.default_section, "lifecycle");
-        assert_eq!(automation.sections, &["lifecycle", "schedules"]);
         let about = settings_window_spec("about").expect("about window");
         assert_eq!((about.initial_width, about.initial_height), (680.0, 400.0));
         assert!(settings_window_spec("arbitrary").is_none());
+        assert!(settings_window_spec("automation").is_none());
     }
 
     #[test]

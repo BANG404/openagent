@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import { which } from "bun";
 import { chmod, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { delimiter, join, resolve } from "node:path";
@@ -66,7 +67,8 @@ function runHook({ bin, source }) {
   const bash =
     process.env.OPENAGENT_TEST_BASH ||
     (process.platform === "win32"
-      ? resolve(git(process.cwd(), "--exec-path"), "../../../bin/bash.exe")
+      ? (which("bash.exe") ??
+        join(process.env.ProgramFiles ?? String.raw`C:\Program Files`, "Git", "bin", "bash.exe"))
       : "bash");
   const hookPath = process.platform === "win32" ? gitBashPath(hook) : hook;
   const args =

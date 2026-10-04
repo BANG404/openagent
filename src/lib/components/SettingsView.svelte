@@ -21,10 +21,7 @@
     AgentPluginUpdateReport,
     AgentPluginUpdateSummary,
     AgentMemoryEntry,
-    AgentRole,
     AppConfig,
-    AutomationHookConfig,
-    AutomationHookEvent,
     PermissionProfile,
     ProviderConfig,
   } from "$lib/types";
@@ -149,34 +146,6 @@
     account_id: string | null;
     error: string | null;
   };
-  type ScheduledChatHook = {
-    id: string;
-    message: string;
-    conv_id: string | null;
-    role_id: string | null;
-    schedule: string;
-    recurring: boolean;
-    created_at: number;
-    next_run_at: number;
-    triggered_conversations: {
-      conv_id: string;
-      title: string;
-      triggered_at: number;
-    }[];
-    args: ScheduleChatHookArgs;
-  };
-  type ScheduleChatHookArgs = {
-    message: string;
-    delay_minutes?: number | null;
-    run_at?: string | null;
-    recurrence?: string | null;
-    interval_minutes?: number | null;
-    time_of_day?: string | null;
-    weekdays?: string[] | null;
-    conv_id?: string | null;
-    role_id?: string | null;
-  };
-
   let {
     config,
     workspacePath,
@@ -213,8 +182,6 @@
         "execution",
         "agents",
         "memory",
-        "lifecycle",
-        "schedules",
         "extensions",
         "plugins",
         "about",
@@ -339,26 +306,6 @@
   // are usable. Otherwise normalization or a concurrent reload can replace it
   // before the user has finished entering the URL/command.
   let pendingMcpServerIds = $state(new Set<string>());
-  let automationHookDraft = $state<AutomationHookConfig | null>(null);
-  let scheduledHooks = $state<ScheduledChatHook[]>([]);
-  let hookMessage = $state("");
-  let hookMode = $state<"delay" | "run_at" | "interval_minutes" | "daily" | "weekdays" | "weekly">(
-    "delay",
-  );
-  let hookDelayMinutes = $state(10);
-  let hookRunAt = $state("");
-  let hookTimeOfDay = $state("09:00");
-  let hookIntervalMinutes = $state(60);
-  let hookWeekdays = $state("mon,wed,fri");
-  let hookRoleKey = $state("openagent");
-  let hookRoles = $state<AgentRole[]>([]);
-  let hookStatus = $state("");
-  let hookStatusError = $state(false);
-  let hooksLoading = $state(false);
-  let hookBusy = $state(false);
-  let hooksRequestSeq = 0;
-  let editingHookId = $state<string | null>(null);
-  let editingHookConversationId = $state<string | null>(null);
   let memoryScope = $state<"global" | "local">("global");
   let memoryUserContent = $state("");
   let memorySavedContent = $state("");
@@ -371,7 +318,6 @@
   let memoryAgentRequestSeq = 0;
   let memorySearchTimer: ReturnType<typeof setTimeout> | undefined;
   let memorySaving = $state(false);
-  let memoryExtracting = $state(false);
   let memoryRequestSeq = 0;
   let memoryStatus = $state("");
   let memoryBusy = $state(false);
@@ -764,10 +710,6 @@
         componentVersions = versions;
       })
       .catch(() => {});
-    if (visibleSections.has("schedules")) {
-      refreshHooks().catch(() => {});
-      refreshHookRoles().catch(() => {});
-    }
     if (visibleSections.has("channels")) {
       refreshRemoteGateway().catch(() => {});
       refreshChannelStatuses().catch(() => {});
@@ -914,20 +856,6 @@
       memoryStatus = `${tr("memoryOperationFailed")}: ${err}`;
     } finally {
       memorySaving = false;
-    }
-  }
-
-  async function extractMemory() {
-    memoryExtracting = true;
-    memoryStatus = "";
-    try {
-      await desktopOpenAgent.invokeProduct("trigger_memory_agent", { convId: null });
-      memoryStatus = tr("memoryExtractStarted");
-      window.setTimeout(() => refreshAgentMemories().catch(() => {}), 1200);
-    } catch (err: unknown) {
-      memoryStatus = `${tr("memoryOperationFailed")}: ${err}`;
-    } finally {
-      memoryExtracting = false;
     }
   }
 
@@ -1093,66 +1021,6 @@
   function ensureSelectedMcpServer() {
     if (userMcpServers.some((server) => server.id === selectedMcpId)) return;
     selectedMcpId = userMcpServers[0]?.id ?? null;
-  }
-
-  function automationHookEventLabel(event: AutomationHookEvent): string {
-    const keys: Record<AutomationHookEvent, TranslationKeys> = {
-      session_start: "automationHookSessionStart",
-      session_end: "automationHookSessionEnd",
-      user_prompt_submit: "automationHookUserPromptSubmit",
-      subagent_start: "automationHookSubagentStart",
-      subagent_stop: "automationHookSubagentStop",
-      permission_request: "automationHookPermissionRequest",
-      pre_compact: "automationHookPreCompact",
-      post_compact: "automationHookPostCompact",
-      stop: "automationHookStop",
-      interrupt: "automationHookInterrupt",
-      before_model: "automationHookBeforeModel",
-      after_model: "automationHookAfterModel",
-      before_tool: "automationHookBeforeTool",
-      after_tool: "automationHookAfterTool",
-    };
-    return $t(keys[event]);
-  }
-
-  function beginAutomationHook(hook?: AutomationHookConfig) {
-    automationHookDraft = hook
-      ? structuredClone($state.snapshot(hook))
-      : {
-          id: crypto.randomUUID(),
-          name: "",
-          enabled: true,
-          event: "before_tool",
-          matcher: "",
-          timeout_secs: 30,
-          action: { type: "command", command: "" },
-        };
-  }
-
-  function setAutomationHookAction(type: "command" | "agent_message") {
-    if (!automationHookDraft || automationHookDraft.action.type === type) return;
-    automationHookDraft.action = type === "command" ? { type, command: "" } : { type, message: "" };
-  }
-
-  function saveAutomationHook() {
-    if (!automationHookDraft) return;
-    const actionText =
-      automationHookDraft.action.type === "command"
-        ? automationHookDraft.action.command
-        : automationHookDraft.action.message;
-    if (!automationHookDraft.name.trim() || !actionText.trim()) return;
-    const hook = structuredClone($state.snapshot(automationHookDraft));
-    const index = draftConfig.automation_hooks.findIndex((item) => item.id === hook.id);
-    draftConfig.automation_hooks =
-      index < 0
-        ? [...draftConfig.automation_hooks, hook]
-        : draftConfig.automation_hooks.map((item) => (item.id === hook.id ? hook : item));
-    automationHookDraft = null;
-  }
-
-  function removeAutomationHook(id: string) {
-    draftConfig.automation_hooks = draftConfig.automation_hooks.filter((hook) => hook.id !== id);
-    if (automationHookDraft?.id === id) automationHookDraft = null;
   }
 
   function addProvider() {
@@ -1856,151 +1724,6 @@
     untrack(() => void testMcpServer(server.id));
   });
 
-  async function refreshHooks() {
-    const sequence = ++hooksRequestSeq;
-    hooksLoading = true;
-    try {
-      const definitions = (await desktopOpenAgent.invokeProduct(
-        "list_scheduled_chat_hooks",
-        {},
-      )) as {
-        record: Omit<ScheduledChatHook, "args">;
-        args: ScheduleChatHookArgs;
-      }[];
-      if (sequence !== hooksRequestSeq) return;
-      scheduledHooks = definitions.map(({ record, args }) => ({ ...record, args }));
-    } catch (err: unknown) {
-      if (sequence === hooksRequestSeq) {
-        hookStatus = `${tr("hookOperationFailed")}: ${err}`;
-        hookStatusError = true;
-      }
-    } finally {
-      if (sequence === hooksRequestSeq) hooksLoading = false;
-    }
-  }
-
-  async function refreshHookRoles() {
-    const roles = await desktopOpenAgent.invokeProduct("list_agent_roles", {}).catch(() => []);
-    const seen = new Set<string>();
-    hookRoles = roles.filter((role) => {
-      if (seen.has(role.id)) return false;
-      seen.add(role.id);
-      return true;
-    });
-    if (hookRoleKey !== "openagent" && !seen.has(hookRoleKey)) hookRoleKey = "openagent";
-  }
-
-  function hookRoleName(roleId: string | null): string {
-    if (!roleId) return $t("defaultRoleName");
-    return hookRoles.find((role) => role.id === roleId)?.name ?? $t("unknownRole");
-  }
-
-  function formatHookTime(ts: number) {
-    if (!ts) return "-";
-    return new Date(ts * 1000).toLocaleString();
-  }
-
-  async function cancelHook(id: string) {
-    if (hookBusy) return;
-    hookBusy = true;
-    hookStatus = "";
-    hookStatusError = false;
-    try {
-      await desktopOpenAgent.invokeProduct("cancel_scheduled_chat_hook", { id });
-      if (editingHookId === id) resetHookEditor();
-      await refreshHooks();
-    } catch (err: unknown) {
-      hookStatus = `${tr("hookOperationFailed")}: ${err}`;
-      hookStatusError = true;
-    } finally {
-      hookBusy = false;
-    }
-  }
-
-  function hookArgs(): ScheduleChatHookArgs | null {
-    const message = hookMessage.trim();
-    if (!message) {
-      hookStatus = tr("hookMessageRequired");
-      hookStatusError = true;
-      return null;
-    }
-    const args: ScheduleChatHookArgs = { message };
-    if (hookRoleKey !== "openagent") args.role_id = hookRoleKey;
-    if (editingHookConversationId) args.conv_id = editingHookConversationId;
-    if (hookMode === "delay") {
-      args.delay_minutes = hookDelayMinutes;
-    } else if (hookMode === "run_at") {
-      args.run_at = hookRunAt;
-    } else if (hookMode === "interval_minutes") {
-      args.recurrence = "interval_minutes";
-      args.interval_minutes = hookIntervalMinutes;
-    } else if (hookMode === "daily" || hookMode === "weekdays") {
-      args.recurrence = hookMode;
-      args.time_of_day = hookTimeOfDay;
-    } else {
-      args.recurrence = "weekly";
-      args.time_of_day = hookTimeOfDay;
-      args.weekdays = hookWeekdays
-        .split(",")
-        .map((d) => d.trim())
-        .filter(Boolean);
-    }
-    return args;
-  }
-
-  function resetHookEditor() {
-    editingHookId = null;
-    editingHookConversationId = null;
-    hookMessage = "";
-    hookMode = "delay";
-    hookDelayMinutes = 10;
-    hookRunAt = "";
-    hookTimeOfDay = "09:00";
-    hookIntervalMinutes = 60;
-    hookWeekdays = "mon,wed,fri";
-    hookRoleKey = "openagent";
-  }
-
-  function editHook(hook: ScheduledChatHook) {
-    editingHookId = hook.id;
-    editingHookConversationId = hook.args.conv_id ?? null;
-    hookMessage = hook.args.message;
-    hookRoleKey = hook.args.role_id ?? "openagent";
-    hookDelayMinutes = hook.args.delay_minutes ?? 10;
-    hookRunAt = hook.args.run_at ?? "";
-    hookIntervalMinutes = hook.args.interval_minutes ?? hook.args.delay_minutes ?? 60;
-    hookTimeOfDay = hook.args.time_of_day ?? "09:00";
-    hookWeekdays = hook.args.weekdays?.join(",") ?? "mon,wed,fri";
-    hookMode =
-      (hook.args.recurrence as typeof hookMode | null) ?? (hook.args.run_at ? "run_at" : "delay");
-    hookStatus = "";
-    hookStatusError = false;
-  }
-
-  async function saveHook() {
-    if (hookBusy) return;
-    hookStatus = "";
-    hookStatusError = false;
-    const args = hookArgs();
-    if (!args) return;
-    hookBusy = true;
-    try {
-      hookStatus = editingHookId
-        ? await desktopOpenAgent.invokeProduct("update_scheduled_chat_hook", {
-            id: editingHookId,
-            args,
-          })
-        : await desktopOpenAgent.invokeProduct("schedule_chat_hook", { args });
-      resetHookEditor();
-      await refreshHooks();
-    } catch (err: unknown) {
-      hookStatus = `${tr("hookOperationFailed")}: ${err}`;
-      hookStatusError = true;
-    } finally {
-      hookBusy = false;
-    }
-  }
-
   function memoryScopeAvailable(scope = memoryScope) {
     return scope === "global" || Boolean(workspacePath);
   }
@@ -2408,15 +2131,6 @@
     get autoSaveTimer() {
       return autoSaveTimer;
     },
-    get automationHookDraft() {
-      return automationHookDraft;
-    },
-    set automationHookDraft(value) {
-      automationHookDraft = value;
-    },
-    get automationHookEventLabel() {
-      return automationHookEventLabel;
-    },
     get autostartReady() {
       return autostartReady;
     },
@@ -2542,14 +2256,8 @@
     get runAgentPluginUpdateCheck() {
       return runAgentPluginUpdateCheck;
     },
-    get beginAutomationHook() {
-      return beginAutomationHook;
-    },
     get cancelClearMemoryScope() {
       return cancelClearMemoryScope;
-    },
-    get cancelHook() {
-      return cancelHook;
     },
     get channelSettingsNav() {
       return channelSettingsNav;
@@ -2608,15 +2316,6 @@
     get dropRetryQueueModel() {
       return dropRetryQueueModel;
     },
-    get editHook() {
-      return editHook;
-    },
-    get editingHookConversationId() {
-      return editingHookConversationId;
-    },
-    get editingHookId() {
-      return editingHookId;
-    },
     get enabledProviderOptions() {
       return enabledProviderOptions;
     },
@@ -2629,9 +2328,6 @@
     get exportMemory() {
       return exportMemory;
     },
-    get extractMemory() {
-      return extractMemory;
-    },
     get fetchModels() {
       return fetchModels;
     },
@@ -2643,9 +2339,6 @@
     },
     get findCuaDriverServer() {
       return findCuaDriverServer;
-    },
-    get formatHookTime() {
-      return formatHookTime;
     },
     get formatMemoryDate() {
       return formatMemoryDate;
@@ -2661,75 +2354,6 @@
     },
     get handleQuickShortcutKeydown() {
       return handleQuickShortcutKeydown;
-    },
-    get hookArgs() {
-      return hookArgs;
-    },
-    get hookDelayMinutes() {
-      return hookDelayMinutes;
-    },
-    set hookDelayMinutes(value) {
-      hookDelayMinutes = value;
-    },
-    get hookIntervalMinutes() {
-      return hookIntervalMinutes;
-    },
-    set hookIntervalMinutes(value) {
-      hookIntervalMinutes = value;
-    },
-    get hookMessage() {
-      return hookMessage;
-    },
-    set hookMessage(value) {
-      hookMessage = value;
-    },
-    get hookMode() {
-      return hookMode;
-    },
-    set hookMode(value) {
-      hookMode = value;
-    },
-    get hookRoleKey() {
-      return hookRoleKey;
-    },
-    set hookRoleKey(value) {
-      hookRoleKey = value;
-    },
-    get hookRoleName() {
-      return hookRoleName;
-    },
-    get hookRoles() {
-      return hookRoles;
-    },
-    get hookRunAt() {
-      return hookRunAt;
-    },
-    set hookRunAt(value) {
-      hookRunAt = value;
-    },
-    get hookBusy() {
-      return hookBusy;
-    },
-    get hooksLoading() {
-      return hooksLoading;
-    },
-    get hookStatusError() {
-      return hookStatusError;
-    },
-    get hookStatus() {
-      return hookStatus;
-    },
-    get hookTimeOfDay() {
-      return hookTimeOfDay;
-    },
-    set hookTimeOfDay(value) {
-      hookTimeOfDay = value;
-    },
-    get hookWeekdays() {
-      return hookWeekdays;
-    },
-    set hookWeekdays(value) {
-      hookWeekdays = value;
     },
     get importMemory() {
       return importMemory;
@@ -2826,9 +2450,6 @@
     },
     set memoryClearInput(value) {
       memoryClearInput = value;
-    },
-    get memoryExtracting() {
-      return memoryExtracting;
     },
     get memoryLoading() {
       return memoryLoading;
@@ -2995,12 +2616,6 @@
     get refreshChatgptAuthStatus() {
       return refreshChatgptAuthStatus;
     },
-    get refreshHookRoles() {
-      return refreshHookRoles;
-    },
-    get refreshHooks() {
-      return refreshHooks;
-    },
     get refreshMemory() {
       return refreshMemory;
     },
@@ -3025,9 +2640,6 @@
     get removeAgentMemory() {
       return removeAgentMemory;
     },
-    get removeAutomationHook() {
-      return removeAutomationHook;
-    },
     get removeEnvVar() {
       return removeEnvVar;
     },
@@ -3049,29 +2661,17 @@
     get repairDefaultModelBindings() {
       return repairDefaultModelBindings;
     },
-    get resetHookEditor() {
-      return resetHookEditor;
-    },
     get rotateRemotePairingCode() {
       return rotateRemotePairingCode;
     },
-    get saveAutomationHook() {
-      return saveAutomationHook;
-    },
     get saveDraftConfig() {
       return saveDraftConfig;
-    },
-    get saveHook() {
-      return saveHook;
     },
     get saveModelConfig() {
       return saveModelConfig;
     },
     get saveUserMemory() {
       return saveUserMemory;
-    },
-    get scheduledHooks() {
-      return scheduledHooks;
     },
     get sections() {
       return sections;
@@ -3105,9 +2705,6 @@
     },
     get selectedSettingsSection() {
       return selectedSettingsSection;
-    },
-    get setAutomationHookAction() {
-      return setAutomationHookAction;
     },
     get setCuaDriverEnabled() {
       return setCuaDriverEnabled;
@@ -3201,22 +2798,10 @@
 >
   <Tabs.Root
     bind:value={selectedSettingsSection}
-    orientation={visibleSections.has("lifecycle") && visibleSections.has("schedules")
-      ? "horizontal"
-      : "vertical"}
+    orientation="vertical"
     activationMode="manual"
     class="settings-body"
   >
-    {#if visibleSections.has("lifecycle") && visibleSections.has("schedules")}
-      <Tabs.List class="management-section-tabs" aria-label={$t("automationMenu")}>
-        <Tabs.Trigger value="lifecycle" class="management-section-tab">
-          {$t("lifecycleAutomation")}
-        </Tabs.Trigger>
-        <Tabs.Trigger value="schedules" class="management-section-tab">
-          {$t("scheduledHooks")}
-        </Tabs.Trigger>
-      </Tabs.List>
-    {/if}
     <SettingsViewTabsPrimary />
     <SettingsViewTabsSecondary />
   </Tabs.Root>

@@ -45,6 +45,9 @@ uses the panel duration. Arrow keys, Home, and End move selection and focus;
 rapid switching retargets the existing CSS transition. Reduced motion disables
 the transition without hiding the selected background.
 
+Use its `fitContent` option for compact scope and filter controls whose labels
+do not need to fill a wider layout column.
+
 ## Reduced motion
 
 `prefers-reduced-motion: reduce` collapses shared durations and removes

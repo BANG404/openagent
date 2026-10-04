@@ -41,49 +41,16 @@ drive the same controls a user uses. Record the exact command and result in the
 handoff. If the changed behavior is not user-facing and has no native
 interaction, use its owning contract or integration tests instead.
 
-## Automation top-bar black-box coverage
-
-The committed `tests/blackbox/automation-*.toml` scenarios drive the real
-Automation surface inside the main window through `tauri-pilot`; the wrapper
-opens it with the same top-bar shortcuts the product uses and never constructs a
-utility window. Run them through the repository wrapper so the lifecycle Hook
-editor, all six scheduled-hook modes, menu entries, shortcuts, cleanup actions,
-and locale/theme states are covered together:
-
-```bash
-bun tauri dev --multi-instance blackbox
-bun run test:blackbox:automation
-```
-
-The app and wrapper share `~/.openagent-dev/instances/blackbox`, so provider and
-model setup survives reruns. Set `OPENAGENT_HOME` once when a separate fixture
-is required; both commands must receive the same value. On Linux, visual cases
-capture the native window through `screenshot_native` because WebView capture
-does not contain the composited Tauri surface. Set `BLACKBOX_SCREENSHOT_MODE=webview`
-only when testing WebView pixels explicitly.
-
-Start the debug app with the same isolated `OPENAGENT_HOME` and keep the
-resulting screenshots in a temporary directory via `BLACKBOX_ARTIFACT_DIR`.
-The wrapper refuses the installed `~/.openagent` data directory and restores
-the general theme and language after visual checks.
-
-The Automation surface treats its requested section as an initial selection,
-not a permanent controlled value. User tab changes must survive asynchronous
-role or hook refreshes; the black-box suite covers durable persistence by
-reloading the whole main window, reopening Automation, and only then asserting
-that the saved hook returned and creating a scheduled hook.
-
-Automation's compact section tabs keep the collection and editor mounted while
-switching. The suite covers rejected scheduled-task submissions retaining their
-draft, refresh preserving that draft, and rapid submission creating one task.
-Visual checks capture both the lifecycle editor and scheduled-task form in all
-light/dark and Chinese/English combinations.
-
 ## Memory management coverage
 
 Run `bun run test:blackbox:memory` against the same isolated debug instance and
 `OPENAGENT_HOME` as the app. It drives editing, refresh, discard, save, search,
-scope changes, and cleanup cancellation. The runner temporarily puts an empty
+scope changes, and cleanup cancellation. Its
+`retired-management-controls.toml` scenario also asserts that the memory toolbar
+contains only Refresh, Automation has no menu or settings tabs, and the retired
+Alt+U / Ctrl+Shift+7 / Ctrl+Shift+8 shortcuts leave Memory Management open. Run
+these assertions in all light/dark and Chinese/English visual passes. The runner
+temporarily puts an empty
 directory at the fixture's global `memory.md` path to exercise a real write
 failure, restores the saved file in `finally`, then verifies a successful retry.
 Use a dedicated fixture; the runner refuses installed release data.

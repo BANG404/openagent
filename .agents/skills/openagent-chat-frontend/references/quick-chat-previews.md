@@ -25,10 +25,10 @@
   fallback configuration: its unmount autosave would persist that fallback. The
   surface saves through the shared settings contract without replacing or
   unmounting the chat shell, and window history records the requested domain and
-  section so back and forward restore the same surface. The Automation domain
-  exposes the `lifecycle` and `schedules` sections; its top-bar entries must
-  preserve those requested sections when the surface reopens. The host still owns
-  the standalone `?settings-window=` utility WebView and its section-request
+  section so back and forward restore the same surface. Automation and scheduled
+  task management have no application menu, settings domain, section, or shortcut;
+  retired destinations are rejected by both frontend and native routing. The host
+  still owns the standalone `?settings-window=` utility WebView and its section-request
   event for windows the native side constructs itself.
 - The saved-role editor opens from the Role application menu as an in-window
   dialog in the requesting window instead of a separate utility window.
@@ -280,11 +280,6 @@
   instead of adding a second task switch. Use the standard Settings content
   width shared with Execution & Permissions; do not widen this page
   independently. Do not reintroduce gray fills on nested setting rows.
-- Keep the development-only `automation-hooks-preview` query as the direct,
-  interactive browser surface for lifecycle automation. Its `-theme` and
-  `-locale` parameters must keep rule creation and editing, command/message
-  action switching, tool matchers, enablement, responsive layout, light/dark
-  themes, and Chinese/English copy verifiable without a native Runtime.
 - Keep the development-only `mcp-settings-preview` query as the direct browser
   surface for Settings → Extensions → MCP. Its `-theme` and `-locale` query
   parameters must keep enabled and disabled tool switches, long wrapping tool

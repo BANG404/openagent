@@ -1,0 +1,33 @@
+[scenario]
+name = "removed automation and manual memory extraction controls"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "memory management keeps its refresh action without extraction"
+action = "eval"
+script = '''(() => {
+const panel = document.querySelector('[role=tabpanel][data-value=memory]');
+if (!panel || panel.hasAttribute('hidden')) throw new Error('memory management is not visible');
+const actions = panel.querySelectorAll('.memory-toolbar .memory-heading-actions button');
+if (actions.length !== 1) throw new Error(`expected only memory refresh, got ${actions.length} actions`);
+if (!/Refresh|刷新/.test(actions[0].textContent ?? '')) throw new Error('memory refresh is missing');
+if (document.querySelector('#application-automation-menu')) throw new Error('automation menu is still available');
+if (document.querySelector('[data-value=lifecycle], [data-value=schedules]')) throw new Error('retired settings sections are mounted');
+return true;
+})()'''
+
+[[step]]
+name = "retired shortcuts leave the current memory surface open"
+action = "eval"
+script = '''(async () => {
+for (const digit of ['7', '8']) {
+  window.dispatchEvent(new KeyboardEvent('keydown', {key: digit, code: `Digit${digit}`, ctrlKey: true, shiftKey: true, bubbles: true}));
+}
+window.dispatchEvent(new KeyboardEvent('keydown', {key: 'u', code: 'KeyU', altKey: true, bubbles: true}));
+await new Promise(resolve => setTimeout(resolve, 250));
+const panel = document.querySelector('[role=tabpanel][data-value=memory]');
+if (!panel || panel.hasAttribute('hidden')) throw new Error('retired shortcut replaced memory management');
+if (document.querySelector('#application-automation-menu, [data-value=lifecycle], [data-value=schedules]')) throw new Error('retired shortcut reopened automation');
+return true;
+})()'''

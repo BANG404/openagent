@@ -12,8 +12,6 @@
     AgentMemoryEntry,
     AgentRole,
     AppConfig,
-    AutomationHookConfig,
-    AutomationHookEvent,
     PermissionProfile,
     ProviderConfig,
   } from "$lib/types";

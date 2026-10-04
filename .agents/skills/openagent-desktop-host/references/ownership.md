@@ -136,6 +136,9 @@ ambient permissions.
 
 ## Windows child-process console policy
 
+- Decode `wsl.exe` output in the host adapter. An even-length buffer with a
+  zero high byte in at least one two-byte pair is UTF-16LE; remove its leading
+  BOM after decoding. Other output uses lossy UTF-8 with NUL bytes removed.
 - Create every host-spawned child with `CREATE_NO_WINDOW` (`0x0800_0000`) on
   Windows. The release host is a `windows`-subsystem process that owns no
   console, so a console-subsystem child created without the flag allocates a
