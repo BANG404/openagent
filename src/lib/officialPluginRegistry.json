@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-03T18:05:04Z",
+  "generated_at": "2026-10-04T12:16:31Z",
   "plugins": [
     {
       "id": "chat-groups",
@@ -15,7 +15,7 @@
       "id": "goal",
       "display_name": "Goal",
       "description": "Goal-oriented work tracking for OpenAgent.",
-      "version": "2.0.1",
+      "version": "2.2.0",
       "repository": "https://github.com/BANG404/openagent-goal",
       "homepage": "https://github.com/BANG404/openagent-goal",
       "source_url": "https://github.com/BANG404/openagent-goal.git"
@@ -24,7 +24,7 @@
       "id": "graph",
       "display_name": "Graph",
       "description": "Visual goal graph workflows for OpenAgent.",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "repository": "https://github.com/BANG404/openagent-graph",
       "homepage": "https://github.com/BANG404/openagent-graph",
       "source_url": "https://github.com/BANG404/openagent-graph.git"

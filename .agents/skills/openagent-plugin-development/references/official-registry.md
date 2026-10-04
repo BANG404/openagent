@@ -115,6 +115,17 @@ group membership, message persistence, and private Agent submission. The runner
 restores fixture settings and removes its installed packages. Record source
 revisions alongside the generated report; local candidate success does not
 qualify an older published repository or justify silently publishing commits.
+Graph qualification executes two dependent nodes and compares the persisted
+projection on the parent and each recorded child branch head, then restores those sidebars in light/English
+and dark/Chinese through `tests/blackbox/graph-projection.toml`. A child's initial
+wake snapshot is insufficient: package-owned reducer advances must persist and
+emit the latest projection for every recorded branch. Graph completion requires
+a `final_completed` child checkpoint; interrupted planning or approval text must
+not complete a node or release its dependencies. The package's own MCP tests
+cover interrupt/resume, failure, cancellation, and terminal projection recovery.
+Navigation events target the main window only; each restore verifies its unique
+assistant message as well as the Graph projection. A collapsed conversation list
+need not render the selected child's row.
 Use `BLACKBOX_FUNCTIONAL_REPORT` to preserve separate source-version reports;
 `BLACKBOX_KEEP_CONVERSATIONS=1` retains only the fixture conversations for the
 SDK's checkpoint and renderability diagnostics before explicitly deleting them.

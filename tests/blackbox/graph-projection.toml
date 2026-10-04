@@ -1,0 +1,42 @@
+[scenario]
+name = "Graph parent and child restore the same completed projection"
+fail_fast = true
+global_timeout_ms = 20000
+
+[[step]]
+name = "open the target conversation through host navigation"
+action = "eval"
+script = '''(async () => {
+  const {emitTo} = await import('/node_modules/@tauri-apps/api/event.js');
+  await emitTo('main', 'settings-open-conversation', {conversationId:window.__graphProjectionProbe.convId});
+  return true;
+})()'''
+
+[[step]]
+name = "restore the completed Graph sidebar"
+action = "eval"
+script = '''(async () => {
+  const deadline = Date.now() + 8000;
+  while (Date.now() < deadline) {
+    if (!document.getElementById(`message-${window.__graphProjectionProbe.messageId}`)) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      continue;
+    }
+    const heading = document.querySelector('.flow-heading');
+    if (heading?.textContent.includes(window.__graphProjectionProbe.objective)) break;
+    const toggle = [...document.querySelectorAll('button')].find(button => /^(Expand right sidebar|展开右侧栏)$/.test(button.getAttribute('aria-label') ?? ''));
+    toggle?.click();
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+  const probe = window.__graphProjectionProbe;
+  if (!document.getElementById(`message-${probe.messageId}`)) throw new Error('target conversation result did not restore');
+  if (document.documentElement.classList.contains('dark') !== (probe.theme === 'dark')) throw new Error('fixture theme differs');
+  if (!document.querySelector('.flow-heading')?.textContent.includes(probe.objective)) throw new Error('Graph objective is missing');
+  const items = [...document.querySelectorAll('.flow-item')];
+  if (!items.length || items.some(item => !item.classList.contains('completed'))) throw new Error('Graph sidebar contains stale node statuses');
+  if (items.some(item => !item.querySelector('.item-status')?.textContent.includes(probe.language === 'zh' ? '已完成' : 'Completed'))) throw new Error('fixture locale differs');
+  if (!document.querySelector('.flow-count')?.textContent.includes(`${probe.completedCount}/${probe.completedCount}`)) throw new Error('Graph completed count differs');
+  if (!items.some(item => item.textContent.includes(probe.result))) throw new Error('Graph child result is missing');
+  if (!document.querySelector('[contenteditable=true][role=textbox]')) throw new Error('conversation surface unmounted');
+  return true;
+})()'''

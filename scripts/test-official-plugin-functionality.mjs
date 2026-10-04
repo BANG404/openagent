@@ -17,6 +17,10 @@ assert(
   ),
   "use an isolated OPENAGENT_HOME",
 );
+assert(
+  process.env.TAURI_PILOT_SOCKET?.trim(),
+  "set TAURI_PILOT_SOCKET to the isolated fixture window",
+);
 const pluginIndex = readPluginDevIndex();
 const selectedPlugins = ["goal", "graph", "chat-groups"].filter(
   (id) =>
@@ -24,7 +28,7 @@ const selectedPlugins = ["goal", "graph", "chat-groups"].filter(
 );
 assert(selectedPlugins.length, "BLACKBOX_PLUGIN_IDS must select goal, graph or chat-groups");
 const checkouts = selectedPlugins.map((id) => resolvePluginDevPath(pluginIndex, id));
-const workspace = join(fixture, "workspace");
+const workspace = join(fixture, "workspace").replaceAll("\\", "/");
 const pilotEnv = {
   ...process.env,
   OPENAGENT_HOME: fixture,
@@ -164,7 +168,14 @@ const model = createServer(async (request, response) => {
             arguments: {
               objective: "Official plugin qualification",
               graph: {
-                nodes: [{ id: "verify", task: "Return the deterministic qualification result" }],
+                nodes: [
+                  { id: "verify", task: "Return the deterministic qualification result" },
+                  {
+                    id: "summarize",
+                    task: "Summarize the qualification result",
+                    depends_on: ["verify"],
+                  },
+                ],
               },
             },
           },
@@ -330,16 +341,79 @@ try {
         if (!existsSync(directory)) return false;
         for (const file of readdirSync(directory)) {
           if (!file.endsWith(".json")) continue;
-          const candidate = JSON.parse(readFileSync(join(directory, file), "utf8"));
+          /** @type {any} */ let candidate;
+          try {
+            candidate = JSON.parse(readFileSync(join(directory, file), "utf8"));
+          } catch (error) {
+            if (error instanceof SyntaxError) continue; // The package can be writing this file.
+            throw error;
+          }
           if (candidate.conversation_id === convId) state = candidate;
         }
         return state?.status === "completed";
       }, `${id} command did not complete its package-owned run`);
       const progress = await call(id === "goal" ? "read_goal" : "graph_read", {
-        run: state.run_id,
+        ...(id === "goal" ? { run: state.run_id } : { run_id: state.run_id }),
         wait_secs: 0,
       });
       assert.equal(progress.status, "completed");
+      if (id === "graph") {
+        const children = state.nodes.filter(
+          (/** @type {any} */ node) => node.child_conv_id && node.child_branch_id,
+        );
+        assert(children.length, "Graph did not record a child branch");
+        conversations.push(...children.map((/** @type {any} */ node) => node.child_conv_id));
+        /** @type {any} */ let parentFlow;
+        /** @type {Map<string, string>} */ const messageIds = new Map();
+        for (const [targetConv, targetBranch] of [
+          [convId, branchId],
+          ...children.map((/** @type {any} */ node) => [node.child_conv_id, node.child_branch_id]),
+        ]) {
+          await until(async () => {
+            const branches = await invoke("get_branches", { convId: targetConv });
+            const head = branches.find(
+              (/** @type {any} */ branch) => branch.id === targetBranch,
+            )?.head_checkpoint_id;
+            const checkpoints = await invoke("get_renderable_checkpoints", { convId: targetConv });
+            const checkpoint = checkpoints.find(
+              (/** @type {any} */ checkpoint) => checkpoint.meta.checkpoint_id === head,
+            );
+            const flow = checkpoint?.data.flow;
+            if (flow?.state?.status !== "completed") return false;
+            if (targetConv === convId) parentFlow = flow;
+            else assert.deepEqual(flow, parentFlow, "Graph parent/child branch projections differ");
+            const messageId = checkpoint.data.messages.findLast(
+              (/** @type {any} */ message) => message.role === "assistant",
+            )?.id;
+            assert(messageId, "Graph fixture conversation has no assistant result");
+            messageIds.set(targetConv, messageId);
+            return true;
+          }, `Graph projection was not persisted for ${targetConv}/${targetBranch}`);
+        }
+        for (const [theme, language] of [
+          ["light", "en"],
+          ["dark", "zh"],
+        ]) {
+          await invoke("save_settings", { config: { ...config, theme, language } });
+          await evaluate("location.reload(); true");
+          await until(
+            async () =>
+              (await evaluate(
+                "Boolean(document.querySelector('[contenteditable=true][role=textbox]'))",
+              )) === "true",
+            "fixture did not reload",
+          );
+          for (const target of [
+            convId,
+            ...children.map((/** @type {any} */ node) => node.child_conv_id),
+          ]) {
+            await evaluate(
+              `window.__graphProjectionProbe = ${JSON.stringify({ convId: target, messageId: messageIds.get(target), completedCount: state.nodes.length, objective: state.objective, result: state.nodes[0].result, theme, language })}; true`,
+            );
+            await runScenario("tests/blackbox/graph-projection.toml");
+          }
+        }
+      }
       report.push({
         id,
         version: summary.version,
@@ -350,6 +424,14 @@ try {
           "host bridge",
           "completed package state",
           "read progress",
+          ...(id === "graph"
+            ? [
+                "parent/child durable projection equality",
+                "restored sidebar result",
+                "light/en",
+                "dark/zh",
+              ]
+            : []),
         ],
       });
       if (id === "goal" && process.env.BLACKBOX_GOAL_APPROVAL === "1") {
