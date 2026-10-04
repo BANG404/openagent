@@ -1430,6 +1430,7 @@
           disabled={view.memoryLoading || view.memorySaving || view.memoryBusy || view.memoryDirty}
         >
           <SegmentedControl
+            fitContent
             value={view.memoryScope}
             onValueChange={(value) => (view.memoryScope = value)}
             items={[
