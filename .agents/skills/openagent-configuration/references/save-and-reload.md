@@ -18,6 +18,12 @@ the local settings command and applies only its newest outstanding read. An
 authoritative save result invalidates older reads before it updates local state,
 so a delayed response cannot restore configuration from before that save.
 
+When language and/or theme are the only configuration changes, both in-app saves
+and valid external reloads preserve MCP connections and plugin automation.
+Plugin locale context reads the updated shared configuration on each request.
+Other changes retain the usual service refresh path; language switching must
+not make already connected tools unavailable or reset package state.
+
 Lifecycle automation rules are part of the versioned configuration snapshot.
 They can run a terminal command or add an Agent message before or after a model
 or tool call, with an optional regular-expression tool matcher. Commands run in

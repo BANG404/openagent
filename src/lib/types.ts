@@ -729,6 +729,7 @@ export interface AgentPluginAuthorSummary {
 export type { AgentPluginInstallProgress } from "../../sdk/typescript/src/types";
 
 export interface AgentPluginSummary {
+  i18n?: import("../../sdk/typescript/src/types").AgentPluginI18n | null;
   id: string;
   name: string;
   builtin: boolean;
