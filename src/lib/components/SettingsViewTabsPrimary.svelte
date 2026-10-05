@@ -692,6 +692,25 @@
               </div>
             {/if}
             <Accordion.Content class="plugin-accordion-content">
+              {#if plugin.mcp_servers.length > 0 || plugin.id === desktopControlPluginId}
+                <div class="settings-section-heading">
+                  <label class="label-text" for={`plugin-mcp-mode-${plugin.id}`}
+                    >{$t("pluginMcpToolMode")}</label
+                  >
+                  <span class="detail-hint">{$t("pluginMcpToolModeHint")}</span>
+                </div>
+                <Select
+                  id={`plugin-mcp-mode-${plugin.id}`}
+                  value={view.agentPluginMcpToolMode(plugin.id)}
+                  items={[
+                    { value: "default", label: $t("pluginMcpToolModeDefault") },
+                    { value: "direct", label: $t("pluginMcpToolModeDirect") },
+                    { value: "relay", label: $t("pluginMcpToolModeRelay") },
+                  ]}
+                  ariaLabel={$t("pluginMcpToolMode")}
+                  onValueChange={(mode) => view.setAgentPluginMcpToolMode(plugin.id, mode)}
+                />
+              {/if}
               <div class="plugin-tools-heading">
                 <div class="plugin-tools-title">
                   <span class="label-text">{$t("pluginComponents")}</span>

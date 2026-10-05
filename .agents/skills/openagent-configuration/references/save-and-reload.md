@@ -24,6 +24,21 @@ Plugin locale context reads the updated shared configuration on each request.
 Other changes retain the usual service refresh path; language switching must
 not make already connected tools unavailable or reset package state.
 
+Frontend configuration normalization shares the same stable plugin-ID validator
+across enablement, host access, and MCP mode overrides. Only enablement drops
+the reserved `multi-agent-v2` ID. Bounded integer fields coerce with `Number`,
+floor finite values, clamp to their existing field limits, and use their field
+default for non-finite input. Shared Flash task normalization preserves explicit
+false switches and prompts; approval enablement remains derived from approval mode.
+
+`agent_plugins_mcp_tool_modes` persists optional `direct` / `relay` overrides by
+stable plugin ID. Missing entries follow the installed manifest's default and
+per-server declarations. Selecting Follow plugin declaration removes the key;
+package updates and uninstall retain user overrides. Mode changes use the usual
+debounced, conflict-aware settings save and MCP refresh. The next Agent turn
+uses the new policy, including checkpoint-restored deferred tools. Existing
+version 1 configuration without this additive map remains valid.
+
 Lifecycle automation rules are part of the versioned configuration snapshot.
 They can run a terminal command or add an Agent message before or after a model
 or tool call, with an optional regular-expression tool matcher. Commands run in

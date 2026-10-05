@@ -73,6 +73,25 @@ describe("diagnostic log collection config", () => {
 });
 
 describe("MCP tool policy config", () => {
+  test("normalizes plugin mounting overrides independently of enablement and access", () => {
+    const config = normalizeConfigShape({
+      agent_plugins_enabled: { goal: false },
+      agent_plugins_host_access: { goal: false },
+      agent_plugins_mcp_tool_modes: {
+        goal: "relay",
+        "message-board": "direct",
+        "Bad Plugin": "relay",
+        invalid: "lazy",
+      },
+    } as unknown as AppConfig);
+    expect(config.agent_plugins_mcp_tool_modes).toEqual({
+      goal: "relay",
+      "message-board": "direct",
+    });
+    expect(config.agent_plugins_enabled.goal).toBe(false);
+    expect(config.agent_plugins_host_access.goal).toBe(false);
+    expect(normalizeConfigShape({} as AppConfig).agent_plugins_mcp_tool_modes).toEqual({});
+  });
   test("defaults older server payloads to no disabled tools", () => {
     const normalized = normalizeConfigShape({
       mcp: { servers: [{ id: "server" }] },

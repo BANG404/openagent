@@ -95,7 +95,11 @@ and `translations`. Each locale maps flat keys to non-empty strings:
 `display_name`, `description` when present, `commands.<id>.label`,
 `commands.<id>.description`, `sidebar.<id>.title`, and package `notice.<key>`.
 `display_name` is the only universally required metadata key; require a
-`description` translation only when the corresponding package or catalog entry
+translated readable plugin name for each advertised locale. Root `name` stays
+the stable package ID, and must never be replaced with translated text.
+Marketplace search, installed cards and authorization dialogs use `display_name`
+with the same live locale resolver. Require a `description` translation only
+when the corresponding package or catalog entry
 has a description.
 All locales carry the same keys and interpolation parameters. Runtime rejects
 malformed declarations; missing declarations in older packages remain unknown.

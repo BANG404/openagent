@@ -70,6 +70,19 @@ OpenAgent implements both portable component types:
   HTTP transports are supported. Legacy HTTP+SSE entries are reported and
   skipped.
 
+Declare `extensions.openagent.mcp_tool_mode` as `direct` (the default) or
+`relay`. Direct tools are available to the model immediately; relay tools are
+mounted through `load_tool`. Optional `mcp_tool_modes` maps server names from
+`mcp.json` to overrides, for example `{"search":"relay","controls":"direct"}`.
+Keep these options in the plugin manifest so the portable MCP schema is intact.
+Invalid modes reject the manifest; unknown server overrides report a diagnostic.
+Mounting mode does not change transport, plugin identity, permissions, locale,
+disabled tools, MCP App visibility or availability to Agent Roles.
+Installed Settings cards provide Follow plugin declaration, Direct and Relay.
+The saved per-plugin override wins over all server declarations, including a
+reserved daemon client; selecting Follow removes the override. Transport and
+host-access authorization stay independent.
+
 `extensions.openagent.message_policies` is an optional array for declaring
 audience rules for plugin-produced lifecycle messages. Each entry contains a
 lowercase `tag`, `user_visible`, and `model_visible` boolean. OpenAgent

@@ -48,33 +48,48 @@ function normalizePermissionProfile(profile: PermissionProfile | undefined): Per
 
 const reasoningEfforts = new Set<ReasoningEffort>(["low", "medium", "high", "xhigh", "max"]);
 
+function boundedInteger(
+  value: unknown,
+  minimum: number,
+  maximum: number,
+  fallback: number,
+): number {
+  const numeric = Number(value);
+  return Number.isFinite(numeric)
+    ? Math.min(maximum, Math.max(minimum, Math.floor(numeric)))
+    : fallback;
+}
+
+function validPluginId(id: string): boolean {
+  return (
+    /^[a-z0-9](?:[a-z0-9.-]{0,62}[a-z0-9])?$/.test(id) && !id.includes("--") && !id.includes("..")
+  );
+}
+
+function normalizeFlashAgent(task: { enabled: boolean; prompt: string } | undefined) {
+  return { enabled: task?.enabled ?? true, prompt: task?.prompt ?? "" };
+}
+
 export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
   const normalizedInput = { ...input } as AppConfig & Record<string, unknown>;
   delete normalizedInput.web_search;
   delete normalizedInput.fetch;
   delete normalizedInput.github_token;
-  const requestedMaxTurns = Number(input.agent_max_turns);
-  const agentMaxTurns = Number.isFinite(requestedMaxTurns)
-    ? Math.min(1000, Math.max(1, Math.floor(requestedMaxTurns)))
-    : 10;
-  const requestedCompactionThreshold = Number(input.context_compaction_threshold);
-  const contextCompactionThreshold = Number.isFinite(requestedCompactionThreshold)
-    ? Math.min(1_000_000, Math.max(1_000, Math.floor(requestedCompactionThreshold)))
-    : 200_000;
-  const requestedCompactionRecentMessageCount = Number(
-    input.context_compaction_recent_message_count,
+  const agentMaxTurns = boundedInteger(input.agent_max_turns, 1, 1000, 10);
+  const contextCompactionThreshold = boundedInteger(
+    input.context_compaction_threshold,
+    1_000,
+    1_000_000,
+    200_000,
   );
-  const contextCompactionRecentMessageCount = Number.isFinite(requestedCompactionRecentMessageCount)
-    ? Math.min(20, Math.max(0, Math.floor(requestedCompactionRecentMessageCount)))
-    : 5;
-  const requestedRetryCount = Number(input.model_retry?.retry_count);
-  const retryCount = Number.isFinite(requestedRetryCount)
-    ? Math.min(10, Math.max(0, Math.floor(requestedRetryCount)))
-    : 3;
-  const requestedRetryDelayMs = Number(input.model_retry?.retry_delay_ms);
-  const retryDelayMs = Number.isFinite(requestedRetryDelayMs)
-    ? Math.min(60_000, Math.max(0, Math.floor(requestedRetryDelayMs)))
-    : 30_000;
+  const contextCompactionRecentMessageCount = boundedInteger(
+    input.context_compaction_recent_message_count,
+    0,
+    20,
+    5,
+  );
+  const retryCount = boundedInteger(input.model_retry?.retry_count, 0, 10, 3);
+  const retryDelayMs = boundedInteger(input.model_retry?.retry_delay_ms, 0, 60_000, 30_000);
   const providers = (input.providers ?? []).map((provider) => {
     const openai_api_mode: OpenAiApiMode =
       provider.openai_api_mode === "chat_completions" ? "chat_completions" : "responses";
@@ -154,39 +169,20 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
     ? input.approval_mode
     : "off";
   const permission_profile = normalizePermissionProfile(input.permission_profile);
-  const requestedDoubleColumnMinWidth = Number(input.message_double_column_min_width);
-  const messageDoubleColumnMinWidth = Number.isFinite(requestedDoubleColumnMinWidth)
-    ? Math.min(2400, Math.max(960, Math.floor(requestedDoubleColumnMinWidth)))
-    : 1200;
-  const requestedBookModeFontSize = Number(input.book_mode_font_size);
-  const bookModeFontSize = Number.isFinite(requestedBookModeFontSize)
-    ? Math.min(24, Math.max(14, Math.floor(requestedBookModeFontSize)))
-    : 17;
+  const messageDoubleColumnMinWidth = boundedInteger(
+    input.message_double_column_min_width,
+    960,
+    2400,
+    1200,
+  );
+  const bookModeFontSize = boundedInteger(input.book_mode_font_size, 14, 24, 17);
   const flash_agents = {
-    title: {
-      enabled: input.flash_agents?.title?.enabled ?? true,
-      prompt: input.flash_agents?.title?.prompt ?? "",
-    },
-    memory: {
-      enabled: input.flash_agents?.memory?.enabled ?? true,
-      prompt: input.flash_agents?.memory?.prompt ?? "",
-    },
-    skill_category: {
-      enabled: input.flash_agents?.skill_category?.enabled ?? true,
-      prompt: input.flash_agents?.skill_category?.prompt ?? "",
-    },
-    mcp_server_category: {
-      enabled: input.flash_agents?.mcp_server_category?.enabled ?? true,
-      prompt: input.flash_agents?.mcp_server_category?.prompt ?? "",
-    },
-    suggestions: {
-      enabled: input.flash_agents?.suggestions?.enabled ?? true,
-      prompt: input.flash_agents?.suggestions?.prompt ?? "",
-    },
-    hook: {
-      enabled: input.flash_agents?.hook?.enabled ?? true,
-      prompt: input.flash_agents?.hook?.prompt ?? "",
-    },
+    title: normalizeFlashAgent(input.flash_agents?.title),
+    memory: normalizeFlashAgent(input.flash_agents?.memory),
+    skill_category: normalizeFlashAgent(input.flash_agents?.skill_category),
+    mcp_server_category: normalizeFlashAgent(input.flash_agents?.mcp_server_category),
+    suggestions: normalizeFlashAgent(input.flash_agents?.suggestions),
+    hook: normalizeFlashAgent(input.flash_agents?.hook),
     tool_approval: {
       enabled: approval_mode === "auto",
       prompt: input.flash_agents?.tool_approval?.prompt ?? "",
@@ -204,22 +200,20 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
   const agent_plugins_enabled = Object.fromEntries(
     Object.entries(input.agent_plugins_enabled ?? {}).filter(
       ([id, enabled]) =>
-        id !== "multi-agent-v2" &&
-        /^[a-z0-9](?:[a-z0-9.-]{0,62}[a-z0-9])?$/.test(id) &&
-        !id.includes("--") &&
-        !id.includes("..") &&
-        typeof enabled === "boolean",
+        id !== "multi-agent-v2" && validPluginId(id) && typeof enabled === "boolean",
     ),
   );
   const chat_groups_enabled =
     agent_plugins_enabled["chat-groups"] ?? input.chat_groups_enabled ?? true;
   const agent_plugins_host_access = Object.fromEntries(
     Object.entries(input.agent_plugins_host_access ?? {}).filter(
-      ([id, granted]) =>
-        /^[a-z0-9](?:[a-z0-9.-]{0,62}[a-z0-9])?$/.test(id) &&
-        !id.includes("--") &&
-        !id.includes("..") &&
-        typeof granted === "boolean",
+      ([id, granted]) => validPluginId(id) && typeof granted === "boolean",
+    ),
+  );
+
+  const agent_plugins_mcp_tool_modes = Object.fromEntries(
+    Object.entries(input.agent_plugins_mcp_tool_modes ?? {}).filter(
+      ([id, mode]) => validPluginId(id) && (mode === "direct" || mode === "relay"),
     ),
   );
 
@@ -231,6 +225,7 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
     chat_groups_enabled,
     agent_plugins_enabled,
     agent_plugins_host_access,
+    agent_plugins_mcp_tool_modes,
     language: input.language ?? "zh",
     launch_on_startup: input.launch_on_startup ?? false,
     onboarding_completed: input.onboarding_completed ?? false,

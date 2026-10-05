@@ -1,0 +1,115 @@
+[scenario]
+name = "Plugin MCP mounting overrides persist and names follow the live locale"
+fail_fast = true
+global_timeout_ms = 90000
+
+[[step]]
+name = "each installed candidate has its localized name and independent mounting control"
+action = "eval"
+script = '''(async () => {
+  const probe = window.__pluginModesProbe;
+  for (const plugin of probe.plugins) {
+    const card = document.querySelector(`.plugin-accordion-item[data-plugin-id="${plugin.id}"]`);
+    if (!card) throw new Error(`missing installed plugin ${plugin.id}`);
+    const name = card.querySelector('.plugin-accordion-copy .label-text').textContent.trim();
+    if (name !== plugin.name) throw new Error(`${plugin.id}: ${name} !== ${plugin.name}`);
+    const trigger = card.querySelector('.plugin-accordion-trigger');
+    if (trigger.getAttribute('aria-expanded') !== 'true') trigger.click();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    const mode = document.getElementById(`plugin-mcp-mode-${plugin.id}`);
+    if (!mode || mode.getAttribute('aria-label') !== probe.label) throw new Error('missing or untranslated mounting control');
+    if (!card.textContent.includes(probe.hint)) throw new Error('mounting explanation is missing');
+  }
+  return 'all localized names and mounting controls passed';
+})()'''
+
+[[step]]
+name = "direct, relay and follow save through the actual shared Select and survive reopening"
+action = "eval"
+script = '''(() => {
+  delete window.__pluginModesResult;
+  document.body.removeAttribute('data-plugin-modes-finished');
+  window.__pluginModesTask = (async () => {
+  const {desktopOpenAgent: client} = await import('/src/lib/openagent/tauriClient.ts');
+  const probe = window.__pluginModesProbe;
+  const until = async predicate => {
+    const deadline = Date.now() + 15000;
+    while (Date.now() < deadline) { if (await predicate()) return; await new Promise(resolve => setTimeout(resolve, 100)); }
+    throw new Error(`mounting check timed out at ${window.__pluginModesStage}`);
+  };
+  const id = 'message-board';
+  const before = await client.invokeProduct('get_settings', {});
+  const pointer = (element, type) => element.dispatchEvent(new PointerEvent(type, {bubbles:true,cancelable:true,button:0,pointerType:'mouse',isPrimary:true}));
+  for (const [mode, label] of [['direct',probe.direct],['relay',probe.relay],['default',probe.follow]]) {
+    window.__pluginModesStage = `${mode}: options`;
+    const control = document.getElementById(`plugin-mcp-mode-${id}`);
+    control.scrollIntoView({block:'center'});
+    pointer(control,'pointerdown');
+    pointer(control,'pointerup');
+    await until(() => [...document.querySelectorAll('[role=option]')].some(option => option.textContent.trim() === label));
+    const option = [...document.querySelectorAll('[role=option]')].find(option => option.textContent.trim() === label);
+    pointer(option,'pointerdown');
+    pointer(option,'pointerup');
+    window.__pluginModesStage = `${mode}: saved config`;
+    await until(async () => {
+      const config = await client.invokeProduct('get_settings', {});
+      return mode === 'default' ? !Object.hasOwn(config.agent_plugins_mcp_tool_modes, id) : config.agent_plugins_mcp_tool_modes[id] === mode;
+    });
+    const config = await client.invokeProduct('get_settings', {});
+    if (JSON.stringify(config.agent_plugins_enabled) !== JSON.stringify(before.agent_plugins_enabled) || JSON.stringify(config.agent_plugins_host_access) !== JSON.stringify(before.agent_plugins_host_access)) throw new Error('mounting mode changed enablement or authorization');
+    document.querySelector('[role=dialog] button[aria-label=Close], [role=dialog] button[aria-label=关闭]').click();
+    window.__pluginModesStage = `${mode}: close`;
+    await until(() => !document.querySelector('[role=dialog]'));
+    document.querySelector('#application-integrations-menu').click();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    [...document.querySelectorAll('[role=menuitem]')].find(item => /Plugins|插件/.test(item.textContent)).click();
+    window.__pluginModesStage = `${mode}: reopen`;
+    await until(() => !!document.querySelector('.plugin-management-tabs'));
+    document.querySelectorAll('.plugin-management-tabs button')[1].click();
+    window.__pluginModesStage = `${mode}: installed card`;
+    await until(() => !!document.querySelector('.plugin-accordion-item[data-plugin-id="message-board"]'));
+    const card = document.querySelector('.plugin-accordion-item[data-plugin-id="message-board"]');
+    const trigger = card.querySelector('.plugin-accordion-trigger');
+    if (trigger.getAttribute('aria-expanded') !== 'true') trigger.click();
+    window.__pluginModesStage = `${mode}: restored control value`;
+    await until(() => document.getElementById(`plugin-mcp-mode-${id}`)?.textContent.trim() === label);
+  }
+  return 'all three choices persisted through reopening with independent permissions';
+  })().then(value => { window.__pluginModesResult = {value}; })
+    .catch(error => { window.__pluginModesResult = {error:String(error)}; })
+    .finally(() => { document.body.setAttribute('data-plugin-modes-finished','true'); });
+  return true;
+})()'''
+
+[[step]]
+name = "wait for persisted mounting checks across service refresh"
+action = "wait"
+selector = "body[data-plugin-modes-finished=true]"
+timeout_ms = 70000
+
+[[step]]
+name = "assert every mounting persistence check succeeded"
+action = "eval"
+script = '''if (window.__pluginModesResult?.error) throw new Error(window.__pluginModesResult.error); if (!window.__pluginModesResult?.value) throw new Error('missing mounting result'); window.__pluginModesResult.value'''
+
+[[step]]
+name = "live language switching updates names and controls without changing plugin identity"
+action = "eval"
+script = '''(async () => {
+  const {setLocale} = await import('/src/lib/i18n.ts');
+  const probe = window.__pluginModesProbe;
+  const cards = probe.plugins.map(plugin => document.querySelector(`.plugin-accordion-item[data-plugin-id="${plugin.id}"]`));
+  const {locale} = await import('/src/lib/i18n.ts');
+  let current;
+  const stop = locale.subscribe(value => { current = value; }); stop();
+  for (const language of [current === 'en' ? 'zh' : 'en',current]) {
+    setLocale(language);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    for (let index = 0; index < probe.plugins.length; index++) {
+      const plugin = probe.plugins[index];
+      const card = document.querySelector(`.plugin-accordion-item[data-plugin-id="${plugin.id}"]`);
+      if (card !== cards[index] || card.querySelector('.plugin-accordion-copy .label-text').textContent.trim() !== plugin.names[language]) throw new Error('locale switch changed identity or left a stale name');
+    }
+  }
+  return 'both language directions kept the same installed cards';
+})()'''

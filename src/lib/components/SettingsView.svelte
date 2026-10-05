@@ -458,6 +458,18 @@
     return draftConfig.agent_plugins_host_access?.[pluginId] ?? false;
   }
 
+  function agentPluginMcpToolMode(pluginId: string): string {
+    return draftConfig.agent_plugins_mcp_tool_modes?.[pluginId] ?? "default";
+  }
+
+  function setAgentPluginMcpToolMode(pluginId: string, mode: string) {
+    const modes = { ...(draftConfig.agent_plugins_mcp_tool_modes ?? {}) };
+    if (mode === "default") delete modes[pluginId];
+    else if (mode === "direct" || mode === "relay") modes[pluginId] = mode;
+    else return;
+    draftConfig.agent_plugins_mcp_tool_modes = modes;
+  }
+
   function setAgentPluginHostAccess(pluginId: string, granted: boolean) {
     draftConfig.agent_plugins_host_access = {
       ...(draftConfig.agent_plugins_host_access ?? {}),
@@ -2238,6 +2250,12 @@
     },
     get setAgentPluginEnabled() {
       return setAgentPluginEnabled;
+    },
+    get agentPluginMcpToolMode() {
+      return agentPluginMcpToolMode;
+    },
+    get setAgentPluginMcpToolMode() {
+      return setAgentPluginMcpToolMode;
     },
     get pluginRequestsHostAccess() {
       return pluginRequestsHostAccess;

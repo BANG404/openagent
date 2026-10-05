@@ -56,6 +56,18 @@ does not prove Runtime functionality or qualify a published release.
 
 ## Developer acceptance before publication
 
+For mounting and localized-name changes, run
+`bun run test:blackbox:plugin-mcp-modes` in the isolated
+`plugin-mcp-modes-i18n` instance with its explicit `TAURI_PILOT_SOCKET`.
+The runner installs sources from the development index; set
+`BLACKBOX_PLUGIN_CANDIDATE_ROOT` to an independent directory containing the five
+plugin ID subdirectories to qualify unpublished candidates. It checks all five
+localized names, changes Direct/Relay/Follow through the shared Select,
+verifies persistence after reopening and independent enablement/host access,
+and switches the live locale in all light/dark and English/Chinese combinations.
+Set `BLACKBOX_NATIVE_WINDOW_HANDLE` to that instance's main HWND for native
+captures. It requires a fresh fixture and restores settings and installed state.
+
 For installation-time computer access prompts, run
 `bun run test:blackbox:plugin-host-access` against an isolated Tauri fixture with
 `OPENAGENT_HOME` and `TAURI_PILOT_SOCKET` set to that instance. The committed

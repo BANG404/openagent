@@ -634,6 +634,7 @@ export interface McpServerConfig {
    * Portable Agent Plugins also namespace their id with `plugin:`.
    */
   plugin_owned?: boolean;
+  tool_mode?: "direct" | "relay";
   catalog?: McpServerCatalog;
 }
 
@@ -653,6 +654,7 @@ export interface AgentPluginSkillSummary {
 export interface AgentPluginMcpSummary {
   name: string;
   transport: "stdio" | "streamable-http";
+  tool_mode?: "direct" | "relay";
 }
 
 export interface AgentPluginSidebarViewSummary {
@@ -729,6 +731,7 @@ export interface AgentPluginAuthorSummary {
 export type { AgentPluginInstallProgress } from "../../sdk/typescript/src/types";
 
 export interface AgentPluginSummary {
+  mcp_tool_mode?: "direct" | "relay";
   i18n?: import("../../sdk/typescript/src/types").AgentPluginI18n | null;
   id: string;
   name: string;
@@ -954,6 +957,7 @@ export interface AppConfig {
   chat_groups_enabled?: boolean;
   agent_plugins_enabled?: Record<string, boolean>;
   agent_plugins_host_access?: Record<string, boolean>;
+  agent_plugins_mcp_tool_modes?: Record<string, "direct" | "relay">;
   theme: "system" | "light" | "dark";
   language: "zh" | "en";
   launch_on_startup: boolean;

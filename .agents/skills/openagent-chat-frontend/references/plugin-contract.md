@@ -1,5 +1,10 @@
 # Shared Runtime Types
 
+Plugin MCP descriptors carry additive `mcp_tool_mode` metadata. Installed
+Settings cards resolve the optional user override separately from the package
+default; the shared Select writes through the controller setter. Display names
+use plugin i18n independently of stable package, command and MCP identities.
+
 The shared `src/lib/types.ts` file also carries non-transcript Runtime
 contracts such as Agent Plugin update summaries. Extending those contracts
 must preserve the existing message, checkpoint, and streaming fields so chat

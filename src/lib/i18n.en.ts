@@ -373,6 +373,12 @@ const en: Record<TranslationKeys, string> = {
   pluginComponents: "Components",
   pluginSkills: "Skills",
   pluginMcpServers: "MCP servers",
+  pluginMcpToolMode: "MCP tool mounting",
+  pluginMcpToolModeHint:
+    "Direct tools are available immediately. Relay tools mount when the agent calls load_tool.",
+  pluginMcpToolModeDefault: "Follow plugin declaration",
+  pluginMcpToolModeDirect: "Direct",
+  pluginMcpToolModeRelay: "Relay (load_tool)",
   pluginCommands: "commands",
   pluginMessagePolicies: "message policies",
   pluginSidebarViews: "sidebar views",
