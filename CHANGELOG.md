@@ -10,6 +10,172 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.75.0-beta.1] - 2026-10-05
+
+### Features
+- **plugins**: Add multilingual support to official catalog
+- **plugins**: Qualify message board and marketplace language support
+- **plugins**: Adopt SDK live locale contract
+- **settings**: Remove automation management and manual memory extraction
+- **settings**: Improve automation and memory management interactions
+- **plugins**: Index local development paths and require acceptance
+- **plugins**: Expose optional Goal lifecycle commands
+- **ui**: Animate segmented selection and colocate plugin progress
+- **plugins**: Unify Cua cards and allow concurrent installations
+- **plugins**: Add install progress and plugin uninstall
+- **plugins**: Add management views and unify install
+- **plugins**: Refine marketplace and plugin verification
+- **workflow**: Serialize overlapping agent delivery
+- **plugins**: Add official plugin marketplace
+- **plugins**: Add official plugin registry contract
+- **settings**: Refine scheduled task actions
+- **plugins**: Route product flows through package capabilities
+- **runtime**: Persist loaded MCP tool mounts
+- **plugins**: Share host capabilities across plugin packages
+- **plugins**: Require explicit host environment authorization
+- **mcp**: Offer MCP authorization only where OAuth can complete
+- **plugins**: Add manual plugin update check
+- **host**: Update SDK for complete child-agent control
+- **host**: Run Cua through plugin daemon supervisor
+- **host**: Supervise declared plugin daemons
+- **runtime**: Complete Codex V2 child agents
+- Consume generic plugin flow events
+- Route built-in flows through standard plugins
+- Integrate Codex V2 sub-agent runtime
+- Use chat model for hidden context compaction
+- **ui**: Collapse conversation beside right sidebar
+- **plugins**: Prefer standard package implementations
+- **checkpoint-flow**: Render a package flow's own projection
+- **plugins**: Expose the package flow contract to the host
+- **plugins**: Show validated package metadata on the plugin card
+- **host**: Consume the resolved plugin process policy
+- **chat**: Render markdown in the user transcript bubble
+- **composer**: Render markdown in a contenteditable editor
+- **composer**: Add markdown model and caret projection
+- **plugins**: Add marketplace discovery surface
+- **mcp**: Complete OpenAI app bridge compatibility
+- **mcp**: Expose complete OpenAI plugin app bridge
+- **mcp**: Complete OpenAI plugin compatibility
+- **plugins**: Manage Cua daemon through Agent Plugins
+- **mcp**: App host capabilities
+- **mcp**: Render MCP Apps resources in chat
+- **chat**: Add composer text formatting
+- **plugins**: Subscribe to published builtin packages
+- **plugins**: Support OpenAI plugin standard
+- **plugins**: Render external automation messages
+- **chat**: Refresh the Runtime command catalog on lifecycle changes
+- **plugins**: Gate right-sidebar views by lifecycle
+- **plugins**: Expose uninstall and recover lifecycle
+- **plugins**: Add verified third-party updates
+- **plugins**: Enforce builtin lifecycle boundaries
+- **plugins**: Unify builtin checkpoint audiences
+- **plugins**: Complete sidebar capability boundaries
+- **plugins**: Expose portable plugin commands
+- **plugins**: Support durable plugin messages
+- **plugins**: Add shared lifecycle switches
+- **ui**: Convert remaining status icons to dots
+- **ui**: Replace action icons with dot matrix
+- **plugins**: Standardize builtin capabilities
+- Register builtin plugin capabilities
+- Standardize third-party agent plugins
+- Add GitHub plugin update reminders
+- Standardize plugins and externalize cua driver
+
+### Bug Fixes
+- **ui**: Avoid repeated terminal panel titles
+- **chat**: Restore terminal sidebar from saved command history
+- **terminal**: Bound background terminal output scrolling
+- **plugins**: Request computer access during installation
+- **sdk**: Update runtime tool dispatch
+- **plugins**: Align locale validation with standard
+- **windows**: Decode WSL byte pairs with typed chunks
+- **settings**: Compact memory scope control
+- **plugins**: Remove marketplace introduction
+- **plugins**: Clarify enablement and host access controls
+- **sdk**: Retain loaded tools across approval continuation
+- **settings**: Move Chat compaction out of Flash tasks
+- **ui**: Keep segmented selection visible in light theme
+- **chat**: Surface tool failures and verify Goal approval cancellation
+- **plugins**: Align view switch with page heading
+- **plugins**: Simplify plugin store heading and description
+- **sdk**: Pin approval resume deadlock fix
+- Deduplicate plugin update notifications
+- **ui**: Restore translucent light mica surfaces
+- **ui**: Align light mica surfaces with dark theme
+- **plugins**: Repair goal flow launch and catalog alias
+- **plugins**: Name the plugins whose update check failed
+- **plugins**: Report GitHub rate limits truthfully and cache update checks
+- **host**: Repair stale Cua supervisor checks on master
+- **host**: Normalize multi-agent as a runtime capability
+- **role-editor**: Give each editor column its own scroll window
+- Make right sidebar fill collapsed conversation view
+- **host**: Keep Multi-Agent V2 out of plugin settings
+- **chat**: Clean empty composer formatting
+- **runtime**: Resume unloaded child messaging
+- **runtime**: Close child-agent lifecycle races
+- **chat**: Stabilize composer selection editing
+- **mcp**: Repair silent MCP Apps host bridge failures
+- **mcp**: Correct OAuth settings translations
+- **mcp**: Avoid advertising ephemeral context updates
+- **settings**: Keep split settings surfaces writable
+- **plugins**: Deliver hook output without rewriting tool results
+- **chat**: Align the composer skeleton with the mounted composer
+- **chat**: Read the chat-group scope from a structured tool result
+- **plugins**: Keep sidebar lifecycle and panel document current
+- **i18n**: Add the missing pluginUninstalled copy
+- **plugins**: Name the Agent Skills rule that skips a skill
+- **plugins**: Track archive safety update
+- **chat**: Keep runtime polling messages hidden
+- Run plugin hooks from package roots
+- Prevent theme sync flash
+- **ui**: Restore dark mode border contrast
+- **desktop**: Reveal primary window before startup bootstrap
+
+### Refactoring
+- **plugins**: Remove runtime-owned workflow surfaces
+- **plugins**: Point host at generic orchestration bridge
+- **plugins**: Remove runtime bindings and deduplicate commands
+- **plugins**: Isolate package projections by branch
+- **plugins**: Finish generic package flow boundary
+- **plugins**: Route Goal and Graph through packages
+- **sdk**: Remove external harness integration
+- **settings**: Branch plugin cards on the declared runtime
+
+### Documentation
+- **plugins**: Document the shared host capability bridge
+- **plugins**: Sync generic host authorization skills
+- **runtime**: Document multi-agent ownership
+- **plugins**: Document remote marketplace sources and OAuth discovery
+
+### Testing
+- **plugins**: Qualify message board marketplace candidate
+- **plugins**: Cover shared bridge token registration
+- **plugins**: Cover the update-check failure copy natively
+- **blackbox**: Drive a plugin process end to end
+- **plugins**: Add sidebar blackbox coverage
+
+### Styling
+- **frontend**: Customize text selection highlight
+- **checkpoint-flow**: Apply the repository formatter
+- **plugins**: Format uninstall copy
+
+### Miscellaneous
+- **sdk**: Adopt dev-configured real-model qualification
+- **plugins**: Align catalog with goal and graph releases
+- **workflow**: Standardize repository delivery on OWT
+- **plugins**: Refresh published official package versions
+- **sdk**: Advance pinned runtime for plugin install progress
+- **sdk**: Advance pinned runtime after plugin merge
+- **sdk**: Remove stale harness metadata
+- **sdk**: Retain concurrent runtime revision
+- **sdk**: Pin git archive release-tarball extraction fix
+- **sdk**: Pin cached and rate-limit aware plugin update checks
+- Update SDK runtime revision
+- **sdk**: Advance plugin runtime gitlink
+- **sdk**: Advance the runtime submodule
+- **sdk**: Advance runtime submodule and drop the bundled Cua driver
+- **sdk**: Bump the pinned SDK revision
+
 ## [0.74.0-beta.1] - 2026-09-27
 
 ### Features
