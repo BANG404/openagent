@@ -1,5 +1,19 @@
 ## Layout
 
+### Embedded surface titles
+
+Give each visible surface name one owner. When a selected sidebar tab or
+management surface chrome already names its content, embedded components start
+with useful content, status, or actions instead of another heading with that
+name. Keep accessible region, dialog, and iframe names; those labels do not
+create an extra visual heading. Distinct section headings, file paths, and task
+objectives remain content. Standalone presentations without naming chrome own
+their heading explicitly, as the role editor's presentation contract does.
+
+Check both the host and embedded content, including plugin HTML, when reviewing
+titles. Verify the composed surface in both themes and languages instead of
+judging an isolated component alone.
+
 When the conversation pane is collapsed, an available right sidebar becomes
 the sole workspace surface and must occupy the full workspace width. The
 sidebar's saved collapse preference remains available when the conversation

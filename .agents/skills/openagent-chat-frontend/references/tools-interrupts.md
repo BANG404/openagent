@@ -136,8 +136,12 @@
   compact windows, overlay the sidebar across the usable
   application body instead of shrinking the transcript and sidebar content.
   The right sidebar does not embed a general-purpose website browser.
-- Present background terminal sessions as an accordion: each session row is a
-  command record projected from both the selected branch's durable transcript
+- Present background terminal sessions as an accordion. The right-sidebar
+  navigation owns the visible terminal title; the terminal toolbar contains only the running count and Refresh,
+  while the panel retains its localized accessible name. Verify this single
+  visible title and refresh behavior in the terminal-history black-box scenario.
+  Each session row is a command record projected from both the selected branch's
+  durable transcript
   and the Runtime's live session list. Restore saved `exec_command` and
   `write_stdin` observations using their `terminal_poll` metadata, including the
   metadata session ID on completed commands. Merge by session ID with the live
@@ -152,6 +156,8 @@
   `bun run test:blackbox:terminal-history` with that instance's pilot socket.
   It verifies disconnected output, unique session rows, controls, collapse,
   reopen, and reload in light/dark and Chinese/English without a provider.
+  On Windows, set `BLACKBOX_NATIVE_WINDOW_HANDLE` to the isolated main window's
+  HWND to capture native screenshots alongside each WebView screenshot.
   Each session row is a
   disclosure heading with its command, working directory, time, and status;
   expanding a row reveals that session's live output and controls inline,

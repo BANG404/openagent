@@ -58,10 +58,24 @@ try {
         const copy = locale === "zh" ? zh : en;
         pilot([
           "eval",
-          `window.__terminalHistoryCopy = ${JSON.stringify(copy.backgroundTerminalHistoryDescription)}; true`,
+          `window.__terminalHistoryCopy = ${JSON.stringify(copy.backgroundTerminalHistoryDescription)}; window.__terminalPanelCopy = ${JSON.stringify({ title: copy.backgroundTerminals, running: copy.backgroundTerminalsRunning, refresh: copy.refresh })}; true`,
         ]);
         pilot(["run", join(repo, "tests/blackbox/terminal-history.toml")]);
         pilot(["screenshot", join(artifacts, `${theme}-${locale}-${phase}.png`)]);
+        if (process.platform === "win32" && process.env.BLACKBOX_NATIVE_WINDOW_HANDLE) {
+          const capture = spawnSync(
+            "python",
+            [
+              join(repo, "scripts/capture-windows-window.py"),
+              "--hwnd",
+              process.env.BLACKBOX_NATIVE_WINDOW_HANDLE,
+              "--output",
+              join(artifacts, `${theme}-${locale}-${phase}-native.png`),
+            ],
+            { encoding: "utf8", windowsHide: true },
+          );
+          assert.equal(capture.status, 0, capture.stderr || String(capture.error));
+        }
       }
     }
   }

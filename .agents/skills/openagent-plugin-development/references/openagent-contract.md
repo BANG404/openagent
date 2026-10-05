@@ -360,6 +360,13 @@ only includes data requested by the view. The host registers it beside the built
 `status`, `files`, `terminal`, and `group` panels and persists selection with
 the existing conversation/branch scope store.
 
+The host's navigation owns the visible sidebar view title. Plugin HTML starts
+with its content or actions instead of repeating the manifest view title as an
+introductory heading; distinct content section headings are allowed. The host
+keeps localized region and iframe names for accessibility. Review the composed
+host/plugin surface under the design system's
+[embedded-surface title rule](../../openagent-design-system/references/layout.md#embedded-surface-titles).
+
 The first host surface accepts UTF-8 HTML entries and runs them in an iframe
 with `sandbox="allow-scripts"`. Third-party UI runs in an isolated plugin surface. The host sends only an
 allowlisted panel context (workspace and opaque conversation/branch identity,

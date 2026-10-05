@@ -366,13 +366,10 @@
   <div class="terminal-panel-surface">
     {#if active}
       <header class="panel-header">
-        <span>
-          <strong>{$t("backgroundTerminals")}</strong>
-          <small
-            >{sessions.filter((session) => session.status === "running").length}
-            {$t("backgroundTerminalsRunning")}</small
-          >
-        </span>
+        <small
+          >{sessions.filter((session) => session.status === "running").length}
+          {$t("backgroundTerminalsRunning")}</small
+        >
         <div class="header-actions">
           <Tooltip text={$t("refresh")}>
             {#snippet trigger(props)}
@@ -380,6 +377,7 @@
                 {...props}
                 type="button"
                 class="icon-button"
+                aria-label={$t("refresh")}
                 onclick={() => void poll()}
                 disabled={refreshing}
               >
@@ -571,23 +569,11 @@
   }
 
   .panel-header {
-    min-height: 52px;
+    min-height: 40px;
     justify-content: space-between;
     gap: 12px;
     padding: 0 10px 0 14px;
     border-bottom: 1px solid var(--border);
-  }
-
-  .panel-header > span {
-    display: grid;
-    min-width: 0;
-    gap: 1px;
-  }
-
-  .panel-header strong {
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0;
   }
 
   .panel-header small {

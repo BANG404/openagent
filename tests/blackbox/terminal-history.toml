@@ -4,6 +4,28 @@ fail_fast = true
 global_timeout_ms = 30000
 
 [[step]]
+name = "navigation owns the terminal title and the toolbar keeps status and refresh"
+action = "eval"
+script = '''(() => {
+  const panel = document.querySelector('#background-terminal-panel');
+  const tab = document.querySelector('#checkpoint-flow-panel .panel-navigation button.active');
+  const toolbar = panel?.querySelector('.panel-header');
+  const copy = window.__terminalPanelCopy;
+  if (tab?.textContent.trim() !== copy.title) throw new Error('localized terminal navigation title missing');
+  if (panel?.getAttribute('aria-label') !== copy.title) throw new Error('terminal accessible name missing');
+  if (!toolbar || toolbar.textContent.includes(copy.title) || toolbar.querySelector('strong, h1, h2, h3')) throw new Error('terminal toolbar repeats the navigation title');
+  if (!toolbar.textContent.replace(/\s+/g, ' ').trim().includes(`0 ${copy.running}`)) throw new Error('running summary missing');
+  const refresh = toolbar.querySelector('button');
+  if (refresh?.getAttribute('aria-label') !== copy.refresh || refresh.disabled) throw new Error('accessible refresh action missing');
+  return 'one terminal title with status and refresh';
+})()'''
+
+[[step]]
+name = "refresh the recovered sessions"
+action = "click"
+target = "#background-terminal-panel .panel-header button"
+
+[[step]]
 name = "terminal entry, output and history notice restore without duplicate rows or live controls"
 action = "eval"
 script = '''(() => {
