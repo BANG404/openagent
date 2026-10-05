@@ -82,6 +82,7 @@ All notable changes to this project will be documented in this file.
 - Standardize plugins and externalize cua driver
 
 ### Bug Fixes
+- **ci**: Align local bundle qualification with release gates
 - **ci**: Repair release qualification gates
 - **ui**: Avoid repeated terminal panel titles
 - **chat**: Restore terminal sidebar from saved command history
