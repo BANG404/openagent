@@ -56,6 +56,7 @@
     "test:blackbox:mcp-apps": "bun scripts/test-mcp-apps-blackbox.mjs",
     "test:blackbox:mcp-oauth": "bun scripts/test-mcp-oauth-blackbox.mjs",
     "test:blackbox:compaction-settings": "bun scripts/test-compaction-settings-blackbox.mjs",
+    "test:blackbox:background-terminal-scroll": "bun scripts/test-background-terminal-scroll-blackbox.mjs",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "test:agent-runtime": "cargo test --manifest-path sdk/rust/openagent-runtime/Cargo.toml",
     "dev:agent-server": "cargo run --manifest-path src-tauri/Cargo.toml --features embedded-runtime --bin openagent-agent-server",

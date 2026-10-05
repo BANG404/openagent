@@ -1,0 +1,22 @@
+[scenario]
+name = "background terminal output stays in its own scroll viewport"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "long command output can be scrolled inside the expanded session"
+action = "eval"
+script = '''(async () => {
+  const output = document.querySelector('#background-terminal-panel .terminal-output');
+  const viewport = document.querySelector('#background-terminal-panel .terminal-output-scroll .ui-scroll-area-viewport');
+  if (!output || !viewport) throw new Error('expanded terminal output is missing');
+  output.textContent = Array.from({length: 80}, (_, index) => `output line ${index + 1}`).join('\n');
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  if (viewport.clientHeight <= 0 || viewport.scrollHeight <= viewport.clientHeight) {
+    throw new Error(`output has no bounded scroll viewport: ${viewport.clientHeight}/${viewport.scrollHeight}`);
+  }
+  viewport.scrollTop = viewport.scrollHeight;
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  if (viewport.scrollTop <= 0) throw new Error('terminal output did not scroll to its last line');
+  return `terminal viewport scrolls (${viewport.clientHeight}px high)`;
+})()'''

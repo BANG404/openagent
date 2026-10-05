@@ -437,7 +437,7 @@
                         {$t("backgroundTerminalOutputTruncated")}
                       </p>{/if}
                     <ScrollArea
-                      height="100%"
+                      height="min(280px, 40vh)"
                       class="terminal-output-scroll"
                       bind:viewport={outputElement}
                       scrollHideDelay={350}
@@ -840,9 +840,8 @@
   }
 
   :global(.terminal-output-scroll) {
-    min-height: 150px;
     max-height: 280px;
-    flex: 1 1 auto;
+    flex: 0 1 auto;
   }
 
   :global(.terminal-output-scroll .ui-scroll-area-viewport) {
