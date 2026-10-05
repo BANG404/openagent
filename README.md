@@ -90,6 +90,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
 - **First-class Dev Tools** — Built-in patch, image-inspection, and terminal tools. Managed terminal sessions support interactive or long-running background processes.
 - **Desktop Automation** — The host-supervised Cua Driver is installed from the upstream GitHub release channel and runs with product-owned permissions and per-tool controls in the **top-bar Integrations → Plugins** panel. OpenAgent checks for newer driver releases with the other component updates.
 - **Plugin Controls** — The top-bar **Integrations → Plugins** entry opens the dedicated Plugins settings window. Installed packages use one lifecycle boundary for commands, MCP servers, skills, automation hooks, and sidebar views; each package receives the same host capability bridge.
+- **Plugin Languages** — Marketplace and installed plugin cards show each package's declared UI languages. Official plugin metadata, command labels, and package notices follow the current application language.
 - **Lifecycle Automation** — Run a sandboxed command or inject bounded Agent context around session, prompt, compaction, model, and tool events.
 - **Independent Approval & Runtime Permissions** — Choose when tool calls pause for review separately from the managed filesystem and network sandbox.
 - **Skills System** — Drop a `SKILL.md` into `~/.agents/skills/` or `<workspace>/.agents/skills/`. Category-based progressive discovery keeps large global and project catalogs compact, with optional Flash classification for uncategorized Skills.

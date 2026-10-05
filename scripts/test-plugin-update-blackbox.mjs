@@ -6,9 +6,9 @@
 // metadata could not be read. `tests/fixtures/agent-plugin-update` declares a
 // repository that is not an HTTPS `github.com/owner/repo` URL, which the Runtime
 // rejects without spending a request, so the reason the page has to explain is
-// deterministic and needs no network. The other package installed in the shared
-// plugin instance keeps its own repository, so the same run also covers a
-// summary that carries more than one entry.
+// deterministic and needs no network. The runner uses an isolated application
+// home and installs only this fixture, so it never depends on developer plugin
+// state.
 //
 // The page renders its own copy, so the runner injects the expected strings from
 // the catalogs before each pass and repeats the pass in the dark theme and the
@@ -23,11 +23,11 @@
 // machine's shared public GitHub quota and a machine that has spent it makes
 // the whole check report the quota condition instead of the per-plugin reasons
 // this scenario asserts. The runner therefore seeds the Runtime's release
-// metadata cache with the repositories the page itself renders, at the installed
-// version, before the check runs: the check answers those from the cache, and the
-// only plugin it still has to explain is the fixture. That cache is a derived
-// file the Runtime documents as deletable, and every seeded release matches the
-// installed version, so it offers no update and reports no failure of its own.
+// metadata cache with builtin and official repositories, plus any repository
+// rendered on installed cards, at the installed version before the check runs.
+// The check answers those from the cache, and the only installed plugin it still
+// has to explain is the fixture. That cache is a derived file the Runtime
+// documents as deletable, and every seeded release offers no update.
 //
 // Each pass is captured twice: the settings surface, which carries the summary
 // line, and the fixture card itself, which is the last row of a list the panel
@@ -154,6 +154,8 @@ function injectProbe(language) {
     officialHint: catalog.pluginOfficialMarketplaceHint,
     officialStandard: catalog.pluginOfficialStandard,
     officialSearchPlaceholder: catalog.pluginOfficialSearchPlaceholder,
+    languagesLabel: catalog.pluginSupportedLanguages,
+    languageNames: "English · 中文",
   };
   evaluate(`window.__pluginUpdateProbe = ${JSON.stringify(payload)}; true`);
 }
@@ -214,9 +216,8 @@ function officialRegistryRepositories() {
 }
 
 /**
- * The `github.com` repository and installed version each plugin card renders.
- * Together they are the installed half of the catalog the check walks, and the
- * versions the seeded releases must not outrank.
+ * Any `github.com` repository and installed version rendered in the installed
+ * plugin list. Builtin and official catalog repositories are seeded separately.
  */
 function discoverRepositories() {
   const observed = evaluate(
@@ -228,7 +229,7 @@ function discoverRepositories() {
       .filter((card) => card.repository !== null))`,
   );
   const cards = JSON.parse(observed);
-  if (!Array.isArray(cards) || cards.length === 0) {
+  if (!Array.isArray(cards)) {
     throw new Error(`the plugins page reported no GitHub repository: ${observed}`);
   }
   return cards;
@@ -515,6 +516,7 @@ dismissSettingsSurface();
 for (const [theme, language] of /** @type {const} */ [
   ["light", "en"],
   ["dark", "zh"],
+  ["light", "en"],
 ]) {
   setVisualState(theme, language);
   injectProbe(language);

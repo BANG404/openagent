@@ -18,6 +18,12 @@ script = '''(async () => {
   );
   if (!item) throw new Error("plugins menu item is missing");
   item.click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const installedTab = [...document.querySelectorAll('[role="tab"]')].find((candidate) =>
+    /Installed|已安装/.test(candidate.textContent ?? "")
+  );
+  if (!(installedTab instanceof HTMLElement)) throw new Error("installed plugins tab is missing");
+  installedTab.click();
   const card = () => {
     const control = document.querySelector(
       `[role=dialog] [role=switch][aria-label="${probe.name}"]`
@@ -98,6 +104,22 @@ script = '''(async () => {
   }
   const cards = store.querySelectorAll(".official-plugin-card");
   if (cards.length < 4) throw new Error(`official marketplace rendered ${cards.length} cards`);
+  const expectedIds = ["chat-groups", "goal", "graph", "cua-driver", "message-board"];
+  const assertOfficialLanguages = () => {
+    for (const id of expectedIds) {
+      const card = store.querySelector(`.official-plugin-card[data-plugin-id="${id}"]`);
+      if (!(card instanceof HTMLElement)) throw new Error(`official plugin card ${id} is missing`);
+      const languages = card.querySelector(".plugin-languages");
+      if (!(languages instanceof HTMLElement)) throw new Error(`plugin ${id} does not display language support`);
+      const supported = languages.getAttribute("data-supported-locales");
+      if (supported !== "en,zh") throw new Error(`plugin ${id} declares ${supported} instead of en,zh`);
+      const expected = probe.languagesLabel + ": " + probe.languageNames;
+      if (!(languages.textContent ?? "").trim().startsWith(expected)) {
+        throw new Error(`plugin ${id} language list is not localized: ${languages.textContent}`);
+      }
+    }
+  };
+  assertOfficialLanguages();
   if (store.querySelector(".official-plugin-store-mark, .official-plugin-icon, img")) {
     throw new Error("official marketplace rendered a decorative plugin image");
   }
@@ -117,6 +139,7 @@ script = '''(async () => {
   if (!(available instanceof HTMLElement)) throw new Error("official marketplace available filter is missing");
   available.click();
   await new Promise((resolve) => setTimeout(resolve, 0));
+  assertOfficialLanguages();
   if ([...store.querySelectorAll(".official-plugin-card")].some((card) => card.getAttribute("data-installed") === "true")) {
     throw new Error("official marketplace available filter still shows an installed plugin");
   }

@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import {
   parsePluginI18n,
   pluginText,
@@ -24,6 +25,20 @@ test("message board declares complete platform metadata before installation", ()
   expect(cards.map((card) => card.id)).toEqual(["message-board"]);
   expect(cards[0].description).toContain("持久化频道");
   expect(pluginLanguageName("zh")).toBe("中文");
+});
+test("every official package source and marketplace entry declares the complete platform locale set", () => {
+  for (const entry of BUNDLED_OFFICIAL_PLUGIN_REGISTRY.plugins) {
+    const manifest = JSON.parse(
+      readFileSync(new URL(`../plugins/${entry.id}/plugin.json`, import.meta.url), "utf8"),
+    );
+    const sourceI18n = manifest.extensions?.openagent?.i18n;
+    expect(sourceI18n, entry.id).toBeDefined();
+    expect([...sourceI18n.supported_locales].sort(), entry.id).toEqual(
+      [...PLATFORM_LOCALES].sort(),
+    );
+    expect(entry.version, entry.id).toBe(manifest.version);
+    expect(entry.i18n, entry.id).toEqual(sourceI18n);
+  }
 });
 test("locale resolves exact, base, and declared fallback without inventing support", () => {
   const i18n = parsePluginI18n({
