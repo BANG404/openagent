@@ -10,6 +10,12 @@ const GRANDFATHERED = new Set(
     " ",
   ),
 );
+const UTF8 = new TextEncoder();
+const METADATA_TRANSLATION_KEYS = new Set(["display_name", "description"]);
+const COMPONENT_TRANSLATION_KEY =
+  /^(commands\.[a-z0-9.-]+\.(label|description)|sidebar\.[a-z0-9.-]+\.title)$/;
+const LANGUAGE_NAMES = new Map<string, Intl.DisplayNames | null>();
+
 export function normalizePluginLocale(value: unknown): string {
   if (
     typeof value !== "string" ||
@@ -33,7 +39,7 @@ export function normalizePluginLocale(value: unknown): string {
 
 export function parsePluginI18n(
   value: unknown,
-  requiredKeys = ["display_name", "description"],
+  requiredKeys = ["display_name"],
 ): AgentPluginI18n | undefined {
   if (value === undefined) return undefined;
   if (!value || typeof value !== "object" || Array.isArray(value))
@@ -76,23 +82,18 @@ export function parsePluginI18n(
       throw new Error("invalid translation locale");
     const entries = Object.entries(messages);
     const current = entries.map(([key]) => key).sort();
+    const currentKeys = new Set(current);
     if (
       entries.length > 256 ||
-      requiredKeys.some((key) => !current.includes(key)) ||
+      requiredKeys.some((key) => !currentKeys.has(key)) ||
       entries.some(
         ([key, text]) =>
-          (!requiredKeys.includes(key) &&
-            !/^(commands\.[a-z0-9.-]+\.(label|description)|sidebar\.[a-z0-9.-]+\.title)$/.test(
-              key,
-            ) &&
-            !(
-              key.startsWith("notice.") &&
-              key.length > 7 &&
-              new TextEncoder().encode(key).length <= 128
-            )) ||
+          (!METADATA_TRANSLATION_KEYS.has(key) &&
+            !COMPONENT_TRANSLATION_KEY.test(key) &&
+            !(key.startsWith("notice.") && key.length > 7 && UTF8.encode(key).byteLength <= 128)) ||
           typeof text !== "string" ||
           !text.trim() ||
-          new TextEncoder().encode(text).length > 4096,
+          UTF8.encode(text).byteLength > 4096,
       ) ||
       (keys !== undefined && keys !== JSON.stringify(current))
     )
@@ -118,9 +119,10 @@ export function parsePluginI18n(
 
 export function pluginDisplayLocale(i18n: AgentPluginI18n, requested: string): string {
   const tag = requested.toLowerCase();
+  const base = tag.split("-")[0];
   return (
     i18n.supported_locales.find((value) => value === tag) ??
-    i18n.supported_locales.find((value) => value === tag.split("-")[0]) ??
+    i18n.supported_locales.find((value) => value === base) ??
     i18n.default_locale
   );
 }
@@ -138,15 +140,24 @@ export function pluginLocaleFallback(
 ): string | null {
   if (!i18n) return null;
   const tag = requested.toLowerCase();
-  return i18n.supported_locales.includes(tag) || i18n.supported_locales.includes(tag.split("-")[0])
+  const base = tag.split("-")[0];
+  return i18n.supported_locales.includes(tag) || i18n.supported_locales.includes(base)
     ? null
     : pluginDisplayLocale(i18n, requested);
 }
 export function pluginLanguageName(tag: string): string {
   if (tag === "zh") return "中文";
   if (tag === "en") return "English";
+  const key = tag.toLowerCase();
+  if (!LANGUAGE_NAMES.has(key)) {
+    try {
+      LANGUAGE_NAMES.set(key, new Intl.DisplayNames([tag], { type: "language" }));
+    } catch {
+      LANGUAGE_NAMES.set(key, null);
+    }
+  }
   try {
-    return new Intl.DisplayNames([tag], { type: "language" }).of(tag) ?? tag;
+    return LANGUAGE_NAMES.get(key)?.of(tag) ?? tag;
   } catch {
     return tag;
   }

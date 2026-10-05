@@ -94,6 +94,9 @@ Declare `extensions.openagent.i18n` with `supported_locales`, `default_locale`,
 and `translations`. Each locale maps flat keys to non-empty strings:
 `display_name`, `description` when present, `commands.<id>.label`,
 `commands.<id>.description`, `sidebar.<id>.title`, and package `notice.<key>`.
+`display_name` is the only universally required metadata key; require a
+`description` translation only when the corresponding package or catalog entry
+has a description.
 All locales carry the same keys and interpolation parameters. Runtime rejects
 malformed declarations; missing declarations in older packages remain unknown.
 Notice keys include their prefix in the 128-byte UTF-8 limit; each translated
