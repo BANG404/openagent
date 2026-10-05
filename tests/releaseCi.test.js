@@ -185,6 +185,20 @@ describe("release CI verification", () => {
     expect(nativeWorkflow).not.toContain("Get-Content $log");
   });
 
+  test("runs each Windows sandbox capability in its own test target", () => {
+    for (const workflow of [nativeWorkflow, sdkWorkflow]) {
+      expect(workflow).toContain("name: Exercise confined plugin MCP on Windows");
+      expect(workflow).toContain("-p openagent-server --test plugin_process_confinement");
+      expect(workflow).toContain(
+        "-p openagent-server --test windows_process_sandbox $test -- --exact --test-threads=1",
+      );
+      expect(workflow).not.toContain("-p openagent-server $test");
+    }
+    expect(nativeWorkflow).toContain(
+      "--test windows_process_sandbox restricted_token_writes_workspace_and_blocks_outside_and_metadata -- --exact",
+    );
+  });
+
   test("bypasses module checks for administrator-authored pull requests", () => {
     expect(ciWorkflow).toContain("CI_PR_AUTHOR:");
     expect(ciWorkflow).toContain("collaborators/$CI_PR_AUTHOR/permission");

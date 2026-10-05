@@ -2,6 +2,10 @@
 
 - Keep the path classifier, reusable workflow inputs, result verifier, release
   gate, and their tests aligned whenever a module boundary changes.
+- The private SDK boundary verifier checks Runtime-owned modules only. Goal,
+  Graph, and Chat Groups source belongs to installed plugins and must not be
+  required in an SDK checkout. Keep dependency overrides and the frozen Bun
+  lockfile on patched releases so the JavaScript audit remains a release gate.
 - Pull requests run diff-selected fast checks only for contributors without
   administrator permission. Administrator-authored PRs use the documented
   bypass after local preflight. Ordinary `master` pushes do not replace release

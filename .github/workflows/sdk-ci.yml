@@ -413,6 +413,16 @@ jobs:
             Write-Error "Windows sandbox helper build failed; private diagnostic output was suppressed."
             exit 1
           }
+      - name: Exercise confined plugin MCP on Windows
+        shell: pwsh
+        run: |
+          $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
+          cargo test --manifest-path sdk/Cargo.toml -p openagent-server --test plugin_process_confinement *>> $log
+          if ($LASTEXITCODE -ne 0) {
+            "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
+            Write-Error "Windows plugin confinement test failed; private diagnostic output was suppressed."
+            exit 1
+          }
       - name: Exercise Windows Firewall and WFP boundaries
         shell: pwsh
         env:
@@ -426,7 +436,7 @@ jobs:
             "elevated_offline_account_wfp_blocks_dns_network_access"
           )
           foreach ($test in $tests) {
-            cargo test --manifest-path sdk/Cargo.toml -p openagent-server $test -- --test-threads=1 *>> $log
+            cargo test --manifest-path sdk/Cargo.toml -p openagent-server --test windows_process_sandbox $test -- --exact --test-threads=1 *>> $log
             if ($LASTEXITCODE -ne 0) {
               "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
               $diagnostic = Select-String -Path $log -Pattern 'OPENAGENT_WFP_DIAGNOSTIC=[a-z-]+' -AllMatches |

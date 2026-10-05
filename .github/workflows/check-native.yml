@@ -207,10 +207,23 @@ jobs:
         run: |
           $env:CARGO_TARGET_DIR = (Resolve-Path "sdk\target").Path
           $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
-          cargo test --manifest-path sdk/Cargo.toml -p openagent-server restricted_token_writes_workspace_and_blocks_outside_and_metadata *>> $log
+          cargo test --manifest-path sdk/Cargo.toml -p openagent-server --test windows_process_sandbox restricted_token_writes_workspace_and_blocks_outside_and_metadata -- --exact *>> $log
           if ($LASTEXITCODE -ne 0) {
             "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
             Write-Error "Windows process sandbox test failed; private diagnostic output was suppressed."
+            exit 1
+          }
+
+      - name: Exercise confined plugin MCP on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:CARGO_TARGET_DIR = (Resolve-Path "sdk\target").Path
+          $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
+          cargo test --manifest-path sdk/Cargo.toml -p openagent-server --test plugin_process_confinement *>> $log
+          if ($LASTEXITCODE -ne 0) {
+            "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
+            Write-Error "Windows plugin confinement test failed; private diagnostic output was suppressed."
             exit 1
           }
 
@@ -236,7 +249,7 @@ jobs:
           )
           $failed = $false
           foreach ($test in $tests) {
-            cargo test --manifest-path sdk/Cargo.toml -p openagent-server $test -- --test-threads=1 *>> $log
+            cargo test --manifest-path sdk/Cargo.toml -p openagent-server --test windows_process_sandbox $test -- --exact --test-threads=1 *>> $log
             if ($LASTEXITCODE -ne 0) {
               $failed = $true
               break

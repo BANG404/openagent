@@ -40,4 +40,13 @@ describe("public host Rust source boundary", () => {
     expect(hook).toContain("src-tauri/crates/openagent-runtime");
     expect(verifier).toContain("public-host-sources.txt");
   });
+
+  test("requires only Runtime-owned source in the pinned SDK checkout", () => {
+    const verifier = readFileSync("scripts/verify-private-sdk-boundary.mjs", "utf8");
+
+    expect(verifier).toContain('"chat_lifecycle.rs"');
+    expect(verifier).toContain('"sub_agent.rs"');
+    expect(verifier).not.toContain('"commands/goals.rs"');
+    expect(verifier).not.toContain('"goal.rs"');
+  });
 });

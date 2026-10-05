@@ -33,6 +33,10 @@ log, records that allowlisted log only after a failure, and uses the same
 least-privileged reporter App. Public logs retain only the fixed `firewall-*`
 or `wfp-dns-*` diagnostic category; they never print, summarize, cache, or
 upload the captured private output.
+Windows filesystem and network commands select `--test windows_process_sandbox`
+and an exact test name. The harness-free `plugin_process_confinement` target runs
+once in its own required step; a libtest name filter cannot skip that target and
+must not turn an unrelated plugin-start failure into a Firewall/WFP result.
 The private repository dispatches an immutable commit SHA; a GitHub App
 installed only on the SDK repository lets the public workflow read that
 revision and report the aggregate `Public SDK CI` commit status. Because
