@@ -686,6 +686,9 @@ const en: Record<TranslationKeys, string> = {
     "Background commands started by the agent appear here with live status and output.",
   backgroundTerminalRunning: "Running",
   backgroundTerminalExited: "Exited with code",
+  backgroundTerminalHistory: "Saved record",
+  backgroundTerminalHistoryDescription:
+    "This session is no longer connected. Showing saved command output.",
   backgroundTerminalKilled: "Stopped",
   backgroundTerminalFailed: "Failed",
   backgroundTerminalStop: "Stop process",

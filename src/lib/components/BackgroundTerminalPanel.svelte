@@ -2,6 +2,12 @@
   import { onMount, tick, untrack } from "svelte";
   import { desktopOpenAgent as openAgent } from "$lib/openagent/tauriClient";
   import type { BackgroundTerminalSession } from "$lib/openagent";
+  import {
+    isHistoricalTerminal,
+    mergeTerminalSessions,
+    type HistoricalTerminalSession,
+    type TerminalPanelSession,
+  } from "$lib/terminalHistory";
   import { t } from "$lib/i18n";
   import { conversationBranchScopeKey, terminalSessionInScope } from "$lib/sidebarPanelScope";
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
@@ -16,6 +22,7 @@
     onSummaryChange = () => {},
     previewSessions = null,
     previewOutputs = {},
+    historicalTerminalSessions = [],
   }: {
     active?: boolean;
     enabled?: boolean;
@@ -26,11 +33,25 @@
     onSummaryChange?: (runningCount: number, sessionCount: number) => void;
     previewSessions?: BackgroundTerminalSession[] | null;
     previewOutputs?: Record<string, string>;
+    historicalTerminalSessions?: HistoricalTerminalSession[];
   } = $props();
 
   const scopeKey = $derived(conversationBranchScopeKey(conversationId, branchId));
 
-  let sessions = $state<BackgroundTerminalSession[]>(untrack(() => previewSessions ?? []));
+  let liveSessions = $state<BackgroundTerminalSession[]>(untrack(() => previewSessions ?? []));
+  let liveScopeKey = $state(untrack(() => scopeKey));
+  const sessions = $derived(
+    mergeTerminalSessions(
+      historicalTerminalSessions.filter((session) =>
+        terminalSessionInScope(session, conversationId, branchId),
+      ),
+      liveScopeKey === scopeKey
+        ? liveSessions.filter((session) =>
+            terminalSessionInScope(session, conversationId, branchId),
+          )
+        : [],
+    ),
+  );
   // Mount-time seed for a scope that has no record yet. The values come from
   // props, so a reset restores them instead of blanking the panel.
   const initialSessions = untrack(() => previewSessions ?? []);
@@ -38,6 +59,7 @@
   let expandedSessionId = $state<string | null>(null);
   let output = $state("");
   let outputCursor = $state(0);
+  let outputFromHistory = false;
   let outputTruncated = $state(false);
   let input = $state("");
   let loading = $state(untrack(() => previewSessions === null));
@@ -59,6 +81,7 @@
     expandedSessionId: string | null;
     output: string;
     outputCursor: number;
+    outputFromHistory: boolean;
     outputTruncated: boolean;
     previewOutputBySession: Record<string, string>;
   };
@@ -67,11 +90,12 @@
 
   function saveSnapshot(key: string): void {
     snapshots.set(key, {
-      sessions,
+      sessions: liveSessions,
       selectedSessionId,
       expandedSessionId,
       output,
       outputCursor,
+      outputFromHistory,
       outputTruncated,
       previewOutputBySession: { ...previewOutputBySession },
     });
@@ -80,11 +104,13 @@
   function restoreSnapshot(key: string): void {
     const snapshot = snapshots.get(key);
     if (snapshot) {
-      sessions = snapshot.sessions;
+      liveSessions = snapshot.sessions;
+      liveScopeKey = key;
       selectedSessionId = snapshot.selectedSessionId;
       expandedSessionId = snapshot.expandedSessionId;
       output = snapshot.output;
       outputCursor = snapshot.outputCursor;
+      outputFromHistory = snapshot.outputFromHistory;
       outputTruncated = snapshot.outputTruncated;
       previewOutputBySession = { ...snapshot.previewOutputBySession };
       return;
@@ -92,11 +118,13 @@
     // An unseen scope starts from the mount-time seed rather than inheriting
     // the scope that was on screen; the next poll fills it with this scope's
     // own sessions.
-    sessions = initialSessions;
+    liveSessions = initialSessions;
+    liveScopeKey = key;
     selectedSessionId = null;
     expandedSessionId = null;
     output = "";
     outputCursor = 0;
+    outputFromHistory = false;
     outputTruncated = false;
     previewOutputBySession = { ...initialPreviewOutputBySession };
     error = null;
@@ -108,12 +136,13 @@
     sessions.find((session) => session.session_id === selectedSessionId) ?? null,
   );
 
-  function isRunning(session: BackgroundTerminalSession | null): boolean {
-    return session?.status === "running";
+  function isRunning(session: TerminalPanelSession | null): boolean {
+    return !isHistoricalTerminal(session) && session?.status === "running";
   }
 
   function statusLabel(status: string): string {
     if (status === "running") return $t("backgroundTerminalRunning");
+    if (status === "unavailable") return $t("backgroundTerminalHistory");
     if (status === "killed") return $t("backgroundTerminalKilled");
     if (status.startsWith("exited:")) {
       return `${$t("backgroundTerminalExited")} ${status.slice("exited:".length)}`;
@@ -123,12 +152,8 @@
   }
 
   function applyStatus(sessionId: string, status: string): void {
-    sessions = sessions.map((session) =>
+    liveSessions = liveSessions.map((session) =>
       session.session_id === sessionId ? { ...session, status } : session,
-    );
-    onSummaryChange(
-      sessions.filter((session) => session.status === "running").length,
-      sessions.length,
     );
   }
 
@@ -138,7 +163,7 @@
     return value.slice(-maxRenderedOutputChars);
   }
 
-  async function refreshSessions(): Promise<BackgroundTerminalSession[]> {
+  async function refreshSessions(): Promise<TerminalPanelSession[]> {
     if (refreshing) return sessions;
     refreshing = true;
     const requestScopeKey = scopeKey;
@@ -155,15 +180,18 @@
       const next = listed.filter((session) =>
         terminalSessionInScope(session, conversationId, branchId),
       );
-      sessions = next;
+      liveSessions = next;
+      liveScopeKey = requestScopeKey;
       error = null;
-      onSummaryChange(next.filter((session) => session.status === "running").length, next.length);
-      if (!selectedSessionId || !next.some((session) => session.session_id === selectedSessionId)) {
-        const preferred = next.find((session) => session.status === "running") ?? next[0] ?? null;
+      if (
+        !selectedSessionId ||
+        !sessions.some((session) => session.session_id === selectedSessionId)
+      ) {
+        const preferred = sessions.find((session) => isRunning(session)) ?? sessions[0] ?? null;
         await selectSession(preferred?.session_id ?? null);
         expandedSessionId = preferred?.session_id ?? null;
       }
-      return next;
+      return sessions;
     } catch (cause) {
       error = String(cause);
       return sessions;
@@ -176,7 +204,23 @@
   async function readOutput(sessionId: string): Promise<void> {
     if (!active || sessionId !== selectedSessionId || reading) return;
     reading = true;
+    const requestScopeKey = scopeKey;
     try {
+      const historical = sessions.find((session) => session.session_id === sessionId) ?? null;
+      if (isHistoricalTerminal(historical)) {
+        outputFromHistory = true;
+        outputTruncated = historical.truncated;
+        output = boundOutput(historical.output);
+        outputCursor = 0;
+        outputError = null;
+        return;
+      }
+      if (outputFromHistory) {
+        output = "";
+        outputCursor = 0;
+        outputTruncated = false;
+        outputFromHistory = false;
+      }
       if (previewSessions) {
         output = boundOutput(previewOutputBySession[sessionId] ?? output);
         outputCursor = output.length;
@@ -187,7 +231,7 @@
         ? outputElement.scrollHeight - outputElement.scrollTop - outputElement.clientHeight < 28
         : true;
       const result = await openAgent.readBackgroundTerminal(sessionId, outputCursor);
-      if (sessionId !== selectedSessionId) return;
+      if (sessionId !== selectedSessionId || requestScopeKey !== scopeKey) return;
       output = boundOutput(result.truncated ? result.output : output + result.output);
       outputCursor = result.next_cursor;
       outputTruncated ||= result.truncated;
@@ -198,7 +242,8 @@
         outputElement?.scrollTo({ top: outputElement.scrollHeight });
       }
     } catch (cause) {
-      if (sessionId === selectedSessionId) outputError = String(cause);
+      if (sessionId === selectedSessionId && requestScopeKey === scopeKey)
+        outputError = String(cause);
     } finally {
       reading = false;
     }
@@ -209,6 +254,7 @@
     selectedSessionId = sessionId;
     output = sessionId && previewSessions ? (previewOutputBySession[sessionId] ?? "") : "";
     outputCursor = 0;
+    outputFromHistory = false;
     outputTruncated = false;
     outputError = null;
     confirmKillSessionId = null;
@@ -297,6 +343,12 @@
         ? expandedSessionId
         : null;
     if (previousScopeKey !== null) void poll();
+  });
+
+  $effect(() => {
+    const runningCount = sessions.filter((session) => isRunning(session)).length;
+    const sessionCount = sessions.length;
+    untrack(() => onSummaryChange(runningCount, sessionCount));
   });
 
   $effect(() => {
@@ -433,6 +485,9 @@
                         {/if}
                       {/if}
                     </header>
+                    {#if isHistoricalTerminal(selectedSession)}
+                      <p class="truncated-notice">{$t("backgroundTerminalHistoryDescription")}</p>
+                    {/if}
                     {#if outputTruncated}<p class="truncated-notice">
                         {$t("backgroundTerminalOutputTruncated")}
                       </p>{/if}

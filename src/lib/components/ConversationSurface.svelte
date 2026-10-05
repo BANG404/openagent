@@ -119,6 +119,7 @@
     onConversationCollapse = () => {},
     rightSidebarPanel = $bindable<RightSidebarPanel>("status"),
     terminalSessionCount,
+    historicalTerminalSessions = [],
     onTerminalSummaryChange,
     rightSidebarConversationId = view.activeConvId,
     rightSidebarBranchId = view.activeBranchId,
@@ -138,6 +139,7 @@
     onConversationCollapse?: (collapsed: boolean) => void;
     rightSidebarPanel: RightSidebarPanel;
     terminalSessionCount: number;
+    historicalTerminalSessions?: import("$lib/terminalHistory").HistoricalTerminalSession[];
     onTerminalSummaryChange: (runningCount: number, sessionCount: number) => void;
     /** Scope for every right-sidebar view; defaults to the transcript's own view. */
     rightSidebarConversationId?: string | null;
@@ -441,6 +443,7 @@
     bind:activePanel={rightSidebarPanel}
     terminalEnabled={view.tauriAvailable}
     terminalAvailable={terminalSessionCount > 0}
+    {historicalTerminalSessions}
     terminalConversationId={rightSidebarConversationId}
     terminalBranchId={rightSidebarBranchId}
     {rightSidebarScopeKey}

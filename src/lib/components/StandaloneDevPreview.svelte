@@ -13,6 +13,7 @@
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import { NEW_CONVERSATION_GREETING } from "$lib/newConversation";
   import type { BackgroundTerminalSession } from "$lib/openagent";
+  import { terminalHistory } from "$lib/terminalHistory";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
   import { defaultPermissionProfile, normalizeConfigShape } from "$lib/config";
   import { ComposerPreferences } from "$lib/composerPreferences.svelte";
@@ -107,6 +108,44 @@
   // while the branch-scoped terminal panel is exercised by hand.
   const previewTerminalConvId = "background-terminals-preview";
   const previewTerminalBranchId = "preview-branch";
+  const terminalHistoryRecovery = query.has("background-terminals-preview-history");
+  const historyObservation: StreamItem = {
+    type: "tool_call",
+    name: "exec_command",
+    args: '{"cmd":"echo restored-terminal"}',
+    toolUseId: "history-command",
+    result: JSON.stringify({
+      output: "restored-terminal-output\n",
+      status: "running",
+      temporary: true,
+      metadata: {
+        kind: "terminal_poll",
+        session_id: "history-session",
+        command: "echo restored-terminal",
+        cwd: "/workspace",
+        started_at: 123,
+      },
+    }),
+  };
+  const previewTerminalHistory = terminalHistoryRecovery
+    ? terminalHistory(
+        [
+          {
+            id: "history-message",
+            role: "assistant",
+            content: "",
+            timestamp: 123000,
+            items: [historyObservation],
+          },
+        ],
+        [historyObservation],
+        previewTerminalConvId,
+        previewTerminalBranchId,
+      )
+    : [];
+  let backgroundTerminalSessionCount = $state(
+    terminalHistoryRecovery ? previewTerminalHistory.length : 3,
+  );
   const backgroundTerminalPreviewSessions: BackgroundTerminalSession[] = [
     {
       session_id: "dev-server",
@@ -1155,11 +1194,13 @@
   <main class="checkpoint-flow-preview-stage">
     <header class="checkpoint-flow-preview-titlebar">
       <span>OpenAgent</span>
-      <BackgroundTerminalToggleButton
-        collapsed={backgroundTerminalPanelCollapsed}
-        runningCount={backgroundTerminalRunningCount}
-        onToggle={() => (backgroundTerminalPanelCollapsed = !backgroundTerminalPanelCollapsed)}
-      />
+      {#if backgroundTerminalSessionCount > 0}
+        <BackgroundTerminalToggleButton
+          collapsed={backgroundTerminalPanelCollapsed}
+          runningCount={backgroundTerminalRunningCount}
+          onToggle={() => (backgroundTerminalPanelCollapsed = !backgroundTerminalPanelCollapsed)}
+        />
+      {/if}
     </header>
     <section class="checkpoint-flow-preview-chat">
       <div class="checkpoint-flow-preview-messages">
@@ -1181,11 +1222,15 @@
       onRevert={async () => {}}
       bind:activePanel={backgroundTerminalActivePanel}
       terminalEnabled
-      terminalAvailable
+      terminalAvailable={backgroundTerminalSessionCount > 0}
+      historicalTerminalSessions={previewTerminalHistory}
       terminalConversationId={previewTerminalConvId}
       terminalBranchId={previewTerminalBranchId}
-      onTerminalSummaryChange={(count) => (backgroundTerminalRunningCount = count)}
-      terminalPreviewSessions={backgroundTerminalPreviewSessions}
+      onTerminalSummaryChange={(count, sessionCount) => {
+        backgroundTerminalRunningCount = count;
+        backgroundTerminalSessionCount = sessionCount;
+      }}
+      terminalPreviewSessions={terminalHistoryRecovery ? [] : backgroundTerminalPreviewSessions}
       terminalPreviewOutputs={backgroundTerminalPreviewOutputs}
     />
   </main>

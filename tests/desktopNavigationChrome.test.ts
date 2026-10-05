@@ -713,7 +713,7 @@ describe("desktop navigation chrome", () => {
     // An unseen scope starts from the mount seed instead of inheriting the
     // scope that was on screen.
     expect(terminal).toContain("if (snapshot) {");
-    expect(terminal).toContain("sessions = initialSessions;");
+    expect(terminal).toContain("liveSessions = initialSessions;");
     expect(terminal).toContain("previewOutputBySession = { ...initialPreviewOutputBySession };");
     // The panel's buttons keep their resting size on press, and still signal
     // the press by deepening the fill they already carry.

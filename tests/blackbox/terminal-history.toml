@@ -1,0 +1,47 @@
+[scenario]
+name = "saved terminal records survive reload without a live Runtime session"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "terminal entry, output and history notice restore without duplicate rows or live controls"
+action = "eval"
+script = '''(() => {
+  const panel = document.querySelector('#background-terminal-panel');
+  const rows = panel?.querySelectorAll('.session-row');
+  if (!document.querySelector('.terminal-toggle') || rows?.length !== 1) throw new Error('terminal entry or unique saved session missing');
+  const output = panel.querySelector('.terminal-output')?.textContent.trim();
+  if (output !== 'restored-terminal-output') throw new Error(`saved output duplicated or missing: ${output}`);
+  if (!panel.textContent.includes(window.__terminalHistoryCopy)) throw new Error('localized history notice missing');
+  if (panel.querySelector('.terminal-input, .kill-button, .confirm-kill')) throw new Error('disconnected history offers live controls');
+  if (document.querySelector('.running-count')) throw new Error('saved running observation is counted as live');
+  return 'saved terminal restored';
+})()'''
+
+[[step]]
+name = "collapse the recovered sidebar"
+action = "click"
+target = ".terminal-toggle"
+
+[[step]]
+name = "collapsed sidebar keeps its entry"
+action = "eval"
+script = '''(() => {
+  if (!document.querySelector('#checkpoint-flow-panel.collapsed')) throw new Error('sidebar did not collapse');
+  if (!document.querySelector('.terminal-toggle')) throw new Error('terminal entry disappeared on collapse');
+  return true;
+})()'''
+
+[[step]]
+name = "reopen the recovered sidebar"
+action = "click"
+target = ".terminal-toggle"
+
+[[step]]
+name = "reopening preserves the restored record"
+action = "eval"
+script = '''(() => {
+  const panel = document.querySelector('#background-terminal-panel');
+  if (panel.hidden || !panel.textContent.includes('restored-terminal-output')) throw new Error('saved output lost on reopen');
+  return true;
+})()'''

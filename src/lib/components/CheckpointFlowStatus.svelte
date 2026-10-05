@@ -26,6 +26,7 @@
     activePanel?: RightSidebarPanel;
     terminalEnabled?: boolean;
     terminalAvailable?: boolean;
+    historicalTerminalSessions?: import("$lib/terminalHistory").HistoricalTerminalSession[];
     terminalConversationId?: string | null;
     terminalBranchId?: string | null;
     /** Scope shared by every right-sidebar tab so tab-local choices survive switching. */
@@ -58,6 +59,7 @@
     activePanel = $bindable<RightSidebarPanel>("status"),
     terminalEnabled = false,
     terminalAvailable = false,
+    historicalTerminalSessions = [],
     terminalConversationId = null,
     terminalBranchId = null,
     rightSidebarScopeKey = conversationBranchScopeKey(null, null),
@@ -265,6 +267,7 @@
       <BackgroundTerminalPanel
         active={!collapsed && activePanel === "terminal"}
         enabled={terminalEnabled}
+        {historicalTerminalSessions}
         conversationId={terminalConversationId}
         branchId={terminalBranchId}
         onSummaryChange={onTerminalSummaryChange}

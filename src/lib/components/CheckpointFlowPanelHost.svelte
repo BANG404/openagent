@@ -21,6 +21,7 @@
     activePanel = $bindable<RightSidebarPanel>("status"),
     terminalEnabled = false,
     terminalAvailable = false,
+    historicalTerminalSessions = [],
     terminalConversationId = null,
     terminalBranchId = null,
     rightSidebarScopeKey = "\u0000",
@@ -38,6 +39,7 @@
     activePanel?: RightSidebarPanel;
     terminalEnabled?: boolean;
     terminalAvailable?: boolean;
+    historicalTerminalSessions?: import("$lib/terminalHistory").HistoricalTerminalSession[];
     terminalConversationId?: string | null;
     terminalBranchId?: string | null;
     rightSidebarScopeKey?: string;
@@ -151,6 +153,7 @@
   bind:activePanel
   {terminalEnabled}
   {terminalAvailable}
+  {historicalTerminalSessions}
   {terminalConversationId}
   {terminalBranchId}
   {rightSidebarScopeKey}

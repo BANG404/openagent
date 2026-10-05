@@ -137,6 +137,22 @@
   application body instead of shrinking the transcript and sidebar content.
   The right sidebar does not embed a general-purpose website browser.
 - Present background terminal sessions as an accordion: each session row is a
+  command record projected from both the selected branch's durable transcript
+  and the Runtime's live session list. Restore saved `exec_command` and
+  `write_stdin` observations using their `terminal_poll` metadata, including the
+  metadata session ID on completed commands. Merge by session ID with the live
+  session authoritative; history must keep the terminal tab and title-bar
+  entry available after a WebView refresh or Runtime restart. Saved running
+  observations without a live session are disconnected history, never proof
+  of a running process. Display saved output with a localized history notice
+  and no input/stop controls. Deduplicate hydrated/live observations and combine
+  distinct incremental polls. Scope summary counts to the conversation branch
+  so a previous branch cannot temporarily make an empty sidebar available.
+  Start `bun tauri dev --multi-instance terminal-history`, then run
+  `bun run test:blackbox:terminal-history` with that instance's pilot socket.
+  It verifies disconnected output, unique session rows, controls, collapse,
+  reopen, and reload in light/dark and Chinese/English without a provider.
+  Each session row is a
   disclosure heading with its command, working directory, time, and status;
   expanding a row reveals that session's live output and controls inline,
   collapsing it leaves the other session headings available. Keep one expanded

@@ -115,6 +115,7 @@
     RightSidebarScopeStore,
   } from "$lib/sidebarPanelScope";
   import { retainUndurableFileChanges } from "$lib/fileChangeReconciliation";
+  import { terminalHistory } from "$lib/terminalHistory";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
   import {
     availablePluginSidebarViews,
@@ -399,7 +400,16 @@
     typeof window === "undefined" ? false : loadConversationPanelCollapsed(window.localStorage),
   );
   let rightSidebarPanel = $state<RightSidebarPanel>("status");
-  let terminalSessionCount = $state(0);
+  let terminalSummary = $state({ scopeKey: "", sessionCount: 0 });
+  let historicalTerminalSessions = $derived.by(() =>
+    terminalHistory(messages, currentStreamItems, activeConvId, rightSidebarBranchId),
+  );
+  let terminalSessionCount = $derived.by(() =>
+    Math.max(
+      historicalTerminalSessions.length,
+      terminalSummary.scopeKey === rightSidebarScopeKey ? terminalSummary.sessionCount : 0,
+    ),
+  );
   let checkpointFlowPanelSelectionKey = $state<string | null>(null);
   let checkpointFlowPanelAutoOpenKey = $state<string | null>(null);
   let fileChangesPanelSelectionKey = $state<string | null>(null);
@@ -5790,8 +5800,10 @@
           }}
           bind:rightSidebarPanel
           {terminalSessionCount}
-          onTerminalSummaryChange={(_runningCount, sessionCount) =>
-            (terminalSessionCount = sessionCount)}
+          {historicalTerminalSessions}
+          onTerminalSummaryChange={(_runningCount, sessionCount) => {
+            terminalSummary = { scopeKey: rightSidebarScopeKey, sessionCount };
+          }}
           {rightSidebarConversationId}
           {rightSidebarBranchId}
           {pluginSidebarViews}

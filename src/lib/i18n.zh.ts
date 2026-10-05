@@ -665,6 +665,8 @@ export const zh = {
   backgroundTerminalsEmptyDescription: "Agent 启动后台命令后，会在这里显示运行状态和输出。",
   backgroundTerminalRunning: "运行中",
   backgroundTerminalExited: "已退出，代码",
+  backgroundTerminalHistory: "历史记录",
+  backgroundTerminalHistoryDescription: "此会话已无法连接，当前显示已保存的命令输出。",
   backgroundTerminalKilled: "已终止",
   backgroundTerminalFailed: "失败",
   backgroundTerminalStop: "终止进程",
