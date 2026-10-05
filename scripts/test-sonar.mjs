@@ -78,12 +78,18 @@ run(process.execPath, [
   "sdk/typescript/tests",
 ]);
 
-run("cargo", [
+const sdkCargoTestArgs = [
   "test",
   "--manifest-path",
   resolve(repositoryRoot, "sdk", "Cargo.toml"),
   "--workspace",
-]);
+  "--target-dir",
+  resolve(repositoryRoot, "sdk", "target", "sonar"),
+];
+
+if (process.platform === "win32") sdkCargoTestArgs.push("--jobs", "1");
+
+run("cargo", sdkCargoTestArgs);
 
 run("cargo", ["test", "--manifest-path", resolve(repositoryRoot, "src-tauri", "Cargo.toml")]);
 
