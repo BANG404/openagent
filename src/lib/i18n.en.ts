@@ -389,6 +389,17 @@ const en: Record<TranslationKeys, string> = {
   pluginCuaDriverHint:
     "Requests access to the real computer environment. Grant it explicitly below when you trust this plugin.",
   pluginHostAccess: "Allow real computer access",
+  pluginHostAccessTitle: "Authorize real computer access",
+  pluginHostAccessInstallDescription:
+    "“{name}” is installed and needs real computer access for its related features. Authorizing it lets the plugin control desktop applications, the mouse, and the keyboard, and run outside the sandbox.",
+  pluginHostAccessInstallHint:
+    "You can leave it installed without authorizing it. Features that need real computer access will be unavailable. You can grant or revoke access later in plugin settings.",
+  pluginHostAccessLater: "Not now",
+  pluginHostAccessSaving: "Authorizing…",
+  pluginHostAccessSaveFailed: "Could not save real computer access. Please try again.",
+  pluginInstallAwaitingHostAccess: "Waiting for real computer access authorization",
+  pluginInstalledHostAccessRequired:
+    "Installed {name}. Related features need real computer access authorization",
   pluginEnable: "Enable plugin",
   pluginInstallSuccess: "Installed {name}",
   pluginHostAccessHint:

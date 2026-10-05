@@ -1,0 +1,17 @@
+[scenario]
+name = "plugin installation offers an explicit computer access grant"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "the installed plugin requests authorization"
+action = "eval"
+script = '''(() => {
+  if (!document.querySelector('[data-plugin-host-access="cua-driver"]')) throw new Error('installation authorization prompt is missing');
+  return true;
+})()'''
+
+[[step]]
+name = "explicitly authorize the installed plugin"
+action = "click"
+target = "[data-plugin-host-access-grant] button"

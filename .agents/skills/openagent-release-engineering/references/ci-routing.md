@@ -59,6 +59,8 @@ resource adapters while their introduction remains in unpublished history.
 the Cua Driver plugin took over provisioning; its historical entry permits
 publishing that existing native boundary. Current Cua provisioning remains
 package-owned, and private Runtime sources require the SDK repository.
+Host source tests require every current adapter to appear in that allowlist;
+historical entries authorized for unpublished commits may also remain.
 
 The always-present `CI / Required` job remains the authoritative aggregate for
 each CI invocation. For pull requests, a trusted `workflow_run` reporter copies

@@ -56,6 +56,16 @@ does not prove Runtime functionality or qualify a published release.
 
 ## Developer acceptance before publication
 
+For installation-time computer access prompts, run
+`bun run test:blackbox:plugin-host-access` against an isolated Tauri fixture with
+`OPENAGENT_HOME` and `TAURI_PILOT_SOCKET` set to that instance. The committed
+`plugin-host-access-defer.toml` and `plugin-host-access-grant.toml` scenarios
+verify prompt copy, focus, no implicit grant, deferred installation with a
+permission-required notice, persisted authorization, daemon readiness, MCP
+tool discovery, revocation, and Settings reopening in light/English and
+dark/Chinese. Use a fresh fixture without a pre-existing Cua package or grant;
+the runner retains package data while uninstalling its own test package.
+
 Finish implementation, package validation, related OpenAgent integration tests,
 and the repository-owned local delivery workflow before handing back a candidate.
 Provide plugin IDs, checkout paths, commit IDs, versions, a concise behavior

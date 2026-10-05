@@ -56,7 +56,8 @@
     settingsConfigChanged,
     type RetryQueueKind,
   } from "$lib/settingsConfig";
-  import { t, tr, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
+  import { t, tr, locale, setLocale, type Locale, type TranslationKeys } from "$lib/i18n";
+  import { pluginText } from "$lib/pluginI18n";
   import Tooltip from "./Tooltip.svelte";
   import Select from "./ui/Select.svelte";
   import SegmentedControl from "./ui/SegmentedControl.svelte";
@@ -153,6 +154,59 @@
           onclick={view.confirmUninstallAgentPlugin}
           disabled={view.agentPluginRemoving}
         />
+      </div>
+    </Dialog.Content>
+  </Dialog.Portal>
+</Dialog.Root>
+
+<Dialog.Root
+  open={view.agentPluginHostAccessRequest !== null}
+  onOpenChange={(open) => {
+    if (!open) view.deferAgentPluginHostAccess();
+  }}
+>
+  <Dialog.Portal>
+    <Dialog.Overlay class="dialog-overlay" />
+    <Dialog.Content
+      class="dialog"
+      data-plugin-host-access={view.agentPluginHostAccessRequest?.id}
+      escapeKeydownBehavior={view.agentPluginHostAccessBusy ? "ignore" : "close"}
+      interactOutsideBehavior={view.agentPluginHostAccessBusy ? "ignore" : "close"}
+    >
+      <Dialog.Title class="dialog-title">{$t("pluginHostAccessTitle")}</Dialog.Title>
+      <Dialog.Description class="dialog-copy">
+        {$t("pluginHostAccessInstallDescription").replace(
+          "{name}",
+          pluginText(
+            view.agentPluginHostAccessRequest?.i18n,
+            $locale,
+            "display_name",
+            view.agentPluginHostAccessRequest?.name ?? "",
+          ),
+        )}
+      </Dialog.Description>
+      <p class="dialog-copy">{$t("pluginHostAccessInstallHint")}</p>
+      {#if view.agentPluginHostAccessError}
+        <p class="dialog-copy" role="alert">{view.agentPluginHostAccessError}</p>
+      {/if}
+      <div class="dialog-actions">
+        <span data-plugin-host-access-defer>
+          <SettingsActionButton
+            label={$t("pluginHostAccessLater")}
+            onclick={view.deferAgentPluginHostAccess}
+            disabled={view.agentPluginHostAccessBusy}
+          />
+        </span>
+        <span data-plugin-host-access-grant>
+          <SettingsActionButton
+            label={view.agentPluginHostAccessBusy
+              ? $t("pluginHostAccessSaving")
+              : $t("pluginHostAccess")}
+            tone="primary"
+            onclick={view.grantAgentPluginHostAccess}
+            disabled={view.agentPluginHostAccessBusy}
+          />
+        </span>
       </div>
     </Dialog.Content>
   </Dialog.Portal>

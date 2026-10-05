@@ -1,0 +1,36 @@
+[scenario]
+name = "plugin installation requests real computer access and permits deferral"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "prompt explains access and related unavailable features before granting anything"
+action = "eval"
+script = '''(async () => {
+  const dialog = document.querySelector('[data-plugin-host-access="cua-driver"]');
+  if (!dialog) throw new Error('installation authorization prompt is missing');
+  const chinese = document.documentElement.lang.startsWith('zh') || dialog.textContent.includes('授权插件');
+  for (const text of chinese ? ['真实电脑', '沙箱', '暂不授权', '不可用'] : ['real computer', 'sandbox', 'Not now', 'unavailable']) {
+    if (!dialog.textContent.includes(text)) throw new Error(`missing authorization explanation: ${text}`);
+  }
+  if (!dialog.contains(document.activeElement)) throw new Error('focus is outside the authorization dialog');
+  const {desktopOpenAgent, invoke} = await import('/src/lib/openagent/tauriClient.ts');
+  const config = await desktopOpenAgent.invokeProduct('get_settings', {});
+  if (config.agent_plugins_host_access?.['cua-driver']) throw new Error('installation silently authorized computer access');
+  if (await invoke('agent_plugin_daemon_running', {pluginId:'cua-driver'})) throw new Error('daemon started before authorization');
+  return 'authorization explanation and ungranted state passed';
+})()'''
+
+[[step]]
+name = "leave the installed package without authorizing it"
+action = "click"
+target = "[data-plugin-host-access-defer] button"
+
+[[step]]
+name = "deferring closes the authorization dialog"
+action = "eval"
+script = '''(async () => {
+  await new Promise(resolve => setTimeout(resolve, 0));
+  if (document.querySelector('[data-plugin-host-access]')) throw new Error('deferring did not close the authorization dialog');
+  return true;
+})()'''

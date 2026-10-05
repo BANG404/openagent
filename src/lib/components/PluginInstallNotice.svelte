@@ -31,7 +31,7 @@
     </svg>
     <span>
       {#if task.status === "success"}
-        {$t("pluginInstallSuccess").replace("{name}", task.label)}
+        {message}
       {:else}
         <strong>{task.label}</strong> — {message}
       {/if}
