@@ -73,7 +73,13 @@ export function classifyChangedModules(files, forceAll = false) {
     ].includes(file),
   );
   const frontendPackagingChanged = normalized.some((file) =>
-    ["scripts/frontend-artifacts.mjs", "scripts/frontend-artifacts.test.mjs"].includes(file),
+    [
+      "scripts/frontend-artifacts.mjs",
+      "scripts/frontend-artifacts.test.mjs",
+      "scripts/check-bundle-size.mjs",
+      "scripts/bundle-manifest.mjs",
+      "scripts/bundle-manifest.test.mjs",
+    ].includes(file),
   );
   const automationTests = new Set([
     "tests/ciChanges.test.js",

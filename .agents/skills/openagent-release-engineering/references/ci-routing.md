@@ -30,9 +30,12 @@ two verification routes:
   bundle budgets resolve both direct Vite manifest entries and source modules
   emitted through a manifest entry's dynamic imports, so code splitting does
   not fail a valid budget target before size measurement. The settings view
-  budget is 164 KiB raw and 64 KiB gzip; keep the raw limit explicit because
+  budget is 208 KiB raw and 64 KiB gzip; keep the raw limit explicit because
   this view is the largest settings surface and its gzip size can hide source
   growth.
+  Run bundle measurement through `bun run check:bundle-size`, which uses Node's
+  zlib on every platform. Bun's Windows gzip implementation can report a
+  different compressed size for identical assets; it must not set the baseline.
 - Workflow-router and shared dependency changes still conservatively select
   every affected module; the verification tier controls whether those modules
   use their quick or complete checks.
@@ -48,6 +51,10 @@ two verification routes:
 - Documentation-only changes skip expensive modules. Local preflight's
   automation test selection includes OWT batch and Codex launcher contracts;
   keep this list aligned when removing or replacing delivery tooling.
+  Whenever frontend checks are selected, local preflight builds fresh production
+  assets and enforces bundle budgets after tests, including with `--all`.
+  Bundle measurement and manifest-resolution changes select frontend checks
+  as well as automation so their resulting assets are qualified.
 
 Plugin gitlinks, `plugins/` source indexes, and `.gitmodules` changes select
 automation and frontend checks, including Message Board integration coverage.

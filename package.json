@@ -14,7 +14,7 @@
     "dev": "vite dev",
     "dev:tauri": "bun scripts/dev-with-runtime-server.mjs",
     "build": "vite build",
-    "check:bundle-size": "bun scripts/check-bundle-size.mjs",
+    "check:bundle-size": "node scripts/check-bundle-size.mjs",
     "check:embedding-model": "bun scripts/fetch-embedding-model.mjs --check",
     "check:docs": "bun scripts/check-docs-sync.mjs",
     "check:skills": "bun scripts/validate-agent-skills.mjs",

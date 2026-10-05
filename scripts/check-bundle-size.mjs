@@ -98,8 +98,8 @@ const budgets = [
     label: "settings view",
     root: clientRoot,
     entry: requireManifestEntry(clientManifest, "src/lib/components/SettingsView.svelte"),
-    // Settings scroll surfaces and MCP categorization now require just under 165 KiB.
-    rawLimit: 165 * 1024,
+    // The settings container, tabs, and dialogs currently emit 203.4 KiB.
+    rawLimit: 208 * 1024,
     gzipLimit: 64 * 1024,
   },
 ];

@@ -57,7 +57,24 @@ describe("local preflight plan", () => {
       "test-types",
       "svelte-check",
       "frontend-tests",
+      "frontend-build",
+      "bundle-size",
     ]);
+  });
+
+  test("builds fresh production assets before checking frontend bundle budgets", () => {
+    const commands = buildPreflightCommands({ ...nothing, frontend: true });
+    const ids = commands.map(({ id }) => id);
+    expect(commands.find(({ id }) => id === "frontend-build")).toMatchObject({
+      command: "bun",
+      args: ["run", "build"],
+    });
+    expect(commands.find(({ id }) => id === "bundle-size")).toMatchObject({
+      command: "bun",
+      args: ["run", "check:bundle-size"],
+    });
+    expect(ids.indexOf("frontend-build")).toBeLessThan(ids.indexOf("bundle-size"));
+    expect(commandIds({ automation: true })).not.toContain("bundle-size");
   });
 
   test("uses host compile checks while leaving cross-platform coverage to CI", () => {

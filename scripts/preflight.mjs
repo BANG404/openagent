@@ -110,6 +110,8 @@ export function buildPreflightCommands(modules) {
     add("lint", "JavaScript and frontend lint", "bun", ["run", "lint:frontend"]);
     add("format", "Repository formatting", "bun", ["run", "format:check"]);
     add("frontend-tests", "Frontend and automation tests", "bun", ["run", "test"]);
+    add("frontend-build", "Frontend production build", "bun", ["run", "build"]);
+    add("bundle-size", "Frontend bundle budgets", "bun", ["run", "check:bundle-size"]);
   }
 
   if (modules.nativeQuality || modules.nativePlatform) {

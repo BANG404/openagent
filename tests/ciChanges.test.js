@@ -174,6 +174,20 @@ describe("CI module classification", () => {
     });
   });
 
+  test("qualifies production assets when bundle measurement changes", () => {
+    for (const path of [
+      "scripts/check-bundle-size.mjs",
+      "scripts/bundle-manifest.mjs",
+      "scripts/bundle-manifest.test.mjs",
+    ]) {
+      expect(classifyChangedModules([path])).toEqual({
+        ...nothing,
+        automation: true,
+        frontend: true,
+      });
+    }
+  });
+
   test("routes skill and frontend contract tests to their owning modules", () => {
     expect(classifyChangedModules([".agents/skills/openagent-chat-frontend/SKILL.md"])).toEqual({
       ...nothing,
