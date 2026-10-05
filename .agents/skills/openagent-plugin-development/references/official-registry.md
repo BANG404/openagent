@@ -102,6 +102,10 @@ The runner checks actual progress, MCP availability, enabled uninstall, preserve
 plugin data, and the immediately restored Install action. Repeat with the native
 window in light/dark and English/Chinese.
 
+When the lifecycle runner selects appearance through Settings, it waits for each
+theme and language value to persist in Runtime before closing the surface or
+making the next selection. A preview alone does not qualify the saved setting.
+
 Use `bun run test:blackbox:plugin-installation` for installation and card
 qualification independently of package MCP/daemon functionality. It verifies
 failure isolation and retry, concurrent catalog installs, duplicate protection,

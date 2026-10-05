@@ -128,6 +128,16 @@ if (process.env.BLACKBOX_THEME && process.env.BLACKBOX_LANGUAGE) {
     pilot(["click", `${general} .settings-card-row:nth-child(${row}) button`]);
     pilot(["snapshot", "-i"]);
     pilot(["click", `[role=option][data-value="${value}"]`]);
+    const property = row === 1 ? "theme" : "language";
+    await waitFor(
+      `(async () => {
+        const {desktopOpenAgent} = await import('/src/lib/openagent/tauriClient.ts');
+        const config = await desktopOpenAgent.invokeProduct('get_settings', {});
+        return config[${JSON.stringify(property)}] === ${JSON.stringify(value)};
+      })()`,
+      `${property} selection did not persist`,
+      30000,
+    );
   }
   evaluate(
     `document.querySelector('[role="dialog"] button[aria-label="Close"], [role="dialog"] button[aria-label="关闭"]')?.click(); true`,
