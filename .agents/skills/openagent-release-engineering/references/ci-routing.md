@@ -5,6 +5,11 @@ TypeScript SDK test tree, and `sdk/rust/**/tests/**/*.rs` as tests. Keep those
 paths out of production duplication measurements when changing
 `sonar-project.properties`. Host and TypeScript SDK LCOV reports supply coverage;
 Rust tests gate upload but do not currently produce a coverage report.
+The SDK workspace test uses the persistent `sdk/target/sonar` directory so it
+does not share Cargo build artifacts with an active desktop or SDK build. On
+Windows it uses one Cargo job to avoid pagefile exhaustion while compiling the
+large Runtime crate, which can otherwise surface as misleading missing-crate
+errors.
 
 `ci.yml` classifies changed paths before calling reusable workflows and applies
 two verification routes:
