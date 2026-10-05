@@ -10,6 +10,8 @@ import { resolveBlackboxHome } from "./tauri-test-environment.mjs";
 
 const repo = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const installationOnly = process.argv.includes("--installation-only");
+const hostAccessOnly = process.argv.includes("--host-access-only");
+const deferHostAccess = process.argv.includes("--defer-host-access");
 const isolatedHome = resolveBlackboxHome(process.env, { instanceName: "plugin-lifecycle" });
 if (
   [join(homedir(), ".openagent"), join(homedir(), ".openagent-dev")]
@@ -25,7 +27,7 @@ mkdirSync(artifacts, { recursive: true });
 const registry = JSON.parse(
   readFileSync(join(repo, "src/lib/officialPluginRegistry.json"), "utf8"),
 );
-const selected = process.env.BLACKBOX_PLUGIN_IDS?.split(",");
+const selected = hostAccessOnly ? ["cua-driver"] : process.env.BLACKBOX_PLUGIN_IDS?.split(",");
 /** @type {Array<{id: string}>} */
 const plugins = registry.plugins.filter(
   (/** @type {{id: string}} */ plugin) => !selected || selected.includes(plugin.id),
@@ -166,7 +168,7 @@ await waitFor(
 /** @type {Array<{id: string, phases: string, preservedData: boolean}>} */
 const report = [];
 const fixtureIds = new Set(plugins.map((plugin) => plugin.id));
-if (installationOnly) {
+if (installationOnly && !hostAccessOnly) {
   fixtureIds.add("goal");
   fixtureIds.add("graph");
 }
@@ -174,7 +176,7 @@ for (const id of fixtureIds) {
   if (existsSync(join(isolatedHome, "plugins", id)))
     throw new Error(`${id} is already installed in the fixture; preserve it and use a fresh home`);
 }
-if (installationOnly) {
+if (installationOnly && !hostAccessOnly) {
   pilot(["snapshot", "-i"]);
   pilot(["run", join(repo, "tests/blackbox/plugin-install-failure.toml")]);
   await waitFor(
@@ -212,6 +214,28 @@ evaluate(
 pilot(["snapshot", "-i"]);
 pilot(["run", join(repo, "tests/blackbox/plugin-install.toml")]);
 await capture("concurrent-install-progress");
+if (plugins.some((plugin) => plugin.id === "cua-driver")) {
+  await waitFor(
+    "!!document.querySelector('[data-plugin-host-access=\"cua-driver\"]')",
+    "Cua installation did not request real computer access",
+  );
+  await capture("cua-install-authorization");
+  pilot(["snapshot", "-i"]);
+  pilot([
+    "run",
+    join(
+      repo,
+      `tests/blackbox/plugin-host-access-${deferHostAccess || installationOnly ? "defer" : "grant"}.toml`,
+    ),
+  ]);
+  if (!deferHostAccess && !installationOnly) {
+    await waitFor(
+      "!document.querySelector('[data-plugin-host-access]')",
+      "Cua authorization did not save and close the prompt",
+      600000,
+    );
+  }
+}
 for (const plugin of plugins) {
   evaluate(`window.__pluginLifecycleProbe.id = ${JSON.stringify(plugin.id)}`);
   await waitFor(
@@ -225,6 +249,26 @@ for (const plugin of plugins) {
     throw new Error(`${plugin.id} did not render Runtime phases: ${phases}`);
   if (!existsSync(join(isolatedHome, "plugins", plugin.id, "plugin.json")))
     throw new Error(`${plugin.id} card claims installation without a package`);
+  if (plugin.id === "cua-driver") {
+    const granted = evaluate(`(async () => {
+      const {desktopOpenAgent} = await import('/src/lib/openagent/tauriClient.ts');
+      const config = await desktopOpenAgent.invokeProduct('get_settings', {});
+      return !!config.agent_plugins_host_access?.['cua-driver'];
+    })()`);
+    if (granted !== String(!deferHostAccess && !installationOnly)) {
+      throw new Error("Cua installation did not persist the user's authorization choice");
+    }
+    if (deferHostAccess || installationOnly) {
+      const notice = evaluate(
+        `document.querySelector('[data-plugin-id="cua-driver"][data-install-status="success"]')?.textContent ?? ''`,
+      );
+      if (!/授权|authorization/.test(notice)) {
+        throw new Error(
+          "Deferred installation claims readiness without explaining missing authorization",
+        );
+      }
+    }
+  }
   evaluate("document.querySelectorAll('.plugin-management-tabs button')[1].click(); true");
   await waitFor(
     `!!document.querySelector('.plugin-accordion-item[data-plugin-id="${plugin.id}"] .plugin-version')`,
@@ -297,14 +341,19 @@ for (const plugin of plugins) {
       if (opener.getAttribute('aria-expanded') !== 'true') opener.click();
       return true;
     })()`);
-    await waitFor(
-      `(async () => {
-      const { invoke } = await import('/src/lib/openagent/tauriClient.ts');
-      try { return await invoke('agent_plugin_daemon_running', { pluginId: 'cua-driver' }); } catch { return false; }
-    })()`,
-      "Cua daemon did not become ready after the explicit grant",
-      600000,
-    );
+    // The desktop endpoint is shared. A live peer may own its daemon; an
+    // installation authorization pass proves readiness through MCP below
+    // without replacing or stopping that peer's process.
+    if (!hostAccessOnly) {
+      await waitFor(
+        `(async () => {
+        const { invoke } = await import('/src/lib/openagent/tauriClient.ts');
+        try { return await invoke('agent_plugin_daemon_running', { pluginId: 'cua-driver' }); } catch { return false; }
+      })()`,
+        "Cua daemon did not become ready after the explicit grant",
+        600000,
+      );
+    }
     pilot(["snapshot", "-i"]);
     evaluate(`(() => {
       const card = document.querySelector('.plugin-accordion-item[data-plugin-id="cua-driver"]');
@@ -330,7 +379,9 @@ for (const plugin of plugins) {
       `document.querySelectorAll('.plugin-accordion-item[data-plugin-id="cua-driver"] [role=switch]')[1].click(); true`,
     );
     await waitFor(
-      `(async () => { const {invoke} = await import('/src/lib/openagent/tauriClient.ts'); return !(await invoke('agent_plugin_daemon_running', {pluginId:'cua-driver'})); })()`,
+      `(async () => { const {desktopOpenAgent, invoke} = await import('/src/lib/openagent/tauriClient.ts');
+        const config = await desktopOpenAgent.invokeProduct('get_settings', {});
+        return !config.agent_plugins_host_access?.['cua-driver'] && !(await invoke('agent_plugin_daemon_running', {pluginId:'cua-driver'})); })()`,
       "revoking Cua host access did not stop its daemon",
       20000,
     );
@@ -361,14 +412,38 @@ for (const plugin of plugins) {
     evaluate(
       `document.querySelectorAll('.plugin-accordion-item[data-plugin-id="cua-driver"] [role=switch]')[1].click(); true`,
     );
-    await waitFor(
-      `(async () => {const {invoke} = await import('/src/lib/openagent/tauriClient.ts');return await invoke('agent_plugin_daemon_running', {pluginId:'cua-driver'});})()`,
-      "Cua did not restart after restoring the grant",
-      30000,
-    );
+    if (!hostAccessOnly) {
+      await waitFor(
+        `(async () => {const {invoke} = await import('/src/lib/openagent/tauriClient.ts');return await invoke('agent_plugin_daemon_running', {pluginId:'cua-driver'});})()`,
+        "Cua did not restart after restoring the grant",
+        30000,
+      );
+    } else {
+      await waitFor(
+        `(async () => {const {desktopOpenAgent} = await import('/src/lib/openagent/tauriClient.ts');
+          const result = await desktopOpenAgent.invokeProduct('call_agent_plugin_tool', {plugin_id:'cua-driver', tool_name:'get_screen_size', arguments:{}});
+          return !result.isError && result.structuredContent?.width > 0;})()`,
+        "Cua MCP did not reconnect after restoring the grant",
+        30000,
+      );
+    }
   }
   pilot(["snapshot", "-i"]);
   await capture(`${plugin.id}-installed`);
+  if (hostAccessOnly && !installationOnly) {
+    pilot(["snapshot", "-i"]);
+    pilot([
+      "click",
+      '.plugin-accordion-item[data-plugin-id="cua-driver"] [id="plugin-host-access-cua-driver"]',
+    ]);
+    await waitFor(
+      `(async () => { const {desktopOpenAgent, invoke} = await import('/src/lib/openagent/tauriClient.ts');
+        const config = await desktopOpenAgent.invokeProduct('get_settings', {});
+        return !config.agent_plugins_host_access?.['cua-driver'] && !(await invoke('agent_plugin_daemon_running', {pluginId:'cua-driver'})); })()`,
+      "Cua fixture access did not clear before the next authorization pass",
+      30000,
+    );
+  }
   pilot(["run", join(repo, "tests/blackbox/plugin-uninstall.toml")]);
   await waitFor(
     `!document.querySelector('.plugin-accordion-item[data-plugin-id="${plugin.id}"]') && !document.querySelector('[role="alertdialog"]')`,

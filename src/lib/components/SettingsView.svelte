@@ -28,6 +28,10 @@
   import { captureQuickChatShortcut } from "$lib/quickChatShortcut";
   import { desktopPluginInstallQueue, type PluginInstallTask } from "$lib/agentPluginInstallQueue";
   import {
+    desktopPluginHostAccessQueue,
+    pluginRequestsHostAccess,
+  } from "$lib/agentPluginHostAccess";
+  import {
     normalizeConfigShape,
     type NormalizedAppConfig,
     type NormalizedMcpServerConfig,
@@ -264,6 +268,13 @@
   let pluginManagementView = $state<"marketplace" | "installed">("marketplace");
   const pluginInstallQueue = desktopPluginInstallQueue;
   let agentPluginInstallTasks = $state<PluginInstallTask[]>(pluginInstallQueue.snapshot());
+  const pluginHostAccessQueue = desktopPluginHostAccessQueue;
+  let agentPluginHostAccessRequests = $state<AgentPluginSummary[]>(
+    pluginHostAccessQueue.snapshot(),
+  );
+  let agentPluginHostAccessBusy = $state(false);
+  let agentPluginHostAccessError = $state("");
+  const agentPluginHostAccessRequest = $derived(agentPluginHostAccessRequests[0] ?? null);
   let agentPluginRefreshSequence = 0;
   const pluginInstallStageKeys: Record<AgentPluginInstallProgress["stage"], TranslationKeys> = {
     preparing: "pluginInstallPreparing",
@@ -274,9 +285,14 @@
     complete: "pluginInstalled",
   };
   function agentPluginInstallMessage(task: PluginInstallTask): string {
-    return task.status === "error"
-      ? `${tr("pluginOperationFailed")}: ${task.error}`
-      : tr(pluginInstallStageKeys[task.progress.stage]);
+    if (task.status === "error") return `${tr("pluginOperationFailed")}: ${task.error}`;
+    if (agentPluginHostAccessRequests.some((plugin) => plugin.id === task.progress.plugin_id))
+      return tr("pluginInstallAwaitingHostAccess");
+    if (task.hostAccessRequired && !agentPluginHostAccess(task.progress.plugin_id)) {
+      return tr("pluginInstalledHostAccessRequired").replace("{name}", task.label);
+    }
+    if (task.status === "success") return tr("pluginInstallSuccess").replace("{name}", task.label);
+    return tr(pluginInstallStageKeys[task.progress.stage]);
   }
   const officialPluginCards = $derived.by<OfficialPluginCatalogItem[]>(() =>
     projectOfficialPluginCatalog(BUNDLED_OFFICIAL_PLUGIN_REGISTRY, {
@@ -438,12 +454,6 @@
     };
   }
 
-  function pluginRequestsHostAccess(plugin: AgentPluginSummary): boolean {
-    return plugin.capabilities.some((capability) =>
-      ["desktop-control", "host-access", "computer-use"].includes(capability.toLowerCase()),
-    );
-  }
-
   function agentPluginHostAccess(pluginId: string): boolean {
     return draftConfig.agent_plugins_host_access?.[pluginId] ?? false;
   }
@@ -453,6 +463,34 @@
       ...(draftConfig.agent_plugins_host_access ?? {}),
       [pluginId]: granted,
     };
+  }
+
+  function deferAgentPluginHostAccess() {
+    const plugin = agentPluginHostAccessRequest;
+    if (!plugin || agentPluginHostAccessBusy) return;
+    agentPluginHostAccessError = "";
+    pluginHostAccessQueue.answer(plugin.id, false);
+  }
+
+  async function grantAgentPluginHostAccess() {
+    const plugin = agentPluginHostAccessRequest;
+    if (!plugin || agentPluginHostAccessBusy) return;
+    agentPluginHostAccessBusy = true;
+    agentPluginHostAccessError = "";
+    try {
+      setAgentPluginHostAccess(plugin.id, true);
+      // Persist through the ordinary Settings path before activation consumes
+      // the grant. Answering a chat question never changes this configuration.
+      await saveDraftConfig();
+      if (!JSON.parse(acceptedConfigFingerprint).agent_plugins_host_access?.[plugin.id]) {
+        throw new Error(tr("pluginHostAccessSaveFailed"));
+      }
+      pluginHostAccessQueue.answer(plugin.id, true);
+    } catch (error) {
+      agentPluginHostAccessError = `${tr("pluginOperationFailed")}: ${String(error)}`;
+    } finally {
+      agentPluginHostAccessBusy = false;
+    }
   }
 
   /**
@@ -724,6 +762,9 @@
     const unlistenPluginInstalls = pluginInstallQueue.subscribe((tasks) => {
       agentPluginInstallTasks = tasks;
     });
+    const unlistenPluginHostAccess = pluginHostAccessQueue.subscribe((plugins) => {
+      agentPluginHostAccessRequests = plugins;
+    });
     const unlistenPluginChanges = visibleSections.has("plugins")
       ? listen("agent-plugins-changed", () => {
           void refreshAgentPlugins();
@@ -751,6 +792,7 @@
     }
     return () => {
       unlistenPluginInstalls();
+      unlistenPluginHostAccess();
       void unlistenPluginChanges.then((dispose) => dispose());
       void unlistenRemotePairingCode.then((dispose) => dispose());
       if (remoteCopyTimer) clearTimeout(remoteCopyTimer);
@@ -1969,7 +2011,15 @@
         agentPlugins = [...agentPlugins.filter((plugin) => plugin.id !== installed.id), installed];
         progress({ plugin_id: installed.id, stage: "connecting" });
         try {
-          if (installed.id === cuaDriverId && agentPluginHostAccess(cuaDriverId)) {
+          // Read the saved configuration: installation may finish after this
+          // Settings controller unmounts, or another surface may save a grant.
+          const saved = (await desktopOpenAgent.invokeProduct("get_settings", {})) as AppConfig;
+          let granted = saved.agent_plugins_host_access?.[installed.id] ?? false;
+          if (pluginRequestsHostAccess(installed) && !granted) {
+            granted = await pluginHostAccessQueue.request(installed);
+            if (!granted) return "host-access-required";
+          }
+          if (installed.id === cuaDriverId && granted) {
             await startCuaDriverDaemon();
             await desktopOpenAgent.invokeProduct("refresh_mcp_servers", {});
           }
@@ -2197,6 +2247,21 @@
     },
     get setAgentPluginHostAccess() {
       return setAgentPluginHostAccess;
+    },
+    get agentPluginHostAccessRequest() {
+      return agentPluginHostAccessRequest;
+    },
+    get agentPluginHostAccessBusy() {
+      return agentPluginHostAccessBusy;
+    },
+    get agentPluginHostAccessError() {
+      return agentPluginHostAccessError;
+    },
+    get deferAgentPluginHostAccess() {
+      return deferAgentPluginHostAccess;
+    },
+    get grantAgentPluginHostAccess() {
+      return grantAgentPluginHostAccess;
     },
     get agentPluginUpdates() {
       return agentPluginUpdates;

@@ -383,6 +383,16 @@ export const zh = {
   pluginDesktopControl: "桌面控制",
   pluginCuaDriverHint: "该插件请求使用真实电脑环境。只有你在下方明确授权后才会获得访问。",
   pluginHostAccess: "允许访问真实电脑",
+  pluginHostAccessTitle: "授权插件访问真实电脑",
+  pluginHostAccessInstallDescription:
+    "「{name}」已安装，需要访问真实电脑才能使用相关功能。授权后，插件可操作桌面应用、鼠标和键盘，其进程将不受沙箱限制。",
+  pluginHostAccessInstallHint:
+    "你可以暂不授权，插件会保留安装。需要真实电脑访问的功能将不可用；之后可在插件设置中授权或撤销权限。",
+  pluginHostAccessLater: "暂不授权",
+  pluginHostAccessSaving: "正在授权…",
+  pluginHostAccessSaveFailed: "无法保存真实电脑访问权限，请重试。",
+  pluginInstallAwaitingHostAccess: "等待真实电脑访问授权",
+  pluginInstalledHostAccessRequired: "已安装 {name}，相关功能需要真实电脑访问授权",
   pluginEnable: "启用插件",
   pluginInstallSuccess: "已安装 {name}",
   pluginHostAccessHint: "授权后，插件可访问真实电脑，其进程将不受沙箱限制。请仅向可信插件授权。",

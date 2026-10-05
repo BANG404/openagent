@@ -7,6 +7,7 @@ export type PluginInstallTask = {
   progress: AgentPluginInstallProgress;
   status: "running" | "success" | "error";
   error?: string;
+  hostAccessRequired?: boolean;
 };
 
 /** Independent installs share no busy flag, result, or progress subscription. */
@@ -56,7 +57,7 @@ export class AgentPluginInstallQueue {
     activate: (
       installed: T,
       progress: (value: AgentPluginInstallProgress) => void,
-    ) => Promise<void>;
+    ) => Promise<"host-access-required" | void>;
   }): Promise<void> {
     if (this.isInstalling(options.key)) return;
     let task: PluginInstallTask = {
@@ -81,10 +82,11 @@ export class AgentPluginInstallQueue {
         });
       }
       const installed = await options.install();
-      await options.activate(installed, update);
+      const activation = await options.activate(installed, update);
       this.publish({
         ...task,
         status: "success",
+        hostAccessRequired: activation === "host-access-required",
         progress: { ...task.progress, stage: "complete" },
       });
     } catch (error: unknown) {

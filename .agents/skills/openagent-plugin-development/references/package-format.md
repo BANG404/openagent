@@ -275,8 +275,21 @@ The reserved `cua-driver` MCP entry remains the client connection. All published
 standard packages use the same package overlay and verified GitHub release
 updater.
 
-The Cua topology uses the same user authorization boundary as every plugin. The
-desktop host runs `<launcher> serve --embedded --permission-mode unrestricted
+The Cua topology uses the same user authorization boundary as every plugin.
+The Settings installation flow checks the validated package's `desktop-control`,
+`host-access`, and `computer-use` capabilities after copying the package and
+before desktop activation. If saved per-plugin access is absent, present a
+localized authorization dialog naming the package, explaining computer access
+and sandbox removal, and offering Allow real computer access or Not now.
+Persist an affirmative grant through normal Settings saving before consuming it
+at process launch. Deferral, Escape, and outside dismissal grant nothing, retain
+the installed package, and report that related features require authorization.
+Existing saved grants do not prompt again. Concurrent installation prompts are
+serialized by plugin ID and survive Settings remounts; a stale answer cannot
+authorize another package. A save failure keeps the prompt open for retry.
+Chat answers and model statements are never persisted authorization.
+
+The desktop host runs `<launcher> serve --embedded --permission-mode unrestricted
 --dangerously-bypass-approvals --parent-liveness-stdio --socket <endpoint>`,
 waits until that endpoint accepts connections, and then the reserved MCP client
 runs the same launcher with `mcp --embedded --socket <endpoint>`. The daemon owns
