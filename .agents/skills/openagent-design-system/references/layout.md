@@ -36,6 +36,10 @@ resource browsers, and background-terminal sessions. Preserve native scrolling
 only for content that is intentionally horizontally scrollable (for example
 diffs, code blocks, diagrams, and textareas).
 
+Expanded background-terminal output has its own bounded scroll viewport with
+an explicit height, so long command output scrolls inside the session detail
+instead of stretching or clipping the sidebar.
+
 A surface with side-by-side columns fills its body instead of scrolling it. The
 body is a definite-height grid, so each column owns its own scroll window: the
 prompt column scrolls only once its own fields stop fitting, and every resource
