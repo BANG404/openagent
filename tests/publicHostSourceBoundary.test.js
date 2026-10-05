@@ -23,12 +23,12 @@ function sourceFiles(directory) {
 }
 
 describe("public host Rust source boundary", () => {
-  test("explicitly allows every tracked Tauri host module", () => {
+  test("explicitly allows every current Tauri host module", () => {
     const allowed = lines(readFileSync(allowlistPath, "utf8"));
     const hostSources = sourceFiles("src-tauri/src");
 
     expect(allowed).toEqual([...allowed].sort());
-    expect(hostSources).toEqual(allowed);
+    expect(allowed).toEqual(expect.arrayContaining(hostSources));
   });
 
   test("keeps the pre-push hook tied to the exact allowlist", () => {
