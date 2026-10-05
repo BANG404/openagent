@@ -66,6 +66,20 @@ test("declarations reject misleading language lists and incomplete translations"
   }
   expect(() => parsePluginI18n(null)).toThrow();
 });
+test("description translations are required only when the descriptor has a description", () => {
+  const input = {
+    supported_locales: ["en"],
+    default_locale: "en",
+    translations: { en: { display_name: "Minimal plugin", description: "Optional copy" } },
+  };
+  expect(parsePluginI18n(input)).toBeDefined();
+  const withoutDescription = {
+    ...input,
+    translations: { en: { display_name: "Minimal plugin" } },
+  };
+  expect(parsePluginI18n(withoutDescription)).toBeDefined();
+  expect(() => parsePluginI18n(withoutDescription, ["display_name", "description"])).toThrow();
+});
 test("command labels follow the current locale while command IDs stay fixed", () => {
   const i18n = {
     supported_locales: ["en", "zh"],
