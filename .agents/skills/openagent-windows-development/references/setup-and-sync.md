@@ -57,17 +57,19 @@ installation or PATH ordering requires it; this override takes precedence.
 
 The WSL checkout and the native Windows checkout should remain separate Git
 working trees. Configure the existing Windows checkout as a local source remote
-from WSL once. Replace `Ubuntu` if the distribution has another name:
+from WSL once. Substitute the actual checkout locations and distribution in these
+placeholders; derive them from the existing projects instead of copying a fixed
+drive or user directory:
 
 ```powershell
-cd D:\Project\openagent
-git remote add wsl-source "\\wsl.localhost\Ubuntu\home\iumm\projects\openagent"
+Set-Location '<windows-checkout>'
+git remote add wsl-source '\\wsl.localhost\<distribution>\<wsl-checkout-path>'
 ```
 
 Then configure the WSL checkout to run the repository's `post-commit` hook:
 
 ```bash
-git config --local wsl.windowsCheckout 'D:/Project/openagent'
+git config --local wsl.windowsCheckout '<windows-checkout>'
 git config --local wsl.windowsRemote wsl-source
 ```
 

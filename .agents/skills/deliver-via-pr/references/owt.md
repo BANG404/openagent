@@ -5,6 +5,14 @@ No prompt prefix selects a mode. Keep the default worktree on local `master`
 for developer debugging; implement and validate in isolated sibling worktrees.
 Never switch the default worktree to a task or integration branch.
 
+Resolve the repository root from the current checkout, for example with
+`git rev-parse --show-toplevel`. Choose temporary sibling worktrees relative to
+that root or use an explicitly supplied worktree location; never hard-code a
+drive, username, or projects directory. Worktree placement is temporary and does
+not select the final artifact's location. Keep the project's relative artifact
+layout through implementation and handoff; plugin destinations are owned by
+[local plugin development](../../openagent-plugin-development/references/local-development.md#resolve-source-locations-from-the-project).
+
 ## Isolated task worktree, then fast-forward
 
 1. Keep the public host's default worktree on its local default branch

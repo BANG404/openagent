@@ -66,6 +66,10 @@ and unsupported-language fallback. It also records current implementation gaps.
 
 ## Local development
 
+Resolve the package location using [the project source-location rules](local-development.md#resolve-source-locations-from-the-project)
+before scaffolding or cloning. The package tree above is relative to that chosen
+plugin directory; it does not prescribe a machine-specific checkout location.
+
 Use Settings -> Plugins -> Install to select a package directory. The host
 copies it into a staging directory, validates it again, then atomically
 activates it under `OPENAGENT_HOME/plugins/<name>/`. A fixture should use a

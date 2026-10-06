@@ -1,5 +1,41 @@
 # Local plugin development and acceptance
 
+## Resolve source locations from the project
+
+Locate the current project's root and read its instructions and existing plugin
+layout before choosing a source directory. Prefer a user-specified location;
+otherwise use the project's established plugin directory. If no convention
+exists, create `plugin/<plugin-name>/` relative to that project root. Here,
+`/plugin` means a project-relative directory, not a filesystem-root path.
+OpenAgent already uses `plugins/`, so its candidates belong at
+`plugins/<plugin-name>/`; do not introduce a parallel `plugin/` tree.
+
+Name a new source directory for the plugin's own identity, or use a directory
+explicitly mapped by the project's plugin index. Read `plugin.json` and the
+repository identity to establish ownership; an old checkout folder name is not
+that authority. Do not reuse another plugin's name or assume that two unrelated
+plugins are one package because a previous checkout path mentions both.
+
+Documentation and reusable commands name project-relative paths or explicit
+inputs such as `<project-root>` and `<plugin-directory>`. Resolve absolute paths
+from those inputs when executing a tool or handing off an installation path;
+never prescribe a drive letter, developer username, fixed checkout name, or an
+unrelated sibling repository as the destination.
+
+Independent Git ownership does not require a source checkout outside the
+project. A plugin repository can live under the chosen project plugin directory;
+use its existing repository and instructions, and follow the parent project's
+tracking or submodule convention when integrating it. A template repository URL
+selects input to copy, not the final source destination. Creating a plugin does
+not imply extending a tooling repository such as Plugin Kit unless that is the
+requested target.
+
+OWT worktrees and fixture homes are temporary execution locations. Develop under
+the same relative plugin path in the isolated checkout and deliver back to that
+path in the default project checkout. Keep the accepted candidate available
+there after cleanup; report the final project-relative path and derive the
+concrete installation path from the checkout actually in use.
+
 ## Pinned source checkouts
 
 Plugin source checkouts live under `plugins/`. Goal, Graph, Chat Groups, Cua
@@ -33,8 +69,9 @@ Read each plugin repository's own instructions before changing it. Commit and
 explicitly publish accepted plugin source changes in that repository before
 advancing the parent's gitlink for reproducible remote clones. Do not treat a
 local Git commit as published or silently replace an unpublished candidate with
-an older upstream version. Preserve independent sibling checkouts during this
-directory migration; they may contain local commits or developer work.
+an older upstream version. Preserve existing checkouts outside the project;
+they may contain local commits or developer work. Moving them is a separate
+explicit task, not an incidental part of choosing a new candidate's location.
 
 ## Association, tests, and use
 
@@ -64,13 +101,17 @@ continues unfinished successful turns with a bounded budget. Status turns never
 continue; approval, cancellation, failure and qualified candidates stop.
 Qualification waits for `:accept`; `:resume` and `:stop` control recovery.
 Read the kit's `docs/development-workflow.md` for arguments and reports.
+Resolve the final candidate directory before collecting gate evidence. If the
+scaffolder stages a package elsewhere in the workspace, place it at the chosen
+project plugin path without overwriting existing files and select that path with
+`development_select`; collect validation, test and Runtime evidence there.
 Its Runtime runner launches a selected shipped/source-built server against the
 production desktop API with isolated data, authenticates using a fresh token,
 copies the caller's permission profile, and retains binary/package digests and
 logs. It never connects to installed release state or broadens grants. Exercise
 commands/hooks with an Agent run as well as package gates; MCP acceptance needs
-explicit tool-result assertions. Keep an unpublished kit candidate available as
-a local directory until the developer separately authorizes publication.
+explicit tool-result assertions. Keep an unpublished candidate in the resolved
+project plugin directory until the developer separately authorizes publication.
 
 For mounting and localized-name changes, run
 `bun run test:blackbox:plugin-mcp-modes` in the isolated
