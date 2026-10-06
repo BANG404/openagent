@@ -28,7 +28,7 @@ describe("official plugin registry", () => {
       "1.0.6",
       "1.3.0",
       "1.1.1",
-      "1.2.0",
+      "1.3.0",
     ]);
     expect(findOfficialPlugin(registry, "message-board")?.sourceUrl).toBe(
       "https://github.com/BANG404/message-board.git",

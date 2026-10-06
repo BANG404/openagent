@@ -74,6 +74,11 @@ an older upstream version. Preserve existing checkouts outside the project;
 they may contain local commits or developer work. Moving them is a separate
 explicit task, not an incidental part of choosing a new candidate's location.
 
+Apply [plugin versioning](versioning.md) during implementation: update source
+package versions and verified compatibility declarations before committing and
+advancing a gitlink. Runtime publication validates these identities rather than
+calculating versions or repairing missing bumps.
+
 ## Association, tests, and use
 
 The index identifies source checkouts; it does not enable packages, modify

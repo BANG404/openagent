@@ -10,6 +10,10 @@ contracts such as Agent Plugin update summaries. Extending those contracts
 must preserve the existing message, checkpoint, and streaming fields so chat
 projection code continues to receive the same shapes.
 
+`AgentMessageTag` reuses the pinned SDK's type rather than duplicating its union.
+Keep checkpoint tags assignable across desktop and remote transports when the
+Runtime gitlink advances; transcript visibility remains a separate projection rule.
+
 Those plugin update contracts now include the `AgentPluginUpdateReport`
 envelope with its per-plugin error kinds and overall check status. They are additive: chat
 projection still reads only the transcript, checkpoint, and streaming fields

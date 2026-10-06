@@ -69,10 +69,17 @@ jobs:
         run: |
           git submodule update --init --recursive -- plugins
           git submodule foreach --recursive 'git fetch --tags origin'
-      - name: Stage independent plugin versions
+      - name: Stage source-versioned standard packages
         run: bun scripts/plugin-release.mjs --output "$RUNNER_TEMP/plugin-candidates"
       - name: Verify staged standard packages
-        run: bun test "$RUNNER_TEMP/plugin-candidates"/*/tests/*.test.mjs
+        run: |
+          test_root="$(mktemp -d "$RUNNER_TEMP/plugin-tests.XXXXXX")"
+          for archive in "$RUNNER_TEMP/plugin-candidates"/*-*.tar.gz; do
+            package_dir="$test_root/$(basename "$archive" .tar.gz)"
+            mkdir "$package_dir"
+            tar -xzf "$archive" -C "$package_dir"
+          done
+          bun test "$test_root"/*/tests/*.test.mjs
       - name: Publish verified pinned packages
         env:
           GH_TOKEN: ${{ secrets.OPENAGENT_PLUGIN_RELEASE_TOKEN }}

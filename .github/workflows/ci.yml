@@ -176,6 +176,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.automation == 'true'
     uses: ./.github/workflows/check-automation.yml
+    with:
+      base_sha: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
     permissions:
       contents: read
     secrets:

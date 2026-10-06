@@ -28,6 +28,30 @@ operations and Runtime events; preparing the resource does not drain or restart
 the server. The explicit embedded debug mode retains a diagnostic host adapter
 with the same operation and event contract.
 
+## Plugin inference
+
+Installed, enabled, compatible plugins can call `embedding.status` and
+`embedding.embed` over the existing package-authenticated Host Bridge. Plugin
+Kit exposes `host.embedding.status()` and `host.embedding.embed(texts)`. Status
+reports support/readiness, model identity, dimensions and request limits;
+inference returns ordered finite vectors with the same identity. Older Runtimes
+reject the optional status operation, which packages must handle separately from
+a supported but not-ready model. This preserves plugin protocol 1.
+
+The current local model returns 384-dimensional vectors. Requests allow 1..32
+non-blank strings, up to 8192 UTF-8 bytes each and 65536 bytes total. The existing
+tokenizer's truncation still applies; plugins should chunk long documents. One
+plugin inference worker runs per Runtime, and concurrent calls return a busy
+error for bounded retry. The bridge retains the worker slot through caller
+cancellation and does not persist input or output.
+
+Inference reuses the loaded Runtime encoder without downloading, repairing
+resources, reading arbitrary host files or invoking remote providers. A missing
+model returns a setup-required error through the existing host resource flow.
+Packages own their indexes under `PLUGIN_DATA`; store the returned model id,
+version and dimensions, and rebuild when identity changes. No additional computer
+access grant is needed for local text inference.
+
 ## Reproducibility and verification
 
 `bun run fetch:embedding-model` fetches the pinned Hugging Face revision and
@@ -38,6 +62,10 @@ without network access.
 Native CI checks the source resource hashes on Linux. Focused Rust tests load
 the source files, install them through the same persistent-resource path, and
 generate finite 384-dimensional vectors on Linux, Windows x64, and macOS arm64.
+The embedding platform job also calls the authenticated plugin embedding
+endpoint with real model files, checking authorization, ordered vectors and
+bounded concurrency. Run the SDK's ignored plugin inference scenario locally
+with `OPENAGENT_TEST_EMBEDDING_MODEL_DIR` pointing to these verified source files.
 Release builds package the seed only in full first-install and Microsoft Store
 artifacts; lightweight installers and updater metadata never reference it.
 

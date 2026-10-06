@@ -1,3 +1,5 @@
+import type { AgentMessageTag as SdkAgentMessageTag } from "../../sdk/typescript/src/types";
+
 export interface ToolCallRecord {
   name: string;
   args: string;
@@ -140,19 +142,7 @@ export function isPluginMessage(message: unknown): boolean {
   return Array.isArray(tags) && tags.length > 0;
 }
 
-export type AgentMessageTag =
-  | "context_compaction"
-  | "plugin_command_input"
-  | "queued_user_message"
-  | "chat_group_mention"
-  | "terminal_poll"
-  | "terminal_wake"
-  | "goal_bootstrap"
-  | "graph_bootstrap"
-  | "goal_continuation"
-  | "graph_continuation"
-  | "graph_node_bootstrap"
-  | "graph_node_continuation";
+export type AgentMessageTag = SdkAgentMessageTag;
 
 export type SerializableAgentMessage =
   | { role: "system"; content: string; tag?: AgentMessageTag }
