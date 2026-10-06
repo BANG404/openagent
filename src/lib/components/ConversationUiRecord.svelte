@@ -190,6 +190,7 @@
 {:else}
   <article
     class="conversation-ui message-record"
+    class:danger={supported && ui.component === "builtin.notice" && ui.props.tone === "danger"}
     id={`message-${messageId}`}
     data-message-id={messageId}
     aria-label={$t("conversationUiLabel")}
@@ -229,6 +230,9 @@
   small {
     color: var(--text-muted);
     font-size: 12px;
+  }
+  .conversation-ui.danger {
+    color: var(--danger);
   }
   header {
     margin-bottom: 8px;

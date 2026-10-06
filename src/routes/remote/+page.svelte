@@ -98,6 +98,7 @@
   let conversationSearchQuery = $state("");
   let conversation = $state<RemoteConversationState | null>(null);
   let activeTree = $state<ConvTree | undefined>();
+  let historyRequestGeneration = 0;
   let activeBranchId = $state<string | null>(null);
   let fileChanges = $state<FileChange[]>([]);
   let instruction = $state("");
@@ -687,8 +688,13 @@
 
   async function loadConversationHistory(convId: string) {
     const generation = connectionGeneration;
+    const requestGeneration = ++historyRequestGeneration;
     const history = await client.getRemoteConversationHistory(convId);
-    if (generation !== connectionGeneration || (conversation && conversation.conv_id !== convId))
+    if (
+      generation !== connectionGeneration ||
+      requestGeneration !== historyRequestGeneration ||
+      (conversation && conversation.conv_id !== convId)
+    )
       return;
     let tree = buildTreeFromCheckpoints(history.checkpoints, activeTree);
     if (history.active_branch_tip) {

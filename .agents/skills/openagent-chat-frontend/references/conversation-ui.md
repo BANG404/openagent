@@ -14,7 +14,8 @@ reply join that conversation's stream items; terminal hydration returns to the
 complete snapshot. A durable compaction UI record suppresses the adjacent hidden
 provider replay; older projections still use the legacy compaction marker.
 Paired browser state updates reload the checkpoint tree when an idle checkpoint
-tip changes, with connection-generation guards against stale history responses.
+tip changes, with connection and request generation guards against stale history
+responses.
 
 Custom components use the surface's typed `readPluginUiAsset` and
 `setConversationUiProps` capabilities, including paired browsers. Resolve a
