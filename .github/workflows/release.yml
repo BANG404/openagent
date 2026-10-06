@@ -1010,6 +1010,20 @@ jobs:
             throw "WinApp CLI failed to submit the Microsoft Store update."
           }
 
+  publish-plugins:
+    name: Publish compatible standard plugins
+    needs: [detect, create-draft, sdk-release]
+    if: >-
+      always()
+      && needs.detect.result == 'success'
+      && needs.create-draft.result == 'success'
+      && needs.sdk-release.result == 'success'
+      && needs.detect.outputs.runtime == 'true'
+    uses: ./.github/workflows/plugin-releases.yml
+    with:
+      sdk_sha: ${{ needs.sdk-release.outputs.sdk_sha }}
+    secrets: inherit
+
   publish-sdk-release:
     name: Publish pinned SDK release
     needs:
@@ -1020,11 +1034,13 @@ jobs:
       - publish-frontend-components
       - publish-store
       - sdk-release
+      - publish-plugins
     if: >-
       always()
       && needs.detect.result == 'success'
       && needs.create-draft.result == 'success'
       && needs.sdk-release.result == 'success'
+      && (needs.detect.outputs.runtime != 'true' || needs.publish-plugins.result == 'success')
       && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.native_shell != 'true' || needs.publish-native-assets.result == 'success')
       && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.runtime != 'true' || needs.publish-runtime-components.result == 'success')
       && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.frontend != 'true' || needs.publish-frontend-components.result == 'success')

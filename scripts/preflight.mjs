@@ -22,6 +22,7 @@ const AUTOMATION_TESTS = [
   "tests/sdkGitlink.test.js",
   "scripts/release-candidate-artifacts.test.mjs",
   "scripts/release-workflow.test.mjs",
+  "scripts/plugin-release.test.mjs",
 ];
 
 /**

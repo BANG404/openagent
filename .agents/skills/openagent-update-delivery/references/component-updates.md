@@ -83,6 +83,16 @@ processes may append to the same host file for a given day.
 
 ## Desktop Runtime boundary
 
+Release Runtime bootstrap synchronizes compatible installed plugin subscriptions
+before mounting package processes when the Runtime version changes. Plugin
+SemVer advances independently; protocol ranges control admission. Failed updates
+preserve installed bytes/data and retry on the next startup. Debug Runtime
+bootstrap retains explicit plugin updates. Synchronization uses an eight-second
+network budget so existing desktop readiness deadlines continue to apply.
+The plugin contract owns schema, selection, publication and retry details.
+SDK and desktop Runtime publication run the pinned
+standard-package pipeline; desktop publication requires that pipeline to succeed.
+
 Ordinary debug and release desktop builds use one supervised external
 `openagent-server` as the only Runtime process that owns configuration, SQLite,
 memory, and other durable state. Development builds prepare the local debug

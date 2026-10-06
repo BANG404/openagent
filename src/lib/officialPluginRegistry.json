@@ -201,7 +201,7 @@
       "id": "cua-driver",
       "display_name": "Cua Driver",
       "description": "Desktop control through the OpenAgent Cua Driver daemon.",
-      "version": "1.2.3",
+      "version": "1.3.0",
       "repository": "https://github.com/BANG404/openagent-cua-driver",
       "homepage": "https://github.com/BANG404/openagent-cua-driver",
       "source_url": "https://github.com/BANG404/openagent-cua-driver.git",
@@ -227,7 +227,10 @@
             "notice.prepared": "prepared Cua Driver at {path}",
             "notice.startFailed": "Unable to start Cua Driver ({code}) from {source}; check the driver installation and platform support",
             "notice.archiveInvalid": "The downloaded archive is invalid; verify the pinned release and retry",
-            "notice.unexpected": "Cua Driver operation failed ({code})"
+            "notice.unexpected": "Cua Driver operation failed ({code})",
+            "notice.checkingUpdates": "checking for Cua Driver updates",
+            "notice.updated": "updated Cua Driver to {version}",
+            "notice.updateFailed": "Cua Driver automatic update failed; using the last verified driver"
           },
           "zh": {
             "display_name": "桌面控制",
@@ -247,7 +250,10 @@
             "notice.prepared": "已准备 Cua Driver：{path}",
             "notice.startFailed": "无法从 {source} 启动 Cua Driver（{code}）；请检查驱动安装和平台支持情况",
             "notice.archiveInvalid": "下载的压缩包无效；请检查固定版本的发布文件后重试",
-            "notice.unexpected": "Cua Driver 操作失败（{code}）"
+            "notice.unexpected": "Cua Driver 操作失败（{code}）",
+            "notice.checkingUpdates": "正在检查 Cua Driver 更新",
+            "notice.updated": "已将 Cua Driver 更新至 {version}",
+            "notice.updateFailed": "Cua Driver 自动更新失败；继续使用上次校验通过的驱动"
           }
         }
       }
