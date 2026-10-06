@@ -142,6 +142,16 @@
   area, constrained windows never clip the palette, and opening or navigating
   them never moves the composer. Keep slash-command rows to the command token
   and description only, without trailing hints or decorative glyphs.
+- Filter slash-command names case-insensitively, accepting nonadjacent query
+  characters in any order. Every repeated query character needs a distinct
+  occurrence in the name. Rank exact, prefix, and substring matches ahead of
+  unordered matches, preserving Runtime catalog order within each rank and for
+  an empty query. Matching only chooses suggestions; insertion and Runtime
+  command routing keep the catalog's complete command token.
+  Verify with `bun run test:blackbox:slash-command-matching` against an isolated
+  debug Tauri instance (`TAURI_PILOT_SOCKET`/`TAURI_PILOT_WINDOW` identify it).
+  The command-palette preview covers both themes and locales, no-result recovery,
+  repeated-character matching, ranking, and Tab/Enter command insertion.
 - Keep the localized shared-composer placeholder concise while advertising the
   Enter and Shift+Enter keyboard behavior plus the `/` command and `@` mention
   palette triggers.

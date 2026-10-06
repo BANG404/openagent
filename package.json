@@ -60,6 +60,7 @@
     "test:blackbox:background-terminal-scroll": "bun scripts/test-background-terminal-scroll-blackbox.mjs",
     "test:blackbox:terminal-history": "bun scripts/test-terminal-history-blackbox.mjs",
     "test:blackbox:terminal-hooks": "bun scripts/test-terminal-hooks-blackbox.mjs",
+    "test:blackbox:slash-command-matching": "bun scripts/test-slash-command-matching-blackbox.mjs",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "test:agent-runtime": "cargo test --manifest-path sdk/rust/openagent-runtime/Cargo.toml",
     "dev:agent-server": "cargo run --manifest-path src-tauri/Cargo.toml --features embedded-runtime --bin openagent-agent-server",
