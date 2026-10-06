@@ -368,8 +368,10 @@ for (const plugin of plugins) {
     await waitFor(
       `(async () => {
       const {desktopOpenAgent} = await import('/src/lib/openagent/tauriClient.ts');
-      const result = await desktopOpenAgent.invokeProduct('call_agent_plugin_tool', {plugin_id:'cua-driver', tool_name:'get_screen_size', arguments:{}});
-      return !result.isError && result.structuredContent?.width > 0 && result.structuredContent?.height > 0;
+      try {
+        const result = await desktopOpenAgent.invokeProduct('call_agent_plugin_tool', {plugin_id:'cua-driver', tool_name:'get_screen_size', arguments:{}});
+        return !result.isError && result.structuredContent?.width > 0 && result.structuredContent?.height > 0;
+      } catch (error) { window.__pluginLifecycleProbe.error = String(error); return false; }
     })()`,
       "Cua could not read the real display through MCP",
       15000,
@@ -421,8 +423,10 @@ for (const plugin of plugins) {
     } else {
       await waitFor(
         `(async () => {const {desktopOpenAgent} = await import('/src/lib/openagent/tauriClient.ts');
-          const result = await desktopOpenAgent.invokeProduct('call_agent_plugin_tool', {plugin_id:'cua-driver', tool_name:'get_screen_size', arguments:{}});
-          return !result.isError && result.structuredContent?.width > 0;})()`,
+          try {
+            const result = await desktopOpenAgent.invokeProduct('call_agent_plugin_tool', {plugin_id:'cua-driver', tool_name:'get_screen_size', arguments:{}});
+            return !result.isError && result.structuredContent?.width > 0;
+          } catch (error) { window.__pluginLifecycleProbe.error = String(error); return false; }})()`,
         "Cua MCP did not reconnect after restoring the grant",
         30000,
       );

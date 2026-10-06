@@ -102,6 +102,11 @@ The runner checks actual progress, MCP availability, enabled uninstall, preserve
 plugin data, and the immediately restored Install action. Repeat with the native
 window in light/dark and English/Chinese.
 
+Cua display probes retry transient disconnected-server responses within their
+existing time limits. A successful Settings connection test can precede the
+Runtime pool's asynchronous reconnect; qualification still requires a real
+`get_screen_size` result after granting access and after restoring a revoked grant.
+
 When the lifecycle runner selects appearance through Settings, it waits for each
 theme and language value to persist in Runtime before closing the surface or
 making the next selection. A preview alone does not qualify the saved setting.

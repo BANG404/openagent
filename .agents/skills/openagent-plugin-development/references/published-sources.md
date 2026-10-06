@@ -15,8 +15,12 @@ and the plugin-kit validator, docs, and templates together. When a product
 package changes, update its repository and release archive so the GitHub
 subscription source remains installable.
 
-Keep catalog versions aligned with stable releases and their packaged manifests.
-The Goal v2.2.0 package includes shared slash/tool lifecycle controls and durable
-cancellation; Graph v1.0.4 publishes progress only after graph creation succeeds.
-Both require the generic Host Bridge. Release assets keep `plugin.json` at the
-ZIP root and must expose a verified GitHub SHA-256 digest for update delivery.
+Keep catalog versions and parent source gitlinks aligned with the same published
+stable releases and their packaged manifests. Standard packages declare MCP
+mounting policies and readable localized plugin names; they require a Runtime
+implementing those policies and the generic Host Bridge. Follow
+[package format](package-format.md) for declaration and settings precedence.
+Release assets keep `plugin.json` at the archive root and must expose a verified
+GitHub SHA-256 digest for update delivery. Verify the public download against its
+GitHub digest and the accepted Git source; Windows checkout newline conversion
+must not be mistaken for a different committed source.
