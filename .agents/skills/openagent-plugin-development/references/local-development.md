@@ -56,6 +56,22 @@ does not prove Runtime functionality or qualify a published release.
 
 ## Developer acceptance before publication
 
+The installable Plugin Kit development workflow uses `/openagent-plugin-kit:create`
+with free text or a JSON specification naming Skills and an HTTPS template
+repository. Its package-owned MCP tools scaffold/select workspace packages,
+retain validation/test/Runtime evidence bound to exact bytes, and its Stop hook
+continues unfinished successful turns with a bounded budget. Status turns never
+continue; approval, cancellation, failure and qualified candidates stop.
+Qualification waits for `:accept`; `:resume` and `:stop` control recovery.
+Read the kit's `docs/development-workflow.md` for arguments and reports.
+Its Runtime runner launches a selected shipped/source-built server against the
+production desktop API with isolated data, authenticates using a fresh token,
+copies the caller's permission profile, and retains binary/package digests and
+logs. It never connects to installed release state or broadens grants. Exercise
+commands/hooks with an Agent run as well as package gates; MCP acceptance needs
+explicit tool-result assertions. Keep an unpublished kit candidate available as
+a local directory until the developer separately authorizes publication.
+
 For mounting and localized-name changes, run
 `bun run test:blackbox:plugin-mcp-modes` in the isolated
 `plugin-mcp-modes-i18n` instance with its explicit `TAURI_PILOT_SOCKET`.

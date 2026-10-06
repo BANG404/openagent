@@ -86,7 +86,16 @@ declares an `mcp.json` server, a portable command, and a daemon at once, and the
 scenario raises the instance to the managed, network-enabled profile on the way
 in and restores the restricted tier on the way out. It shares the instance
 reserved for plugin verification, which the wrapper picks because the scenario
-changes the permission profile:
+changes the permission profile.
+
+Select the plugin surface's **Installed** tab before locating package switches
+or refreshing the local catalog. Scope Refresh to the plugin directory toolbar;
+other settings panels remain mounted and their Refresh buttons do not reload
+the plugin catalog.
+
+Path assertions compare normalized filesystem ancestry, including Windows
+verbatim paths; a textual prefix is neither sufficient containment nor a stable
+spelling of the same directory.
 
 ```bash
 bun tauri dev --multi-instance plugin-blackbox

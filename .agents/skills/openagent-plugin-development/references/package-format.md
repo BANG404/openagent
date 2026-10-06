@@ -75,6 +75,9 @@ Declare `extensions.openagent.mcp_tool_mode` as `direct` (the default) or
 mounted through `load_tool`. Optional `mcp_tool_modes` maps server names from
 `mcp.json` to overrides, for example `{"search":"relay","controls":"direct"}`.
 Keep these options in the plugin manifest so the portable MCP schema is intact.
+Commands, scripts and hooks may also lease their own declared servers through
+the generic `mcp.mount`, `mcp.unmount` and `mcp.status` Host Bridge operations;
+see [the OpenAgent contract](openagent-contract.md) for the lifecycle boundary.
 Invalid modes reject the manifest; unknown server overrides report a diagnostic.
 Mounting mode does not change transport, plugin identity, permissions, locale,
 disabled tools, MCP App visibility or availability to Agent Roles.

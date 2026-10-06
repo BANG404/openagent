@@ -25,11 +25,22 @@
 // the Runtime's own confinement test.
 
 import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative, isAbsolute, resolve } from "node:path";
 import { createInterface } from "node:readline";
 
 const pluginRoot = process.env.PLUGIN_ROOT ?? "";
 const pluginData = process.env.PLUGIN_DATA ?? "";
+
+/** @param {string} value */
+function insideData(value) {
+  /** @param {string} path */
+  const normal = (path) =>
+    resolve(path.replace(/^\\\\\?\\UNC\\/i, "\\\\").replace(/^\\\\\?\\/i, ""));
+  const child = relative(normal(pluginData), normal(value));
+  return (
+    !isAbsolute(child) && child !== ".." && !child.startsWith("..\\") && !child.startsWith("../")
+  );
+}
 
 // Mirrors the policy's own rule, so a change on either side shows up as a
 // disagreement instead of as a silently weaker fixture.
@@ -95,10 +106,7 @@ function report() {
     pluginRoot,
     pluginData,
     scratch,
-    scratchInsideData:
-      pluginData.length > 0 &&
-      scratch.length > 0 &&
-      scratch.every((value) => value.startsWith(pluginData)),
+    scratchInsideData: pluginData.length > 0 && scratch.length > 0 && scratch.every(insideData),
     survivingCredentialNames: survivingCredentialNames(),
     writes: {
       // Recorded for diagnosis only; the run asserts on `dataRoot` alone.

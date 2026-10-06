@@ -254,6 +254,12 @@ function openPluginList() {
   pilot(["click", "#application-integrations-menu", "--window", windowLabel]);
   pilot(["click", '[role="menuitem"]:last-child', "--window", windowLabel]);
   pilot(["wait", "--selector", '[role="dialog"]', "--timeout", "5000", "--window", windowLabel]);
+  pilot([
+    "click",
+    '.plugin-management-tabs [role="tab"][data-filter="installed"]',
+    "--window",
+    windowLabel,
+  ]);
 }
 
 /**
@@ -267,7 +273,7 @@ function refreshPluginList() {
     `(async () => {
       const deadline = Date.now() + 7000;
       while (Date.now() < deadline) {
-        const refresh = [...document.querySelectorAll("button")].find((button) =>
+        const refresh = [...document.querySelectorAll('.settings-tab-panel[data-value="plugins"] .plugin-directory-actions button')].find((button) =>
           /^(Refresh|刷新)$/.test(button.textContent?.trim() ?? ""),
         );
         if (refresh instanceof HTMLElement) {

@@ -129,6 +129,10 @@ The Runtime resolves each hook's package-relative `command` to a contained
 executable inside the plugin root and invokes that file. Plugin commands and
 hooks are not expected to be shell fragments, so a plugin must not rely on shell
 expansion, pipes, or quoting tricks in `command`.
+The runner rechecks containment and launches the resolved program and argv
+directly; JavaScript entries use Node and Windows batch entries use system Cmd.
+It never treats a package path as a shell fragment. User-authored shell automation keeps
+its existing shell semantics and session policy.
 
 ### Host capability bridge
 
@@ -216,7 +220,12 @@ never exposes provider payloads, Inspector data, or another plugin's token.
 Automation hooks receive the same authenticated bridge environment as MCP
 servers, plus `PLUGIN_ROOT` and `PLUGIN_DATA`. Hook stdin
 contains those routing fields inside an `event` object, for example
-`{ "hook_event_name": "stop", "cwd": "...", "event": { "conversation_id": "...", "branch_id": "...", "run_id": "...", "turn": 1 } }`.
+`{ "hook_event_name": "stop", "cwd": "...", "event": { "conversation_id": "...", "branch_id": "...", "run_id": "...", "execution_id": "...", "turn": 1 } }`.
+
+`execution_id` is allocated once per Runtime execution, remains stable across
+that execution's hooks and changes for continuation/resume. Use it for Stop
+deduplication; `run_id` is a correlation identifier and can equal the conversation
+ID across executions. Neither identity carries model data.
 `parent_conv_id` and `role_id` may also appear when the Runtime knows them.
 These are opaque routing IDs; hooks use the bridge for Agent operations and
 keep package state under `PLUGIN_DATA`.
@@ -293,6 +302,29 @@ lifecycle supports package installation,
 enable/disable, uninstall, and verified GitHub release updates. A hosted
 OpenAI marketplace listing is a separate service and is not claimed by the
 local package loader.
+
+### Dynamic MCP tool leases
+
+The authenticated bridge accepts `mcp.mount` with a raw server key from the
+caller's `mcp.json`, `mode` (`direct`/`relay`) and integer `ttl_secs` in 1..86400;
+`mcp.unmount` takes `server`; `mcp.status` takes an optional `server`. Responses
+carry version 1, `applies_at: next_tool_assembly`, normalized server IDs,
+effective mode and lease state. Mounting validates installed ownership and live
+enablement, and cannot register an executable/endpoint or grant host access.
+User per-plugin mode overrides win over lease requests and manifest defaults.
+
+Direct/Relay changes appear in the next turn's assembled catalog. Expiry and
+revocation also reject existing proxies and app/native calls. Relay checkpoint
+restoration cannot reopen an expired lease. Leases survive connection refresh
+within a Runtime process; restart loses them. Disable/uninstall revoke them and
+re-enablement uses manifest defaults. Tool leases leave the transport connected;
+packages own periodic renewal and cancellation through commands, hooks or a
+supervised daemon, retaining a control path when their own tools are leased.
+
+`runtime.permissions` returns version 1 and the live permission profile to the
+authenticated caller. Plugin development harnesses use it to configure an
+isolated test Runtime with the same policy through the normal settings operation.
+Missing sandbox provisioning remains an explicit failed test prerequisite.
 
 ### Automation
 
