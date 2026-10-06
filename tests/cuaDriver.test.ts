@@ -7,7 +7,6 @@ import {
   ensureCuaDriverServer,
   isCuaDriverEnabled,
   isCuaDriverServerCurrent,
-  isPluginOwnedMcpServerId,
 } from "../src/lib/cuaDriver";
 import type { AppConfig } from "../src/lib/types";
 
@@ -81,11 +80,6 @@ describe("Cua Driver configuration", () => {
     expect(server.disabled_tools).toEqual([]);
     // The reserved entry is a plugin capability, so role narrowing keeps it.
     expect(server.plugin_owned).toBe(true);
-  });
-
-  test("recognizes only the reserved id as plugin owned", () => {
-    expect(isPluginOwnedMcpServerId(CUA_DRIVER_ID)).toBe(true);
-    expect(isPluginOwnedMcpServerId("user-mcp")).toBe(false);
   });
 
   test("recognizes only the current fixed launch shape", () => {

@@ -11,7 +11,6 @@
   } from "$lib/roleScope";
   import SettingsActionButton from "$lib/components/ui/SettingsActionButton.svelte";
   import ScrollArea from "$lib/components/ui/ScrollArea.svelte";
-  import { isPluginOwnedMcpServerId } from "$lib/cuaDriver";
 
   type RoleDraft = {
     id: string | null;
@@ -62,7 +61,7 @@
     );
   });
   let enabledMcpServers = $derived(
-    mcpServers.filter((server) => server.enabled && !isPluginOwnedMcpServerId(server.id)),
+    mcpServers.filter((server) => server.enabled && !server.plugin_owned),
   );
   let filteredMcpServers = $derived.by(() => {
     const query = mcpServerQuery.trim().toLocaleLowerCase();

@@ -35,14 +35,6 @@
   import { applyDocumentTheme } from "$lib/appTheme";
   import { reportFrontendDiagnostic } from "$lib/frontendDiagnostics";
   import {
-    CUA_DRIVER_COMMAND,
-    CUA_DRIVER_ID,
-    createCuaDriverServer,
-    cuaDriverMcpArgs,
-    isCuaDriverServerCurrent,
-  } from "$lib/cuaDriver";
-  import { cuaDriverEndpoint, startCuaDriverDaemon } from "$lib/openagent/cuaDriverHost";
-  import {
     PROVIDER_CATALOG,
     providerCatalogEntry,
     providerDefaultBaseUrl,
@@ -78,8 +70,6 @@
   import type { SettingsNav } from "$lib/settingsWindows";
   import { approvalModeDescriptionKey, DEFAULT_APP_CONFIG } from "$lib/settingsDefaults";
   const view = getContext<Record<string, unknown>>("settings-view") as Record<string, any>;
-  // Cua shares the package card and adds its reserved MCP connection controls.
-  const desktopControlPluginId = "cua-driver";
 </script>
 
 <Tabs.Content value="general" class="settings-tab-panel">
@@ -626,14 +616,12 @@
                     >{pluginText(plugin.i18n, $locale, "display_name", plugin.name)}</span
                   >
                   <span class="detail-hint"
-                    >{plugin.id === desktopControlPluginId
-                      ? $t("pluginDesktopControlDescription")
-                      : pluginText(
-                          plugin.i18n,
-                          $locale,
-                          "description",
-                          plugin.description ?? plugin.id,
-                        )}</span
+                    >{pluginText(
+                      plugin.i18n,
+                      $locale,
+                      "description",
+                      plugin.description ?? plugin.id,
+                    )}</span
                   >
                   <PluginLanguageSupport i18n={plugin.i18n} />
                   {#if plugin.license || plugin.homepage}
@@ -649,31 +637,17 @@
                   {/if}
                 </span>
               </Accordion.Trigger>
-              {#if plugin.id === desktopControlPluginId}
-                <div class="plugin-accordion-actions">
-                  <label class="plugin-enable-label" for={`plugin-enable-${plugin.id}`}
-                    >{$t("pluginEnable")}</label
-                  >
-                  <Switch
-                    id={`plugin-enable-${plugin.id}`}
-                    checked={view.cuaDriver.enabled}
-                    onCheckedChange={(enabled) => view.setCuaDriverEnabled(enabled)}
-                    ariaLabel={$t("pluginDesktopControl")}
-                  />
-                </div>
-              {:else}
-                <div class="plugin-accordion-actions">
-                  <label class="plugin-enable-label" for={`plugin-enable-${plugin.id}`}
-                    >{$t("pluginEnable")}</label
-                  >
-                  <Switch
-                    id={`plugin-enable-${plugin.id}`}
-                    checked={view.agentPluginEnabled(plugin.id)}
-                    onCheckedChange={(enabled) => view.setAgentPluginEnabled(plugin.id, enabled)}
-                    ariaLabel={pluginText(plugin.i18n, $locale, "display_name", plugin.name)}
-                  />
-                </div>
-              {/if}
+              <div class="plugin-accordion-actions">
+                <label class="plugin-enable-label" for={`plugin-enable-${plugin.id}`}
+                  >{$t("pluginEnable")}</label
+                >
+                <Switch
+                  id={`plugin-enable-${plugin.id}`}
+                  checked={view.agentPluginEnabled(plugin.id)}
+                  onCheckedChange={(enabled) => view.setAgentPluginEnabled(plugin.id, enabled)}
+                  ariaLabel={pluginText(plugin.i18n, $locale, "display_name", plugin.name)}
+                />
+              </div>
             </Accordion.Header>
             {#if view.pluginRequestsHostAccess(plugin)}
               <div class="plugin-host-access-row">
@@ -692,7 +666,7 @@
               </div>
             {/if}
             <Accordion.Content class="plugin-accordion-content">
-              {#if plugin.mcp_servers.length > 0 || plugin.id === desktopControlPluginId}
+              {#if plugin.mcp_servers.length > 0}
                 <div class="settings-section-heading">
                   <label class="label-text" for={`plugin-mcp-mode-${plugin.id}`}
                     >{$t("pluginMcpToolMode")}</label
@@ -739,57 +713,6 @@
               {/each}
               {#if plugin.error}
                 <p class="plugin-warning">{plugin.error}</p>
-              {/if}
-              {#if plugin.id === desktopControlPluginId}
-                <div class="plugin-tools-heading">
-                  <div class="plugin-tools-title">
-                    <span class="label-text">{$t("pluginTools")}</span>
-                    <span class="plugin-tool-count"
-                      >{(view.mcpDiscoveredTools[view.cuaDriverId] ?? []).length}</span
-                    >
-                  </div>
-                  <SettingsActionButton
-                    label={$t("testMcpServer")}
-                    icon="test"
-                    tone="quiet"
-                    onclick={() => view.testMcpServer(view.cuaDriverId)}
-                    disabled={view.mcpTestStatus[view.cuaDriverId]?.tone === "testing"}
-                  />
-                </div>
-                <span class="detail-hint">{$t("pluginToolsHint")}</span>
-                {#if view.mcpTestStatus[view.cuaDriverId] && view.mcpTestStatus[view.cuaDriverId].tone !== "idle"}
-                  <div
-                    class="provider-status {view.mcpTestStatus[view.cuaDriverId].tone === 'success'
-                      ? 'success'
-                      : view.mcpTestStatus[view.cuaDriverId].tone === 'error'
-                        ? 'error'
-                        : 'loading'}"
-                    style="margin-top:10px"
-                  >
-                    {view.mcpTestStatus[view.cuaDriverId].message}
-                  </div>
-                {/if}
-                {#if (view.mcpDiscoveredTools[view.cuaDriverId] ?? []).length > 0}
-                  <div class="application-settings-surface plugin-tool-list">
-                    {#each view.mcpDiscoveredTools[view.cuaDriverId] ?? [] as tool (tool)}
-                      <div class="mcp-tool-row">
-                        <code>{tool}</code>
-                        <Switch
-                          checked={!view.cuaDriver.disabled_tools.includes(tool)}
-                          onCheckedChange={(checked) =>
-                            view.setMcpToolEnabled(view.cuaDriverId, tool, checked)}
-                          ariaLabel={`${$t("mcpToolEnabled")}: ${tool}`}
-                        />
-                      </div>
-                    {/each}
-                  </div>
-                {:else}
-                  <div class="plugin-tools-empty">
-                    <span class="plugin-tools-empty-icon" aria-hidden="true">+</span>
-                    <span>{$t("pluginToolsEmpty")}</span>
-                  </div>
-                {/if}
-                <p class="plugin-warning">{$t("pluginUnrestrictedWarning")}</p>
               {/if}
               {#if plugin.sidebar_views.length > 0}
                 <div class="plugin-sidebar-views">

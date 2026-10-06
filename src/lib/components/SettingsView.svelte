@@ -374,9 +374,7 @@
     normalizeConfigShape(untrack(() => config) ?? DEFAULT_APP_CONFIG),
   );
   const cuaDriverId = CUA_DRIVER_ID;
-  let userMcpServers = $derived(
-    draftConfig.mcp.servers.filter((server) => server.id !== cuaDriverId),
-  );
+  let userMcpServers = $derived(draftConfig.mcp.servers);
   let permissionProfile = $derived(draftConfig.permission_profile as PermissionProfile);
   let quickShortcutRecording = $state(false);
   let quickShortcutStatus = $state<{
@@ -428,21 +426,6 @@
     return draftConfig.mcp.servers.find((server) => server.id === cuaDriverId);
   }
 
-  function setCuaDriverEnabled(enabled: boolean) {
-    draftConfig.agent_plugins_enabled = {
-      ...(draftConfig.agent_plugins_enabled ?? {}),
-      [cuaDriverId]: enabled,
-    };
-    const existing = findCuaDriverServer();
-    if (existing) {
-      existing.enabled = enabled;
-      return;
-    }
-    const created = createCuaDriverServer(cuaDriverEndpoint());
-    created.enabled = enabled;
-    draftConfig.mcp.servers = [created, ...draftConfig.mcp.servers];
-  }
-
   function agentPluginEnabled(pluginId: string): boolean {
     return draftConfig.agent_plugins_enabled?.[pluginId] ?? true;
   }
@@ -452,6 +435,8 @@
       ...(draftConfig.agent_plugins_enabled ?? {}),
       [pluginId]: enabled,
     };
+    const pluginMcpServer = draftConfig.mcp.servers.find((server) => server.id === pluginId);
+    if (pluginMcpServer?.plugin_owned) pluginMcpServer.enabled = enabled;
   }
 
   function agentPluginHostAccess(pluginId: string): boolean {
@@ -516,8 +501,6 @@
   ): PluginSidebarLifecycle {
     return pluginSidebarLifecycle(view, plugin, pluginSidebarContext);
   }
-
-  let cuaDriver = $derived(findCuaDriverServer() ?? createCuaDriverServer(cuaDriverEndpoint()));
 
   $effect(() => {
     if (!initializedFromConfig || cuaDefaultApplied) return;
@@ -1677,6 +1660,12 @@
     if (!server) return;
     if (!enabled) {
       server.enabled = false;
+      if (server.plugin_owned) {
+        draftConfig.agent_plugins_enabled = {
+          ...(draftConfig.agent_plugins_enabled ?? {}),
+          [server.id]: false,
+        };
+      }
       return;
     }
 
@@ -1710,6 +1699,12 @@
         [id]: [...new Set(probe.tools)].sort((left, right) => left.localeCompare(right)),
       };
       server.enabled = true;
+      if (server.plugin_owned) {
+        draftConfig.agent_plugins_enabled = {
+          ...(draftConfig.agent_plugins_enabled ?? {}),
+          [server.id]: true,
+        };
+      }
       mcpTestStatus = {
         ...mcpTestStatus,
         [id]: {
@@ -2378,12 +2373,6 @@
     get cuaDefaultApplied() {
       return cuaDefaultApplied;
     },
-    get cuaDriver() {
-      return cuaDriver;
-    },
-    get cuaDriverId() {
-      return cuaDriverId;
-    },
     get deleteConfiguredModel() {
       return deleteConfiguredModel;
     },
@@ -2788,9 +2777,6 @@
     },
     get selectedSettingsSection() {
       return selectedSettingsSection;
-    },
-    get setCuaDriverEnabled() {
-      return setCuaDriverEnabled;
     },
     get setDefaultModel() {
       return setDefaultModel;
