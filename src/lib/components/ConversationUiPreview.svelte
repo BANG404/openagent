@@ -65,7 +65,7 @@
   let probe = $state("");
   let result = $state("");
   const documentContent = `<!doctype html><html><head><style>
-    body{font:14px system-ui;margin:12px;color:#222}body.dark{color:#eee}button{font:inherit;padding:8px 16px;border-radius:10px;border:1px solid #888;background:transparent;color:inherit}
+    body{font:14px system-ui;margin:12px;color:#222}body.dark{color:#eee;background:#27272a}button{font:inherit;padding:8px 16px;border-radius:10px;border:1px solid #888;background:transparent;color:inherit}
     </style></head><body><button id="increment">Increment / 加一</button><p id="status"></p><script>
     let context; let count=0; let request=0;
     const render=()=>document.querySelector('#status').textContent='Count: '+count;
