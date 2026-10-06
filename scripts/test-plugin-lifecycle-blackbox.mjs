@@ -209,7 +209,7 @@ if (installationOnly && !hostAccessOnly) {
   );
 }
 evaluate(
-  `window.__pluginLifecycleProbe = ${JSON.stringify({ ids: plugins.map((plugin) => plugin.id) })}`,
+  `window.__pluginLifecycleProbe = ${JSON.stringify({ ids: plugins.map((plugin) => plugin.id), locale: process.env.BLACKBOX_LANGUAGE || "zh" })}`,
 );
 pilot(["snapshot", "-i"]);
 pilot(["run", join(repo, "tests/blackbox/plugin-install.toml")]);
@@ -309,6 +309,7 @@ for (const plugin of plugins) {
       graph: "graph_read",
       "chat-groups": "chat_group_list",
       "message-board": "get_channels",
+      "openagent-plugin-kit": "development_status",
     }[plugin.id];
     const args =
       plugin.id === "message-board"

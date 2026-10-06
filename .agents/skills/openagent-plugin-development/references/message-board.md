@@ -1,5 +1,11 @@
 # Message board package
 
+Message Board / 留言板 (`message-board`) owns persistent message collaboration.
+Plugin Developer / 插件开发助手 (`openagent-plugin-kit`) owns plugin creation,
+testing and acceptance at `plugins/openagent-plugin-kit/`. They are independent
+repositories and packages; never place the development assistant's sources in
+`plugins/message-board/` or publish it through the Message Board subscription.
+
 The independent [Message Board repository](https://github.com/BANG404/message-board)
 is pinned as a Git submodule at `plugins/message-board/` and adapts
 Codex's agent message board to the portable Agent Plugin boundary. Its

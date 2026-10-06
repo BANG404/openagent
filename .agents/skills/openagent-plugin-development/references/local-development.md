@@ -39,7 +39,8 @@ concrete installation path from the checkout actually in use.
 ## Pinned source checkouts
 
 Plugin source checkouts live under `plugins/`. Goal, Graph, Chat Groups, Cua
-Driver, and Message Board are independent Git submodules: `.gitmodules` records
+Driver, Message Board, and Plugin Developer (`openagent-plugin-kit`) are independent
+Git submodules: `.gitmodules` records
 their repositories and the parent gitlinks pin their exact commits. Initialize
 them in every checkout or isolated worktree before using the development tools:
 

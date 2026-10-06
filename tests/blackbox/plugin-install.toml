@@ -4,6 +4,28 @@ fail_fast = true
 global_timeout_ms = 30000
 
 [[step]]
+name = "development assistant and message board have independent localized identities and sources"
+action = "eval"
+script = '''(() => {
+  const locale = window.__pluginLifecycleProbe.locale;
+  const expected = [
+    ['openagent-plugin-kit', locale === 'en' ? 'Plugin Developer' : '插件开发助手', 'https://github.com/BANG404/openagent-plugin-kit'],
+    ['message-board', locale === 'en' ? 'Message Board' : '留言板', 'https://github.com/BANG404/message-board'],
+  ];
+  for (const [id, name, repository] of expected) {
+    const card = document.querySelector(`.official-plugin-card[data-plugin-id="${id}"]`);
+    if (!card || card.querySelector('h5')?.textContent.trim() !== name) {
+      throw new Error(`wrong localized plugin identity: ${id}`);
+    }
+    if (card.querySelector('.detail-hint')?.textContent.trim() !== id ||
+        card.querySelector('.official-plugin-meta a')?.getAttribute('href') !== repository) {
+      throw new Error(`plugin source or stable ID is mixed up: ${id}`);
+    }
+  }
+  return 'independent Plugin Developer and Message Board identities';
+})()'''
+
+[[step]]
 name = "shared segmented controls keep selection and sliding background aligned"
 action = "eval"
 script = '''(async () => {

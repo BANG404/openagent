@@ -84,7 +84,7 @@ describe("tracked plugin development index", () => {
     }
   });
 
-  test("CLI uses all five checkout-local packages despite stale environment overrides", () => {
+  test("CLI uses all indexed checkout-local packages despite stale environment overrides", () => {
     const cli = fileURLToPath(new URL("./plugin-dev.mjs", import.meta.url));
     const result = spawnSync(process.execPath, [cli], {
       cwd: tmpdir(),
@@ -104,6 +104,7 @@ describe("tracked plugin development index", () => {
       "chat-groups",
       "cua-driver",
       "message-board",
+      "openagent-plugin-kit",
     ]);
     expect(result.stdout).not.toContain("absent.env");
     const path = spawnSync(process.execPath, [cli, "--path", "message-board"], {
@@ -111,5 +112,13 @@ describe("tracked plugin development index", () => {
     });
     expect(path.status).toBe(0);
     expect(path.stdout.trim().replaceAll("\\", "/")).toEndWith("/plugins/message-board");
+    const developerPath = spawnSync(process.execPath, [cli, "--path", "openagent-plugin-kit"], {
+      encoding: "utf8",
+    });
+    expect(developerPath.status).toBe(0);
+    expect(developerPath.stdout.trim().replaceAll("\\", "/")).toEndWith(
+      "/plugins/openagent-plugin-kit",
+    );
+    expect(developerPath.stdout.trim()).not.toBe(path.stdout.trim());
   });
 });

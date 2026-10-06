@@ -16,3 +16,6 @@
 [submodule "plugins/message-board"]
 	path = plugins/message-board
 	url = https://github.com/BANG404/message-board.git
+[submodule "plugins/openagent-plugin-kit"]
+	path = plugins/openagent-plugin-kit
+	url = https://github.com/BANG404/openagent-plugin-kit.git

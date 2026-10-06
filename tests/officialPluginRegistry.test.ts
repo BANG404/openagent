@@ -17,6 +17,7 @@ describe("official plugin registry", () => {
       "graph",
       "cua-driver",
       "message-board",
+      "openagent-plugin-kit",
     ]);
     expect(findOfficialPlugin(registry, "goal")?.sourceUrl).toBe(
       "https://github.com/BANG404/openagent-goal.git",
@@ -27,10 +28,30 @@ describe("official plugin registry", () => {
       "1.0.6",
       "1.2.3",
       "1.1.1",
+      "1.2.0",
     ]);
     expect(findOfficialPlugin(registry, "message-board")?.sourceUrl).toBe(
       "https://github.com/BANG404/message-board.git",
     );
+    expect(findOfficialPlugin(registry, "openagent-plugin-kit")?.sourceUrl).toBe(
+      "https://github.com/BANG404/openagent-plugin-kit.git",
+    );
+  });
+
+  test("distinguishes the development assistant and message board in localized search", () => {
+    const registry = parseOfficialPluginRegistry(bundledRegistry);
+    for (const [locale, query, id] of [
+      ["zh", "插件开发助手", "openagent-plugin-kit"],
+      ["zh", "留言板", "message-board"],
+      ["en", "Plugin Developer", "openagent-plugin-kit"],
+      ["en", "Message Board", "message-board"],
+    ]) {
+      expect(
+        projectOfficialPluginCatalog(registry, { installed: new Map(), locale, query }).map(
+          (entry) => entry.id,
+        ),
+      ).toEqual([id]);
+    }
   });
 
   test("converts entries to the existing marketplace protocol", () => {
