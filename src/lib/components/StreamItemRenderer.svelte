@@ -7,7 +7,6 @@
   import UserInputForm from "./UserInputForm.svelte";
   import UserInputSummary from "./UserInputSummary.svelte";
   import RetryAttempt from "./RetryAttempt.svelte";
-  import MessageDivider from "./MessageDivider.svelte";
   import ConversationUiRecord from "./ConversationUiRecord.svelte";
   import CompactionStatus from "./CompactionStatus.svelte";
   import { t } from "$lib/i18n";
@@ -185,15 +184,24 @@
     branchId={null}
   />
 {:else if item.type === "runtime_notice"}
-  <MessageDivider
-    title={item.kind === "error" ? $t("agentRunFailed") : $t("agentRunInterrupted")}
-    detail={runtimeNoticeDetail(
-      item,
-      item.kind === "error" ? $t("agentRunFailed") : $t("agentRunInterrupted"),
-    )}
-    tone={item.kind === "error" ? "danger" : "neutral"}
+  <ConversationUiRecord
+    ui={{
+      version: 1,
+      component: "builtin.divider",
+      props: {
+        title: item.kind === "error" ? $t("agentRunFailed") : $t("agentRunInterrupted"),
+        detail: runtimeNoticeDetail(
+          item,
+          item.kind === "error" ? $t("agentRunFailed") : $t("agentRunInterrupted"),
+        ),
+        tone: item.kind === "error" ? "danger" : "neutral",
+      },
+      fallback: item.kind === "error" ? $t("agentRunFailed") : $t("agentRunInterrupted"),
+    }}
     streamItemKey={itemKey}
-    {messageId}
+    messageId={messageId ?? itemKey}
+    conversationId={null}
+    branchId={null}
   />
 {:else if item.type === "retry"}
   <div

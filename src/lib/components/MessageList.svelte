@@ -2,7 +2,6 @@
   import { onMount, tick } from "svelte";
   import { fade } from "svelte/transition";
   import StreamItemRenderer from "./StreamItemRenderer.svelte";
-  import MessageDivider from "./MessageDivider.svelte";
   import ToolCallGroup from "./ToolCallGroup.svelte";
   import ProcessRecordGroup from "./ProcessRecordGroup.svelte";
   import AgentBookReader, { type AgentBookTurn } from "./AgentBookReader.svelte";
@@ -908,10 +907,17 @@
             />
           {/if}
         {:else if isCompactionReplayUser(msg) && !liveCompactionDivider}
-          <MessageDivider
-            title={$t("compactionCompleted")}
+          <ConversationUiRecord
+            ui={{
+              version: 1,
+              component: "builtin.divider",
+              props: { label_key: "compactionCompleted" },
+              fallback: $t("compactionCompleted"),
+            }}
             streamItemKey={`compaction-boundary-${msg.id}`}
             messageId={msg.id}
+            conversationId={null}
+            branchId={null}
           />
         {:else if msg.role === "user" && isPluginMessage(msg)}
           <PluginMessage message={msg} />

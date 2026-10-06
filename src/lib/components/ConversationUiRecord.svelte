@@ -9,11 +9,13 @@
   let {
     ui,
     messageId,
+    streamItemKey,
     conversationId,
     branchId,
   }: {
     ui: ConversationUi;
     messageId: string;
+    streamItemKey?: string;
     conversationId: string | null;
     branchId: string | null;
   } = $props();
@@ -182,7 +184,7 @@
 {#if supported && ui.component === "builtin.divider"}
   <MessageDivider
     {title}
-    streamItemKey={`ui-${messageId}`}
+    streamItemKey={streamItemKey ?? `ui-${messageId}`}
     detail={stringProp("detail") || undefined}
     tone={ui.props.tone === "danger" ? "danger" : "neutral"}
     {messageId}

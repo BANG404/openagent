@@ -3,8 +3,8 @@
 The SDK's `ConversationUi` is the common durable presentation contract.
 `role: ui` records retain ID, position and props through checkpoint hydration,
 branch switching and rollback. `ConversationUiRecord` renders built-in divider
-and notice components; `StreamItemRenderer` uses it for transient compaction as
-well. UI records do not participate in authored-user indexing, editing, copying
+and notice components; transient compaction, legacy boundaries and Runtime
+terminal notices use the same renderer. UI records do not participate in authored-user indexing, editing, copying
 or response suggestions. When a UI record lies inside an assistant reply, turn
 grouping retains it in order without manufacturing a new Turn or duplicate footer.
 
