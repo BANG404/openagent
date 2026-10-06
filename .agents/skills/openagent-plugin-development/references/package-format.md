@@ -282,14 +282,23 @@ changing its package data.
 
 The Cua Driver is a standard published package at
 `https://github.com/BANG404/openagent-cua-driver`. The package ships a launcher
-and no driver: its `bin/cua-driver.mjs` puts the pinned upstream release into the
-package's own `PLUGIN_DATA` on first use, and the desktop host starts that
+and no driver: its `bin/cua-driver.mjs` provisions a SHA-256-verified upstream
+release in the package's own `PLUGIN_DATA`, and the desktop host starts that
 launcher instead of a bundled executable. The host supplies the private endpoint,
 the lifetime pipe, `PLUGIN_DATA`, and the product-policy arguments; the package
 declares the program, its interpreter, and the `serve --embedded` it publishes.
 The reserved `cua-driver` MCP entry remains the client connection. All published
 standard packages use the same package overlay and verified GitHub release
 updater.
+
+Driver updates are package-owned and separate from plugin release updates.
+`--openagent-prepare` checks plain stable driver tags at most once every six
+hours and activates a verified platform asset before daemon startup. Serve,
+MCP and stop use the selected cache without an update check. Update failure
+retains the verified selection or falls back to the bundled pin; explicit
+`OPENAGENT_CUA_DRIVER_BIN` overrides bypass updating. A running daemon changes
+version on its next host-supervised start. Selection, cache recovery, retained
+releases and preparation locking are owned by the Cua package README and Skill.
 
 The Cua topology uses the same user authorization boundary as every plugin.
 The Settings installation flow checks the validated package's `desktop-control`,

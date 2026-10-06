@@ -458,6 +458,11 @@ and restore the previous active package if replacement cannot be completed.
 Startup also repairs an interrupted replacement by restoring a backup when the
 active package is missing and removing stale staging directories.
 Enable and disable remain lifecycle gates for mounted components.
+Update and uninstall await the target package's MCP process shutdown before
+changing its files, with concurrent MCP refresh excluded until the file operation
+finishes. Failed operations reconnect the package that remains installed; updates
+reload components from the newly activated package on success. Desktop hosts stop
+their own package daemons before requesting replacement or removal.
 
 Direct installs use a local directory; a Marketplace entry can additionally be
 `local`, `url`, `git-subdir`, or `npm`, and each is staged and validated through

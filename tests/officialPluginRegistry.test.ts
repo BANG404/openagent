@@ -25,7 +25,7 @@ describe("official plugin registry", () => {
       "1.0.5",
       "2.2.2",
       "1.0.6",
-      "1.2.3",
+      "1.3.0",
       "1.1.1",
     ]);
     expect(findOfficialPlugin(registry, "message-board")?.sourceUrl).toBe(
