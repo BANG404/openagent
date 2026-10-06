@@ -18,6 +18,7 @@ import type {
   UserInputRequest,
 } from "./types";
 import { isPluginMessage } from "./types";
+import { conversationUiFromContent } from "./conversationUi";
 
 function textValue(value: unknown, fallback = ""): string {
   if (value == null) return fallback;
@@ -331,6 +332,7 @@ function recordToMessage( // NOSONAR: checkpoint projection handles legacy and c
     tags: r.tags,
     agentTag: r.tags[0],
     pluginTags: r.plugin_tags,
+    ui: r.role === "ui" ? conversationUiFromContent(r.content) : undefined,
   };
 }
 
@@ -495,7 +497,19 @@ function attachPersistedToolResult( // NOSONAR: durable tool results are reconci
 // them after the final assistant record. Repair that legacy layout while
 // reading so existing conversations replay in the original retry order.
 function orderCheckpointRecords(records: CheckpointMessage[]): CheckpointMessage[] {
-  return records;
+  return records.filter((record, index) => {
+    if (record.role !== "user" || !record.tags.includes("context_compaction")) return true;
+    const preceding = records[index - 1];
+    const previous =
+      preceding?.role === "system" && preceding.tags.includes("context_compaction")
+        ? records[index - 2]
+        : preceding;
+    return (
+      !previous ||
+      previous.role !== "ui" ||
+      conversationUiFromContent(previous.content)?.props.label_key !== "compactionCompleted"
+    );
+  });
 }
 
 // Build the recovery tree from complete checkpoint snapshots and metadata.

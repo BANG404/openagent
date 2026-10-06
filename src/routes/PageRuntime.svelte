@@ -1,5 +1,6 @@
 <!-- eslint-disable max-lines -- runtime controller is isolated from the route composition root. -->
 <script lang="ts">
+  import { mergeConversationUiMessages, mergeConversationUiStream } from "$lib/conversationUi";
   /* eslint-disable max-lines */
   import { isTauri } from "@tauri-apps/api/core";
   import { homeDir } from "@tauri-apps/api/path";
@@ -86,7 +87,6 @@
   import type { SlashCommand } from "$lib/components/MessageInput.svelte";
   import QuickChatSurface from "$lib/components/QuickChatSurface.svelte";
   import RoleEditorWindowSurface from "$lib/components/RoleEditorWindowSurface.svelte";
-  import StandaloneDevPreview from "$lib/components/StandaloneDevPreview.svelte";
   import WorkspaceDialogs from "$lib/components/WorkspaceDialogs.svelte";
   import DesktopSidebar from "$lib/components/DesktopSidebar.svelte";
   import FullscreenSurface from "$lib/components/FullscreenSurface.svelte";
@@ -1009,6 +1009,29 @@
         ...convTrees,
         [convId]: reconcileLiveCheckpointTip(checkpoints, convTrees[convId], checkpointId),
       };
+      const location = findConversationLocation(convId);
+      if (location) {
+        const visible = location.conversations[location.index];
+        let durable = computeActivePath(convTrees[convId]);
+        if (chatStreams.streamingConversationIds[convId]) {
+          chatStreams.itemsByConversation = {
+            ...chatStreams.itemsByConversation,
+            [convId]: mergeConversationUiStream(
+              visible.messages,
+              durable,
+              chatStreams.itemsByConversation[convId] ?? [],
+              convId,
+              branchId,
+            ),
+          };
+          const visibleIds = new Set(visible.messages.map((message) => message.id));
+          durable = durable.filter(
+            (message) => message.role !== "ui" || visibleIds.has(message.id),
+          );
+        }
+        const projectedUi = mergeConversationUiMessages(visible.messages, durable);
+        location.conversations[location.index] = { ...visible, messages: projectedUi };
+      }
       const liveChanges = liveFileChangesPerConv[convId] ?? [];
       reconcileLiveFileChanges(
         convId,
@@ -5659,7 +5682,10 @@
   {#if isDevInspectorWindow && DevInspector}
     <DevInspector />
   {:else if standaloneDevPreview}
-    <StandaloneDevPreview preview={standaloneDevPreview} />
+    {#await import("$lib/components/StandaloneDevPreview.svelte") then previewModule}
+      {@const Preview = previewModule.default}
+      <Preview preview={standaloneDevPreview} />
+    {/await}
   {:else if settingsWindowKind}
     {#if SettingsWindowSurface}
       <SettingsWindowSurface

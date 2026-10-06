@@ -2465,6 +2465,17 @@ async fn get_skill_content(path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
+async fn set_conversation_ui_props(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    conv_id: String,
+    branch_id: String,
+    message_id: String,
+    props: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    openagent_runtime::commands::set_conversation_ui_props(&runtime, conv_id, branch_id, message_id, props).await
+}
+
+#[tauri::command]
 async fn save_skill_content(path: String, content: String) -> Result<(), String> {
     openagent_runtime::commands::save_skill_content(path, content).await
 }
@@ -5698,6 +5709,7 @@ fn run_with_mode(agent_server: bool) {
         install_official_agent_plugin,
         uninstall_agent_plugin,
         read_agent_plugin_asset,
+        set_conversation_ui_props,
         get_skill_content,
         save_skill_content,
         create_skill,

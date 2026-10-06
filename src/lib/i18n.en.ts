@@ -1047,6 +1047,8 @@ const en: Record<TranslationKeys, string> = {
   compactionCreating: "Saving compacted context",
   compactionFailed: "Context compaction failed",
   compactionCompleted: "Context compaction complete",
+  conversationUiLabel: "Conversation component",
+  conversationUiUnavailable: "Component unavailable. Saved content is shown.",
   retryAttempt: "Request failed; retrying",
   checkpointLoadFailed: "Cannot display this branch: failed to load its checkpoint.",
   askUserDefaultTitle: "Agent needs your input",

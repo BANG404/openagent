@@ -33,6 +33,7 @@
   import AttachmentPreview from "./AttachmentPreview.svelte";
   import UserQuote from "./UserQuote.svelte";
   import PluginMessage from "./PluginMessage.svelte";
+  import ConversationUiRecord from "./ConversationUiRecord.svelte";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { isPluginMessage } from "$lib/types";
   import { selectionTextWithMath } from "$lib/streamdown/selectionText";
@@ -541,6 +542,16 @@
         // A durable turn is grouped with the replay that opens it, so its
         // boundary belongs to a finished reply and stays mounted.
         if (isCompactionReplayUser(message)) return [{ type: "compaction_boundary" as const }];
+        if (message.role === "ui" && message.ui)
+          return [
+            {
+              type: "ui" as const,
+              ui: message.ui,
+              messageId: message.id,
+              conversationId: activeConvId,
+              branchId: activeBranchId,
+            },
+          ];
         if (message.role !== "assistant") return [];
         return message.items?.length
           ? message.items
@@ -887,7 +898,16 @@
       {:else if entry.kind === "message"}
         {@const msg = entry.msg}
         {@const msgIdx = entry.index}
-        {#if isCompactionReplayUser(msg) && !liveCompactionDivider}
+        {#if msg.role === "ui" && msg.ui}
+          {#if !(liveCompactionDivider && msg.ui.component === "builtin.divider" && msg.ui.props.label_key === "compactionCompleted")}
+            <ConversationUiRecord
+              ui={msg.ui}
+              messageId={msg.id}
+              conversationId={activeConvId}
+              branchId={activeBranchId}
+            />
+          {/if}
+        {:else if isCompactionReplayUser(msg) && !liveCompactionDivider}
           <MessageDivider
             title={$t("compactionCompleted")}
             streamItemKey={`compaction-boundary-${msg.id}`}

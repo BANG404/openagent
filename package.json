@@ -42,6 +42,7 @@
     "test:browser:preview": "bun scripts/test-browser-preview.mjs",
     "test:blackbox:memory": "bun scripts/test-memory-blackbox.mjs",
     "test:blackbox:plugins": "bun scripts/test-plugin-blackbox.mjs",
+    "test:blackbox:conversation-ui": "bun scripts/test-conversation-ui-blackbox.mjs",
     "test:blackbox:plugin-process": "bun scripts/test-plugin-process-blackbox.mjs",
     "test:blackbox:plugin-update": "bun scripts/test-plugin-update-blackbox.mjs",
     "test:blackbox:plugin-settings": "bun scripts/test-plugin-settings-blackbox.mjs",

@@ -7,6 +7,5 @@ metadata:
 
 # Agent Plugins
 
-Read `references/` contracts, [i18n](references/i18n-standard.md),
-[development](references/local-development.md) and [versioning](references/versioning.md).
+Read `references/` contracts and [conversation UI](references/conversation-ui.md).
 Clients own trust and sandbox policy.

@@ -1015,6 +1015,8 @@ export const zh = {
   compactionCreating: "正在写入压缩上下文",
   compactionFailed: "上下文压缩失败",
   compactionCompleted: "上下文压缩完成",
+  conversationUiLabel: "对话组件",
+  conversationUiUnavailable: "组件暂不可用，已显示保存的内容。",
   retryAttempt: "请求失败，正在重试",
   checkpointLoadFailed: "无法显示此分支：加载 checkpoint 失败。",
   // ask_user form

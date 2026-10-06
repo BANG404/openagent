@@ -162,6 +162,9 @@
   }
 
   const remoteUiCapabilities: OpenAgentUiCapabilities = {
+    readPluginUiAsset: (pluginId, entry) => client.readAgentPluginAsset(pluginId, entry),
+    setConversationUiProps: (convId, branchId, messageId, props) =>
+      client.invokeProduct("set_conversation_ui_props", { convId, branchId, messageId, props }),
     async openUrl(url) {
       const parsed = new URL(url);
       if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
@@ -614,6 +617,7 @@
       (state) => {
         if (generation !== connectionGeneration || conversation?.conv_id !== convId) return;
         const previousPhase = conversation.phase;
+        const previousCheckpointId = conversation.checkpoint_id;
         conversation = state;
         if (state.title?.trim()) {
           const index = remoteConversationMetas.findIndex((item) => item.id === convId);
@@ -639,14 +643,18 @@
         if (pendingAssistantMessageId && state.phase !== "before_completion") {
           pendingAssistantMessageId = null;
         }
-        if (previousPhase === "before_completion" && state.phase !== "before_completion") {
+        if (
+          state.phase !== "before_completion" &&
+          (previousPhase === "before_completion" || previousCheckpointId !== state.checkpoint_id)
+        ) {
           streamPaused = false;
           void refreshConversations();
           void loadConversationHistory(convId);
           if (
-            state.phase === "final_completed" ||
-            state.phase === "final_cancelled" ||
-            state.phase === "final_failed"
+            previousPhase === "before_completion" &&
+            (state.phase === "final_completed" ||
+              state.phase === "final_cancelled" ||
+              state.phase === "final_failed")
           ) {
             queueMicrotask(() => void sendNextQueuedMessage(convId));
           }
@@ -678,7 +686,10 @@
   }
 
   async function loadConversationHistory(convId: string) {
+    const generation = connectionGeneration;
     const history = await client.getRemoteConversationHistory(convId);
+    if (generation !== connectionGeneration || (conversation && conversation.conv_id !== convId))
+      return;
     let tree = buildTreeFromCheckpoints(history.checkpoints, activeTree);
     if (history.active_branch_tip) {
       tree = selectActivePathToCheckpoint(tree, history.active_branch_tip);

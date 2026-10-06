@@ -13,6 +13,16 @@ export interface SavedDownload {
 }
 
 export interface OpenAgentUiCapabilities {
+  readPluginUiAsset?: (
+    pluginId: string,
+    entry: string,
+  ) => Promise<{ content: string; mime: string }>;
+  setConversationUiProps?: (
+    convId: string,
+    branchId: string,
+    messageId: string,
+    props: Record<string, unknown>,
+  ) => Promise<unknown>;
   openUrl(url: string): Promise<void>;
   openPath(path: string): Promise<void>;
   readTextSnippet(path: string, startLine: number, endLine: number): Promise<WorkspaceTextSnippet>;
@@ -28,6 +38,14 @@ export interface OpenAgentUiCapabilities {
 const UI_CAPABILITIES_CONTEXT = Symbol("openagent-ui-capabilities");
 
 const desktopCapabilities: OpenAgentUiCapabilities = {
+  readPluginUiAsset: (pluginId, entry) => desktopOpenAgent.readAgentPluginAsset(pluginId, entry),
+  setConversationUiProps: (convId, branchId, messageId, props) =>
+    desktopOpenAgent.invokeProduct("set_conversation_ui_props", {
+      convId,
+      branchId,
+      messageId,
+      props,
+    }),
   openUrl: (url) => openSurfaceUrl(url, isTauri(), openExternalUrl),
   openPath: (path) => desktopOpenAgent.openWorkspacePath(path),
   readTextSnippet: (path, startLine, endLine) =>
