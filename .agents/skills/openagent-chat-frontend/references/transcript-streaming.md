@@ -464,7 +464,16 @@
   assistant rows, and keep both projections aligned by checkpoint message ID.
   Legacy product tags use this same namespaced projection; do not add a
   frontend allowlist for package tags. The Runtime-only `terminal_poll` control
-  tag remains hidden separately. Older checkpoints are normalized by Runtime
-  before hydration. A package that exposes its own transcript surface owns
+  tag and provider-only `terminal_wake` user records remain hidden separately.
+  External `chat-run-started` events with `user_visible=false` initialize the
+  Agent stream without inserting a user bubble, including after hydration.
+  Never use an empty display message as the visibility signal; ordinary empty
+  user input and hidden control input retain distinct contracts. Terminal wake
+  Agent output remains visible. Older checkpoints are normalized by Runtime
+  before hydration. Verify terminal wake delivery with
+  `bun run test:blackbox:terminal-hooks` against an isolated Tauri instance;
+  the scenario covers live hiding, reload, nonmatching output, and
+  Stop suppression across light/dark and English/Chinese passes.
+  A package that exposes its own transcript surface owns
   sender, wake-target, and mention rendering in that surface; the main
   transcript only renders the host's generic plugin message projection.

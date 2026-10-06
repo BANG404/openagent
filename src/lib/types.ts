@@ -146,6 +146,7 @@ export type AgentMessageTag =
   | "queued_user_message"
   | "chat_group_mention"
   | "terminal_poll"
+  | "terminal_wake"
   | "goal_bootstrap"
   | "graph_bootstrap"
   | "goal_continuation"

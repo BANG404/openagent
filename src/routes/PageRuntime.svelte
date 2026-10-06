@@ -2699,16 +2699,22 @@
   function applyExternalChatRunStarted(event: ChatRunStartedEvent): void {
     if (event.workspace !== (workspacePath || "")) return;
     const startedAt = Date.now();
-    const userMessage: ChatMessage = {
-      id: event.msg_id,
-      role: "user",
-      content: event.message,
-      timestamp: startedAt,
+    const userMessage: ChatMessage | undefined =
+      event.user_visible === false
+        ? undefined
+        : {
+            id: event.msg_id,
+            role: "user",
+            content: event.message,
+            timestamp: startedAt,
+          };
+    const insertUserMessage = () => {
+      if (userMessage) insertExternalUserMessage(event.conv_id, userMessage, event.asst_msg_id);
     };
     const incoming: Conversation = {
       id: event.conv_id,
       title: event.title || $t("newConv"),
-      messages: [userMessage],
+      messages: userMessage ? [userMessage] : [],
       createdAt: event.created_at * 1000,
       updatedAt: startedAt,
       pinned: event.pinned,
@@ -2738,12 +2744,9 @@
         roleId: event.role_id ?? undefined,
         updatedAt: startedAt,
       };
-      insertExternalUserMessage(event.conv_id, userMessage, event.asst_msg_id);
+      insertUserMessage();
     }
-    const updatedConversation = conversations.find(
-      (conversation) => conversation.id === event.conv_id,
-    );
-    if (updatedConversation) promoteConversationInRecents(updatedConversation);
+    promoteConversationInRecents(existingIndex === -1 ? incoming : conversations[existingIndex]);
 
     const eventRoleKey = event.role_id ?? defaultRoleKey;
     if (event.conv_id === activeConvId && eventRoleKey !== selectedRoleKey) {
@@ -2758,9 +2761,7 @@
       return;
     }
     if (!loadedConvIds.has(event.conv_id)) {
-      void loadMessagesForConv(event.conv_id, false).finally(() => {
-        insertExternalUserMessage(event.conv_id, userMessage, event.asst_msg_id);
-      });
+      void loadMessagesForConv(event.conv_id, false).finally(insertUserMessage);
     }
   }
 

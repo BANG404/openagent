@@ -1,0 +1,44 @@
+[scenario]
+name = "terminal rules wake the Agent with hidden provider input"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "submit through the native composer"
+action = "eval"
+script = '''(async () => {
+  const editor = document.querySelector('[contenteditable=true][role=textbox]');
+  if (!editor) throw new Error('composer missing');
+  editor.focus();
+  editor.dispatchEvent(new InputEvent('beforeinput', {bubbles:true, cancelable:true, inputType:'insertText', data:window.__terminalHookProbe.marker}));
+  await new Promise(resolve => setTimeout(resolve, 100));
+  if (!editor.textContent.includes(window.__terminalHookProbe.marker)) throw new Error('composer did not retain the fixture input');
+  if (document.querySelector('.send-btn').disabled) throw new Error('Send is still disabled');
+  document.querySelector('.send-btn').click();
+  return true;
+})()'''
+
+[[step]]
+name = "matching output and exit resume while cancellation remains stopped"
+action = "eval"
+script = '''(async () => {
+  const probe = window.__terminalHookProbe;
+  const deadline = Date.now() + 8000;
+  while (Date.now() < deadline) {
+    if (probe.mode === 'cancel' && document.querySelector('.tool-done') && document.querySelector('.stop-btn')) {
+      document.querySelector('.stop-btn').click();
+      break;
+    }
+    const expected = probe.mode === 'mismatch' ? `TERMINAL_ARMED_${probe.id}` : `TERMINAL_RESUMED_${probe.id}`;
+    if (document.body.textContent.includes(expected) && !document.querySelector('.stop-btn')) break;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  if (probe.mode !== 'cancel') {
+    const expected = probe.mode === 'mismatch' ? `TERMINAL_ARMED_${probe.id}` : `TERMINAL_RESUMED_${probe.id}`;
+    if (!document.body.textContent.includes(expected)) throw new Error('expected Agent reply missing');
+  }
+  if (document.body.textContent.includes('PRIVATE_TERMINAL_WAKE')) throw new Error('provider-only input leaked into the transcript');
+  if (document.querySelectorAll('.user-msg').length !== 1) throw new Error('wake inserted an extra user bubble');
+  if (document.documentElement.classList.contains('dark') !== (probe.theme === 'dark')) throw new Error('fixture theme differs');
+  return true;
+})()'''

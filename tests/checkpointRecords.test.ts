@@ -17,6 +17,23 @@ const record = (overrides) => ({
 });
 
 describe("checkpoint record projection", () => {
+  test("hides terminal wake user input and retains the Agent reply after reload", () => {
+    const messages = checkpointRecordsToMessages(
+      [
+        record({
+          id: "terminal-wake",
+          role: "user",
+          tags: ["terminal_wake"],
+          content: [{ type: "text", text: "INTERNAL_TERMINAL_WAKE" }],
+        }),
+        record({ id: "terminal-reply", content: [{ type: "text", text: "Build finished." }] }),
+      ],
+      "checkpoint-terminal",
+      "conversation-terminal",
+    );
+    expect(messages.map((message) => message.content)).toEqual(["Build finished."]);
+    expect(messages[0].id).toBe("terminal-reply");
+  });
   test("restores a durable model retry with its failed attempt output", () => {
     const [message] = checkpointRecordsToMessages(
       [
