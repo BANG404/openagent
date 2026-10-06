@@ -30,16 +30,6 @@ export function cuaDriverMcpArgs(endpoint: string): string[] {
 }
 
 /**
- * Whether an MCP id is reserved for a trusted plugin capability.
- *
- * Plugin-owned entries are absent from the Agent Role editor's MCP column, so a
- * role can never associate them; the runtime keeps them for every role.
- */
-export function isPluginOwnedMcpServerId(id: string): boolean {
-  return id === CUA_DRIVER_ID;
-}
-
-/**
  * The reserved entry is a fixed MCP proxy onto the plugin-owned daemon.
  * Permission mode, endpoint, grants, and manifests are product policy, so the
  * persisted entry only carries the host-provided endpoint. Users can enable or
