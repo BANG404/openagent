@@ -19,6 +19,44 @@ which distinguishes requirements from the current implementation boundary.
 
 ## Normalized descriptor
 
+### Protocol compatibility and Runtime synchronization
+
+Package SemVer, portable schema 1.0.0, the desktop SDK protocol and the OpenAgent
+plugin protocol are independent identities. Packages declare an inclusive
+`extensions.openagent.compatibility.plugin_protocol` range, for example
+`{ "min": 1, "max": 1 }`. Bounds are positive unsigned 32-bit integers;
+unknown compatibility keys and malformed ranges reject the manifest. Missing
+declarations retain the protocol-1 baseline. Incompatible installations preserve
+package data and update provenance while contributing no executable components.
+
+Release Runtime-version changes synchronize installed GitHub subscriptions in
+the primary Runtime before plugin processes mount. Checks and downloads are
+bounded; offline, incompatible and failed candidates preserve the installed
+package and retry at the next startup. Debug builds retain explicit updates.
+The derived `plugin-runtime-version.json` marker binds successful checks to the
+executing Runtime binary SHA-256, package version and plugin protocol; deleting
+it repeats synchronization. This also handles independently versioned Runtime
+resources built from source with the same package version.
+
+Publisher release notes advertise `plugin_protocol` inside an
+`<!-- openagent-plugin <JSON> -->` marker. When latest is incompatible, checks
+select the newest compatible stable candidate among the latest 100 releases.
+The archive still passes complete manifest/protocol validation, digest checks
+and name/version agreement before atomic replacement. No host-access grant or
+plugin enablement setting is changed. Plugin data migrations remain package-owned.
+
+Pinned standard package publication uses `scripts/plugin-release.mjs` and
+`plugin-releases.yml`: SemVer advances independently from Runtime via
+Conventional Commits; unchanged source reuses a release, and otherwise changes
+without a release-worthy subject receive a patch increment. Immutable
+`plugin-vX.Y.Z` tags point to the accepted source and avoid manual `v*` workflows.
+Only packaged manifests are stamped; source checkouts retain their development
+version. Every staged package is tested before publication. The retained
+`openagent-plugin-releases.json` maps package versions to source and protocol.
+Configure `OPENAGENT_PLUGIN_RELEASE_TOKEN` with contents write access only to
+the five standard-package repositories. Cross-repository SDK dispatch also
+requires Actions write access on OpenAgent for its dispatcher App.
+
 The Runtime exposes a typed descriptor rather than raw manifest JSON. Its
 stable fields are `id`, `name`, `version`, `repository`, `path`, `capabilities`,
 `commands`, `message_policies`, `skills`, `mcp_servers`,

@@ -1,0 +1,86 @@
+name: Publish compatible standard plugins
+run-name: Standard plugins for Runtime ${{ inputs.sdk_sha }}
+
+on:
+  workflow_call:
+    inputs:
+      sdk_sha:
+        required: true
+        type: string
+    secrets:
+      OPENAGENT_PLUGIN_RELEASE_TOKEN:
+        required: true
+      OPENAGENT_CI_REPORTER_PRIVATE_KEY:
+        required: true
+  workflow_dispatch:
+    inputs:
+      sdk_sha:
+        description: Qualified immutable Runtime source SHA
+        required: true
+        type: string
+
+concurrency:
+  group: standard-plugin-publication
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.21
+      - name: Create private SDK reader
+        id: sdk-reader
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
+          owner: BANG404
+          repositories: openagent-sdk
+          permission-contents: read
+          permission-statuses: read
+      - name: Check out immutable Runtime contract
+        uses: actions/checkout@v7
+        with:
+          repository: BANG404/openagent-sdk
+          ref: ${{ inputs.sdk_sha }}
+          path: sdk
+          fetch-depth: 0
+          token: ${{ steps.sdk-reader.outputs.token }}
+          persist-credentials: false
+      - name: Require qualified Runtime source
+        env:
+          SDK_SHA: ${{ inputs.sdk_sha }}
+          GH_TOKEN: ${{ steps.sdk-reader.outputs.token }}
+        run: |
+          test "$(git -C sdk rev-parse HEAD)" = "$SDK_SHA"
+          git -C sdk merge-base --is-ancestor "$SDK_SHA" origin/main
+          status="$(gh api "repos/BANG404/openagent-sdk/commits/$SDK_SHA/status" --jq '[.statuses[] | select(.context == "Public SDK CI")][0] | [.state, .description] | @tsv')"
+          test "$status" = $'success\tPublic SDK full validation passed'
+      - name: Initialize pinned standard package sources
+        run: |
+          git submodule update --init --recursive -- plugins
+          git submodule foreach --recursive 'git fetch --tags origin'
+      - name: Stage independent plugin versions
+        run: bun scripts/plugin-release.mjs --output "$RUNNER_TEMP/plugin-candidates"
+      - name: Verify staged standard packages
+        run: bun test "$RUNNER_TEMP/plugin-candidates"/*/tests/*.test.mjs
+      - name: Publish verified pinned packages
+        env:
+          GH_TOKEN: ${{ secrets.OPENAGENT_PLUGIN_RELEASE_TOKEN }}
+        run: bun scripts/plugin-release.mjs --output "$RUNNER_TEMP/plugin-candidates" --publish
+      - name: Retain Runtime to plugin mapping
+        uses: actions/upload-artifact@v4
+        with:
+          name: standard-plugin-releases
+          path: ${{ runner.temp }}/plugin-candidates/openagent-plugin-releases.json
+          if-no-files-found: error
+          retention-days: 7

@@ -96,6 +96,7 @@ jobs:
           tests/releaseVersion.test.js
           scripts/release-candidate-artifacts.test.mjs
           scripts/release-workflow.test.mjs
+          scripts/plugin-release.test.mjs
 
       - name: Verify generated release metadata
         shell: bash

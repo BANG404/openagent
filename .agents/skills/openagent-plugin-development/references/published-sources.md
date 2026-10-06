@@ -15,8 +15,11 @@ and the plugin-kit validator, docs, and templates together. When a product
 package changes, update its repository and release archive so the GitHub
 subscription source remains installable.
 
-Keep catalog versions and parent source gitlinks aligned with the same published
-stable releases and their packaged manifests. Standard packages declare MCP
+Keep parent source gitlinks aligned with accepted published source. Manual
+`v*` releases keep source and packaged versions aligned; automatic `plugin-v*`
+releases stamp packaged SemVer independently, with the Runtime/plugin mapping
+recording the original source SHA. Catalog versions refer to packaged manifests.
+Standard packages declare MCP
 mounting policies and readable localized plugin names; they require a Runtime
 implementing those policies and the generic Host Bridge. Follow
 [package format](package-format.md) for declaration and settings precedence.

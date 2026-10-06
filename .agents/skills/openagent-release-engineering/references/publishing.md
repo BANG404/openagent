@@ -43,6 +43,16 @@ App's short-lived, read-only installation token over HTTPS.
 
 Candidate construction and publication are separate phases:
 
+Runtime-selected desktop releases run `plugin-releases.yml` after qualification
+and before SDK publication. It checks out the immutable qualified SDK contract,
+stages pinned standard packages with independently calculated SemVer, tests the
+packaged bytes, then publishes immutable `plugin-v*` releases. The plugin
+contract owns range declarations and repository token requirements. Independent
+SDK publication dispatches and waits for this same pipeline on public `master`;
+it does not duplicate plugin release logic. Configure the dispatcher App for Actions write
+on OpenAgent and the host's `OPENAGENT_PLUGIN_RELEASE_TOKEN` for contents write
+on the standard package repositories before enabling release publication.
+
 1. concurrently qualify the desktop SHA and stage or reuse its pinned SDK
    release, including the exact Runtime binaries and manifest;
 2. verify the staged SDK SHA, artifact names, sizes, and SHA-256 values, then
