@@ -22,6 +22,8 @@ Custom components use the surface's typed `readPluginUiAsset` and
 contained entry from the enabled package rather than persisting executable HTML
 or credentials. Render an opaque-origin `sandbox=allow-scripts` frame with a
 host-prepended CSP that disables network, forms, popups and parent navigation.
+Paired browsers load an authenticated same-origin frame document with the same
+restrictions because srcdoc would inherit the SPA's script hash policy.
 Props are sent by postMessage, never concatenated into HTML. Verify source window,
 version and stable message ID on every reply; bound height and request IDs.
 Locale/theme changes send context without reloading the frame or losing drafts.

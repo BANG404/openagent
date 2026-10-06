@@ -16,7 +16,7 @@ export interface OpenAgentUiCapabilities {
   readPluginUiAsset?: (
     pluginId: string,
     entry: string,
-  ) => Promise<{ content: string; mime: string }>;
+  ) => Promise<{ content: string; mime: string; document_url?: string }>;
   setConversationUiProps?: (
     convId: string,
     branchId: string,

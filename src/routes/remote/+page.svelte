@@ -163,9 +163,12 @@
   }
 
   const remoteUiCapabilities: OpenAgentUiCapabilities = {
-    readPluginUiAsset: (pluginId, entry) => client.readAgentPluginAsset(pluginId, entry),
+    readPluginUiAsset: (pluginId, entry) => {
+      if (!conversation) return Promise.reject(new Error("Conversation unavailable"));
+      return client.readConversationUiAsset(conversation.conv_id, pluginId, entry);
+    },
     setConversationUiProps: (convId, branchId, messageId, props) =>
-      client.invokeProduct("set_conversation_ui_props", { convId, branchId, messageId, props }),
+      client.setConversationUiProps({ convId, branchId, messageId, props }),
     async openUrl(url) {
       const parsed = new URL(url);
       if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {

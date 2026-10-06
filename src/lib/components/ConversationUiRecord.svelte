@@ -21,6 +21,7 @@
   } = $props();
   const capabilities = useOpenAgentUiCapabilities();
   let documentSource = $state<string | null>(null);
+  let documentUrl = $state<string | undefined>();
   let loading = $state(false);
   let failed = $state(false);
   let frame = $state<HTMLIFrameElement | null>(null);
@@ -128,6 +129,7 @@
     ];
     let cancelled = false;
     documentSource = null;
+    documentUrl = undefined;
     failed = false;
     loading = false;
     if (
@@ -146,6 +148,12 @@
         if (!asset.mime.startsWith("text/html") || asset.content.length > 4 * 1024 * 1024)
           throw new Error("invalid");
         documentSource = conversationUiFrameDocument(asset.content);
+        if (asset.document_url) {
+          const url = new URL(asset.document_url, location.href);
+          if (url.origin !== location.origin || !url.pathname.startsWith("/api/conversations/"))
+            throw new Error("invalid document URL");
+          documentUrl = url.href;
+        }
       })
       .catch(() => {
         if (!cancelled) failed = true;
@@ -206,7 +214,8 @@
     {:else if supported && documentSource && !failed}
       <iframe
         title={ui.fallback}
-        srcdoc={documentSource}
+        srcdoc={documentUrl ? undefined : documentSource}
+        src={documentUrl}
         sandbox="allow-scripts"
         referrerpolicy="no-referrer"
         bind:this={frame}
