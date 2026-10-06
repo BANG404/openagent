@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 
 const sharedSurfaceComponents = [
   "../src/lib/components/LoadingSkeleton.svelte",
-  "../src/lib/components/MessageList.svelte",
+  "../src/lib/components/transcript/UserMessageRow.svelte",
   "../src/lib/components/RetryAttempt.svelte",
 ];
 

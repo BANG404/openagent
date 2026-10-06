@@ -1,14 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 
-const routeUrl = new URL("../src/routes/PageRuntime.svelte", import.meta.url);
+const startupUrl = new URL("../src/lib/page/startup.ts", import.meta.url);
 const onboardingUrl = new URL("../src/lib/onboarding.ts", import.meta.url);
 const onboardingFlowUrl = new URL("../src/lib/components/OnboardingFlow.svelte", import.meta.url);
 
 describe("onboarding completion", () => {
   test("requires durable configuration and a ready embedding resource", async () => {
     const [route, onboarding, onboardingFlow] = await Promise.all([
-      readFile(routeUrl, "utf8"),
+      readFile(startupUrl, "utf8"),
       readFile(onboardingUrl, "utf8"),
       readFile(onboardingFlowUrl, "utf8"),
     ]);

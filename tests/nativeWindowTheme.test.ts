@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
-import { settingsViewSource } from "./sourceSurfaces";
+import { settingsViewSource, hostRustSource } from "./sourceSurfaces";
 
 describe("native window theme", () => {
   test("previews the resolved theme on both the WebView and native material", async () => {
@@ -21,7 +21,7 @@ describe("native window theme", () => {
       new URL("../src/lib/components/SettingsWindowSurface.svelte", import.meta.url),
       "utf8",
     );
-    const host = await readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+    const host = hostRustSource();
     const cargo = await readFile(new URL("../src-tauri/Cargo.toml", import.meta.url), "utf8");
     const capability = JSON.parse(
       await readFile(new URL("../src-tauri/capabilities/default.json", import.meta.url), "utf8"),
@@ -30,7 +30,7 @@ describe("native window theme", () => {
     expect(route).toContain("createNativeThemeSynchronizer({");
     expect(route).toContain("setNativeTheme: (theme) => appWindow.setTheme(theme)");
     expect(route).toContain("onThemePreview={applyTheme}");
-    expect(settings).toContain("if (onThemePreview) onThemePreview(theme);");
+    expect(settings).toContain("if (options.onThemePreview) options.onThemePreview(theme);");
     expect(settings).toContain("else applyDocumentTheme(theme);");
     expect(onboarding).toContain("if (onThemePreview) onThemePreview(theme);");
     expect(onboarding).toContain("else applyDocumentTheme(theme);");

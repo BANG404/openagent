@@ -1,5 +1,13 @@
 # Startup and restore
 
+The page composes `src/lib/page/checkpoints.ts` for durable hydration, branch
+selection, live checkpoint refresh, and file-change reconciliation.
+`pendingInputProjection.ts` restores pending forms from the selected durable
+checkpoint. Both use the page's canonical conversation/tree state through
+typed dependencies. Preserve the conversation and branch generation guards,
+optimistic messages added during loads, resolved forms, and visible message
+instances when only checkpoint metadata changes.
+
 - Use the synchronous per-workspace restore hint only for first render, then
   reconcile through the unified bootstrap IPC.
 - Prepare current-window workspace switches in the background while keeping the

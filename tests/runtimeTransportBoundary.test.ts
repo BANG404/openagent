@@ -39,13 +39,13 @@ describe("external Runtime transport boundary", () => {
 
   test("implements every typed desktop product operation in the external Runtime router", async () => {
     const router = await readFile(
-      new URL("../sdk/rust/openagent-runtime/src/commands/remote_gateway.rs", import.meta.url),
+      new URL(
+        "../sdk/rust/openagent-runtime/src/commands/remote_gateway/desktop_operations.rs",
+        import.meta.url,
+      ),
       "utf8",
     );
-    const dispatch = router.slice(
-      router.indexOf("async fn desktop_product_operation("),
-      router.indexOf("pub async fn get_remote_gateway_status("),
-    );
+    const dispatch = router.slice(router.indexOf("async fn desktop_product_operation("));
     const implemented = new Set(
       [...dispatch.matchAll(/^\s+"([a-z_]+)"\s*=>/gm)].map((match) => match[1]),
     );

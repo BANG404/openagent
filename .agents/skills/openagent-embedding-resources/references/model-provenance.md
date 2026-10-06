@@ -27,6 +27,9 @@ live Runtime. Tauri resolves an optional packaged seed path and proxies the type
 operations and Runtime events; preparing the resource does not drain or restart
 the server. The explicit embedded debug mode retains a diagnostic host adapter
 with the same operation and event contract.
+The host's `embedding_adapter.rs` owns packaged seed discovery and embedded
+command forwarding; `embedded_host.rs` contains the diagnostic Runtime host
+bridge. Resource installation, verification, and activation stay in the SDK.
 
 ## Plugin inference
 

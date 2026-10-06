@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
+import { pageRuntimeSource } from "./sourceSurfaces";
 import {
   addWorkspaceToPersistedOrder,
   mergeRecentConversationRefresh,
@@ -176,7 +177,10 @@ describe("sidebar project order", () => {
 
     expect(browser).toContain("void loadProjectSnapshot(project.path, roleKey)");
     expect(browser).toContain("await onLoadProjectConversations(path, roleKey)");
-    expect(route).toContain("fetchConversationPage(path, null, 30, null, true, roleId)");
+    expect(await pageRuntimeSource()).toContain(
+      "fetchConversationPage(path, null, 30, null, true, roleId)",
+    );
+    expect(route).toContain("onLoadProjectConversations={loadProjectConversations}");
   });
 
   test("renders a compact project-owned empty state after loading completes", async () => {
@@ -292,10 +296,7 @@ describe("sidebar project order", () => {
   });
 
   test("retains a loaded role's recent snapshot during background refresh", async () => {
-    const route = await readFile(
-      new URL("../src/routes/PageRuntime.svelte", import.meta.url),
-      "utf8",
-    );
+    const route = await pageRuntimeSource();
 
     expect(route).toContain("recentConversationRoleKey !== roleKey");
     expect(route).toContain("if (replacingRoleSnapshot) recentConversations = []");
@@ -307,12 +308,19 @@ describe("sidebar project order", () => {
       new URL("../src/routes/PageRuntime.svelte", import.meta.url),
       "utf8",
     );
-    const handlerStart = route.indexOf(
+    const surfaceEvents = await readFile(
+      new URL("../src/lib/page/events/surfaceEvents.ts", import.meta.url),
+      "utf8",
+    );
+    const handlerStart = surfaceEvents.indexOf(
       'register<{ conv_id: string; title: string }>("conversation-title-updated"',
     );
-    const handler = route.slice(handlerStart, route.indexOf("register<{", handlerStart + 1));
+    const handler = surfaceEvents.slice(
+      handlerStart,
+      surfaceEvents.indexOf("register<{", handlerStart + 1),
+    );
 
-    expect(handler).toContain("applyConversationTitleUpdate(conv_id, title)");
+    expect(handler).toContain("options.applyConversationTitleUpdate(conv_id, title)");
     expect(route).toContain("promoteConversationInRecents(updated)");
     expect(route).toContain("await fetchConversationMeta(convId).catch(() => null)");
   });
@@ -461,8 +469,12 @@ describe("sidebar project order", () => {
     expect(browser).toContain("removeProjectConversationSnapshot(snapshots, ownerWorkspace, id)");
     expect(browser).toContain("onDelete(id, ownerWorkspace)");
     expect(list).toContain("onDelete(conv.id, conv.workspace)");
-    expect(route).toContain("recentConversations = recentConversations.filter");
-    expect(route).toContain("searchConversations = searchConversations.filter");
+    expect(route).toMatch(
+      /conversationLists\.recentConversations =\s*conversationLists\.recentConversations\.filter/,
+    );
+    expect(route).toMatch(
+      /conversationLists\.searchConversations =\s*conversationLists\.searchConversations\.filter/,
+    );
     expect(appCss).toContain('[role="menuitemcheckbox"]');
     expect(appCss).toContain("user-select: none");
   });

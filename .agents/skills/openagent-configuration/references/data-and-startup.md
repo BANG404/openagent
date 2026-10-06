@@ -1,5 +1,21 @@
 # Configuration and application data
 
+The desktop page delegates startup sequencing to `src/lib/page/startup.ts`.
+It restores the durable bootstrap before installing Runtime event delivery,
+retries a lost bootstrap once, restores durable fallback state on failure,
+and keeps event registration single-attempt. The page supplies its existing
+configuration, loading state, restore surface, and conversation selection
+through writable typed dependencies; startup never creates another transcript
+or stream owner. Window reveal still waits for rendering and distinguishes
+an unknown embedding status from an explicitly non-ready resource.
+
+`src/lib/page/workspaceNavigation.ts` owns preparation and application of a
+workspace switch. It resolves roles, the selected durable conversation, its
+lineage, checkpoint tree, pending input, file changes, and suggestions before
+committing the writable page state. A failed preparation restores the Runtime's
+previous workspace. The mounted shell and per-workspace conversation snapshots
+stay intact through this transition; normal navigation uses the current window.
+
 OpenAgent keeps user-scoped settings and durable application data under one
 application-data root. Set `OPENAGENT_HOME` to choose that root explicitly.
 Without an override, every platform uses `~/.openagent`, including Windows and
@@ -23,6 +39,10 @@ and exits. When a destructive transition is required, Tauri presents the user
 confirmation and asks that command to perform the backup and reset before it
 starts the long-lived supervised server. The ordinary Tauri binary therefore
 does not link the private SDK Rust crates.
+The host adapters live in `src-tauri/src/desktop_bootstrap/`: mode selection
+composes prepared inputs, persistence presents the existing backup confirmation,
+and external startup selects verified or packaged binaries. They do not inspect
+or mutate configuration and database files themselves.
 Additive database upgrades, such as creating a new optional feature table, are
 applied transactionally by the Runtime without entering this confirmation
 flow; the Runtime keeps a SQLite snapshot beside `messages.db` for rollback.
@@ -53,24 +73,24 @@ OpenAgent never merges two populated roots automatically.
 
 The root contains these user-maintained or durable files:
 
-| Path                              | Purpose                                                                                                                       |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `config.toml`                     | Providers, model bindings, tool policy, UI preferences, onboarding completion, MCP, and remote-gateway settings              |
-| `config.toml.bak`                 | Previous valid configuration used for startup recovery                                                                        |
-| `config.toml.pre-v1.bak`          | Immutable copy retained while an unversioned legacy configuration is normalized to the versioned shape                    |
-| `memory.md`                       | Global user memory                                                                                                            |
-| `messages.db`                     | Conversation, checkpoint, follow-up suggestion, workspace-and-locale new-conversation suggestion, attachment, rollback, and optional chat-group storage |
-| `messages.db.pre-schema-v<N>.bak` | SQLite-consistent snapshot retained before an automatic database schema upgrade                                               |
-| `backups/before-data-v1-*/`       | User-confirmed transition backup of settings and/or conversations replaced outside the support window                         |
-| `scheduled_chat_hooks.json`       | Durable scheduled-chat definitions                                                                                            |
-| `logs/openagent.<date>.jsonl`     | Local structured application diagnostics; daily rotation with the latest 15 files retained                                    |
-| `drafts/`, `DESIGN.md`            | Global drafts and design context                                                                                              |
-| `plugins/<name>/`                 | Validated installed Agent Plugin packages                                                                                     |
-| `plugin-data/<name>/`             | Persistent writable `PLUGIN_DATA`, retained when a plugin is uninstalled                                                      |
-| `resources/embedding/<model>/<version>/` | Verified, versioned local semantic-memory model resources shared by full and lightweight application updates           |
-| `resources/runtime/<version>/<target>/` | Signed standalone Runtime candidates; installation is immutable and activation remains host-supervised                |
-| `resources/frontend/<version>/`         | Signed static frontend versions served by the desktop's private protocol                                               |
-| `resources/frontend/active.json`        | Atomically replaced active/previous frontend selection and pending-confirmation marker; a pending marker outlives the process that wrote it, so the next process serves that candidate under a fresh confirmation deadline |
+| Path                                     | Purpose                                                                                                                                                                                                                    |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `config.toml`                            | Providers, model bindings, tool policy, UI preferences, onboarding completion, MCP, and remote-gateway settings                                                                                                            |
+| `config.toml.bak`                        | Previous valid configuration used for startup recovery                                                                                                                                                                     |
+| `config.toml.pre-v1.bak`                 | Immutable copy retained while an unversioned legacy configuration is normalized to the versioned shape                                                                                                                     |
+| `memory.md`                              | Global user memory                                                                                                                                                                                                         |
+| `messages.db`                            | Conversation, checkpoint, follow-up suggestion, workspace-and-locale new-conversation suggestion, attachment, rollback, and optional chat-group storage                                                                    |
+| `messages.db.pre-schema-v<N>.bak`        | SQLite-consistent snapshot retained before an automatic database schema upgrade                                                                                                                                            |
+| `backups/before-data-v1-*/`              | User-confirmed transition backup of settings and/or conversations replaced outside the support window                                                                                                                      |
+| `scheduled_chat_hooks.json`              | Durable scheduled-chat definitions                                                                                                                                                                                         |
+| `logs/openagent.<date>.jsonl`            | Local structured application diagnostics; daily rotation with the latest 15 files retained                                                                                                                                 |
+| `drafts/`, `DESIGN.md`                   | Global drafts and design context                                                                                                                                                                                           |
+| `plugins/<name>/`                        | Validated installed Agent Plugin packages                                                                                                                                                                                  |
+| `plugin-data/<name>/`                    | Persistent writable `PLUGIN_DATA`, retained when a plugin is uninstalled                                                                                                                                                   |
+| `resources/embedding/<model>/<version>/` | Verified, versioned local semantic-memory model resources shared by full and lightweight application updates                                                                                                               |
+| `resources/runtime/<version>/<target>/`  | Signed standalone Runtime candidates; installation is immutable and activation remains host-supervised                                                                                                                     |
+| `resources/frontend/<version>/`          | Signed static frontend versions served by the desktop's private protocol                                                                                                                                                   |
+| `resources/frontend/active.json`         | Atomically replaced active/previous frontend selection and pending-confirmation marker; a pending marker outlives the process that wrote it, so the next process serves that candidate under a fresh confirmation deadline |
 
 Workspace-scoped memory, skills, drafts, and design files remain under that
 workspace's `.agents/` directory rather than the user-scoped root.

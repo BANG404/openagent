@@ -7,7 +7,7 @@ describe("math quote selection", () => {
   test("preserves KaTeX source and routes selections through the math-aware extractor", async () => {
     const [math, messageList, quote, renderer, retry] = await Promise.all([
       readFile(new URL("streamdown/ChatMath.svelte", sourceRoot), "utf8"),
-      readFile(new URL("components/MessageList.svelte", sourceRoot), "utf8"),
+      readFile(new URL("transcript/selection.svelte.ts", sourceRoot), "utf8"),
       readFile(new URL("components/UserQuote.svelte", sourceRoot), "utf8"),
       readFile(new URL("components/StreamItemRenderer.svelte", sourceRoot), "utf8"),
       readFile(new URL("components/RetryAttempt.svelte", sourceRoot), "utf8"),

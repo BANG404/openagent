@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { applyWindowFocusEvent } from "../src/lib/windowFocus";
+import { hostRustSource } from "./sourceSurfaces";
 
 const componentsUrl = new URL("../src/lib/components/", import.meta.url);
 
@@ -25,6 +26,10 @@ describe("window focus chrome", () => {
       new URL("ConversationSurface.svelte", componentsUrl),
       "utf8",
     );
+    const surfaceEvents = await readFile(
+      new URL("../src/lib/page/events/surfaceEvents.ts", import.meta.url),
+      "utf8",
+    );
     const sidebar = await readFile(new URL("DesktopSidebar.svelte", componentsUrl), "utf8");
     const historyControls = await readFile(
       new URL("SidebarHistoryControls.svelte", componentsUrl),
@@ -32,8 +37,11 @@ describe("window focus chrome", () => {
     );
     const titleBar = await readFile(new URL("DesktopTitleBar.svelte", componentsUrl), "utf8");
     const preview = await readFile(new URL("DesktopShellPreview.svelte", componentsUrl), "utf8");
-    const input = await readFile(new URL("MessageInput.svelte", componentsUrl), "utf8");
-    const nativeHost = await readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+    const input = await readFile(
+      new URL("../src/lib/composer/editor.svelte.ts", import.meta.url),
+      "utf8",
+    );
+    const nativeHost = hostRustSource();
     const nativeManifest = await readFile(
       new URL("../src-tauri/Cargo.toml", import.meta.url),
       "utf8",
@@ -42,8 +50,8 @@ describe("window focus chrome", () => {
     expect(route).toContain(".onFocusChanged(({ payload: focused }) =>");
     expect(route).toContain("handleWindowFocusEvent(focused)");
     expect(route).toContain("listen(DESKTOP_WINDOW_ACTIVATED_EVENT");
-    expect(route).toMatch(
-      /workspace-window-open-request[\s\S]*?await revealMemorySource[\s\S]*?finally\(\(\) => handleWindowFocusEvent\(true\)\)/,
+    expect(surfaceEvents).toMatch(
+      /workspace-window-open-request[\s\S]*?await options\.revealMemorySource[\s\S]*?finally\(\(\) => options\.handleWindowFocusEvent\(true\)\)/,
     );
     expect(route).toContain('window.addEventListener("blur", handleBlur)');
     expect(route).toMatch(
@@ -59,7 +67,7 @@ describe("window focus chrome", () => {
       /wasNewConversationLayout === false && isNewConversationLayout[\s\S]*?localComposerFocusRequest \+= 1/,
     );
     expect(input).toContain(
-      "if (focusRequest > 0) void focusInputAfterWindowActivation(focusRequest);",
+      "if (options.focusRequest > 0) void focusInputAfterWindowActivation(options.focusRequest);",
     );
     expect(input).toMatch(
       /focusInputAfterWindowActivation[\s\S]*?setTimeout\(resolve, 100\)[\s\S]*?focusRequest !== request[\s\S]*?editorEl\.focus/,

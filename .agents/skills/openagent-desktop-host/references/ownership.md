@@ -7,6 +7,51 @@ client; do not duplicate flow selection, slash-command parsing,
 configuration ownership, database operations, or runtime state machines in
 the host.
 
+## Host module composition
+
+`lib.rs` composes Tauri plugins, managed state, and command registrations.
+`diagnostics.rs` owns host tracing and the allowlists for frontend-originated
+records. `desktop_exit.rs` owns shell-install preparation, exit phases, bounded
+child teardown, and parent-liveness monitors; quit and restart share that owner.
+`component_updates/` composes one update state with separate barrier, Runtime
+replacement, frontend activation, resource source, and version identity adapters.
+Keep rollback with its activation transaction and confirmation deadlines with
+frontend selection. Moving commands between modules preserves their public IPC
+names; register the defining module's command path in both Runtime modes.
+Add only these Tauri-owned adapter files to the public Rust source allowlist.
+
+`cua_driver/` owns the installed daemon's native adapter. `policy.rs` derives
+the private endpoint and host-owned argument/environment tail; `ownership.rs`
+decides whether to serve, reclaim an orphan, adopt, or await a live peer from
+the endpoint lock. The module composes provisioning and the shared plugin
+daemon supervisor. SDK authorization and package launch resolution remain in
+the Runtime; the adapter does not reinterpret package commands.
+
+`desktop_windows/` owns native material, foreground activity, utility geometry,
+settings/role windows, startup reveal commands, and tray actions. Utility windows
+remain hidden until requester-relative placement and saved geometry restoration
+finish. Startup reveal and exit share one `DesktopWindowState`; window modules
+must not create a separate exit or Runtime state.
+
+`desktop_bootstrap/` separates Runtime mode selection, the user-confirmed
+persistence helper flow, instance policy, and external process startup.
+The versioned helper still owns data inspection and transitions in the SDK.
+`embedded_commands/` contains only typed forwarding adapters, grouped by
+product domain and compiled only for explicit embedded diagnostics. Keep
+command argument shapes aligned with the SDK contract and register their
+defining module paths without changing public operation names.
+
+`invoke_handlers.rs` registers the defining adapter paths for each Runtime mode.
+`runtime_proxy_commands.rs` owns the native request/event proxy entry points;
+`native_commands.rs` owns OS capabilities and resolves open paths through the
+active Runtime. `embedding_adapter.rs` discovers the packaged model seed and
+forwards explicit diagnostic commands, while `embedded_host.rs` implements the
+SDK host bridge only when embedded diagnostics are enabled.
+`desktop_plugins.rs` preserves single-instance-first registration and separates
+window-state restoration from global desktop integrations. Window startup lives
+in `desktop_windows/startup.rs`; the development inspector is scheduled by its
+own debug-only adapter. Arm frontend confirmation after those surfaces exist.
+
 ## Runtime and SDK roles
 
 - Ordinary host builds must not link private SDK Rust crates. Compile and stage
@@ -82,10 +127,10 @@ ambient permissions.
 - Start the daemon from the verified installed plugin directory; never replace
   files in the active directory while the daemon is running.
 - The kernel resolves the launch — the program it runs, and the `serve
-  --embedded` the package declares — and the host appends only the policy tail
+--embedded` the package declares — and the host appends only the policy tail
   it owns through `cua_driver_launch_args()`: `--permission-mode unrestricted
-  --dangerously-bypass-approvals --parent-liveness-stdio --socket <host
-  endpoint>`. Pass the same values again through
+--dangerously-bypass-approvals --parent-liveness-stdio --socket <host
+endpoint>`. Pass the same values again through
   `cua_driver_serve_environment()`. The driver refuses a contradictory pair, and
   the environment is what carries the contract to the code paths that read
   configuration rather than argv. Never rebuild the leading arguments in the
@@ -116,7 +161,7 @@ ambient permissions.
   the quit watchdog that force-exits a hung shutdown and Tauri's
   `RunEvent::Exit`, which is the only cleanup a non-primary window process
   reaches. Ask first through the same package launcher with the driver's `stop
-  --socket <host endpoint>` subcommand, then drop the liveness pipe, then kill;
+--socket <host endpoint>` subcommand, then drop the liveness pipe, then kill;
   never signal it by pid, which would reach an unrelated process.
 - The endpoint has exactly one owner at a time, recorded as an exclusive lock
   on `<cache>/openagent/cua-driver/owner/daemon.lock`. Holding the lock means

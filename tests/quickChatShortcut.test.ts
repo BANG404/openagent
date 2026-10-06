@@ -14,7 +14,7 @@ describe("quick chat shortcut", () => {
     const [windowSource, surfaceSource, inputSource] = await Promise.all([
       Bun.file(new URL("../src/lib/quickChatWindow.ts", import.meta.url)).text(),
       Bun.file(new URL("../src/lib/components/QuickChatSurface.svelte", import.meta.url)).text(),
-      Bun.file(new URL("../src/lib/components/MessageInput.svelte", import.meta.url)).text(),
+      Bun.file(new URL("../src/lib/composer/editor.svelte.ts", import.meta.url)).text(),
     ]);
 
     expect(QUICK_CHAT_FOCUS_INPUT_EVENT).toBe("quick-chat-focus-input");
@@ -27,14 +27,16 @@ describe("quick chat shortcut", () => {
       /if \(focused\) \{\s+focusArmed = true;\s+inputFocusRequest \+= 1;/,
     );
     expect(inputSource).toContain(
-      "if (focusRequest > 0) void focusInputAfterWindowActivation(focusRequest);",
+      "if (options.focusRequest > 0) void focusInputAfterWindowActivation(options.focusRequest);",
     );
   });
 
   test("records from the window instead of relying on button focus", async () => {
     const settingsSource = await settingsViewSource();
 
-    expect(settingsSource).toContain("<svelte:window onkeydown={handleQuickShortcutKeydown} />");
+    expect(settingsSource).toContain(
+      "<svelte:window onkeydown={view.general.handleQuickShortcutKeydown} />",
+    );
     expect(settingsSource).not.toMatch(
       /class="shortcut-recorder"[\s\S]*?onkeydown=\{handleQuickShortcutKeydown\}/,
     );

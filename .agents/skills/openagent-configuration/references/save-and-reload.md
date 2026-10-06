@@ -1,5 +1,11 @@
 ## Save and reload behavior
 
+The frontend `lib/settings/draft.svelte.ts` is the single owner of the settings
+draft and accepted baseline. Domain controllers edit the same reactive snapshot;
+they do not create independent save queues or configuration copies. The settings
+composition supplies post-save integration callbacks after the accepted result
+has been applied, preserving daemon authorization and plugin refresh ordering.
+
 Provider model entries may persist `model_vision_enabled` flags. Missing flags
 are normalized to disabled; only an enabled model receives image input and the
 `view_image` tool in its provider request. Removing or renaming a model also

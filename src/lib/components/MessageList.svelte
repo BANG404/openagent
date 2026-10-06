@@ -1,26 +1,24 @@
 <script lang="ts">
-  import { onMount, tick } from "svelte";
   import { fade } from "svelte/transition";
-  import StreamItemRenderer from "./StreamItemRenderer.svelte";
   import MessageDivider from "./MessageDivider.svelte";
   import ToolCallGroup from "./ToolCallGroup.svelte";
-  import ProcessRecordGroup from "./ProcessRecordGroup.svelte";
-  import AgentBookReader, { type AgentBookTurn } from "./AgentBookReader.svelte";
+  import type { AgentBookTurn } from "./AgentBookReader.svelte";
   import Tooltip from "./Tooltip.svelte";
   import TranscriptList from "./TranscriptList.svelte";
-  import NewConversationContext from "./NewConversationContext.svelte";
-  import FollowUpSuggestions from "./FollowUpSuggestions.svelte";
-  import { t } from "$lib/i18n";
-  import { finalAssistantOutput } from "$lib/assistantOutput";
-  import { summarizeCacheUsages } from "$lib/cacheUsage";
-  import { latestTurnSuggestionHostMessageId } from "$lib/followUpSuggestions";
-  import { getSiblingInfoForUserMessage, type ConvTree } from "$lib/checkpointTree";
+  import UserMessageRow from "./transcript/UserMessageRow.svelte";
+  import AssistantTurnRow from "./transcript/AssistantTurnRow.svelte";
   import {
-    assistantTurnStatus,
-    latestTurnMetadata,
-    shouldShowProcessRecords,
-    thinkingRecordOpen,
-  } from "$lib/processRecordState";
+    entryAssistantMessages,
+    assistantItems,
+    isCompactionReplayUser,
+  } from "$lib/transcript/assistantContent";
+  import { createUserMessageEditor } from "$lib/transcript/userEditor.svelte";
+  import { USER_MESSAGE_COLLAPSE_LINES } from "$lib/transcript/userContent";
+  import NewConversationContext from "./NewConversationContext.svelte";
+  import { t } from "$lib/i18n";
+  import { latestTurnSuggestionHostMessageId } from "$lib/followUpSuggestions";
+  import type { ConvTree } from "$lib/checkpointTree";
+  import { assistantTurnStatus } from "$lib/processRecordState";
   import type { ChatMemoryRetrievalStage } from "$lib/openagent";
   import type {
     ChatAttachment,
@@ -30,14 +28,10 @@
     TaskTokenUsage,
     UserMessageContext,
   } from "$lib/types";
-  import AttachmentPreview from "./AttachmentPreview.svelte";
-  import UserQuote from "./UserQuote.svelte";
   import PluginMessage from "./PluginMessage.svelte";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { isPluginMessage } from "$lib/types";
-  import { selectionTextWithMath } from "$lib/streamdown/selectionText";
-  import { parseInline } from "$lib/composerMarkdown";
-  import { renderInlineNodes } from "$lib/composerDom";
+  import { createTranscriptSelection } from "$lib/transcript/selection.svelte";
   import { motionDuration } from "$lib/motion";
   import {
     appendLiveStreamEntry,
@@ -45,9 +39,6 @@
     groupMessageToolCalls,
     groupStreamItems,
     isAssistantTurnEntry,
-    partitionAssistantSegments,
-    type MessageRenderEntry,
-    type StreamItemSegment,
   } from "$lib/toolCallGroups";
 
   interface Props {
@@ -146,46 +137,46 @@
     onSelectSuggestion = () => {},
   }: Props = $props();
 
-  function memoryRetrievalLabel(stage: ChatMemoryRetrievalStage): string {
-    switch (stage) {
-      case "query_rewrite":
-        return $t("memoryRetrievalQueryRewrite");
-      case "embedding":
-        return $t("memoryRetrievalEmbedding");
-      case "searching":
-        return $t("memoryRetrievalSearching");
-      case "completed":
-        return $t("memoryRetrievalCompleted");
-      case "skipped":
-        return $t("memoryRetrievalSkipped");
-    }
-  }
-
-  let editingMsgId = $state<string | null>(null);
-  let editingText = $state("");
-  let removedAttachmentPaths = $state(new Set<string>());
-  let removedContextKeys = $state(new Set<string>());
-  let editingTextarea = $state<HTMLTextAreaElement | null>(null);
-  let expandedUserMessageIds = $state(new Set<string>());
   let streamedOpenThinkingItemKey = $state<string | null>(null);
   let copiedAssistantMessageId = $state<string | null>(null);
   let readingTurnKey = $state<string | null>(null);
+  let loadingBookTurnKey = $state<string | null>(null);
+  let BookReader = $state<typeof import("./AgentBookReader.svelte").default | null>(null);
   let suggestionHostMessageId = $derived(latestTurnSuggestionHostMessageId(messages));
   let copyFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
+  $effect(() => () => {
+    if (copyFeedbackTimer) clearTimeout(copyFeedbackTimer);
+  });
   let transcriptList = $state<TranscriptList | null>(null);
   let messagesRoot = $state<HTMLElement | null>(null);
   let userMessageIndexLeft = $state(16);
-  let selectionPopover = $state<{
-    text: string;
-    sourceMessageId: string;
-    left: number;
-    top: number;
-  } | null>(null);
+  const userEditor = createUserMessageEditor({
+    get activeConvId() {
+      return activeConvId;
+    },
+    get editable() {
+      return editable;
+    },
+    get isStreaming() {
+      return isStreaming;
+    },
+    get onCommitEdit() {
+      return onCommitEdit;
+    },
+    get onSwitchBranch() {
+      return onSwitchBranch;
+    },
+  });
+  const transcriptSelection = createTranscriptSelection({
+    get root() {
+      return messagesRoot;
+    },
+    get onAddQuote() {
+      return onAddQuote;
+    },
+  });
   function isHiddenMessage(msg: ChatMessage) {
     return msg.role === "system";
-  }
-  function isCompactionReplayUser(msg: ChatMessage) {
-    return msg.role === "user" && msg.tags?.includes("context_compaction") === true;
   }
   let visibleMessages = $derived(
     messages.map((msg, index) => ({ msg, index })).filter(({ msg }) => !isHiddenMessage(msg)),
@@ -197,7 +188,7 @@
         ? [
             {
               key: entry.key,
-              items: assistantItems(entry),
+              items: assistantItems(entry, currentStreamItems),
               status: assistantTurnStatus(entryAssistantMessages(entry), false),
             },
           ]
@@ -224,22 +215,12 @@
       ({ msg }) => msg.role === "user" && !isCompactionReplayUser(msg) && !isPluginMessage(msg),
     ),
   );
-  const USER_MESSAGE_COLLAPSE_LENGTH = 800;
-  const USER_MESSAGE_COLLAPSE_LINES = 8;
 
-  function cancelEdit() {
-    editingMsgId = null;
-    editingText = "";
-    removedAttachmentPaths = new Set();
-    removedContextKeys = new Set();
-  }
-
-  // Editing is local to this message list. Do not carry it into another
-  // conversation when the shared component receives a new active ID.
+  // Keep reader selection scoped to the mounted conversation.
   $effect(() => {
     activeConvId;
-    cancelEdit();
     readingTurnKey = null;
+    loadingBookTurnKey = null;
   });
 
   // The index is fixed to the viewport, so anchor it to the conversation
@@ -264,187 +245,6 @@
     };
   });
 
-  function contextKey(context: UserMessageContext): string {
-    return `${context.sourceMessageId ?? ""}\u0000${context.text}`;
-  }
-
-  function commitEdit(
-    convId: string,
-    userMsgIdx: number,
-    attachments: ChatAttachment[],
-    contexts: UserMessageContext[],
-  ) {
-    const text = editingText;
-    const retainedAttachments = attachments.filter(
-      (attachment) => !removedAttachmentPaths.has(attachment.path),
-    );
-    const retainedContexts = contexts.filter(
-      (context) => !removedContextKeys.has(contextKey(context)),
-    );
-    cancelEdit();
-    onCommitEdit(convId, userMsgIdx, text, retainedAttachments, retainedContexts);
-  }
-
-  function switchBranch(parentKey: string, targetIdx: number) {
-    // The selected branch can render a different version of the same turn.
-    // Never carry an editor from the previous branch into that new message.
-    cancelEdit();
-    onSwitchBranch(activeConvId!, parentKey, targetIdx);
-  }
-
-  async function startEdit(msg: ChatMessage) {
-    if (!editable || isStreaming) return;
-    editingMsgId = msg.id;
-    editingText = msg.content;
-    removedAttachmentPaths = new Set();
-    removedContextKeys = new Set();
-    await tick();
-    editingTextarea?.focus();
-  }
-
-  async function stageAttachmentRemoval(msg: ChatMessage, attachmentPath: string) {
-    if (isStreaming) return;
-    if (editingMsgId !== msg.id) {
-      editingMsgId = msg.id;
-      editingText = msg.content;
-      removedAttachmentPaths = new Set();
-      removedContextKeys = new Set();
-    }
-    removedAttachmentPaths = new Set([...removedAttachmentPaths, attachmentPath]);
-    await tick();
-    editingTextarea?.focus();
-  }
-
-  async function stageContextRemoval(msg: ChatMessage, context: UserMessageContext) {
-    if (isStreaming) return;
-    if (editingMsgId !== msg.id) {
-      editingMsgId = msg.id;
-      editingText = msg.content;
-      removedAttachmentPaths = new Set();
-      removedContextKeys = new Set();
-    }
-    removedContextKeys = new Set([...removedContextKeys, contextKey(context)]);
-    await tick();
-    editingTextarea?.focus();
-  }
-
-  function selectionOwner(node: Node | null): HTMLElement | null {
-    const element = node instanceof Element ? node : node?.parentElement;
-    return element?.closest<HTMLElement>("[data-selection-source-message-id]") ?? null;
-  }
-
-  function captureAssistantSelection() {
-    const selection = window.getSelection();
-    if (!selection || selection.isCollapsed || selection.rangeCount === 0 || !messagesRoot) {
-      selectionPopover = null;
-      return;
-    }
-    const anchorOwner = selectionOwner(selection.anchorNode);
-    const focusOwner = selectionOwner(selection.focusNode);
-    const sourceMessageId = anchorOwner?.dataset.selectionSourceMessageId;
-    if (
-      !anchorOwner ||
-      !focusOwner ||
-      !sourceMessageId ||
-      focusOwner.dataset.selectionSourceMessageId !== sourceMessageId ||
-      !messagesRoot.contains(anchorOwner) ||
-      !messagesRoot.contains(focusOwner)
-    ) {
-      selectionPopover = null;
-      return;
-    }
-    const text = selectionTextWithMath(selection);
-    if (!text) {
-      selectionPopover = null;
-      return;
-    }
-    const rect = selection.getRangeAt(0).getBoundingClientRect();
-    if (!rect.width && !rect.height) {
-      selectionPopover = null;
-      return;
-    }
-    selectionPopover = {
-      text,
-      sourceMessageId,
-      left: Math.min(window.innerWidth - 72, Math.max(72, rect.left + rect.width / 2)),
-      top: Math.max(8, rect.top - 8),
-    };
-  }
-
-  function addSelectedQuote() {
-    if (!selectionPopover) return;
-    onAddQuote({
-      type: "quote",
-      text: selectionPopover.text,
-      sourceMessageId: selectionPopover.sourceMessageId,
-    });
-    selectionPopover = null;
-    window.getSelection()?.removeAllRanges();
-  }
-
-  onMount(() => {
-    const closeOnViewportChange = () => (selectionPopover = null);
-    const closeOnCollapsedSelection = () => {
-      if (window.getSelection()?.isCollapsed) selectionPopover = null;
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") selectionPopover = null;
-    };
-    window.addEventListener("resize", closeOnViewportChange);
-    window.addEventListener("scroll", closeOnViewportChange, true);
-    window.addEventListener("keydown", closeOnEscape);
-    document.addEventListener("selectionchange", closeOnCollapsedSelection);
-    return () => {
-      window.removeEventListener("resize", closeOnViewportChange);
-      window.removeEventListener("scroll", closeOnViewportChange, true);
-      window.removeEventListener("keydown", closeOnEscape);
-      document.removeEventListener("selectionchange", closeOnCollapsedSelection);
-    };
-  });
-
-  function isLongUserMessage(content: string) {
-    return (
-      content.length > USER_MESSAGE_COLLAPSE_LENGTH ||
-      content.split("\n").length > USER_MESSAGE_COLLAPSE_LINES
-    );
-  }
-
-  function attachmentReferenceMap(attachments: ChatAttachment[]): ReadonlyMap<string, string> {
-    const references = new Map<string, string>();
-    for (const attachment of attachments) {
-      if (attachment.referenceLabel) references.set(attachment.referenceLabel, attachment.path);
-    }
-    return references;
-  }
-
-  /**
-   * Projects the user's own markdown inline. Block children would break the
-   * `-webkit-line-clamp` collapse on `.user-content-text`, so only the inline
-   * projection is drawn and block markers stay literal in the bubble.
-   */
-  function renderUserContent(
-    node: HTMLElement,
-    params: { content: string; references: ReadonlyMap<string, string> },
-  ) {
-    const draw = (next: { content: string; references: ReadonlyMap<string, string> }) => {
-      node.replaceChildren();
-      renderInlineNodes(node, parseInline(next.content, 0, next.references));
-    };
-    draw(params);
-    return { update: draw };
-  }
-
-  function isUserMessageCollapsed(msg: ChatMessage) {
-    return isLongUserMessage(msg.content) && !expandedUserMessageIds.has(msg.id);
-  }
-
-  function toggleUserMessage(msgId: string) {
-    const next = new Set(expandedUserMessageIds);
-    if (next.has(msgId)) next.delete(msgId);
-    else next.add(msgId);
-    expandedUserMessageIds = next;
-  }
-
   // A live row and its finalized durable message intentionally share the same
   // assistant ID. Capture the thinking record the stream leaves open — the
   // trailing one — by stable item key, but do not let toggle events from the
@@ -460,59 +260,6 @@
         : null;
   });
 
-  function formatDuration(milliseconds: number) {
-    if (milliseconds < 1_000) return `${Math.max(0, Math.round(milliseconds))}ms`;
-    if (milliseconds < 60_000)
-      return `${(milliseconds / 1_000).toFixed(milliseconds < 10_000 ? 1 : 0)}s`;
-    const seconds = Math.round(milliseconds / 1_000);
-    return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
-  }
-
-  function runTiming(msg: ChatMessage, msgIdx: number, turnMessages: ChatMessage[]) {
-    const turn = latestTurnMetadata(turnMessages);
-    if (turn) {
-      if (turn.duration_ms == null) return null;
-      return {
-        firstToken:
-          turn.first_token_at != null
-            ? formatDuration(turn.first_token_at - turn.started_at)
-            : null,
-        total: formatDuration(turn.duration_ms),
-      };
-    }
-    if (!msg.completedAt) return null;
-    const userMessage = [...messages.slice(0, msgIdx)]
-      .reverse()
-      .find((item) => item.role === "user" && !isCompactionReplayUser(item));
-    if (!userMessage) return null;
-    return {
-      firstToken: msg.firstTokenAt
-        ? formatDuration(msg.firstTokenAt - userMessage.timestamp)
-        : null,
-      total: formatDuration(msg.completedAt - userMessage.timestamp),
-    };
-  }
-
-  function formatTime(ts: number) {
-    return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  }
-
-  function formatTokens(tokens: number): string {
-    return new Intl.NumberFormat([], { notation: "compact", maximumFractionDigits: 1 }).format(
-      tokens,
-    );
-  }
-
-  function formatPercent(rate: number): string {
-    return new Intl.NumberFormat([], { style: "percent", maximumFractionDigits: 1 }).format(rate);
-  }
-
-  function cacheUsageForMessage(message: ChatMessage) {
-    if (!message.checkpointId) return null;
-    const usages = taskUsagesByCheckpointId[message.checkpointId];
-    return usages?.length ? summarizeCacheUsages(usages) : null;
-  }
-
   function userIndexTitle(content: string) {
     const text = content.trim().replace(/\s+/g, " ");
     return text.slice(0, 80);
@@ -524,38 +271,6 @@
 
   function scrollToMessage(id: string) {
     transcriptList?.scrollToKey(id);
-  }
-
-  function entryAssistantMessages(entry: MessageRenderEntry): ChatMessage[] {
-    if (entry.kind === "assistant_turn") {
-      return entry.messages.filter((message) => message.role === "assistant");
-    }
-    if (entry.kind === "message" && entry.msg.role === "assistant") return [entry.msg];
-    return [];
-  }
-
-  function assistantItems(entry: MessageRenderEntry): StreamItem[] {
-    if (entry.kind === "live_stream") return currentStreamItems;
-    if (entry.kind === "assistant_turn") {
-      return entry.messages.flatMap((message) => {
-        // A durable turn is grouped with the replay that opens it, so its
-        // boundary belongs to a finished reply and stays mounted.
-        if (isCompactionReplayUser(message)) return [{ type: "compaction_boundary" as const }];
-        if (message.role !== "assistant") return [];
-        return message.items?.length
-          ? message.items
-          : message.content
-            ? [{ type: "text" as const, content: message.content }]
-            : [];
-      });
-    }
-    return entryAssistantMessages(entry).flatMap((message) =>
-      message.items?.length
-        ? message.items
-        : message.content
-          ? [{ type: "text" as const, content: message.content }]
-          : [],
-    );
   }
 
   async function copyAssistantOutput(turnId: string, output: string) {
@@ -572,12 +287,25 @@
       console.warn("Failed to copy assistant output", error);
     }
   }
+
+  async function openBook(turnKey: string) {
+    const conversationId = activeConvId;
+    loadingBookTurnKey = turnKey;
+    try {
+      const module = await import("./AgentBookReader.svelte");
+      if (conversationId !== activeConvId || loadingBookTurnKey !== turnKey) return;
+      BookReader = module.default;
+      readingTurnKey = turnKey;
+    } finally {
+      if (loadingBookTurnKey === turnKey) loadingBookTurnKey = null;
+    }
+  }
 </script>
 
 <div
   class="messages-inner"
   bind:this={messagesRoot}
-  onpointerup={captureAssistantSelection}
+  onpointerup={transcriptSelection.captureAssistantSelection}
   role="presentation"
   class:messages-inner-empty={visibleMessages.length === 0 && !isStreaming}
   class:messages-inner-responsive-double={messageLayout === "responsive_double"}
@@ -638,238 +366,34 @@
   >
     {#snippet children(entry)}
       {#if isAssistantTurnEntry(entry)}
-        {@const turnMessages = entryAssistantMessages(entry)}
-        {@const assistantMsg = turnMessages.at(-1) ?? null}
-        {@const assistantMsgIdx =
-          entry.kind === "assistant_turn"
-            ? entry.finalIndex
-            : entry.kind === "message"
-              ? entry.index
-              : -1}
-        {@const renderedAssistantItems = assistantItems(entry)}
-        {@const assistantIsStreaming = entry.kind === "live_stream"}
-        {@const turnMetadata = latestTurnMetadata(turnMessages)}
-        {@const turnStatus = assistantTurnStatus(turnMessages, assistantIsStreaming)}
-        {@const turnSuggestionHostMessageId =
-          turnMetadata?.response_message_id ?? assistantMsg?.id ?? null}
-        {@const turnIsTerminal = ["completed", "cancelled", "failed"].includes(turnStatus)}
-        {@const assistantSegments = groupStreamItems(renderedAssistantItems)}
-        {@const { processSegments, finalSegments } = partitionAssistantSegments(
-          assistantSegments,
-          turnStatus,
-        )}
-        {@const showProcessRecords = shouldShowProcessRecords(turnStatus, processSegments.length)}
-        {@const isRerunnable =
-          assistantMsg !== null &&
-          assistantMsgIdx >= 0 &&
-          !assistantIsStreaming &&
-          turnIsTerminal &&
-          Boolean(assistantMsg.checkpointId) &&
-          Boolean(activeTree?.nodes[assistantMsg.checkpointId!])}
-        {@const copyableOutput = finalAssistantOutput(turnMessages)}
-        {@const showAssistantActions =
-          !assistantIsStreaming &&
-          turnIsTerminal &&
-          (isRerunnable || Boolean(copyableOutput) || renderedAssistantItems.length > 0)}
-        {@const timing = assistantMsg
-          ? runTiming(assistantMsg, assistantMsgIdx, turnMessages)
-          : null}
-        {@const cacheUsage = assistantMsg ? cacheUsageForMessage(assistantMsg) : null}
-        {@const turnSuggestions = turnSuggestionHostMessageId
-          ? (followUpSuggestionsByMessageId[turnSuggestionHostMessageId] ?? [])
-          : []}
-        {#snippet renderAssistantSegments(segments: StreamItemSegment[])}
-          {#each segments as segment, segmentIndex (`${entry.key}-${segment.startIndex}`)}
-            {#if segment.kind === "tool_group"}
-              <div
-                class="stream-item message-record"
-                data-stream-item={`${entry.key}-${segment.startIndex}`}
-              >
-                <ToolCallGroup
-                  items={segment.items}
-                  isStreaming={assistantIsStreaming}
-                  {fileChanges}
-                  {onSubmitUserInput}
-                  {onCancelUserInput}
-                />
-              </div>
-            {:else}
-              <StreamItemRenderer
-                item={segment.item}
-                itemKey={`${entry.key}-${segment.startIndex}`}
-                messageId={segment.startIndex === 0 && assistantMsg ? assistantMsg.id : undefined}
-                selectionSourceMessageId={assistantMsg?.id}
-                isLastText={segment.item.type === "text" &&
-                  (assistantIsStreaming
-                    ? segment.startIndex === renderedAssistantItems.length - 1
-                    : !renderedAssistantItems
-                        .slice(segment.startIndex + 1)
-                        .some((next) => next.type === "text"))}
-                isStreaming={assistantIsStreaming}
-                debugCheckpointId={debugMode
-                  ? (assistantMsg?.checkpointId ??
-                    (assistantIsStreaming ? (pendingCheckpointId ?? undefined) : undefined))
-                  : undefined}
-                thinkingOpen={thinkingRecordOpen(
-                  segmentIndex === segments.length - 1,
-                  turnStatus,
-                  streamedOpenThinkingItemKey === `${entry.key}-${segment.startIndex}`,
-                )}
-                {shikiTheme}
-                {mermaidConfig}
-                {fileChanges}
-                {onSubmitUserInput}
-                {onCancelUserInput}
-              />
-            {/if}
-          {/each}
-        {/snippet}
-        <ProcessRecordGroup grouped={showProcessRecords} duration={timing?.total}>
-          {@render renderAssistantSegments(processSegments)}
-        </ProcessRecordGroup>
-        {@render renderAssistantSegments(finalSegments)}
-        {#if assistantIsStreaming && memoryRetrievalStage}
-          <div class="thinking-status memory-retrieval-status" role="status" aria-live="polite">
-            <span class="thinking-dot"></span>
-            <span>{memoryRetrievalLabel(memoryRetrievalStage)}</span>
-            {#if memoryRetrievalCanSkip}
-              <button class="skip-memory-btn" type="button" onclick={onSkipMemoryRetrieval}
-                >{$t("skipMemoryRetrieval")}</button
-              >
-            {/if}
-          </div>
-        {:else if assistantIsStreaming && isAwaitingStreamOutput}
-          <div class="thinking-status" role="status" aria-live="polite">
-            <span class="thinking-dot"></span>
-            <span>{$t("awaitingStreamOutput")}</span>
-          </div>
-        {/if}
-        {#if assistantMsg}
-          {#if isRerunnable || timing || cacheUsage || assistantMsg.timestamp > 0 || renderedAssistantItems.length > 0}
-            <div
-              class="msg-footer-row message-record pagination-footer"
-              id={renderedAssistantItems.length > 0 ? undefined : `message-${assistantMsg.id}`}
-              data-message-id={renderedAssistantItems.length > 0 ? undefined : assistantMsg.id}
-            >
-              {#if showAssistantActions}
-                <div class="msg-actions">
-                  {#if isRerunnable}
-                    <button
-                      class="msg-action-btn"
-                      aria-label={$t("rerun")}
-                      onclick={() => onReExecute(activeConvId!, assistantMsgIdx)}
-                    >
-                      <svg
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.6"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        width="12"
-                        height="12"
-                        aria-hidden="true"
-                      >
-                        <path d="M13.5 8A5.5 5.5 0 1 1 8 2.5M14 2v4h-4" />
-                      </svg>
-                      <span>{$t("rerun")}</span>
-                    </button>
-                  {/if}
-                  {#if copyableOutput}
-                    <button
-                      class="msg-action-btn"
-                      aria-label={$t("copyFinalAnswer")}
-                      onclick={() => copyAssistantOutput(entry.key, copyableOutput)}
-                    >
-                      {#if copiedAssistantMessageId === entry.key}
-                        <svg
-                          viewBox="0 0 16 16"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="1.6"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          width="12"
-                          height="12"
-                          aria-hidden="true"
-                        >
-                          <path d="m3 8.5 3 3 7-7" />
-                        </svg>
-                        <span>{$t("copied")}</span>
-                      {:else}
-                        <svg
-                          viewBox="0 0 16 16"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="1.6"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          width="12"
-                          height="12"
-                          aria-hidden="true"
-                        >
-                          <rect x="5" y="5" width="8" height="8" rx="1.5" />
-                          <path
-                            d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"
-                          />
-                        </svg>
-                        <span>{$t("copyFinalAnswer")}</span>
-                      {/if}
-                    </button>
-                  {/if}
-                  {#if renderedAssistantItems.length > 0}
-                    <button
-                      class="msg-action-btn"
-                      aria-label={$t("openBookMode")}
-                      onclick={() => (readingTurnKey = entry.key)}
-                    >
-                      <svg
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.4"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        width="12"
-                        height="12"
-                        aria-hidden="true"
-                      >
-                        <path d="M2.5 3.2c1.7-.5 3.5-.1 5.5 1.2v8.4c-2-1.3-3.8-1.7-5.5-1.2V3.2Z" />
-                        <path d="M13.5 3.2c-1.7-.5-3.5-.1-5.5 1.2v8.4c2-1.3 3.8-1.7 5.5-1.2V3.2Z" />
-                      </svg>
-                      <span>{$t("bookMode")}</span>
-                    </button>
-                  {/if}
-                </div>
-              {/if}
-              {#if timing}
-                <span class="run-timing">
-                  {#if timing.firstToken}{$t("firstTokenTime")} {timing.firstToken} ·
-                  {/if}{$t("totalRunTime")}
-                  {timing.total}
-                </span>
-              {/if}
-              {#if cacheUsage?.kind === "available"}
-                <span class="cache-usage">
-                  {$t("cacheHit")}
-                  {formatPercent(cacheUsage.readRate)} · {formatTokens(cacheUsage.cachedTokens)}
-                  {$t("cachedTokens")}
-                  {#if cacheUsage.writtenTokens > 0}
-                    · {$t("cacheWrite")} {formatPercent(cacheUsage.writeRate)}
-                  {/if}
-                </span>
-              {/if}
-              {#if assistantMsg.timestamp > 0}<span class="ts"
-                  >{formatTime(assistantMsg.timestamp)}</span
-                >{/if}
-            </div>
-          {/if}
-          {#if !assistantIsStreaming && turnIsTerminal && turnSuggestionHostMessageId === suggestionHostMessageId && turnSuggestions.length === 3}
-            <div class="message-record pagination-footer">
-              <FollowUpSuggestions suggestions={turnSuggestions} onSelect={onSelectSuggestion} />
-            </div>
-          {/if}
-        {/if}
+        <AssistantTurnRow
+          {entry}
+          {messages}
+          {currentStreamItems}
+          {activeConvId}
+          {activeTree}
+          {debugMode}
+          {pendingCheckpointId}
+          {streamedOpenThinkingItemKey}
+          {shikiTheme}
+          {mermaidConfig}
+          {fileChanges}
+          {taskUsagesByCheckpointId}
+          {memoryRetrievalStage}
+          {memoryRetrievalCanSkip}
+          {isAwaitingStreamOutput}
+          {followUpSuggestionsByMessageId}
+          {suggestionHostMessageId}
+          {copiedAssistantMessageId}
+          {loadingBookTurnKey}
+          {copyAssistantOutput}
+          {onReExecute}
+          {onSubmitUserInput}
+          {onCancelUserInput}
+          {onSkipMemoryRetrieval}
+          {onSelectSuggestion}
+          onOpenBook={openBook}
+        />
       {:else if entry.kind === "tool_group"}
         {@const firstMessage = entry.messages[0]}
         <div
@@ -896,208 +420,39 @@
         {:else if msg.role === "user" && isPluginMessage(msg)}
           <PluginMessage message={msg} />
         {:else if msg.role === "user"}
-          {@const siblingInfo = activeConvId
-            ? getSiblingInfoForUserMessage(activeTree, msg.id)
-            : null}
-          {@const attachmentItems = msg.items?.filter((item) => item.type === "attachment") ?? []}
-          {@const attachments = attachmentItems.map((item) => item.attachment)}
-          {@const quoteItems = msg.items?.filter((item) => item.type === "quote") ?? []}
-          {@const contexts = quoteItems.map((item) => item.context)}
-          {@const contentReferences = attachmentReferenceMap(attachments)}
-          {@const isEditingThisMessage = editingMsgId === msg.id}
-          {@const retainedAttachmentCount = attachments.filter(
-            (attachment) => !removedAttachmentPaths.has(attachment.path),
-          ).length}
-          {@const retainedContextCount = contexts.filter(
-            (context) => !removedContextKeys.has(contextKey(context)),
-          ).length}
-          {@const isDirty =
-            isEditingThisMessage &&
-            (editingText !== msg.content ||
-              removedAttachmentPaths.size > 0 ||
-              removedContextKeys.size > 0)}
-          {@const canSubmitEdit =
-            isDirty &&
-            (editingText.trim().length > 0 ||
-              retainedAttachmentCount > 0 ||
-              retainedContextCount > 0)}
-          <div class="user-msg message-record" id={`message-${msg.id}`} data-message-id={msg.id}>
-            {#if contexts.length > 0}
-              <div class="user-contexts">
-                {#each contexts.filter((context) => !isEditingThisMessage || !removedContextKeys.has(contextKey(context))) as context (contextKey(context))}
-                  <UserQuote
-                    {context}
-                    onRemove={!editable || isStreaming || !isEditingThisMessage
-                      ? undefined
-                      : () => stageContextRemoval(msg, context)}
-                  />
-                {/each}
-              </div>
-            {/if}
-            {#if editingMsgId === msg.id}
-              <textarea
-                bind:this={editingTextarea}
-                class="user-content-edit bg-conversation-component"
-                value={editingText}
-                readonly={isStreaming}
-                oninput={(e) => {
-                  editingText = e.currentTarget.value;
-                }}
-                onkeydown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey && canSubmitEdit) {
-                    e.preventDefault();
-                    commitEdit(activeConvId!, msgIdx, attachments, contexts);
-                  } else if (e.key === "Escape") {
-                    cancelEdit();
-                    (e.currentTarget as HTMLTextAreaElement).blur();
-                  }
-                }}></textarea>
-            {:else if editable}
-              <Tooltip text={$t("editMsgTitle")}>
-                {#snippet trigger(props)}
-                  <div
-                    {...props}
-                    class="user-content bg-conversation-component"
-                    class:collapsed={isUserMessageCollapsed(msg)}
-                    role="button"
-                    tabindex="0"
-                    aria-label={$t("editMsgTitle")}
-                    onclick={() => startEdit(msg)}
-                    onkeydown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        startEdit(msg);
-                      }
-                    }}
-                  >
-                    <span
-                      class="user-content-text composer-md"
-                      use:renderUserContent={{
-                        content: msg.content,
-                        references: contentReferences,
-                      }}
-                    ></span>
-                    <span class="user-edit-hint" aria-hidden="true">
-                      <svg
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        width="13"
-                        height="13"
-                      >
-                        <path d="M11.5 2.5a1.4 1.4 0 0 1 2 2L6 12l-3 .75.75-3 7.75-7.25Z" />
-                        <path d="m10 4 2 2" />
-                      </svg>
-                    </span>
-                  </div>
-                {/snippet}
-              </Tooltip>
-            {:else}
-              <div
-                class="user-content readonly bg-conversation-component"
-                class:collapsed={isUserMessageCollapsed(msg)}
-              >
-                <span
-                  class="user-content-text composer-md"
-                  use:renderUserContent={{ content: msg.content, references: contentReferences }}
-                ></span>
-              </div>
-            {/if}
-            {#if attachments.length > 0}
-              <div class="user-attachments">
-                {#each attachments.filter((attachment) => !isEditingThisMessage || !removedAttachmentPaths.has(attachment.path)) as attachment (attachment.path)}
-                  <AttachmentPreview
-                    {attachment}
-                    loadPreview={attachmentPreviewLoader}
-                    onRemove={!editable || isStreaming
-                      ? undefined
-                      : () => stageAttachmentRemoval(msg, attachment.path)}
-                  />
-                {/each}
-              </div>
-            {/if}
-            {#if isLongUserMessage(msg.content) && editingMsgId !== msg.id}
-              <button
-                class="user-collapse-btn"
-                type="button"
-                aria-expanded={!isUserMessageCollapsed(msg)}
-                onclick={(e) => {
-                  e.stopPropagation();
-                  toggleUserMessage(msg.id);
-                }}
-                >{isUserMessageCollapsed(msg) ? $t("expandSection") : $t("collapseSection")}</button
-              >
-            {/if}
-            <div class="edit-actions" class:show={isDirty}>
-              <button class="edit-cancel-btn" type="button" onclick={cancelEdit}
-                >{$t("cancel")}</button
-              >
-              <button
-                class="edit-confirm-btn"
-                type="button"
-                disabled={!canSubmitEdit}
-                onclick={() => commitEdit(activeConvId!, msgIdx, attachments, contexts)}
-                >{$t("send")}</button
-              >
-            </div>
-            <div class="msg-meta-row">
-              {#if debugMode && msg.checkpointId}
-                <Tooltip text={msg.checkpointId}>
-                  <code class="debug-checkpoint">checkpoint: {msg.checkpointId}</code>
-                </Tooltip>
-              {/if}
-              {#if siblingInfo}
-                <div class="msg-branch-nav">
-                  <Tooltip text={isStreaming ? $t("branchLockedWhileStreaming") : ""}>
-                    <button
-                      class="branch-nav-btn"
-                      disabled={siblingInfo.activeIdx === 0 || isStreaming}
-                      onclick={() => switchBranch(siblingInfo.parentKey, siblingInfo.activeIdx - 1)}
-                      >‹</button
-                    >
-                  </Tooltip>
-                  <span class="branch-nav-label"
-                    >{siblingInfo.activeIdx + 1} / {siblingInfo.siblings.length}</span
-                  >
-                  <Tooltip text={isStreaming ? $t("branchLockedWhileStreaming") : ""}>
-                    <button
-                      class="branch-nav-btn"
-                      disabled={siblingInfo.activeIdx === siblingInfo.siblings.length - 1 ||
-                        isStreaming}
-                      onclick={() => switchBranch(siblingInfo.parentKey, siblingInfo.activeIdx + 1)}
-                      >›</button
-                    >
-                  </Tooltip>
-                </div>
-              {/if}
-              {#if msg.timestamp > 0}<span class="ts">{formatTime(msg.timestamp)}</span>{/if}
-            </div>
-          </div>
+          <UserMessageRow
+            {msg}
+            {msgIdx}
+            {activeConvId}
+            {activeTree}
+            {isStreaming}
+            {editable}
+            {debugMode}
+            edit={userEditor}
+            {attachmentPreviewLoader}
+          />
         {/if}
       {/if}
     {/snippet}
   </TranscriptList>
 </div>
 
-{#if selectionPopover}
+{#if transcriptSelection.selectionPopover}
   <button
     class="selection-add-button floating-application-surface"
     type="button"
     transition:fade={{ duration: motionDuration(120) }}
-    style={`left: ${selectionPopover.left}px; top: ${selectionPopover.top}px`}
+    style={`left: ${transcriptSelection.selectionPopover.left}px; top: ${transcriptSelection.selectionPopover.top}px`}
     onpointerdown={(event) => event.preventDefault()}
-    onclick={addSelectedQuote}
+    onclick={transcriptSelection.addSelectedQuote}
   >
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M3 8h7M3 11.5h5" /></svg>
     <span>{$t("addSelectionToChat")}</span>
   </button>
 {/if}
 
-{#if readingTurnKey}
-  <AgentBookReader
+{#if readingTurnKey && BookReader}
+  <BookReader
     turns={bookTurns}
     activeKey={readingTurnKey}
     {shikiTheme}
@@ -1130,66 +485,6 @@
 
   .messages-inner-responsive-double:not(.messages-inner-empty) {
     max-width: 1680px;
-  }
-
-  .thinking-status {
-    display: inline-flex;
-    align-items: center;
-    align-self: flex-start;
-    gap: 7px;
-    min-height: 28px;
-    margin: 2px 0 8px;
-    color: var(--text-muted);
-    font-size: 13px;
-    line-height: 1.4;
-  }
-
-  .thinking-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--primary);
-    animation: thinking-pulse 1.8s ease-in-out infinite;
-  }
-
-  .skip-memory-btn {
-    margin-left: 3px;
-    padding: 2px 7px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: transparent;
-    color: var(--text-muted);
-    font: inherit;
-    cursor: pointer;
-  }
-
-  .skip-memory-btn:hover:not(:disabled) {
-    background: var(--interactive-state-bg);
-    border-color: var(--primary);
-    color: var(--text-primary);
-  }
-
-  .skip-memory-btn:disabled {
-    cursor: default;
-    opacity: 0.55;
-  }
-
-  @keyframes thinking-pulse {
-    0%,
-    100% {
-      opacity: 0.55;
-      transform: scale(0.9);
-    }
-    50% {
-      opacity: 0.85;
-      transform: scale(1);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .thinking-dot {
-      animation: none;
-    }
   }
 
   .debug-context {
@@ -1225,16 +520,9 @@
     text-transform: uppercase;
   }
 
-  .debug-context code,
-  .debug-checkpoint {
+  .debug-context code {
     font-family: var(--font-mono, ui-monospace, monospace);
     overflow-wrap: anywhere;
-  }
-
-  .debug-checkpoint {
-    margin-right: auto;
-    color: var(--text-muted);
-    font-size: 10px;
   }
 
   .user-message-index {
@@ -1309,31 +597,6 @@
     }
   }
 
-  .user-msg {
-    align-self: flex-end;
-    max-width: 72%;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-  }
-
-  .user-attachments {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 6px;
-    margin-top: 6px;
-  }
-
-  .user-contexts {
-    display: flex;
-    width: min(100%, 680px);
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 5px;
-    margin-bottom: 6px;
-  }
-
   .selection-add-button {
     position: fixed;
     z-index: 80;
@@ -1366,287 +629,5 @@
     stroke: currentColor;
     stroke-width: 1.4;
     stroke-linecap: round;
-  }
-
-  .user-content-edit {
-    display: block;
-    width: auto;
-    max-width: 100%;
-    box-sizing: border-box;
-    border: 0;
-    border-radius: var(--app-radius);
-    padding: 9px 14px;
-    margin: 0;
-    font-family: inherit;
-    font-size: 14px;
-    white-space: pre-wrap;
-    word-break: break-word;
-    color: var(--text);
-    line-height: 1.47;
-    letter-spacing: -0.374px;
-    text-align: left;
-    resize: none;
-    outline: none;
-    overflow: hidden;
-    field-sizing: content;
-    -webkit-backdrop-filter: blur(12px) saturate(1.05);
-    backdrop-filter: blur(12px) saturate(1.05);
-    box-shadow: none;
-    transition: box-shadow var(--motion-fast) var(--ease-standard);
-  }
-  .user-content {
-    position: relative;
-    width: auto;
-    max-width: 100%;
-    box-sizing: border-box;
-    padding: 9px 14px;
-    border: 0;
-    border-radius: var(--app-radius);
-    color: var(--text);
-    font-size: 14px;
-    line-height: 1.47;
-    letter-spacing: -0.374px;
-    cursor: text;
-    text-align: left;
-    outline: none;
-    -webkit-backdrop-filter: blur(12px) saturate(1.05);
-    backdrop-filter: blur(12px) saturate(1.05);
-    box-shadow: none;
-  }
-  .user-edit-hint {
-    position: absolute;
-    top: 50%;
-    right: calc(100% + 7px);
-    display: inline-flex;
-    width: 24px;
-    height: 24px;
-    align-items: center;
-    justify-content: center;
-    border-radius: 6px;
-    background: var(--control-surface);
-    color: var(--text-muted);
-    box-shadow: var(--control-shadow);
-    opacity: 0;
-    pointer-events: none;
-    transform: translate(3px, -50%);
-    transition:
-      opacity var(--motion-fast) var(--ease-standard),
-      transform var(--motion-fast) var(--ease-standard),
-      color var(--motion-fast) var(--ease-standard);
-  }
-  .user-content:hover .user-edit-hint,
-  .user-content:focus-visible .user-edit-hint {
-    color: var(--text);
-    opacity: 1;
-    transform: translate(0, -50%);
-  }
-  .user-content:focus-visible {
-    box-shadow: var(--focus-ring);
-  }
-  .user-content.readonly {
-    cursor: default;
-  }
-  .user-content-text {
-    display: block;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-  }
-  .user-content.collapsed .user-content-text {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: var(--user-message-collapse-lines);
-    line-clamp: var(--user-message-collapse-lines);
-    overflow: hidden;
-  }
-  .user-content.collapsed::after {
-    content: "";
-    position: absolute;
-    right: 0;
-    bottom: 9px;
-    width: 64px;
-    height: 2.2em;
-    background: linear-gradient(90deg, transparent, var(--user-message-bg) 72%);
-    pointer-events: none;
-  }
-  .user-collapse-btn {
-    margin-top: 4px;
-    padding: 2px 6px;
-    border: 0;
-    border-radius: 4px;
-    background: transparent;
-    color: var(--text-muted);
-    font: inherit;
-    font-size: 11px;
-    cursor: pointer;
-  }
-  .user-collapse-btn:hover {
-    background: var(--interactive-state-bg);
-    color: var(--text);
-  }
-  .user-content-edit:not(:read-only):focus {
-    box-shadow: var(--focus-ring);
-  }
-  .user-content-edit:read-only {
-    cursor: default;
-  }
-
-  .edit-actions {
-    display: flex;
-    gap: 6px;
-    justify-content: flex-end;
-    overflow: hidden;
-    max-height: 0;
-    opacity: 0;
-    transform: translateY(6px);
-    transition:
-      max-height var(--motion-panel) var(--ease-standard),
-      opacity var(--motion-panel) var(--ease-standard),
-      transform var(--motion-panel) var(--ease-standard),
-      margin-top var(--motion-panel) var(--ease-standard);
-    pointer-events: none;
-  }
-  .edit-actions.show {
-    max-height: 40px;
-    margin-top: 5px;
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-  }
-  .edit-cancel-btn,
-  .edit-confirm-btn {
-    padding: 4px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    cursor: pointer;
-    border: 0;
-    background: var(--surface2);
-    color: var(--text-muted);
-    transition:
-      background var(--motion-fast) var(--ease-standard),
-      color var(--motion-fast) var(--ease-standard);
-  }
-  .edit-confirm-btn {
-    background: var(--primary);
-    color: white;
-  }
-  .edit-cancel-btn:hover {
-    background: var(--interactive-state-bg);
-    color: var(--text);
-  }
-  .edit-confirm-btn:hover:not(:disabled) {
-    background: var(--primary-hover);
-  }
-  .edit-confirm-btn:disabled {
-    cursor: default;
-    opacity: 0.45;
-  }
-
-  .msg-meta-row {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 8px;
-    margin-top: 4px;
-  }
-  .msg-meta-row .ts {
-    margin-top: 0;
-  }
-
-  .msg-branch-nav {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    color: var(--text-muted);
-    font-size: 11px;
-    user-select: none;
-  }
-  .branch-nav-btn {
-    width: 18px;
-    height: 18px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-muted);
-    cursor: pointer;
-    font-size: 13px;
-    line-height: 1;
-    padding: 0;
-    transition:
-      background var(--motion-fast) var(--ease-standard),
-      color var(--motion-fast) var(--ease-standard);
-  }
-  .branch-nav-btn:hover:not(:disabled) {
-    background: var(--interactive-state-bg);
-    color: var(--text);
-  }
-  .branch-nav-btn:disabled {
-    opacity: 0.35;
-    cursor: default;
-  }
-  .branch-nav-label {
-    min-width: 32px;
-    text-align: center;
-    letter-spacing: 0.2px;
-  }
-
-  .msg-footer-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    margin: 6px 0 10px;
-  }
-  .msg-footer-row .ts {
-    margin-top: 0;
-  }
-
-  .msg-actions {
-    display: flex;
-    flex: 0 0 auto;
-    gap: 6px;
-    margin-inline-end: 12px;
-  }
-  .run-timing,
-  .cache-usage {
-    min-width: 0;
-    color: var(--text-muted);
-    font-size: 11px;
-    line-height: 1;
-    user-select: none;
-    overflow-wrap: anywhere;
-  }
-  .msg-action-btn {
-    display: inline-flex;
-    flex: 0 0 auto;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 6px;
-    border-radius: 5px;
-    font-size: 11px;
-    white-space: nowrap;
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-muted);
-  }
-  .msg-action-btn {
-    cursor: pointer;
-    transition:
-      background var(--motion-fast) var(--ease-standard),
-      color var(--motion-fast) var(--ease-standard);
-  }
-  .msg-action-btn:hover {
-    background: var(--interactive-state-bg);
-    color: var(--text);
-  }
-
-  .ts {
-    font-size: 10px;
-    color: var(--text-muted);
-    margin-top: 4px;
-    display: block;
-    user-select: none;
   }
 </style>

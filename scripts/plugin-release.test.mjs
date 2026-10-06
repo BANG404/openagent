@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import {
   planPluginRelease,
   pluginProtocolRange,
@@ -6,7 +6,15 @@ import {
   verifyPinnedPluginVersions,
 } from "./plugin-release.mjs";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import {
+  appendFileSync,
+  cpSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  rmSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -16,6 +24,15 @@ const tar =
   process.platform === "win32"
     ? join(process.env.SystemRoot ?? "C:/Windows", "System32/tar.exe")
     : "tar";
+
+/** @param {string} directory */
+function initializeFixtureRepository(directory) {
+  git(directory, ["init", "--initial-branch=master"]);
+  appendFileSync(
+    join(directory, ".git", "config"),
+    "\n[user]\n\tname = Plugin test\n\temail = plugin-test@example.invalid\n[core]\n\tautocrlf = false\n",
+  );
+}
 
 /** @param {string} output @param {string} version */
 function unpack(output, version) {
@@ -29,22 +46,21 @@ function unpack(output, version) {
 function withFixture(run) {
   const root = mkdtempSync(join(tmpdir(), "openagent-plugin-publication-"));
   try {
-    run(fixtureSource(root));
+    cpSync(fixtureTemplateRoot, root, { recursive: true });
+    run(fixtureSource(root, fixtureTemplate));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 }
 
-/** @param {string} root */
-function fixtureSource(root) {
+/**
+ * @param {string} root
+ * @param {{ initial: string, base: string } | undefined} [prepared]
+ */
+function fixtureSource(root, prepared) {
   const source = join(root, "plugins", "demo");
   mkdirSync(source, { recursive: true });
-  for (const directory of [root, source]) {
-    git(directory, ["init", "--initial-branch=master"]);
-    git(directory, ["config", "user.name", "Plugin test"]);
-    git(directory, ["config", "user.email", "plugin-test@example.invalid"]);
-    git(directory, ["config", "core.autocrlf", "false"]);
-  }
+  if (!prepared) for (const directory of [root, source]) initializeFixtureRepository(directory);
   const manifest = {
     name: "demo",
     version: "1.0.0",
@@ -58,18 +74,18 @@ function fixtureSource(root) {
     git(source, ["commit", "-m", message]);
     return git(source, ["rev-parse", "HEAD"]);
   };
-  const initial = commitSource("feat: initial package");
-  git(source, ["tag", "v1.0.0"]);
-  writeFileSync(join(root, "plugins", "dev-index.json"), JSON.stringify({ demo: "demo" }));
-  mkdirSync(join(root, "sdk/rust/openagent-protocol/src"), { recursive: true });
+  const initial = prepared?.initial ?? commitSource("feat: initial package");
   const protocolFile = join(root, "sdk/rust/openagent-protocol/src/lib.rs");
-  writeFileSync(protocolFile, "pub const PLUGIN_PROTOCOL_VERSION: u32 = 1;");
   const sdk = join(root, "sdk");
-  git(sdk, ["init", "--initial-branch=master"]);
-  git(sdk, ["config", "user.name", "Plugin test"]);
-  git(sdk, ["config", "user.email", "plugin-test@example.invalid"]);
-  git(sdk, ["add", "."]);
-  git(sdk, ["commit", "-m", "feat: protocol"]);
+  if (!prepared) {
+    git(source, ["tag", "v1.0.0"]);
+    writeFileSync(join(root, "plugins", "dev-index.json"), JSON.stringify({ demo: "demo" }));
+    mkdirSync(join(root, "sdk/rust/openagent-protocol/src"), { recursive: true });
+    writeFileSync(protocolFile, "pub const PLUGIN_PROTOCOL_VERSION: u32 = 1;");
+    initializeFixtureRepository(sdk);
+    git(sdk, ["add", "."]);
+    git(sdk, ["commit", "-m", "feat: protocol"]);
+  }
   /** @param {string} sha */
   const pin = (sha) => {
     git(root, ["add", "plugins/dev-index.json", "sdk"]);
@@ -77,10 +93,17 @@ function fixtureSource(root) {
     git(root, ["commit", "-m", "feat: pin package"]);
     return git(root, ["rev-parse", "HEAD"]);
   };
-  const base = pin(initial);
+  const base = prepared?.base ?? pin(initial);
   const output = join(root, "candidates");
   return { root, source, manifest, initial, base, output, protocolFile, commitSource, pin };
 }
+
+// Copy a committed seed into each independent test root. This preserves real
+// Git repositories while keeping their repeated setup out of each assertion's
+// default timeout budget. No test mutates the shared seed.
+const fixtureTemplateRoot = mkdtempSync(join(tmpdir(), "openagent-plugin-publication-seed-"));
+const fixtureTemplate = fixtureSource(fixtureTemplateRoot);
+afterAll(() => rmSync(fixtureTemplateRoot, { recursive: true, force: true }));
 
 describe("source-owned plugin release versions", () => {
   test("matches Runtime range validation without relaxing malformed declarations", () => {
@@ -223,7 +246,7 @@ describe("source-owned plugin release versions", () => {
       expect(verifyPinnedPluginVersions(root, base)[0].plan.version).toBe("1.0.1");
     });
   });
-  test("rejects dirty source, missing source bumps and incompatible Runtime protocols", () => {
+  test("rejects dirty source and incompatible Runtime protocols", () => {
     withFixture(({ root, source, output, protocolFile }) => {
       writeFileSync(join(source, "README.md"), "Uncommitted");
       expect(() => releasePinnedPlugins({ root, output, publish: false })).toThrow(
@@ -235,6 +258,8 @@ describe("source-owned plugin release versions", () => {
         "does not support protocol 2",
       );
     });
+  });
+  test("rejects changed source without a source version bump", () => {
     withFixture(({ root, source, output, commitSource, pin }) => {
       writeFileSync(join(source, "README.md"), "Changed package");
       pin(commitSource("feat!: breaking change"));

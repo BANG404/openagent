@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { readSource, settingsViewSource } from "./sourceSurfaces";
 
 const componentPaths = [
@@ -8,13 +8,6 @@ const componentPaths = [
   "../src/lib/components/WorkspaceSwitcher.svelte",
   "../src/lib/components/ui/Combobox.svelte",
   "../src/lib/components/ui/Select.svelte",
-];
-
-const settingsSurfaceFiles = [
-  "SettingsViewNavigation.svelte",
-  "SettingsViewTabsPrimary.svelte",
-  "SettingsViewTabsSecondary.svelte",
-  "SettingsViewDialogs.svelte",
 ];
 
 test("derives shared interaction states from the current text color in app.css", async () => {
@@ -113,7 +106,7 @@ test("reuses shared controls across onboarding and settings collections", async 
   );
   expect(permissions).not.toMatch(/\.permission-settings\s*{[^}]*box-shadow:/s);
   expect(settings).not.toContain('class="interactive-control filter-toggle"');
-  expect(settings).toMatch(/<SettingsActionButton\s+label=\{view\.providerFilter/);
+  expect(settings).toMatch(/<SettingsActionButton\s+label=\{providers\.providerFilter/);
   expect(settingsActionButton).toMatch(
     /\.settings-action\s*{[^}]*border: 1px solid var\(--mica-divider\);/s,
   );
@@ -148,35 +141,47 @@ test("reuses the shared Select for application-owned choice fields", async () =>
   );
 });
 
-test("keeps the settings-view context facade writable for its child surfaces", async () => {
-  const settingsView = await readSource(
-    new URL("../src/lib/components/SettingsView.svelte", import.meta.url),
-  );
-  const facade = settingsView.slice(settingsView.indexOf('setContext("settings-view"'));
-  const getters = new Set(
-    [...facade.matchAll(/^\s+get ([A-Za-z0-9_]+)\(\)/gmu)].map((match) => match[1]),
-  );
-  const setters = new Set(
-    [...facade.matchAll(/^\s+set ([A-Za-z0-9_]+)\(/gmu)].map((match) => match[1]),
-  );
-
+test("keeps domain state writable for settings child surfaces", async () => {
+  const viewsUrl = new URL("../src/lib/components/settings/", import.meta.url);
+  const controllersUrl = new URL("../src/lib/settings/", import.meta.url);
+  const settingsSurfaceFiles = (await readdir(viewsUrl)).filter((file) => file.endsWith(".svelte"));
+  const controllers = new Map<string, { getters: Set<string>; setters: Set<string> }>();
+  for (const file of (await readdir(controllersUrl)).filter((file) =>
+    file.endsWith(".svelte.ts"),
+  )) {
+    const source = await readSource(new URL(file, controllersUrl));
+    controllers.set(file.replace(".svelte.ts", ""), {
+      getters: new Set(
+        [...source.matchAll(/^\s*get ([A-Za-z0-9_]+)\(\)/gmu)].map((match) => match[1]),
+      ),
+      setters: new Set(
+        [...source.matchAll(/^\s*set ([A-Za-z0-9_]+)\(/gmu)].map((match) => match[1]),
+      ),
+    });
+  }
   const written = new Map<string, string>();
   for (const file of settingsSurfaceFiles) {
-    const source = await readSource(new URL(`../src/lib/components/${file}`, import.meta.url));
+    const source = await readSource(new URL(file, viewsUrl));
     for (const match of source.matchAll(
-      /view\.([A-Za-z0-9_]+)(?![\w.])\s*(?:\+\+|--|(?:\?\?|\|\||[-+*/%])?=(?!=))/gu,
+      /\b(general|providers|mcp|plugins|memory|channels)\.([A-Za-z0-9_]+)(?![\w.])\s*(?:\+\+|--|(?:\?\?|\|\||[-+*/%])?=(?!=))/gu,
     )) {
-      written.set(match[1], file);
+      written.set(`${match[1]}.${match[2]}`, file);
     }
-    for (const match of source.matchAll(/bind:[\w-]+=\{\s*view\.([A-Za-z0-9_]+)(?![\w.])/gu)) {
-      written.set(match[1], file);
+    for (const match of source.matchAll(
+      /bind:[\w-]+=\{\s*(general|providers|mcp|plugins|memory|channels)\.([A-Za-z0-9_]+)(?![\w.])/gu,
+    )) {
+      written.set(`${match[1]}.${match[2]}`, file);
     }
   }
 
   expect(written.size).toBeGreaterThan(20);
   expect(
     [...written]
-      .filter(([name]) => !(getters.has(name) && setters.has(name)))
-      .map(([name, file]) => `${file}: view.${name} needs a matching get/set pair`),
+      .filter(([name]) => {
+        const [domain, field] = name.split(".");
+        const controller = controllers.get(domain);
+        return !(controller?.getters.has(field) && controller.setters.has(field));
+      })
+      .map(([name, file]) => `${file}: ${name} needs a matching get/set pair`),
   ).toEqual([]);
 });

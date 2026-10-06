@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "bun:test";
 
-const hostSource = readFileSync("src-tauri/src/lib.rs", "utf8");
+const hostSource = ["component_updates/mod.rs", "component_updates/versions.rs"]
+  .map((file) => readFileSync(`src-tauri/src/${file}`, "utf8"))
+  .join("\n");
 const settingsSource = readFileSync("src/lib/components/SettingsAboutTab.svelte", "utf8");
 
 describe("product release identity", () => {

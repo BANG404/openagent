@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { parseInline, serializeInline } from "../src/lib/composerMarkdown";
 
-const MESSAGE_LIST = "../src/lib/components/MessageList.svelte";
+const USER_MESSAGE_ROW = "../src/lib/components/transcript/UserMessageRow.svelte";
+const USER_CONTENT = "../src/lib/transcript/userContent.ts";
 
 const read = (path: string) => Bun.file(new URL(path, import.meta.url)).text();
 
@@ -35,7 +36,7 @@ describe("user transcript markdown", () => {
 
 describe("user transcript projection wiring", () => {
   test("projects both bubble states inline and keeps the edit control plain", async () => {
-    const source = await read(MESSAGE_LIST);
+    const source = (await Promise.all([read(USER_MESSAGE_ROW), read(USER_CONTENT)])).join("\n");
 
     // Both the click-to-edit trigger and the read-only bubble render markdown.
     expect(source.match(/use:renderUserContent=/g)).toHaveLength(2);
@@ -46,15 +47,19 @@ describe("user transcript projection wiring", () => {
     expect(source).not.toContain("parseBlocks");
     expect(source).not.toContain("renderBlocks");
     // The in-place edit control stays a plain textarea showing raw markdown.
-    expect(source).toMatch(/<textarea\s+bind:this=\{editingTextarea\}\s+class="user-content-edit/);
+    expect(source).toMatch(
+      /<textarea\s+bind:this=\{edit\.editingTextarea\}\s+class="user-content-edit/,
+    );
   });
 
   test("registers attachment labels so the chip renders whole", async () => {
-    const source = await read(MESSAGE_LIST);
+    const source = (await Promise.all([read(USER_MESSAGE_ROW), read(USER_CONTENT)])).join("\n");
 
     expect(source).toMatch(
       /if \(attachment\.referenceLabel\) references\.set\(attachment\.referenceLabel, attachment\.path\);/,
     );
-    expect(source).toContain("{@const contentReferences = attachmentReferenceMap(attachments)}");
+    expect(source).toContain(
+      "let contentReferences = $derived(attachmentReferenceMap(attachments))",
+    );
   });
 });

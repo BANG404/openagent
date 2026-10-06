@@ -6,7 +6,7 @@ import {
   summarizeCacheUsages,
 } from "../src/lib/cacheUsage";
 import type { ChatTaskUsage, TaskTokenUsage } from "../src/lib/types";
-import { readSource } from "./sourceSurfaces";
+import { transcriptSource } from "./sourceSurfaces";
 
 function usage(overrides: Partial<TaskTokenUsage>): TaskTokenUsage {
   return {
@@ -293,7 +293,7 @@ describe("completed-turn cache usage", () => {
   test("loads and renders usage in production builds", async () => {
     const [routeSource, messageListSource] = await Promise.all([
       Bun.file(new URL("../src/routes/PageRuntime.svelte", import.meta.url)).text(),
-      readSource(new URL("../src/lib/components/MessageList.svelte", import.meta.url)),
+      transcriptSource(),
     ]);
 
     expect(routeSource).toContain("if (!tauriAvailable) return;");
@@ -316,10 +316,11 @@ describe("completed-turn cache usage", () => {
 
 describe("streaming-turn indicators", () => {
   test("keeps the composer usage indicator and compaction divider mounted while streaming", async () => {
-    const [routeSource, surfaceSource, streamRendererSource] = await Promise.all([
+    const [routeSource, surfaceSource, streamRendererSource, chatEventsSource] = await Promise.all([
       Bun.file(new URL("../src/routes/PageRuntime.svelte", import.meta.url)).text(),
       Bun.file(new URL("../src/lib/components/ConversationSurface.svelte", import.meta.url)).text(),
       Bun.file(new URL("../src/lib/components/StreamItemRenderer.svelte", import.meta.url)).text(),
+      Bun.file(new URL("../src/lib/page/events/chatEvents.ts", import.meta.url)).text(),
     ]);
 
     // The composer indicator walks the active path for the newest measurement,
@@ -328,7 +329,7 @@ describe("streaming-turn indicators", () => {
     expect(surfaceSource).toContain("ckIdsAlongActivePath(view.activeTree)");
     // A successful compaction mounts its divider for the rest of the turn and
     // hands the same boundary to the durable replay at reconciliation.
-    expect(routeSource).toContain("completeCompactionProgress(previousItems)");
+    expect(chatEventsSource).toContain("completeCompactionProgress(previousItems)");
     expect(routeSource).toContain(
       "clearCompactionProgress(chatStreams.itemsByConversation[convId] ?? [])",
     );

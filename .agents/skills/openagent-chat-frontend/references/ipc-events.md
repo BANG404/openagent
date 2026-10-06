@@ -1,5 +1,13 @@
 # IPC and events
 
+`src/lib/page/events/index.ts` installs surface listeners and the shared SDK
+chat subscription together. `surfaceEvents.ts` handles navigation, settings,
+plugins, and durable forms; `chatEvents.ts` projects chat events.
+`context.ts` describes their writable facade over the page's existing state.
+Every field a handler writes must retain a setter. Runtime resync restores
+the durable bootstrap before restarting event delivery; handlers never create
+another transcript, stream, pending-input, or workspace owner.
+
 ## Package-owned lifecycle projections
 
 The right sidebar and transcript consume one generic package projection. A

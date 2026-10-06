@@ -1,5 +1,51 @@
 # Selectors and menus
 
+Load the standalone development preview and the book reader on demand. Normal
+chat startup must not eagerly include preview fixtures or the reading dialog;
+preview query routing and book-open actions load the same checked components.
+
+- Settings is composed by `SettingsView.svelte` from domain views under
+  `components/settings/` and reactive controllers under `lib/settings/`.
+  The typed context exposes each domain explicitly; never restore an untyped
+  catch-all facade. The draft controller owns the single configuration snapshot,
+  debounce, ordered save queue, and rebase of edits made during a save. Domain
+  controllers share that draft and own their request generations, subscriptions,
+  and cleanup. Keep authorization persistence ahead of daemon activation.
+
+- `PageRuntime.svelte` composes page controllers under `lib/page/`. The role
+  controller owns selected role and role-editor state; the conversation-list
+  controller owns paging cursors, recent/search snapshots, request generations,
+  and its search timer. The WSL picker owns dialog state and native path
+  resolution. Workspace transitions and the canonical live conversation
+  projection stay in the page and enter controllers through typed dependencies;
+  do not copy that projection or create another stream owner. Shared metadata
+  merging preserves already loaded messages. Read the page and its modules
+  together in source contract checks through `pageRuntimeSource()`.
+
+- The transcript's `lib/transcript/selection.svelte.ts` owns quote selection and
+  its document listeners. Accept only a selection whose endpoints belong to
+  the same assistant message inside the mounted transcript; preserve math
+  source through the shared math-aware extractor. Keep selection cleanup with
+  the controller's mount lifetime.
+
+- `components/transcript/UserMessageRow.svelte` presents the user bubble,
+  attachment and quote staging, and branch controls. The transcript creates
+  one `lib/transcript/userEditor.svelte.ts` controller for all rows, so opening
+  another message replaces the current editor and changing conversation or
+  branch discards its draft. Its textarea binding and draft text use writable
+  facade properties. `userContent.ts` owns inline Markdown projection and the
+  shared collapse limits; block markers remain literal for line clamping.
+  Load `AgentBookReader.svelte` on the book action. Mark the triggering button
+  busy during loading and discard an opening request if its conversation
+  changes before the import resolves.
+  `AssistantTurnRow.svelte` presents one durable or live assistant turn and
+  keeps process records separate from the final output without adding a DOM
+  wrapper that changes pagination. `assistantContent.ts` supplies the same
+  items, compaction boundaries, timing and usage to the row and book reader.
+  The list retains the stream-to-durable thinking handoff, book selection and
+  one copy-feedback timer; dispose that timer with the list. Source contract
+  checks use `transcriptSource()` to read the composition and row owners.
+
 - Shared interactive controls are not text-selectable. The application
   primitive in `src/app.css` covers native buttons/selects, disclosure
   summaries, menu and option rows, tabs, toggles, and ARIA button surfaces so
@@ -164,6 +210,21 @@
   during IME composition. Rebuild the projection from the model for every edit
   instead of trusting the browser's DOM mutation, so `/command`, `@"path"`, and
   `[Image #N]` survive byte-for-byte.
+- Compose the shared input with `src/lib/composer/attachments.svelte.ts` and
+  `palette.svelte.ts`: attachments own selection/upload and reference cleanup;
+  the palette owns catalogs, trigger replacement, and request-generation guards.
+  Both read the same canonical Markdown through typed getters and use its setter
+  or editor commit action. Keep IME, DOM projection, selection, and undo together
+  in `editor.svelte.ts`. It receives the canonical value through a writable
+  dependency and exposes the editor element through a getter and setter for
+  `bind:this`. Shared command types live in `composer/types.ts`.
+  An explicit `onUploadAttachments` capability selects browser file input and
+  upload even inside a native WebView, so the active remote transport keeps
+  ownership of attachment storage.
+  Run `bun run test:blackbox:composer-editor` against the isolated native debug
+  window for selection, undo/redo, formatting, clipboard, and IME commits in
+  both themes and locales; run `test:blackbox:slash-command-matching` for
+  palette matching and keyboard selection.
 - Keep the shared composer text-formatting group backed by Markdown so the
   existing plain-text message contract remains unchanged. The group exposes
   bold, italic, strikethrough, and inline-code actions, keeps the wrapped

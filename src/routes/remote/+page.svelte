@@ -5,7 +5,8 @@
   import ConversationList from "$lib/components/ConversationList.svelte";
   import FileChangeBanner from "$lib/components/FileChangeBanner.svelte";
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
-  import MessageInput, { type SlashCommand } from "$lib/components/MessageInput.svelte";
+  import MessageInput from "$lib/components/MessageInput.svelte";
+  import type { SlashCommand } from "$lib/composer/types";
   import MessageList from "$lib/components/MessageList.svelte";
   import NewConversationContext from "$lib/components/NewConversationContext.svelte";
   import RoleSelector from "$lib/components/RoleSelector.svelte";
@@ -19,39 +20,23 @@
   import Select from "$lib/components/ui/Select.svelte";
   import ScrollArea from "$lib/components/ui/ScrollArea.svelte";
   import {
-    buildTreeFromCheckpoints,
     checkpointRecordsToMessages,
     ckIdsAlongActivePath,
     computeActivePath,
-    findUserMessageIndexForAssistant,
-    findForkParentCheckpointId,
-    getActiveTipNode,
-    ROOT_KEY,
-    selectActivePathToCheckpoint,
-    type ConvTree,
   } from "$lib/checkpointTree";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import { setLocale, locale, t, tr, type Locale, type TranslationKeys } from "$lib/i18n";
   import { pluginCommandText } from "$lib/pluginI18n";
   import { renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
-  import {
-    clearQueuedChatMessages,
-    dequeueChatMessage,
-    enqueueChatMessage,
-    removeQueuedChatMessage,
-    type QueuedChatMessages,
-  } from "$lib/chatQueue";
   import { resolveUserInput } from "$lib/chatStream";
-  import { decodeModelBinding, encodeModelBinding } from "$lib/modelBinding";
+  import { encodeModelBinding } from "$lib/modelBinding";
   import {
     projectCurrentFileChanges,
     remoteConversationMetaToConversation,
   } from "$lib/remoteConversationProjection";
   import type {
-    AgentRole,
     ChatAttachment,
     ChatMessage,
-    FileChange,
     StreamItem,
     UserInputRequest,
     UserMessageContext,
@@ -61,17 +46,17 @@
     type AgentCommandSpec,
     interruptRequest,
     provideOpenAgentUiCapabilities,
-    type OpenAgentUiCapabilities,
-    type RemoteConversationMeta,
     type RemoteConversationState,
     type RemoteInterrupt,
     type RemoteModel,
     type RemoteWorkspace,
   } from "$lib/openagent";
-  import { openBrowserUrl } from "$lib/openagent/externalUrl";
+  import { createRemoteExecutionController } from "$lib/remote/execution.svelte";
+  import { createRemoteHistoryController } from "$lib/remote/history.svelte";
+  import { createRemoteCatalogController } from "$lib/remote/catalog.svelte";
+  import { createRemoteAttachmentController } from "$lib/remote/attachments";
+  import { createRemoteConnectionController } from "$lib/remote/connection";
   import { HttpTransport } from "$lib/openagent/httpTransport";
-  import { randomUuid } from "$lib/uuid";
-  import { InterruptResolutionTracker } from "$lib/interruptResolutionTracker";
   import {
     clampSidebarWidth,
     loadSidebarWidth,
@@ -83,37 +68,27 @@
   type Screen = "loading" | "pair" | "chat";
   const openAgentIconUrl = "/app-icon.png";
   const client = new OpenAgentClient(new HttpTransport());
-  const defaultRoleKey = "openagent";
 
   let screen = $state<Screen>("loading");
   let pairingCode = $state("");
   let workspaces = $state<RemoteWorkspace[]>([]);
-  let workspaceId = $state("");
-  let roles = $state<AgentRole[]>([]);
-  let selectedRoleKey = $state(defaultRoleKey);
+
   let remoteModels = $state<RemoteModel[]>([]);
   let agentCommandSpecs = $state<AgentCommandSpec[]>([]);
   let selectedModel = $state("");
-  let remoteConversationMetas = $state<RemoteConversationMeta[]>([]);
+
   let conversationSearchQuery = $state("");
   let conversation = $state<RemoteConversationState | null>(null);
-  let activeTree = $state<ConvTree | undefined>();
-  let activeBranchId = $state<string | null>(null);
-  let fileChanges = $state<FileChange[]>([]);
+
   let instruction = $state("");
   let attachments = $state<ChatAttachment[]>([]);
   let contexts = $state<UserMessageContext[]>([]);
   let composerFocusRequest = $state(0);
   let busy = $state(false);
-  let loadingWorkspace = $state(false);
-  let loadingConversationId = $state<string | null>(null);
+
   let error = $state("");
   let commandNotice = $state("");
   let inputAreaHeight = $state(120);
-  let disconnect: (() => void) | null = null;
-  let reconnectTimer: number | null = null;
-  let reconnectAttempt = 0;
-  let connectionGeneration = 0;
   let messagesEl = $state<HTMLElement | null>(null);
   let isDarkTheme = $state(false);
   let preferredTheme = $state<"system" | "light" | "dark">("system");
@@ -125,19 +100,85 @@
   let viewportWidth = typeof window === "undefined" ? 1 : Math.max(window.innerWidth, 1);
   let sidebarWidthRatio = 0;
   let sidebarResizing = $state(false);
-  let optimisticUser = $state<ChatMessage | null>(null);
-  let pendingAssistantMessageId = $state<string | null>(null);
-  let streamPaused = $state(false);
-  let forkDisplayMessages = $state<ChatMessage[] | null>(null);
-  let queuedChatMessages = $state<QueuedChatMessages>({});
-  type OptimisticInterruptResolution = {
-    state: "answered" | "cancelled";
-    response: unknown;
-  };
-  let resolvingInterrupts = $state<Record<string, OptimisticInterruptResolution>>({});
-  const interruptResolutions = new InterruptResolutionTracker();
-  const previewUrls = new Set<string>();
   const handledMermaidInterrupts = new Set<string>();
+  const remoteExecution = createRemoteExecutionController({
+    client,
+    get conversation() {
+      return conversation;
+    },
+    set conversation(next) {
+      conversation = next;
+    },
+    get instruction() {
+      return instruction;
+    },
+    set instruction(next) {
+      instruction = next;
+    },
+    get attachments() {
+      return attachments;
+    },
+    set attachments(next) {
+      attachments = next;
+    },
+    get contexts() {
+      return contexts;
+    },
+    set contexts(next) {
+      contexts = next;
+    },
+    get selectedModel() {
+      return selectedModel;
+    },
+    set selectedModel(next) {
+      selectedModel = next;
+    },
+    get busy() {
+      return busy;
+    },
+    set busy(next) {
+      busy = next;
+    },
+    get error() {
+      return error;
+    },
+    set error(next) {
+      error = next;
+    },
+    get commandNotice() {
+      return commandNotice;
+    },
+    set commandNotice(next) {
+      commandNotice = next;
+    },
+    get activeInterrupt() {
+      return activeInterrupt;
+    },
+    get running() {
+      return running;
+    },
+    get projectedMessages() {
+      return projectedMessages;
+    },
+    get remoteHistory() {
+      return remoteHistory;
+    },
+    createConversation: () => createConversation(),
+    loadConversationHistory: (convId) => loadConversationHistory(convId),
+    perform: (action) => perform(action),
+  });
+  const sendInstruction = remoteExecution.sendInstruction;
+  const sendNextQueuedMessage = remoteExecution.sendNextQueuedMessage;
+  const removeQueuedMessage = remoteExecution.removeQueuedMessage;
+  const clearQueuedMessages = remoteExecution.clearQueuedMessages;
+  const commitEdit = remoteExecution.commitEdit;
+  const reExecute = remoteExecution.reExecute;
+  const stopMessage = remoteExecution.stopMessage;
+  const setStreamPaused = remoteExecution.setStreamPaused;
+  const answer = remoteExecution.answer;
+  const cancelAnswer = remoteExecution.cancelAnswer;
+  const cancelInlineInterrupt = remoteExecution.cancelInlineInterrupt;
+  const approve = remoteExecution.approve;
 
   function addQuote(context: UserMessageContext) {
     if (
@@ -161,39 +202,62 @@
     sidebarWidthRatio = sidebarWidth / viewportWidth;
   }
 
-  const remoteUiCapabilities: OpenAgentUiCapabilities = {
-    async openUrl(url) {
-      const parsed = new URL(url);
-      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        throw new Error(tr("remoteUnsupportedUrl"));
-      }
-      openBrowserUrl(parsed.href);
+  function resetConversation() {
+    remoteConnection.reset();
+    conversation = null;
+    remoteHistory.reset();
+    remoteExecution.optimisticUser = null;
+    remoteExecution.pendingAssistantMessageId = null;
+    remoteExecution.streamPaused = false;
+    remoteExecution.forkDisplayMessages = null;
+    remoteExecution.resolvingInterrupts = {};
+    error = "";
+  }
+  const remoteHistory = createRemoteHistoryController({
+    client,
+    get conversation() {
+      return conversation;
     },
-    openPath: (path) => client.openWorkspacePath(path, activeConversationId()),
-    readTextSnippet: (path, startLine, endLine) =>
-      client.readWorkspaceTextSnippet(path, startLine, endLine, activeConversationId()),
-    resolveMedia: (path, kind) => client.resolveWorkspaceMedia(path, kind, activeConversationId()),
-    async repairAttachment(blobId, name) {
-      const file = await selectBrowserFile();
-      if (!file) return false;
-      await client.repairAttachmentBlob(blobId, name, await fileToBase64(file));
-      return true;
+    set conversation(next) {
+      conversation = next;
     },
-    async saveDownloadFile(filename, content, encoding) {
-      const bytes =
-        encoding === "base64"
-          ? Uint8Array.from(atob(content), (character) => character.charCodeAt(0))
-          : new TextEncoder().encode(content);
-      const url = URL.createObjectURL(new Blob([bytes]));
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = filename;
-      anchor.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 0);
-      return { location: filename };
+    get running() {
+      return running;
     },
-  };
-  provideOpenAgentUiCapabilities(remoteUiCapabilities);
+    get messagesEl() {
+      return messagesEl;
+    },
+    perform,
+  });
+  const loadConversationHistory = remoteHistory.load;
+  const switchBranch = remoteHistory.switchBranch;
+  const revertFileChange = remoteHistory.revertFileChange;
+  const remoteCatalog = createRemoteCatalogController({
+    client,
+    get running() {
+      return running;
+    },
+    activeConversationId: () => conversation?.conv_id ?? null,
+    resetConversation,
+    connectConversation: (id) => remoteConnection.connect(id),
+    newConversation,
+    perform,
+    onError(cause) {
+      error = cause instanceof Error ? cause.message : String(cause);
+    },
+  });
+  const loadWorkspace = remoteCatalog.loadWorkspace;
+  const refreshConversations = remoteCatalog.refreshConversations;
+  const loadRemoteMentionItems = remoteCatalog.loadMentionItems;
+  const createConversation = remoteCatalog.createConversation;
+  const selectConversation = remoteCatalog.selectConversation;
+  const togglePin = remoteCatalog.togglePin;
+  const deleteConversation = remoteCatalog.deleteConversation;
+  const changeRole = remoteCatalog.changeRole;
+
+  const remoteAttachments = createRemoteAttachmentController({ client, activeConversationId });
+  const uploadAttachments = remoteAttachments.uploadAttachments;
+  provideOpenAgentUiCapabilities(remoteAttachments.capabilities);
 
   function activeConversationId(): string {
     if (!conversation) throw new Error(tr("remoteSelectConversationFirst"));
@@ -203,14 +267,14 @@
   const activeInterrupt = $derived(conversation?.interrupts[0] ?? null);
   const running = $derived(
     conversation?.phase === "before_completion" ||
-      pendingAssistantMessageId !== null ||
-      Object.keys(resolvingInterrupts).length > 0,
+      remoteExecution.pendingAssistantMessageId !== null ||
+      Object.keys(remoteExecution.resolvingInterrupts).length > 0,
   );
   const projectedMessages = $derived.by(() => {
     let projected: ChatMessage[];
-    if (forkDisplayMessages) projected = forkDisplayMessages;
-    else if (!running && activeTree) {
-      const path = computeActivePath(activeTree);
+    if (remoteExecution.forkDisplayMessages) projected = remoteExecution.forkDisplayMessages;
+    else if (!running && remoteHistory.activeTree) {
+      const path = computeActivePath(remoteHistory.activeTree);
       projected =
         path.length > 0
           ? path
@@ -230,7 +294,7 @@
           )
         : [];
     }
-    return Object.entries(resolvingInterrupts).reduce(
+    return Object.entries(remoteExecution.resolvingInterrupts).reduce(
       (messages, [requestId, resolution]) =>
         messages.map((message) =>
           message.items?.some(
@@ -254,8 +318,12 @@
   });
   const liveAssistant = $derived.by(() => {
     if (!running) return null;
-    if (pendingAssistantMessageId) {
-      return projectedMessages.find((message) => message.id === pendingAssistantMessageId) ?? null;
+    if (remoteExecution.pendingAssistantMessageId) {
+      return (
+        projectedMessages.find(
+          (message) => message.id === remoteExecution.pendingAssistantMessageId,
+        ) ?? null
+      );
     }
     return [...projectedMessages].reverse().find((message) => message.role === "assistant") ?? null;
   });
@@ -263,12 +331,13 @@
     const durable = liveAssistant
       ? projectedMessages.filter((message) => message.id !== liveAssistant.id)
       : projectedMessages;
-    return optimisticUser && !durable.some((message) => message.id === optimisticUser?.id)
-      ? [...durable, optimisticUser]
+    return remoteExecution.optimisticUser &&
+      !durable.some((message) => message.id === remoteExecution.optimisticUser?.id)
+      ? [...durable, remoteExecution.optimisticUser]
       : durable;
   });
   const currentStreamMessageId = $derived(
-    running ? (liveAssistant?.id ?? pendingAssistantMessageId) : null,
+    running ? (liveAssistant?.id ?? remoteExecution.pendingAssistantMessageId) : null,
   );
   const currentStreamItems = $derived.by<StreamItem[]>(() => {
     if (!liveAssistant) return [];
@@ -279,13 +348,15 @@
         : [];
   });
   const newConversationLayout = $derived(
-    Boolean(workspaceId) &&
-      !loadingWorkspace &&
-      !loadingConversationId &&
+    Boolean(remoteCatalog.workspaceId) &&
+      !remoteCatalog.loadingWorkspace &&
+      !remoteCatalog.loadingConversationId &&
       !conversation &&
       messages.length === 0,
   );
-  const selectedConversationId = $derived(loadingConversationId ?? conversation?.conv_id ?? null);
+  const selectedConversationId = $derived(
+    remoteCatalog.loadingConversationId ?? conversation?.conv_id ?? null,
+  );
   const hasInlineInterrupt = $derived.by(() =>
     projectedMessages.some((message) =>
       message.items?.some(
@@ -299,10 +370,14 @@
       ),
     ),
   );
-  const conversations = $derived(remoteConversationMetas.map(remoteConversationMetaToConversation));
+  const conversations = $derived(
+    remoteCatalog.remoteConversationMetas.map(remoteConversationMetaToConversation),
+  );
   const currentFileChanges = $derived.by(() => {
-    const activeCheckpoints = activeTree ? ckIdsAlongActivePath(activeTree) : new Set<string>();
-    return projectCurrentFileChanges(fileChanges, activeCheckpoints);
+    const activeCheckpoints = remoteHistory.activeTree
+      ? ckIdsAlongActivePath(remoteHistory.activeTree)
+      : new Set<string>();
+    return projectCurrentFileChanges(remoteHistory.fileChanges, activeCheckpoints);
   });
   const streamingConvIds = $derived(
     conversation && running ? { [conversation.conv_id]: true } : {},
@@ -406,16 +481,12 @@
       media.removeEventListener("change", syncTheme);
       sidebarObserver.disconnect();
       window.removeEventListener("resize", updateSidebarForViewport);
-      if (reconnectTimer !== null) window.clearTimeout(reconnectTimer);
-      disconnect?.();
-      for (const url of previewUrls) URL.revokeObjectURL(url);
+      remoteConnection.dispose();
+      remoteCatalog.dispose();
+      remoteHistory.reset();
+      remoteAttachments.dispose();
     };
   });
-
-  function selectedModelBinding() {
-    if (!selectedModel) return null;
-    return decodeModelBinding(selectedModel);
-  }
 
   function applyRemoteTheme(theme: "system" | "light" | "dark") {
     preferredTheme = theme;
@@ -483,587 +554,85 @@
     selectedModel = defaultModel
       ? encodeModelBinding(defaultModel.provider_id, defaultModel.model)
       : "";
-    workspaceId = workspaces[0]?.id ?? "";
+    remoteCatalog.workspaceId = workspaces[0]?.id ?? "";
     screen = "chat";
-    if (workspaceId) await loadWorkspace(workspaceId);
-  }
-
-  async function loadWorkspace(nextWorkspaceId: string) {
-    workspaceId = nextWorkspaceId;
-    loadingWorkspace = true;
-    error = "";
-    connectionGeneration += 1;
-    reconnectAttempt = 0;
-    if (reconnectTimer !== null) {
-      window.clearTimeout(reconnectTimer);
-      reconnectTimer = null;
-    }
-    disconnect?.();
-    disconnect = null;
-    conversation = null;
-    activeTree = undefined;
-    activeBranchId = null;
-    fileChanges = [];
-    optimisticUser = null;
-    pendingAssistantMessageId = null;
-    streamPaused = false;
-    forkDisplayMessages = null;
-    try {
-      [roles, remoteConversationMetas] = await Promise.all([
-        client.listRemoteRoles(workspaceId),
-        client.listRemoteConversations(workspaceId),
-      ]);
-      selectedRoleKey = defaultRoleKey;
-    } catch (cause) {
-      error = cause instanceof Error ? cause.message : String(cause);
-    } finally {
-      loadingWorkspace = false;
-    }
-  }
-
-  async function refreshConversations() {
-    if (!workspaceId) return;
-    remoteConversationMetas = await client.listRemoteConversations(workspaceId);
-  }
-
-  async function loadRemoteMentionItems(query: string) {
-    if (!workspaceId) return [];
-    const normalizedQuery = query.trim().toLocaleLowerCase();
-    const roleItems = roles
-      .filter(
-        (role) =>
-          !normalizedQuery ||
-          `${role.name}\n${role.description}`.toLocaleLowerCase().includes(normalizedQuery),
-      )
-      .map((role) => ({
-        id: `role:${role.id}`,
-        insertText: role.name,
-        label: role.name,
-        detail: Array.from(role.description).slice(0, 50).join(""),
-        hint: $t("mentionRole"),
-      }));
-    const files = await client.listRemoteWorkspaceFiles(workspaceId, query);
-    return [
-      ...roleItems,
-      ...files.map((path) => ({
-        id: path,
-        label: path.split("/").pop() ?? path,
-        detail: path,
-      })),
-    ];
-  }
-
-  async function createConversation(): Promise<string> {
-    if (!workspaceId) throw new Error(tr("remoteSelectWorkspaceFirst"));
-    const created = await client.createRemoteConversation(
-      workspaceId,
-      selectedRoleKey === defaultRoleKey ? null : selectedRoleKey,
-    );
-    await refreshConversations();
-    await connectConversation(created.conv_id);
-    return created.conv_id;
+    if (remoteCatalog.workspaceId) await loadWorkspace(remoteCatalog.workspaceId);
   }
 
   async function newConversation() {
     if (running) return;
-    connectionGeneration += 1;
-    reconnectAttempt = 0;
-    if (reconnectTimer !== null) {
-      window.clearTimeout(reconnectTimer);
-      reconnectTimer = null;
-    }
-    disconnect?.();
-    disconnect = null;
-    conversation = null;
-    activeTree = undefined;
-    activeBranchId = null;
-    fileChanges = [];
-    optimisticUser = null;
-    pendingAssistantMessageId = null;
-    streamPaused = false;
-    forkDisplayMessages = null;
-    resolvingInterrupts = {};
-    error = "";
+    resetConversation();
     if (window.matchMedia("(max-width: 760px)").matches) sidebarCollapsed = true;
   }
 
-  async function connectConversation(convId: string, preservePendingTurn = false) {
-    const generation = ++connectionGeneration;
-    reconnectAttempt = 0;
-    if (reconnectTimer !== null) {
-      window.clearTimeout(reconnectTimer);
-      reconnectTimer = null;
-    }
-    disconnect?.();
-    disconnect = null;
-    if (!preservePendingTurn) {
-      optimisticUser = null;
-      pendingAssistantMessageId = null;
-    }
-    streamPaused = false;
-    forkDisplayMessages = null;
-    activeTree = undefined;
-    activeBranchId = null;
-    fileChanges = [];
-    [conversation] = await Promise.all([
-      client.getRemoteConversationState(convId),
-      loadConversationHistory(convId),
-    ]);
-    disconnect = await client.subscribeToConversationState(
-      convId,
-      (state) => {
-        if (generation !== connectionGeneration || conversation?.conv_id !== convId) return;
-        const previousPhase = conversation.phase;
-        conversation = state;
-        if (state.title?.trim()) {
-          const index = remoteConversationMetas.findIndex((item) => item.id === convId);
-          if (index !== -1 && remoteConversationMetas[index].title !== state.title) {
-            remoteConversationMetas[index] = {
-              ...remoteConversationMetas[index],
-              title: state.title,
-            };
-          }
-        }
-        const stillPending = Object.fromEntries(
-          Object.entries(resolvingInterrupts).filter(([requestId]) =>
-            state.interrupts.some((interrupt) => interrupt.id === requestId),
-          ),
-        );
-        if (Object.keys(stillPending).length !== Object.keys(resolvingInterrupts).length) {
-          resolvingInterrupts = stillPending;
-        }
-        if (optimisticUser && state.messages.some((message) => message.id === optimisticUser?.id)) {
-          optimisticUser = null;
-          forkDisplayMessages = null;
-        }
-        if (pendingAssistantMessageId && state.phase !== "before_completion") {
-          pendingAssistantMessageId = null;
-        }
-        if (previousPhase === "before_completion" && state.phase !== "before_completion") {
-          streamPaused = false;
-          void refreshConversations();
-          void loadConversationHistory(convId);
-          if (
-            state.phase === "final_completed" ||
-            state.phase === "final_cancelled" ||
-            state.phase === "final_failed"
-          ) {
-            queueMicrotask(() => void sendNextQueuedMessage(convId));
-          }
-        }
-        error = "";
-      },
-      () => {
-        if (generation !== connectionGeneration || conversation?.conv_id !== convId) return;
-        scheduleConversationReconnect(convId, generation);
-      },
-    );
-    if (window.matchMedia("(max-width: 760px)").matches) sidebarCollapsed = true;
-  }
-
-  function scheduleConversationReconnect(convId: string, generation: number): void {
-    if (reconnectTimer !== null || generation !== connectionGeneration) return;
-    const delay = Math.min(1000 * 2 ** reconnectAttempt, 10000);
-    reconnectAttempt += 1;
-    error = tr("remoteReconnect");
-    reconnectTimer = window.setTimeout(() => {
-      reconnectTimer = null;
-      if (generation !== connectionGeneration || conversation?.conv_id !== convId) return;
-      void connectConversation(convId, true).catch((cause) => {
-        if (conversation?.conv_id !== convId) return;
-        error = cause instanceof Error ? cause.message : String(cause);
-        scheduleConversationReconnect(convId, connectionGeneration);
-      });
-    }, delay);
-  }
-
-  async function loadConversationHistory(convId: string) {
-    const history = await client.getRemoteConversationHistory(convId);
-    let tree = buildTreeFromCheckpoints(history.checkpoints, activeTree);
-    if (history.active_branch_tip) {
-      tree = selectActivePathToCheckpoint(tree, history.active_branch_tip);
-    }
-    activeTree = tree;
-    activeBranchId =
-      history.branches.find((branch) => branch.head_checkpoint_id === history.active_branch_tip)
-        ?.id ?? null;
-    fileChanges = history.file_changes;
-  }
-
-  async function switchBranch(convId: string, parentKey: string, targetIdx: number) {
-    if (running || !activeTree || conversation?.conv_id !== convId) return;
-    const siblings =
-      parentKey === ROOT_KEY ? activeTree.rootIds : (activeTree.nodes[parentKey]?.childIds ?? []);
-    const checkpointId = siblings[targetIdx];
-    if (!checkpointId) return;
-    await perform(async () => {
-      await client.switchRemoteConversationBranch(convId, checkpointId);
-      conversation = await client.getRemoteConversationState(convId);
-      await loadConversationHistory(convId);
-      requestAnimationFrame(() => {
-        if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
-      });
-    });
-  }
-
-  async function revertFileChange(changeId: string) {
+  function applyConversationState(state: RemoteConversationState) {
     if (!conversation) return;
-    await client.revertRemoteFileChange(conversation.conv_id, changeId);
-    await loadConversationHistory(conversation.conv_id);
-  }
-
-  async function selectConversation(id: string) {
-    if (id === conversation?.conv_id || loadingConversationId) return;
-    loadingConversationId = id;
-    try {
-      await perform(() => connectConversation(id));
-    } finally {
-      if (loadingConversationId === id) loadingConversationId = null;
-    }
-  }
-
-  async function togglePin(id: string) {
-    const item = remoteConversationMetas.find((candidate) => candidate.id === id);
-    if (!item) return;
-    await perform(async () => {
-      await client.updateRemoteConversation(id, { pinned: !item.pinned });
-      await refreshConversations();
-    });
-  }
-
-  async function deleteConversation(id: string) {
-    if (!window.confirm(tr("remoteDeleteConversationConfirm"))) return;
-    await perform(async () => {
-      await client.deleteRemoteConversation(id);
-      if (conversation?.conv_id === id) {
-        disconnect?.();
-        disconnect = null;
-        conversation = null;
-      }
-      await refreshConversations();
-    });
-  }
-
-  async function changeRole(role: string) {
-    selectedRoleKey = role;
-    if (conversation && !running) await newConversation();
-  }
-
-  async function sendInstruction() {
-    const text =
-      instruction.trim() ||
-      (attachments.length > 0
-        ? tr("attachmentOnlyPrompt")
-        : contexts.length > 0
-          ? tr("quoteOnlyPrompt")
-          : "");
-    if ((!text && attachments.length === 0 && contexts.length === 0) || activeInterrupt || busy)
-      return;
-    if (running) {
-      if (!conversation) return;
-      queuedChatMessages = enqueueChatMessage(queuedChatMessages, conversation.conv_id, {
-        text,
-        attachments,
-        contexts,
-        model: selectedModel,
-      });
-      instruction = "";
-      attachments = [];
-      contexts = [];
-      if (streamPaused) await setStreamPaused(false);
-      return;
-    }
-    busy = true;
-    error = "";
-    commandNotice = "";
-    const submittedAttachments = attachments;
-    const submittedContexts = contexts;
-    const submittedText = text;
-    try {
-      const convId = conversation?.conv_id ?? (await createConversation());
-      const userMessageId = randomUuid();
-      const assistantMessageId = randomUuid();
-      optimisticUser = {
-        id: userMessageId,
-        role: "user",
-        content: text,
-        timestamp: Date.now(),
-        items: [
-          ...(text ? [{ type: "text" as const, content: text }] : []),
-          ...submittedContexts.map((context) => ({ type: "quote" as const, context })),
-          ...submittedAttachments.map((attachment) => ({
-            type: "attachment" as const,
-            attachment,
-          })),
-        ],
-      };
-      pendingAssistantMessageId = assistantMessageId;
-      instruction = "";
-      attachments = [];
-      contexts = [];
-      const outcome = await client.submitInput({
-        convId,
-        text,
-        attachments: submittedAttachments.map((attachment) => attachment.path),
-        contexts: submittedContexts,
-        modelBinding: selectedModelBinding(),
-        userMessageId,
-        assistantMessageId,
-      });
-      if (outcome.type === "immediate_command") {
-        optimisticUser = null;
-        pendingAssistantMessageId = null;
-        commandNotice = outcome.changed
-          ? tr("compactionCompleted")
-          : tr("compactConversationSkipped");
-        conversation = await client.getRemoteConversationState(convId);
-        await loadConversationHistory(convId);
-      }
-    } catch (cause) {
-      optimisticUser = null;
-      pendingAssistantMessageId = null;
-      instruction = submittedText;
-      attachments = submittedAttachments;
-      contexts = submittedContexts;
-      error = cause instanceof Error ? cause.message : String(cause);
-    } finally {
-      busy = false;
-    }
-  }
-
-  async function sendNextQueuedMessage(convId: string) {
-    if (conversation?.conv_id !== convId || activeInterrupt) return;
-    const dequeued = dequeueChatMessage(queuedChatMessages, convId);
-    queuedChatMessages = dequeued.queue;
-    if (!dequeued.next) return;
-    instruction = dequeued.next.text;
-    attachments = dequeued.next.attachments;
-    contexts = dequeued.next.contexts;
-    selectedModel = dequeued.next.model;
-    await sendInstruction();
-  }
-
-  function removeQueuedMessage(convId: string, index: number) {
-    queuedChatMessages = removeQueuedChatMessage(queuedChatMessages, convId, index);
-  }
-
-  function clearQueuedMessages(convId: string) {
-    queuedChatMessages = clearQueuedChatMessages(queuedChatMessages, convId);
-  }
-
-  async function forkConversationRun(
-    userMessageIndex: number,
-    text: string,
-    sourceAttachments: ChatAttachment[],
-    sourceContexts: UserMessageContext[],
-  ) {
-    if (!conversation || !activeTree || running) return;
-    const userMessage = projectedMessages[userMessageIndex];
-    if (!userMessage || userMessage.role !== "user") return;
-    const parentCheckpointId = findForkParentCheckpointId(activeTree, userMessage.id);
-    if (parentCheckpointId === undefined) return;
-    const sourceCheckpointId = getActiveTipNode(activeTree)?.ckId;
-    if (!sourceCheckpointId) return;
-    const normalizedText = text.trim();
-    if (!normalizedText && sourceAttachments.length === 0 && sourceContexts.length === 0) return;
-
-    busy = true;
-    error = "";
-    const userMessageId = randomUuid();
-    const assistantMessageId = randomUuid();
-    forkDisplayMessages = projectedMessages.slice(0, userMessageIndex);
-    optimisticUser = {
-      id: userMessageId,
-      role: "user",
-      content: normalizedText,
-      timestamp: Date.now(),
-      items: [
-        ...(normalizedText ? [{ type: "text" as const, content: normalizedText }] : []),
-        ...sourceContexts.map((context) => ({ type: "quote" as const, context })),
-        ...sourceAttachments.map((attachment) => ({ type: "attachment" as const, attachment })),
-      ],
-    };
-    pendingAssistantMessageId = assistantMessageId;
-    try {
-      await client.forkRemoteConversationRun({
-        convId: conversation.conv_id,
-        text: normalizedText,
-        sourceCheckpointId,
-        parentCheckpointId,
-        forkedFromMessageId: userMessage.id,
-        attachments: sourceAttachments.map((attachment) => ({
-          locator: attachment.path,
-          name: attachment.name,
-        })),
-        contexts: sourceContexts,
-        modelBinding: selectedModelBinding(),
-        userMessageId,
-        assistantMessageId,
-      });
-    } catch (cause) {
-      forkDisplayMessages = null;
-      optimisticUser = null;
-      pendingAssistantMessageId = null;
-      error = cause instanceof Error ? cause.message : String(cause);
-    } finally {
-      busy = false;
-    }
-  }
-
-  async function commitEdit(
-    convId: string,
-    userMessageIndex: number,
-    text: string,
-    editedAttachments: ChatAttachment[],
-    editedContexts: UserMessageContext[],
-  ) {
-    if (conversation?.conv_id !== convId) return;
-    await forkConversationRun(userMessageIndex, text, editedAttachments, editedContexts);
-  }
-
-  async function reExecute(convId: string, assistantMessageIndex: number) {
-    if (conversation?.conv_id !== convId) return;
-    const assistant = projectedMessages[assistantMessageIndex];
-    if (!assistant || assistant.role !== "assistant") return;
-    const userMessageIndex = findUserMessageIndexForAssistant(
-      projectedMessages,
-      assistantMessageIndex,
+    const convId = state.conv_id;
+    const previousPhase = conversation.phase;
+    conversation = state;
+    remoteCatalog.updateTitle(convId, state.title);
+    const stillPending = Object.fromEntries(
+      Object.entries(remoteExecution.resolvingInterrupts).filter(([requestId]) =>
+        state.interrupts.some((interrupt) => interrupt.id === requestId),
+      ),
     );
-    const userMessage = projectedMessages[userMessageIndex];
-    if (!userMessage || userMessage.role !== "user") return;
-    const sourceAttachments = (userMessage.items ?? [])
-      .filter(
-        (item): item is Extract<StreamItem, { type: "attachment" }> => item.type === "attachment",
-      )
-      .map((item) => item.attachment);
-    const sourceContexts = (userMessage.items ?? [])
-      .filter((item): item is Extract<StreamItem, { type: "quote" }> => item.type === "quote")
-      .map((item) => item.context);
-    await forkConversationRun(
-      userMessageIndex,
-      userMessage.content,
-      sourceAttachments,
-      sourceContexts,
-    );
-  }
-
-  function fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () =>
-        typeof reader.result === "string"
-          ? resolve(reader.result.slice(reader.result.indexOf(",") + 1))
-          : reject(new Error(tr("remoteAttachmentReadFailed")));
-      reader.onerror = () => reject(reader.error ?? new Error(tr("remoteAttachmentReadFailed")));
-      reader.readAsDataURL(file);
-    });
-  }
-
-  function selectBrowserFile(): Promise<File | null> {
-    return new Promise((resolve) => {
-      const input = document.createElement("input");
-      input.type = "file";
-      input.hidden = true;
-      let settled = false;
-      const finish = (file: File | null) => {
-        if (settled) return;
-        settled = true;
-        input.remove();
-        resolve(file);
-      };
-      input.addEventListener("change", () => finish(input.files?.[0] ?? null), { once: true });
-      input.addEventListener("cancel", () => finish(null), { once: true });
-      window.addEventListener(
-        "focus",
-        () => window.setTimeout(() => finish(input.files?.[0] ?? null), 0),
-        { once: true },
-      );
-      document.body.appendChild(input);
-      input.click();
-    });
-  }
-
-  async function uploadAttachments(files: File[]): Promise<ChatAttachment[]> {
-    return Promise.all(
-      files.map(async (file) => {
-        const attachment = await client.uploadRemoteAttachment(file.name, await fileToBase64(file));
-        if (attachment.kind !== "image") return attachment;
-        const previewUrl = URL.createObjectURL(file);
-        previewUrls.add(previewUrl);
-        return { ...attachment, previewUrl };
-      }),
-    );
-  }
-
-  async function stopMessage() {
-    if (!conversation || !running) return;
-    const convId = conversation.conv_id;
-    clearQueuedMessages(convId);
-    await perform(() => client.cancelRemoteConversation(conversation!.conv_id));
-  }
-
-  async function setStreamPaused(paused: boolean) {
-    if (!conversation || !running) return;
-    const previous = streamPaused;
-    streamPaused = paused;
-    try {
-      await client.setConversationStreamPaused(conversation.conv_id, paused);
-    } catch (cause) {
-      if (streamPaused === paused) streamPaused = previous;
-      error = cause instanceof Error ? cause.message : String(cause);
+    if (
+      Object.keys(stillPending).length !== Object.keys(remoteExecution.resolvingInterrupts).length
+    ) {
+      remoteExecution.resolvingInterrupts = stillPending;
     }
-  }
-
-  async function answer(requestId: string, values: Record<string, unknown>) {
-    await resolveRemoteInterrupt(requestId, { values }, "answered");
-  }
-
-  async function cancelAnswer(requestId: string) {
-    await resolveRemoteInterrupt(requestId, { cancelled: true }, "cancelled");
-  }
-
-  async function cancelInlineInterrupt(requestId: string) {
-    if (activeInterrupt?.kind === "tool_approval") await approve(requestId, false);
-    else await cancelAnswer(requestId);
-  }
-
-  async function approve(requestId: string, approved: boolean) {
-    await resolveRemoteInterrupt(requestId, { values: { approved } }, "answered");
-  }
-
-  async function resolveRemoteInterrupt(
-    requestId: string,
-    response: unknown,
-    state: "answered" | "cancelled",
-  ) {
-    if (!conversation) return;
-    const convId = conversation.conv_id;
-    const resolution = interruptResolutions.begin(requestId, convId);
-    if (!resolution) return;
-    resolvingInterrupts = { ...resolvingInterrupts, [requestId]: { state, response } };
-    busy = true;
-    error = "";
-    const assistantMessageId = pendingAssistantMessageId ?? randomUuid();
-    if (resolution.firstForConversation) pendingAssistantMessageId = assistantMessageId;
-    try {
-      await client.resumeInterrupt({
-        convId,
-        interruptId: requestId,
-        response: JSON.stringify(response),
-        assistantMessageId,
-      });
-    } catch (cause) {
-      const { [requestId]: _failed, ...remaining } = resolvingInterrupts;
-      resolvingInterrupts = remaining;
-      if (!interruptResolutions.hasOtherInConversation(convId, requestId)) {
-        pendingAssistantMessageId = null;
+    if (
+      remoteExecution.optimisticUser &&
+      state.messages.some((message) => message.id === remoteExecution.optimisticUser?.id)
+    ) {
+      remoteExecution.optimisticUser = null;
+      remoteExecution.forkDisplayMessages = null;
+    }
+    if (remoteExecution.pendingAssistantMessageId && state.phase !== "before_completion") {
+      remoteExecution.pendingAssistantMessageId = null;
+    }
+    if (previousPhase === "before_completion" && state.phase !== "before_completion") {
+      remoteExecution.streamPaused = false;
+      void refreshConversations();
+      void loadConversationHistory(convId);
+      if (
+        state.phase === "final_completed" ||
+        state.phase === "final_cancelled" ||
+        state.phase === "final_failed"
+      ) {
+        queueMicrotask(() => void sendNextQueuedMessage(convId));
       }
-      error = cause instanceof Error ? cause.message : String(cause);
-    } finally {
-      interruptResolutions.finish(requestId);
-      busy = interruptResolutions.size > 0;
     }
+    error = "";
   }
+
+  const remoteConnection = createRemoteConnectionController({
+    client,
+    activeConversationId: () => conversation?.conv_id ?? null,
+    prepare(preservePendingTurn) {
+      if (!preservePendingTurn) {
+        remoteExecution.optimisticUser = null;
+        remoteExecution.pendingAssistantMessageId = null;
+      }
+      remoteExecution.streamPaused = false;
+      remoteExecution.forkDisplayMessages = null;
+      remoteHistory.reset();
+    },
+    loadHistory: loadConversationHistory,
+    applyInitialState(state) {
+      conversation = state;
+    },
+    applyState: applyConversationState,
+    onConnected() {
+      if (window.matchMedia("(max-width: 760px)").matches) sidebarCollapsed = true;
+    },
+    onReconnecting() {
+      error = tr("remoteReconnect");
+    },
+    onError(cause) {
+      error = cause instanceof Error ? cause.message : String(cause);
+    },
+  });
 
   async function perform(action: () => Promise<void>) {
     busy = true;
@@ -1148,8 +717,8 @@
         <div class="sidebar-top">
           {#if !sidebarCollapsed}
             <RoleSelector
-              value={selectedRoleKey}
-              {roles}
+              value={remoteCatalog.selectedRoleKey}
+              roles={remoteCatalog.roles}
               header
               onChange={(role) => void changeRole(role)}
             />
@@ -1165,7 +734,7 @@
             onNew={() => void newConversation()}
             onSearch={(query) => (conversationSearchQuery = query)}
           />
-          {#if loadingWorkspace}
+          {#if remoteCatalog.loadingWorkspace}
             <LoadingSkeleton variant="sidebar" rows={8} label={$t("remoteLoadingConversations")} />
           {:else}
             <ConversationList
@@ -1196,7 +765,7 @@
         <header class="title-bar">
           <div class="title-bar-left">
             <Select
-              bind:value={workspaceId}
+              bind:value={remoteCatalog.workspaceId}
               items={workspaces.map((workspace) => ({
                 value: workspace.id,
                 label: workspace.name,
@@ -1228,8 +797,8 @@
                 </button>
               </Tooltip>
               <RoleSelector
-                value={selectedRoleKey}
-                {roles}
+                value={remoteCatalog.selectedRoleKey}
+                roles={remoteCatalog.roles}
                 compact
                 onChange={(role) => void changeRole(role)}
               />
@@ -1242,11 +811,11 @@
 
         <ScrollArea height="100%" class="messages" bind:viewport={messagesEl} scrollHideDelay={350}>
           <main class="messages-content">
-            {#if loadingWorkspace}
+            {#if remoteCatalog.loadingWorkspace}
               <LoadingSkeleton variant="new-conversation" label={$t("remoteLoadingWorkspace")} />
-            {:else if loadingConversationId}
+            {:else if remoteCatalog.loadingConversationId}
               <LoadingSkeleton variant="conversation" label={$t("loadingContent")} />
-            {:else if !workspaceId}
+            {:else if !remoteCatalog.workspaceId}
               <div class="empty-chat">
                 <strong>{$t("remoteNoWorkspaceTitle")}</strong><span
                   >{$t("remoteNoWorkspaceHint")}</span
@@ -1261,10 +830,10 @@
                 {currentStreamItems}
                 {currentStreamMessageId}
                 activeConvId={conversation?.conv_id ?? null}
-                {activeBranchId}
+                activeBranchId={remoteHistory.activeBranchId}
                 debugMode={false}
                 fileChanges={currentFileChanges}
-                {activeTree}
+                activeTree={remoteHistory.activeTree}
                 paddingBottom={inputAreaHeight + 24}
                 showApiKeyWarn={remoteModels.length === 0}
                 {shikiTheme}
@@ -1313,10 +882,12 @@
             />
           {/if}
           <div class="input-inner">
-            {#if loadingWorkspace || loadingConversationId}
+            {#if remoteCatalog.loadingWorkspace || remoteCatalog.loadingConversationId}
               <LoadingSkeleton
                 variant="composer"
-                label={$t(loadingWorkspace ? "remoteLoadingWorkspace" : "loadingContent")}
+                label={$t(
+                  remoteCatalog.loadingWorkspace ? "remoteLoadingWorkspace" : "loadingContent",
+                )}
               />
             {:else}
               {#if currentFileChanges.length > 0 && !activeInterrupt}
@@ -1324,7 +895,7 @@
               {/if}
               {#if conversation}
                 <ChatQueue
-                  items={queuedChatMessages[conversation.conv_id] ?? []}
+                  items={remoteExecution.queuedChatMessages[conversation.conv_id] ?? []}
                   onRemove={(index) => removeQueuedMessage(conversation!.conv_id, index)}
                   onClear={() => clearQueuedMessages(conversation!.conv_id)}
                 />
@@ -1365,13 +936,13 @@
                   placeholder={remoteModels.length
                     ? $t("remoteComposerPlaceholder")
                     : $t("remoteNoModelsPlaceholder")}
-                  disabled={!workspaceId || loadingWorkspace}
+                  disabled={!remoteCatalog.workspaceId || remoteCatalog.loadingWorkspace}
                   isStreaming={running}
-                  isPaused={streamPaused}
+                  isPaused={remoteExecution.streamPaused}
                   sendDisabled={(!instruction.trim() &&
                     attachments.length === 0 &&
                     contexts.length === 0) ||
-                    !workspaceId ||
+                    !remoteCatalog.workspaceId ||
                     remoteModels.length === 0 ||
                     busy}
                   sendTitle={running ? $t("remoteQueueInstruction") : $t("send")}

@@ -1,0 +1,186 @@
+[scenario]
+name = "remote page pairing, scoped conversation, reconnect and attachments"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "pair and load the workspace catalog"
+action = "eval"
+script = '''(async () => {
+  const wait = async (read, description) => {
+    const deadline = Date.now() + 5000;
+    while (Date.now() < deadline) {
+      if (read()) return;
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    throw new Error(description);
+  };
+  const field = document.querySelector('#pairing-code');
+  if (!(field instanceof HTMLInputElement)) throw new Error('pairing field missing');
+  field.value = 'abcdefgh';
+  field.dispatchEvent(new Event('input', { bubbles: true }));
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  const button = document.querySelector('.primary-action');
+  if (!(button instanceof HTMLButtonElement) || button.disabled) throw new Error('pair action disabled');
+  button.click();
+  await wait(() => [...document.querySelectorAll('.conv-item')].some(row => row.textContent.includes('Remote one-a')), 'paired workspace catalog missing');
+  const row = [...document.querySelectorAll('.conv-item')].find(row => row.textContent.includes('Remote one-a'));
+  row.click();
+  await wait(() => document.body.textContent.includes('Durable answer one-a'), 'conversation state not projected');
+  return 'pairing and selected conversation loaded';
+})()'''
+
+[[step]]
+name = "recover the selected conversation after transport failure"
+action = "eval"
+script = '''(async () => {
+  const wait = async (read, description) => {
+    const deadline = Date.now() + 15000;
+    while (Date.now() < deadline) {
+      if (await read()) return;
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    throw new Error(description);
+  };
+  await fetch('/__fixture/offline');
+  await wait(() => /Connection interrupted; retrying|连接中断，正在重试/.test(document.body.textContent), 'reconnect status missing');
+  await wait(async () => (await (await fetch('/__fixture/stats')).json()).reads >= 2, 'reconnect never retried its state snapshot');
+  await fetch('/__fixture/online');
+  await wait(() => !document.querySelector('.composer-error') && document.body.textContent.includes('Durable answer one-a'), 'conversation did not recover');
+  const row = [...document.querySelectorAll('.conv-item')].find(row => row.textContent.includes('Remote one-b'));
+  row.click();
+  await wait(() => document.body.textContent.includes('Durable answer one-b') && !document.body.textContent.includes('Durable answer one-a'), 'conversation switch retained the old state');
+  return 'reconnect and conversation replacement passed';
+})()'''
+
+[[step]]
+name = "switch the allowed workspace through the shared select"
+action = "eval"
+script = '''(async () => {
+  const wait = async (read, description) => {
+    const deadline = Date.now() + 5000;
+    while (Date.now() < deadline) {
+      if (read()) return;
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    throw new Error(description);
+  };
+  document.querySelector('.remote-workspace-trigger').dispatchEvent(new PointerEvent('pointerdown', { button: 0, pointerType: 'mouse', bubbles: true, cancelable: true }));
+  await wait(() => [...document.querySelectorAll('[role="option"]')].some(row => row.textContent.includes('Workspace two')), 'workspace option missing');
+  [...document.querySelectorAll('[role="option"]')].find(row => row.textContent.includes('Workspace two')).dispatchEvent(new PointerEvent('pointerup', { button: 0, pointerType: 'mouse', bubbles: true, cancelable: true }));
+  await wait(() => [...document.querySelectorAll('.conv-item')].some(row => row.textContent.includes('Remote two-a')), 'workspace list did not change');
+  if (document.body.textContent.includes('Remote one-a') || document.body.textContent.includes('Durable answer one-b')) throw new Error('old workspace state leaked');
+  [...document.querySelectorAll('.conv-item')].find(row => row.textContent.includes('Remote two-a')).click();
+  await wait(() => document.body.textContent.includes('Durable answer two-a'), 'new workspace conversation missing');
+  return 'allowed workspace switch passed';
+})()'''
+
+[[step]]
+name = "paste an attachment through the HTTP client and remove it"
+action = "eval"
+script = '''(async () => {
+  const wait = async (read, description) => {
+    const deadline = Date.now() + 5000;
+    while (Date.now() < deadline) {
+      if (read()) return;
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    throw new Error(description);
+  };
+  const editor = document.querySelector('[contenteditable="true"]');
+  const clipboard = new DataTransfer();
+  clipboard.items.add(new File(['fixture attachment'], 'remote-fixture.txt', { type: 'text/plain' }));
+  editor.dispatchEvent(new ClipboardEvent('paste', { clipboardData: clipboard, bubbles: true, cancelable: true }));
+  await wait(() => document.querySelector('.attachment-preview.composer-card')?.textContent.includes('remote-fixture.txt'), 'uploaded attachment missing');
+  const stats = await (await fetch('/__fixture/stats')).json();
+  if (stats.uploads !== 1) throw new Error('attachment did not use the authenticated HTTP endpoint: ' + JSON.stringify(stats));
+  const remove = document.querySelector('.attachment-preview.composer-card .remove-button');
+  if (!remove) throw new Error('attachment removal action missing');
+  remove.click();
+  await wait(() => !document.querySelector('.attachment-preview.composer-card'), 'attachment removal failed');
+  return 'attachment HTTP upload and removal passed';
+})()'''
+
+[[step]]
+name = "edit the user bubble and cancel its draft"
+action = "eval"
+script = '''(async () => {
+  const wait = async (read, description) => {
+    const deadline = Date.now() + 5000;
+    while (Date.now() < deadline) {
+      if (read()) return;
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    throw new Error(description);
+  };
+  const bubble = document.querySelector('.user-content');
+  if (!bubble?.querySelector('strong')?.textContent.includes('User question two-a')) throw new Error('user inline Markdown projection missing');
+  bubble.click();
+  await wait(() => document.querySelector('.user-content-edit'), 'user editor did not open');
+  const editor = document.querySelector('.user-content-edit');
+  if (editor.value !== '**User question two-a**') throw new Error('edit control lost raw Markdown');
+  editor.value = 'unsaved fixture edit';
+  editor.dispatchEvent(new Event('input', { bubbles: true }));
+  await wait(() => document.querySelector('.edit-actions.show') && !document.querySelector('.edit-confirm-btn').disabled, 'edit facade did not accept draft text');
+  editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await wait(() => !document.querySelector('.user-content-edit'), 'Escape did not cancel the editor');
+  document.querySelector('.user-content').click();
+  await wait(() => document.querySelector('.user-content-edit'), 'user editor did not reopen');
+  if (document.querySelector('.user-content-edit').value !== '**User question two-a**') throw new Error('cancelled draft survived reopening');
+  document.querySelector('.user-content-edit').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await wait(() => !document.querySelector('.user-content-edit'), 'reopened editor did not cancel');
+  return 'inline projection, shared edit draft and cancellation passed';
+})()'''
+
+[[step]]
+name = "quote an assistant selection and dismiss the selection action"
+action = "eval"
+script = '''(async () => {
+  const wait = async (read, description) => {
+    const deadline = Date.now() + 5000;
+    while (Date.now() < deadline) {
+      if (read()) return;
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    throw new Error(description);
+  };
+  const owner = document.querySelector('[data-selection-source-message-id]');
+  const root = owner?.closest('.messages-inner');
+  if (!owner || !root) throw new Error('assistant selection owner missing');
+  const select = () => {
+    const range = document.createRange(); range.selectNodeContents(owner);
+    const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
+    root.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+  };
+  select();
+  await wait(() => document.querySelector('.selection-add-button'), 'selection action missing');
+  document.querySelector('.selection-add-button').click();
+  await wait(() => document.querySelector('.input-wrapper .user-quote')?.textContent.includes('Durable answer two-a'), 'quote did not reach the composer');
+  if (!window.getSelection().isCollapsed) throw new Error('quote did not clear the document selection');
+  select();
+  await wait(() => document.querySelector('.selection-add-button'), 'selection action did not recover');
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await wait(() => !document.querySelector('.selection-add-button'), 'Escape did not dismiss selection');
+  return 'assistant selection, quote delivery and dismissal passed';
+})()'''
+
+[[step]]
+name = "open and close the lazily loaded book reader"
+action = "eval"
+script = '''(async () => {
+  const wait = async (read, description) => {
+    const deadline = Date.now() + 5000;
+    while (Date.now() < deadline) {
+      if (read()) return;
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    throw new Error(description);
+  };
+  const button = [...document.querySelectorAll('.msg-action-btn')].find(button => /Book mode|书籍模式/.test(button.textContent));
+  if (!button) throw new Error('book action missing');
+  button.click();
+  await wait(() => document.querySelector('.agent-book-page')?.textContent.includes('Durable answer two-a'), 'book reader did not load its selected turn');
+  document.querySelector('.book-close').click();
+  await wait(() => !document.querySelector('.agent-book-page'), 'book reader did not close');
+  return 'book import, content and close action passed';
+})()'''

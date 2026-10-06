@@ -4,12 +4,7 @@
   import { isTauri } from "@tauri-apps/api/core";
   import { homeDir } from "@tauri-apps/api/path";
   import { getCurrentWindow } from "@tauri-apps/api/window";
-  import {
-    disable as disableAutostart,
-    enable as enableAutostart,
-  } from "@tauri-apps/plugin-autostart";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
-  import { openUrl as openExternalUrl } from "@tauri-apps/plugin-opener";
   import { onMount, tick, untrack } from "svelte";
   import type { Component } from "svelte";
   import { detectWindowPlatform } from "$lib/windowPlatform";
@@ -23,10 +18,7 @@
   import Toast from "$lib/components/Toast.svelte";
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
   import SettingsWindowSkeleton from "$lib/components/SettingsWindowSkeleton.svelte";
-  import { installDownloadHook } from "$lib/downloadHook";
-  import { checkForAppUpdate } from "$lib/appUpdater";
   import { frontendActivationShouldShowNotice } from "$lib/frontendActivation";
-  import { reportFrontendDiagnostic } from "$lib/frontendDiagnostics";
   import { AgentCompletionNotifier } from "$lib/agentCompletionNotification";
   import { chatTaskUsagesByCheckpoint } from "$lib/cacheUsage";
   import { Tooltip as TooltipPrimitive } from "bits-ui";
@@ -38,6 +30,15 @@
     conversationComposerDraftKey,
     newConversationComposerDraftKey,
   } from "$lib/composerDrafts";
+  import { installPageEvents } from "$lib/page/events";
+  import { createWorkspaceNavigation } from "$lib/page/workspaceNavigation";
+  import { createCheckpointController } from "$lib/page/checkpoints";
+  import { restorePendingUserInputFromCheckpoint } from "$lib/page/pendingInputProjection";
+  import { createPageStartup } from "$lib/page/startup";
+  import { createWslPicker } from "$lib/page/wslPicker.svelte";
+  import { createConversationLists } from "$lib/page/conversationLists.svelte";
+  import { mergeConversationMetadata } from "$lib/page/conversationMetadata";
+  import { createRoleController, DEFAULT_ROLE_KEY } from "$lib/page/roles.svelte";
   import { ChatStreamState } from "$lib/chatStreamState.svelte";
   import {
     InterruptResolutionTracker,
@@ -46,7 +47,6 @@
   import { resolveRuntimeQuery } from "$lib/runtimeQuery";
   import {
     addWorkspaceToPersistedOrder,
-    mergeRecentConversationRefresh,
     parsePinnedProjectPaths,
     pinnedProjectsStorageKey,
     promoteRecentConversation,
@@ -60,11 +60,7 @@
   import { hydrateCuaDriverEndpoint, startCuaDriverDaemon } from "$lib/openagent/cuaDriverHost";
   import { decodeModelBinding } from "$lib/modelBinding";
   import { DEFAULT_QUICK_CHAT_SHORTCUT, normalizeQuickChatShortcut } from "$lib/quickChatShortcut";
-  import {
-    disposeQuickChatShortcut,
-    initializeQuickChatShortcut,
-    replaceQuickChatShortcut,
-  } from "$lib/quickChatWindow";
+  import { disposeQuickChatShortcut, replaceQuickChatShortcut } from "$lib/quickChatWindow";
   import { desktopOpenAgent as openAgent, emit, invoke, listen } from "$lib/openagent/tauriClient";
   import type { AgentCommandSpec, ChatRunStartedEvent } from "$lib/openagent";
   import {
@@ -83,10 +79,12 @@
     type QueuedChatMessage,
   } from "$lib/chatQueue";
   import OnboardingFlow from "$lib/components/OnboardingFlow.svelte";
-  import type { SlashCommand } from "$lib/components/MessageInput.svelte";
+  import type { SlashCommand } from "$lib/composer/types";
   import QuickChatSurface from "$lib/components/QuickChatSurface.svelte";
   import RoleEditorWindowSurface from "$lib/components/RoleEditorWindowSurface.svelte";
-  import StandaloneDevPreview from "$lib/components/StandaloneDevPreview.svelte";
+  let StandaloneDevPreview = $state<
+    typeof import("$lib/components/StandaloneDevPreview.svelte").default | null
+  >(null);
   import WorkspaceDialogs from "$lib/components/WorkspaceDialogs.svelte";
   import DesktopSidebar from "$lib/components/DesktopSidebar.svelte";
   import FullscreenSurface from "$lib/components/FullscreenSurface.svelte";
@@ -97,10 +95,6 @@
   import {
     conversationDetailsAvailable,
     checkpointFlowPanelKey,
-    liveCheckpointRefreshDecision,
-    shouldAutoOpenCheckpointFlowPanel,
-    updateLiveCheckpointFlowProjection,
-    type LiveCheckpointRefreshGuard,
     type LiveCheckpointFlowProjection,
   } from "$lib/checkpointFlow";
   import {
@@ -114,7 +108,6 @@
     effectiveRightSidebarCollapsed,
     RightSidebarScopeStore,
   } from "$lib/sidebarPanelScope";
-  import { retainUndurableFileChanges } from "$lib/fileChangeReconciliation";
   import { terminalHistory } from "$lib/terminalHistory";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
   import {
@@ -123,43 +116,28 @@
     pluginSidebarEntries,
     pluginSidebarRevision as pluginSidebarRevisionOf,
   } from "$lib/pluginSidebar";
-  import { loadMermaid, renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
+  import { renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
   import {
     ROOT_KEY,
-    buildTreeFromCheckpoints,
     computeActivePath,
     getActiveTipNode,
     findForkParentCheckpointId,
-    selectActivePathToCheckpoint,
-    reconcileLiveCheckpointTip,
     ckIdsAlongActivePath,
     attachNewTurn,
-    askUserRequestFromToolUse,
     findUserMessageIndexForAssistant,
-    isCompactionBoundary,
-    preserveMessagesAddedDuringHydration,
-    preserveStreamingMessagesDuringHydration,
     reconcileTerminalAssistantMessage,
     terminalEventMatchesActiveStream,
     type ConvTree,
   } from "$lib/checkpointTree";
-  import { prepareWorkspaceConversationSnapshot } from "$lib/workspaceConversationState";
   import {
     applyWindowFocusEvent,
     DESKTOP_WINDOW_ACTIVATED_EVENT,
     type WindowFocusState,
   } from "$lib/windowFocus";
   import {
-    appendChunk,
-    appendCompactionProgress,
-    appendThinkingChunk,
-    appendToolCall,
     appendUserInput,
     clearCompactionProgress,
-    completeCompactionProgress,
     initializeStreamItems,
-    preserveResolvedUserInputs,
-    attachToolResult,
     collapseStreamText,
     resolveUserInput,
   } from "$lib/chatStream";
@@ -168,7 +146,6 @@
     fetchConversationMeta,
     fetchConversationPage,
     fetchRenderableCheckpoints,
-    fetchFileChanges,
     metaToConversation,
     revertFileChange,
   } from "$lib/conversationDb";
@@ -198,26 +175,18 @@
     coalesceAgentPluginUpdateCheck,
     shouldNotifyAgentPluginUpdates,
   } from "$lib/agentPluginUpdateCheck";
-  import type { AgentRolesChangedEvent } from "$lib/roleEditorWindow";
   import type {
     ChatMessage,
     Conversation,
     WorkspaceContext,
     AppConfig,
     StreamItem,
-    ConversationPageCursor,
     FileChange,
     RecentWorkspace,
     UserInputRequest,
     ChatAttachment,
-    AgentRole,
-    SkillMetadata,
     StartupBootstrap,
     StartupConversationBundle,
-    WslDistribution,
-    WslWorkspaceTarget,
-    ProviderAuthDeviceCodeEvent,
-    PluginFlowUpdatedEvent,
     UserMessageContext,
     CheckpointTurnStatus,
     TaskTokenUsage,
@@ -275,22 +244,56 @@
   // ─── State ────────────────────────────────────────────────────────────────────
   const startupRestoreHint = readStartupRestoreHint();
   let conversations = $state<Conversation[]>([]);
-  let recentConversations = $state<Conversation[]>([]);
-  let loadingRecentConversations = $state(false);
-  let recentConversationGeneration = 0;
-  let recentConversationRoleKey: string | null = null;
-  let conversationNextCursor = $state<ConversationPageCursor | null>(null);
-  let loadingMoreConversations = $state(false);
-  let searchConversations = $state<Conversation[]>([]);
-  let searchConversationNextCursor = $state<ConversationPageCursor | null>(null);
-  let loadingMoreSearchConversations = $state(false);
-  let conversationSearchGeneration = 0;
-  let conversationSearchTimer: ReturnType<typeof setTimeout> | null = null;
   let activeConvId = $state<string | null>(startupRestoreHint?.conversationId ?? null);
-  const defaultRoleKey = "openagent";
-  let agentRoles = $state<AgentRole[]>([]);
-  let selectedRoleKey = $state(defaultRoleKey);
-  let selectedRoleId = $derived(selectedRoleKey === defaultRoleKey ? null : selectedRoleKey);
+  const defaultRoleKey = DEFAULT_ROLE_KEY;
+  const roleController = createRoleController({
+    get available() {
+      return tauriAvailable;
+    },
+    client: openAgent,
+    get workspacePath() {
+      return workspacePath;
+    },
+    activateNewConversation: (roleKey) => activateNewConversationSurface(roleKey),
+  });
+  const {
+    roleSelectionStorageKey,
+    storedRoleSelection,
+    loadAvailableRoles,
+    loadAvailableRolesForWorkspace,
+    openRoleEditor,
+    saveRoleEditor,
+    deleteRoleEditor,
+    changeConversationRole,
+  } = roleController;
+  const conversationLists = createConversationLists({
+    get available() {
+      return tauriAvailable;
+    },
+    get workspacePath() {
+      return workspacePath;
+    },
+    get selectedRoleKey() {
+      return roleController.selectedRoleKey;
+    },
+    get selectedRoleId() {
+      return roleController.selectedRoleId;
+    },
+    get conversations() {
+      return conversations;
+    },
+    set conversations(value) {
+      conversations = value;
+    },
+  });
+  const {
+    reloadRoleConversations,
+    ensureConversationLineage,
+    loadNextConversationPage,
+    refreshRecentConversations,
+    loadProjectConversations,
+    handleConversationSearch,
+  } = conversationLists;
   let initialLoading = $state(true);
   let workspaceLoading = $state(false);
   let workspaceSwitchTarget = $state<string | null>(null);
@@ -305,9 +308,9 @@
   let newConversationLayout = $derived(
     mainContentLoading ? restoringSurface === "new-conversation" : activeConvId === null,
   );
-  let conversationSearchQuery = $state("");
   let sidebarConversations = $derived.by(() => {
-    if (conversationSearchQuery.trim()) return searchConversations;
+    if (conversationLists.conversationSearchQuery.trim())
+      return conversationLists.searchConversations;
     const source = conversations;
     const byId = new Map(source.map((conversation) => [conversation.id, conversation]));
     return source.filter((conversation) => {
@@ -315,9 +318,9 @@
       let current: Conversation | undefined = conversation;
       while (current && !visited.has(current.id)) {
         visited.add(current.id);
-        if (current.roleId === selectedRoleKey) return true;
+        if (current.roleId === roleController.selectedRoleKey) return true;
         if (!current.parentConvId) {
-          return !current.roleId && selectedRoleKey === defaultRoleKey;
+          return !current.roleId && roleController.selectedRoleKey === defaultRoleKey;
         }
         current = byId.get(current.parentConvId);
       }
@@ -325,12 +328,14 @@
     });
   });
   let sidebarHasMoreConversations = $derived(
-    conversationSearchQuery.trim()
-      ? searchConversationNextCursor !== null
-      : conversationNextCursor !== null,
+    conversationLists.conversationSearchQuery.trim()
+      ? conversationLists.searchConversationNextCursor !== null
+      : conversationLists.conversationNextCursor !== null,
   );
   let sidebarLoadingMoreConversations = $derived(
-    conversationSearchQuery.trim() ? loadingMoreSearchConversations : loadingMoreConversations,
+    conversationLists.conversationSearchQuery.trim()
+      ? conversationLists.loadingMoreSearchConversations
+      : conversationLists.loadingMoreConversations,
   );
   // Per-conversation transient stream state is owned independently from the
   // durable conversation/checkpoint projection.
@@ -431,11 +436,6 @@
       ? undefined
       : settingsWindowSections[settingsSurface.kind],
   );
-  let roleEditorOpen = $state(false);
-  let roleEditorRole = $state<AgentRole | null>(null);
-  let roleEditorSkills = $state<SkillMetadata[]>([]);
-  let roleEditorResourcesLoading = $state(false);
-  let roleEditorSaving = $state(false);
   let navigationHistory = $state<AppNavigationHistory>(createNavigationHistory());
   let navigationTransitioning = $state(false);
   let navigationCaptureDepth = $state(0);
@@ -448,13 +448,18 @@
       ? []
       : parsePinnedProjectPaths(window.localStorage.getItem(pinnedProjectsStorageKey)),
   );
-  let wslPickerOpen = $state(false);
-  let wslPickerBusy = $state(false);
-  let wslPickerError = $state("");
-  let wslPickerStartsNewConversation = $state(false);
-  let wslDistributions = $state<WslDistribution[]>([]);
-  let wslDistribution = $state("");
-  let wslLinuxPath = $state("");
+  const wslPicker = createWslPicker({
+    get available() {
+      return tauriAvailable;
+    },
+    get browserModeNotice() {
+      return browserModeNotice;
+    },
+    switchNewConversationWorkspace: (path) => switchNewConversationWorkspace(path),
+    requestWorkspace: (path) => requestWorkspace(path),
+  });
+  const { selectWslDistribution, pickWslWorkspace, browseWslWorkspace, openSelectedWslWorkspace } =
+    wslPicker;
   let launchContext = $state<{
     workspace: string | null;
     conversation_id: string | null;
@@ -634,14 +639,14 @@
   let selectedComposerDraftKey = untrack(() =>
     activeConvId
       ? conversationComposerDraftKey(activeConvId)
-      : newConversationComposerDraftKey(workspacePath, selectedRoleKey),
+      : newConversationComposerDraftKey(workspacePath, roleController.selectedRoleKey),
   );
   let activeComposerDraft = $state(composerDrafts.activate(selectedComposerDraftKey));
 
   function composerDraftKey(conversationId = activeConvId): string {
     return conversationId
       ? conversationComposerDraftKey(conversationId)
-      : newConversationComposerDraftKey(workspacePath, selectedRoleKey);
+      : newConversationComposerDraftKey(workspacePath, roleController.selectedRoleKey);
   }
 
   function selectComposerDraft(key = composerDraftKey()): void {
@@ -700,7 +705,7 @@
     workspacePath,
     surface: settingsOpen ? "settings" : "chat",
     conversationId: activeConvId,
-    roleKey: selectedRoleKey,
+    roleKey: roleController.selectedRoleKey,
     settingsDestination: settingsSurfaceKey(settingsSurface),
   }));
   let canGoBack = $derived(
@@ -918,351 +923,113 @@
     }
   });
 
-  async function loadMessagesForConv(
-    convId: string,
-    showLoadingState = true,
-    forceRefresh = false,
-  ): Promise<void> {
-    if (loadedConvIds.has(convId) && !forceRefresh) return;
-    loadedConvIds.add(convId);
-    if (!tauriAvailable) return;
-    const messageIdsAtStart = new Set(
-      conversations
-        .find((conversation) => conversation.id === convId)
-        ?.messages.map((message) => message.id) ?? [],
-    );
-    if (showLoadingState) {
-      loadingConversationIds = { ...loadingConversationIds, [convId]: true };
-    }
-    try {
-      const [checkpoints, savedTip, branches] = await Promise.all([
-        fetchRenderableCheckpoints(convId),
-        openAgent.invokeProduct("get_active_branch_tip", { convId }).catch(() => null),
-        openAgent
-          .invokeProduct("get_branches", {
-            convId,
-          })
-          .catch(() => []),
-      ]);
-      await hydrateConversation(
-        convId,
-        checkpoints,
-        savedTip,
-        branches,
-        showLoadingState,
-        messageIdsAtStart,
-      );
-      // The usage projection needs the freshly hydrated checkpoint tree to map
-      // request checkpoints back to the active durable turn.
-      await tick();
-      void refreshTaskUsagesForConversation(convId);
-      if (convId in checkpointLoadErrors) {
-        const { [convId]: _cleared, ...rest } = checkpointLoadErrors;
-        checkpointLoadErrors = rest;
-      }
-    } catch (error) {
-      loadedConvIds.delete(convId);
-      const detail = error instanceof Error ? error.message : String(error);
-      checkpointLoadErrors = {
-        ...checkpointLoadErrors,
-        [convId]: `${tr("checkpointLoadFailed")} ${detail || "Unknown error"}`,
-      };
-    } finally {
-      if (showLoadingState) {
-        const { [convId]: _loading, ...rest } = loadingConversationIds;
-        loadingConversationIds = rest;
-      }
-    }
-  }
-
-  async function refreshLiveCheckpointTip(
-    convId: string,
-    checkpointId: string,
-    branchIdHint?: string | null,
-  ): Promise<void> {
-    if (!tauriAvailable) return;
-    const branchId = branchIdHint === undefined ? (activeBranchIds[convId] ?? null) : branchIdHint;
-    const scopeKey = conversationBranchScopeKey(convId, branchId);
-    const version = (liveCheckpointRefreshVersions.get(scopeKey) ?? 0) + 1;
-    liveCheckpointRefreshVersions.set(scopeKey, version);
-    const guard: LiveCheckpointRefreshGuard = {
-      refreshVersion: version,
-      branchSelectionVersion: branchSelectionVersions.get(convId) ?? 0,
-      flowVersion: liveCheckpointFlowProjections[scopeKey]?.version ?? 0,
-    };
-    try {
-      const checkpoints = await fetchRenderableCheckpoints(convId);
-      const currentGuard: LiveCheckpointRefreshGuard = {
-        refreshVersion: liveCheckpointRefreshVersions.get(scopeKey) ?? 0,
-        branchSelectionVersion: branchSelectionVersions.get(convId) ?? 0,
-        flowVersion: liveCheckpointFlowProjections[scopeKey]?.version ?? 0,
-      };
-      const decision = liveCheckpointRefreshDecision(guard, currentGuard);
-      if (!decision.applyDurableTip) return;
-      // The event may belong to an inactive sibling. Keep its durable state in
-      // storage and let the next branch activation load it; never move the
-      // selected path while the user is looking at another branch.
-      if ((activeBranchIds[convId] ?? null) !== branchId) return;
-      const checkpoint = checkpoints.find((item) => item.meta.checkpoint_id === checkpointId);
-      if (!checkpoint) return;
-      convTrees = {
-        ...convTrees,
-        [convId]: reconcileLiveCheckpointTip(checkpoints, convTrees[convId], checkpointId),
-      };
-      const liveChanges = liveFileChangesPerConv[convId] ?? [];
-      reconcileLiveFileChanges(
-        convId,
-        fileChangesPerConv[convId] ?? [],
-        new Set(liveChanges.map((change) => change.id)),
-      );
-      if (decision.clearLiveProjection) {
-        const { [scopeKey]: _durableFlow, ...rest } = liveCheckpointFlowProjections;
-        liveCheckpointFlowProjections = rest;
-      }
-    } catch (error) {
-      if (liveCheckpointRefreshVersions.get(scopeKey) === version) {
-        console.error(`Failed to refresh live checkpoint ${checkpointId}:`, error);
-      }
-    }
-  }
-
-  function applyLiveCheckpointFlow(convId: string, update: PluginFlowUpdatedEvent): void {
-    const branchId = update.branch_id ?? null;
-    const scopeKey = conversationBranchScopeKey(convId, branchId);
-    const current = liveCheckpointFlowProjections[scopeKey];
-    const next = updateLiveCheckpointFlowProjection(current, update);
-    if (!next || next === current) return;
-    const previous = current?.flow ?? getActiveTipNode(convTrees[convId])?.flow;
-    const activeBranchId = activeBranchIds[convId] ?? null;
-    if (
-      convId === activeConvId &&
-      branchId === activeBranchId &&
-      shouldAutoOpenCheckpointFlowPanel(previous, next.flow)
-    ) {
-      checkpointFlowPanelAutoOpenKey = checkpointFlowPanelKey(convId, branchId, next.flow);
-      rightSidebarPanel = "status";
-      rightSidebarCollapseRequested = false;
-    }
-    liveCheckpointFlowProjections = { ...liveCheckpointFlowProjections, [scopeKey]: next };
-  }
-
-  async function hydrateConversation(
-    convId: string,
-    checkpoints: StartupConversationBundle["checkpoints"],
-    savedTip: string | null,
-    branches: Array<{ id: string; head_checkpoint_id: string | null }>,
-    syncBackendHistory: boolean,
-    messageIdsAtStart?: ReadonlySet<string>,
-  ): Promise<void> {
-    mergeDurableFollowUpSuggestions(checkpoints);
-    let tree = buildTreeFromCheckpoints(checkpoints, convTrees[convId]);
-    if (savedTip) tree = selectActivePathToCheckpoint(tree, savedTip);
-    const activeBranch = branches.find((branch) => branch.head_checkpoint_id === savedTip);
-    const nextActiveBranchIds = { ...activeBranchIds };
-    if (activeBranch) nextActiveBranchIds[convId] = activeBranch.id;
-    else delete nextActiveBranchIds[convId];
-    if ((activeBranchIds[convId] ?? null) !== (nextActiveBranchIds[convId] ?? null)) {
-      branchSelectionVersions.set(convId, (branchSelectionVersions.get(convId) ?? 0) + 1);
-    }
-    activeBranchIds = nextActiveBranchIds;
-    convTrees = { ...convTrees, [convId]: tree };
-    const liveChanges = liveFileChangesPerConv[convId] ?? [];
-    reconcileLiveFileChanges(
-      convId,
-      fileChangesPerConv[convId] ?? [],
-      new Set(liveChanges.map((change) => change.id)),
-    );
-    // Project the selected path once per hydration. Long conversations can
-    // contain thousands of durable records; repeating this copy-heavy walk
-    // made conversation switches spend most of their time in the main thread.
-    const activePath = computeActivePath(tree);
-    const pendingProjection = restorePendingUserInputFromCheckpoint(
-      convId,
-      activePath,
-      checkpoints,
-    );
-    const tipMessage = [...activePath]
-      .reverse()
-      .find((message) => message.role === "assistant" && message.checkpointId);
-    const tipCheckpoint = tipMessage
-      ? checkpoints.find((item) => item.meta.checkpoint_id === tipMessage.checkpointId)
-      : undefined;
-    if (tipCheckpoint) restoreMermaidRenderRequests(convId, tipCheckpoint);
-    if (pendingProjection.pendingRequest) {
-      pendingUserInputs = {
-        ...pendingUserInputs,
-        [convId]: pendingProjection.pendingRequest,
-      };
-    }
-    const hydratedMessages = pendingProjection.messages;
-    const idx = conversations.findIndex((conversation) => conversation.id === convId);
-    if (idx !== -1) {
-      const visible = conversations[idx].messages;
-      const hydrated = chatStreams.streamingConversationIds[convId]
-        ? preserveStreamingMessagesDuringHydration(
-            visible,
-            hydratedMessages,
-            pendingForkUserMessageIds[convId],
-          )
-        : preserveMessagesAddedDuringHydration(visible, hydratedMessages, messageIdsAtStart);
-      const msgs = hydrated.map((message, index) => {
-        const current = visible[index];
-        if (!current || current.id !== message.id || current.role !== message.role) return message;
-        return {
-          ...message,
-          items: preserveResolvedUserInputs(current.items ?? [], message.items ?? []),
-        };
-      });
-      // A normal completed turn is already represented by the client-side
-      // stream finalizer. Keep those message instances when only checkpoint
-      // metadata changed so the visible transcript does not remount.
-      const sameVisibleStructure =
-        visible.length === msgs.length &&
-        visible.every((message, index) => {
-          const restored = msgs[index];
-          return (
-            message.id === restored.id &&
-            message.role === restored.role &&
-            message.content === restored.content &&
-            isCompactionBoundary(message) === isCompactionBoundary(restored)
-          );
-        });
-
-      conversations[idx] = sameVisibleStructure
-        ? {
-            ...conversations[idx],
-            messages: visible.map((message, index) => {
-              const restored = msgs[index];
-              return {
-                ...message,
-                items: restored.items ?? message.items,
-                checkpointId: restored.checkpointId ?? message.checkpointId,
-                turn: restored.turn ?? message.turn,
-                tags: restored.tags ?? message.tags,
-                agentTag: restored.agentTag ?? message.agentTag,
-              };
-            }),
-          }
-        : { ...conversations[idx], messages: msgs };
-    }
-    if (syncBackendHistory) await syncAgentHistoryToActivePath(convId, tree, activePath);
-  }
-
-  /**
-   * `chat-user-input-request` is an ephemeral Tauri event. When the webview is
-   * recreated, recover a still-pending form from the active checkpoint instead
-   * of waiting for an event that has already been emitted.
-   */
-  function restorePendingUserInputFromCheckpoint(
-    convId: string,
-    messages: ChatMessage[],
-    checkpoints: Awaited<ReturnType<typeof fetchRenderableCheckpoints>>,
-  ): { messages: ChatMessage[]; pendingRequest?: UserInputRequest } {
-    const assistant = [...messages]
-      .reverse()
-      .find((message) => message.role === "assistant" && message.checkpointId);
-    if (!assistant?.checkpointId) return { messages };
-
-    const checkpoint = checkpoints.find(
-      ({ meta }) => meta.checkpoint_id === assistant.checkpointId,
-    );
-    if (!checkpoint) return { messages };
-    const requests = pendingUserInputRequestsFromCheckpoint(convId, checkpoint);
-    if (requests.length === 0) return { messages };
-    // Each persisted tool use is rendered as its own assistant message. Attach
-    // an approval across the complete timeline by toolUseId; limiting this to
-    // the final assistant message turns earlier calls in a batch into detached
-    // forms.
-    let restored = messages;
-    for (const request of requests) {
-      let matched = false;
-      restored = restored.map((message) => {
-        const items = message.items;
-        if (
-          !items?.some((item) => item.type === "tool_call" && item.toolUseId === request.request_id)
-        ) {
-          return message;
-        }
-        matched = true;
-        const withoutAskUserCard =
-          request.kind === "ask_user"
-            ? items.filter(
-                (item) => item.type !== "tool_call" || item.toolUseId !== request.request_id,
-              )
-            : items;
-        return { ...message, items: appendUserInput(withoutAskUserCard, request) };
-      });
-      // A legacy checkpoint can lack the provider ID on an ask_user card. Its
-      // form is still safe to render independently; approvals never use this
-      // fallback because that would risk authorizing the wrong tool.
-      if (!matched && request.kind === "ask_user") {
-        restored = restored.map((message) =>
-          message.id === assistant.id
-            ? { ...message, items: appendUserInput(message.items ?? [], request) }
-            : message,
-        );
-      }
-    }
-    return { messages: restored, pendingRequest: requests[0] };
-  }
-
-  /**
-   * Rebuild an interrupted ask_user form from the self-contained checkpoint.
-   * Its phase says that input is pending; the final tool_use is the durable
-   * form schema. No opaque checkpoint state is required.
-   */
-  function pendingUserInputRequestsFromCheckpoint(
-    convId: string,
-    checkpoint: Awaited<ReturnType<typeof fetchRenderableCheckpoints>>[number],
-  ): UserInputRequest[] {
-    if (checkpoint.data.phase !== "interrupted") return [];
-    const resolved = new Set(
-      checkpoint.data.messages
-        .filter((message) => message.role === "user")
-        .flatMap((message) => message.content)
-        .filter((content) => content.type === "tool_result")
-        .map((content) => String(content.tool_use_id)),
-    );
-    // An interrupted checkpoint can contain several tool calls from one
-    // provider turn. Only the first unresolved call is currently waiting for
-    // input; later calls have not run yet and must not be presented as
-    // approvals. This matters when the model emits ask_user alongside an
-    // ordinary tool: restoring every unresolved call incorrectly creates an
-    // approval card for the sibling tool even when approval mode is off.
-    const pending = checkpoint.data.messages
-      .filter((message) => message.role === "assistant")
-      .flatMap((message) => message.content)
-      .find((content) => content.type === "tool_use" && !resolved.has(String(content.id)));
-    return pending
-      ? [pending].flatMap((content) => {
-          const toolUse = content as { id: string; name: string; input?: unknown };
-          if (toolUse.name === "render_mermaid") return [];
-          if (toolUse.name === "ask_user") {
-            const request = askUserRequestFromToolUse(toolUse as Record<string, unknown>, convId);
-            return request ? [request] : [];
-          }
-          return [
-            {
-              request_id: toolUse.id,
-              conv_id: convId,
-              kind: "tool_approval" as const,
-              title: "Approve tool call",
-              description: `Review the exact tool call before allowing it:\n\n${toolUse.name}\n${JSON.stringify(toolUse.input, null, 2)}`,
-              fields: [
-                {
-                  type: "confirm" as const,
-                  name: "approved",
-                  label: "Approve this tool call once",
-                  default: false,
-                },
-              ],
-              submit_label: "Approve and continue",
-              cancel_label: "Deny",
-            },
-          ];
-        })
-      : [];
-  }
+  const checkpoints = createCheckpointController({
+    get tauriAvailable() {
+      return tauriAvailable;
+    },
+    get activeConvId() {
+      return activeConvId;
+    },
+    get conversations() {
+      return conversations;
+    },
+    set conversations(next) {
+      conversations = next;
+    },
+    get chatStreams() {
+      return chatStreams;
+    },
+    get pendingForkUserMessageIds() {
+      return pendingForkUserMessageIds;
+    },
+    get convTrees() {
+      return convTrees;
+    },
+    set convTrees(next) {
+      convTrees = next;
+    },
+    get loadingConversationIds() {
+      return loadingConversationIds;
+    },
+    set loadingConversationIds(next) {
+      loadingConversationIds = next;
+    },
+    get checkpointLoadErrors() {
+      return checkpointLoadErrors;
+    },
+    set checkpointLoadErrors(next) {
+      checkpointLoadErrors = next;
+    },
+    get loadedConvIds() {
+      return loadedConvIds;
+    },
+    get liveCheckpointRefreshVersions() {
+      return liveCheckpointRefreshVersions;
+    },
+    get branchSelectionVersions() {
+      return branchSelectionVersions;
+    },
+    get activeBranchIds() {
+      return activeBranchIds;
+    },
+    set activeBranchIds(next) {
+      activeBranchIds = next;
+    },
+    get liveCheckpointFlowProjections() {
+      return liveCheckpointFlowProjections;
+    },
+    set liveCheckpointFlowProjections(next) {
+      liveCheckpointFlowProjections = next;
+    },
+    get liveFileChangesPerConv() {
+      return liveFileChangesPerConv;
+    },
+    set liveFileChangesPerConv(next) {
+      liveFileChangesPerConv = next;
+    },
+    get fileChangesPerConv() {
+      return fileChangesPerConv;
+    },
+    set fileChangesPerConv(next) {
+      fileChangesPerConv = next;
+    },
+    get pendingUserInputs() {
+      return pendingUserInputs;
+    },
+    set pendingUserInputs(next) {
+      pendingUserInputs = next;
+    },
+    get checkpointFlowPanelAutoOpenKey() {
+      return checkpointFlowPanelAutoOpenKey;
+    },
+    set checkpointFlowPanelAutoOpenKey(next) {
+      checkpointFlowPanelAutoOpenKey = next;
+    },
+    get rightSidebarPanel() {
+      return rightSidebarPanel;
+    },
+    set rightSidebarPanel(next) {
+      rightSidebarPanel = next;
+    },
+    get rightSidebarCollapseRequested() {
+      return rightSidebarCollapseRequested;
+    },
+    set rightSidebarCollapseRequested(next) {
+      rightSidebarCollapseRequested = next;
+    },
+    mergeDurableFollowUpSuggestions,
+    restoreMermaidRenderRequests,
+    refreshTaskUsagesForConversation,
+  });
+  const loadMessagesForConv = checkpoints.loadMessagesForConv;
+  const refreshLiveCheckpointTip = checkpoints.refreshLiveCheckpointTip;
+  const applyLiveCheckpointFlow = checkpoints.applyLiveCheckpointFlow;
+  const hydrateConversation = checkpoints.hydrateConversation;
+  const syncAgentHistoryToActivePath = checkpoints.syncAgentHistoryToActivePath;
+  const ensureActiveBranch = checkpoints.ensureActiveBranch;
+  const loadFileChangesForConv = checkpoints.loadFileChangesForConv;
+  const clearLiveFileChanges = checkpoints.clearLiveFileChanges;
+  const reconcileLiveFileChanges = checkpoints.reconcileLiveFileChanges;
 
   function restoreMermaidRenderRequests(
     convId: string,
@@ -1344,101 +1111,6 @@
       conversations[convIdx] = { ...conv, messages, updatedAt: Date.now() };
     }
     return matched;
-  }
-
-  async function syncAgentHistoryToActivePath(
-    convId: string,
-    tree = convTrees[convId],
-    projectedPath?: ChatMessage[],
-  ): Promise<void> {
-    if (!tauriAvailable) return;
-    const tipCheckpoint = projectedPath
-      ? [...projectedPath].reverse().find((m) => m.role === "assistant" && m.checkpointId)
-          ?.checkpointId
-      : (getActiveTipNode(tree)?.ckId ?? null);
-    await openAgent
-      .invokeProduct("restore_agent_history", {
-        convId,
-        checkpointId: tipCheckpoint,
-      })
-      .catch((e) => console.warn("restore_agent_history failed", e));
-  }
-
-  async function ensureActiveBranch(
-    convId: string,
-    forkedFromCheckpointId?: string | null,
-    forkedFromMessageId?: string | null,
-  ): Promise<string | null> {
-    if (!tauriAvailable) return null;
-    if (forkedFromCheckpointId === undefined && activeBranchIds[convId]) {
-      return activeBranchIds[convId];
-    }
-    if (forkedFromCheckpointId === undefined) {
-      const branches = await openAgent.invokeProduct("get_branches", { convId }).catch(() => []);
-      const tip = [...(convTrees[convId] ? computeActivePath(convTrees[convId]) : [])]
-        .reverse()
-        .find((message) => message.role === "assistant" && message.checkpointId)?.checkpointId;
-      const existing = branches.find((branch) => branch.head_checkpoint_id === tip);
-      if (existing) {
-        activeBranchIds = { ...activeBranchIds, [convId]: existing.id };
-        return existing.id;
-      }
-    }
-    const id = crypto.randomUUID();
-    const parentBranchId = activeBranchIds[convId] ?? null;
-    await openAgent.invokeProduct("create_branch", {
-      id,
-      convId,
-      parentBranchId,
-      forkedFromCheckpointId: forkedFromCheckpointId ?? null,
-      forkedFromMessageId: forkedFromMessageId ?? null,
-    });
-    activeBranchIds = { ...activeBranchIds, [convId]: id };
-    return id;
-  }
-
-  async function loadFileChangesForConv(convId: string): Promise<FileChange[] | null> {
-    if (!tauriAvailable) return null;
-    try {
-      const changes = await fetchFileChanges(convId);
-      fileChangesPerConv = { ...fileChangesPerConv, [convId]: changes };
-      return changes;
-    } catch {
-      return null;
-    }
-  }
-
-  function clearLiveFileChanges(convId: string, changeIds?: Set<string>) {
-    const current = liveFileChangesPerConv[convId] ?? [];
-    const remaining = changeIds ? current.filter((change) => !changeIds.has(change.id)) : [];
-    if (remaining.length > 0) {
-      liveFileChangesPerConv = { ...liveFileChangesPerConv, [convId]: remaining };
-      return;
-    }
-    const { [convId]: _live, ...rest } = liveFileChangesPerConv;
-    liveFileChangesPerConv = rest;
-  }
-
-  function reconcileLiveFileChanges(
-    convId: string,
-    durableChanges: FileChange[],
-    finalizedIds: ReadonlySet<string>,
-  ): void {
-    const current = liveFileChangesPerConv[convId] ?? [];
-    const tree = convTrees[convId];
-    const projectedCheckpointIds = tree ? ckIdsAlongActivePath(tree) : new Set<string>();
-    const remaining = retainUndurableFileChanges(
-      current,
-      durableChanges,
-      finalizedIds,
-      projectedCheckpointIds,
-    );
-    if (remaining.length === current.length) return;
-    if (remaining.length > 0) {
-      liveFileChangesPerConv = { ...liveFileChangesPerConv, [convId]: remaining };
-      return;
-    }
-    clearLiveFileChanges(convId);
   }
 
   function clearPendingInput(convId: string, requestId?: string) {
@@ -1909,20 +1581,6 @@
 
   // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
-  function mergeConversationMetadata(
-    current: Conversation[],
-    incoming: Conversation[],
-  ): Conversation[] {
-    const incomingById = new Map(incoming.map((conversation) => [conversation.id, conversation]));
-    const merged = current.map((conversation) => {
-      const replacement = incomingById.get(conversation.id);
-      if (!replacement) return conversation;
-      incomingById.delete(conversation.id);
-      return { ...replacement, messages: conversation.messages };
-    });
-    return [...merged, ...incomingById.values()];
-  }
-
   type ConversationLocation = {
     conversations: Conversation[];
     index: number;
@@ -1945,9 +1603,9 @@
 
   function promoteConversationInRecents(conversation: Conversation): void {
     const conversationRoleKey = conversation.roleId ?? defaultRoleKey;
-    if (conversationRoleKey !== selectedRoleKey) return;
-    recentConversations = promoteRecentConversation(
-      recentConversations,
+    if (conversationRoleKey !== roleController.selectedRoleKey) return;
+    conversationLists.recentConversations = promoteRecentConversation(
+      conversationLists.recentConversations,
       conversation,
       workspacePath,
     );
@@ -1957,8 +1615,8 @@
     if (!title.trim()) return;
     const existing =
       conversations.find((conversation) => conversation.id === convId) ??
-      recentConversations.find((conversation) => conversation.id === convId) ??
-      searchConversations.find((conversation) => conversation.id === convId) ??
+      conversationLists.recentConversations.find((conversation) => conversation.id === convId) ??
+      conversationLists.searchConversations.find((conversation) => conversation.id === convId) ??
       (await fetchConversationMeta(convId).catch(() => null));
     if (!existing) return;
 
@@ -1968,267 +1626,22 @@
         ? { ...conversation, title: updated.title, updatedAt: updated.updatedAt }
         : conversation,
     );
-    searchConversations = searchConversations.map((conversation) =>
-      conversation.id === convId
-        ? { ...conversation, title: updated.title, updatedAt: updated.updatedAt }
-        : conversation,
+    conversationLists.searchConversations = conversationLists.searchConversations.map(
+      (conversation) =>
+        conversation.id === convId
+          ? { ...conversation, title: updated.title, updatedAt: updated.updatedAt }
+          : conversation,
     );
     promoteConversationInRecents(updated);
-  }
-
-  function roleSelectionStorageKey(currentWorkspace = workspacePath): string {
-    return `openagent.active-role:${currentWorkspace || "global"}`;
-  }
-
-  function storedRoleSelection(currentWorkspace = workspacePath): string {
-    if (typeof window === "undefined") return defaultRoleKey;
-    return window.localStorage.getItem(roleSelectionStorageKey(currentWorkspace)) || defaultRoleKey;
-  }
-
-  async function loadAvailableRoles(): Promise<void> {
-    if (!tauriAvailable) {
-      agentRoles = [];
-      selectedRoleKey = defaultRoleKey;
-      return;
-    }
-    const roles = await openAgent.invokeProduct("list_agent_roles", {}).catch(() => []);
-    const seen = new Set<string>();
-    agentRoles = roles.filter((role) => {
-      if (seen.has(role.id)) return false;
-      seen.add(role.id);
-      return true;
-    });
-    if (selectedRoleKey !== defaultRoleKey && !seen.has(selectedRoleKey)) {
-      selectedRoleKey = defaultRoleKey;
-    }
-  }
-
-  async function openRoleEditor(role: AgentRole | null): Promise<void> {
-    roleEditorRole = role;
-    roleEditorOpen = true;
-    roleEditorResourcesLoading = true;
-    try {
-      roleEditorSkills = tauriAvailable
-        ? ((await openAgent.invokeProduct("list_skills", {}).catch(() => [])) as SkillMetadata[])
-        : [];
-    } finally {
-      roleEditorResourcesLoading = false;
-    }
-  }
-
-  async function saveRoleEditor(draft: {
-    id: string | null;
-    name: string;
-    description: string;
-    skillIds: string[];
-    mcpServerIds: string[];
-  }): Promise<void> {
-    roleEditorSaving = true;
-    try {
-      const saved = await openAgent.invokeProduct("save_agent_role", {
-        id: draft.id,
-        name: draft.name,
-        description: draft.description,
-        skillIds: draft.skillIds,
-        mcpServerIds: draft.mcpServerIds,
-      });
-      await loadAvailableRoles();
-      roleEditorOpen = false;
-      if (!draft.id) await activateNewConversationSurface(saved.id);
-      showToast({ title: $t("roleSaved"), variant: "success" });
-    } catch (error) {
-      showToast({ title: $t("settingsSaveFailed"), description: String(error), variant: "error" });
-    } finally {
-      roleEditorSaving = false;
-    }
-  }
-
-  async function deleteRoleEditor(role: AgentRole): Promise<void> {
-    const message = $t("deleteRoleConfirm").replace("{name}", role.name);
-    if (!confirm(message)) return;
-    roleEditorSaving = true;
-    try {
-      await openAgent.invokeProduct("delete_agent_role", { id: role.id });
-      roleEditorOpen = false;
-      await loadAvailableRoles();
-      if (selectedRoleKey === role.id) await activateNewConversationSurface(defaultRoleKey);
-    } catch (error) {
-      showToast({ title: $t("settingsSaveFailed"), description: String(error), variant: "error" });
-    } finally {
-      roleEditorSaving = false;
-    }
-  }
-
-  async function loadAvailableRolesForWorkspace(path: string): Promise<AgentRole[]> {
-    if (!tauriAvailable) return [];
-    const roles = await openAgent
-      .invokeProduct("list_agent_roles_for_workspace", {
-        workspace: path,
-      })
-      .catch(() => []);
-    const seen = new Set<string>();
-    return roles.filter((role) => {
-      if (seen.has(role.id)) return false;
-      seen.add(role.id);
-      return true;
-    });
-  }
-
-  async function reloadRoleConversations(preserveConversationId?: string | null): Promise<void> {
-    if (!tauriAvailable) return;
-    const preserved = preserveConversationId
-      ? (conversations.find((conversation) => conversation.id === preserveConversationId) ??
-        (await fetchConversationMeta(preserveConversationId).catch(() => null)))
-      : null;
-    const page = await fetchConversationPage(
-      workspacePath || null,
-      null,
-      30,
-      null,
-      true,
-      selectedRoleId,
-    );
-    const current =
-      preserved && !conversations.some((item) => item.id === preserved.id)
-        ? [...conversations, preserved]
-        : conversations;
-    conversations = mergeConversationMetadata(current, page.conversations);
-    conversationNextCursor = page.nextCursor;
-  }
-
-  async function changeConversationRole(roleKey: string): Promise<void> {
-    if (roleKey === selectedRoleKey) return;
-    await activateNewConversationSurface(roleKey);
-  }
-
-  async function ensureConversationLineage(meta: Conversation): Promise<void> {
-    const lineage: Conversation[] = [];
-    const visited = new Set<string>();
-    let current: Conversation | null = meta;
-    while (current && !visited.has(current.id)) {
-      visited.add(current.id);
-      lineage.push(current);
-      const parentId: string | undefined = current.parentConvId;
-      if (!parentId) break;
-      current =
-        conversations.find((conversation) => conversation.id === parentId) ??
-        (await fetchConversationMeta(parentId).catch(() => null));
-    }
-    conversations = mergeConversationMetadata(conversations, lineage);
-  }
-
-  async function loadNextConversationPage(): Promise<void> {
-    if (!tauriAvailable) return;
-    const query = conversationSearchQuery.trim();
-    if (query) {
-      if (loadingMoreSearchConversations || !searchConversationNextCursor) return;
-      const generation = conversationSearchGeneration;
-      loadingMoreSearchConversations = true;
-      try {
-        const page = await fetchConversationPage(
-          null,
-          searchConversationNextCursor,
-          30,
-          query,
-          false,
-          null,
-        );
-        if (generation !== conversationSearchGeneration) return;
-        searchConversations = mergeConversationMetadata(searchConversations, page.conversations);
-        searchConversationNextCursor = page.nextCursor;
-      } catch {
-        // Keep the cursor so the observer can retry when it intersects again.
-      } finally {
-        if (generation === conversationSearchGeneration) {
-          loadingMoreSearchConversations = false;
-        }
-      }
-      return;
-    }
-
-    if (loadingMoreConversations || !conversationNextCursor) return;
-    loadingMoreConversations = true;
-    const requestedWorkspace = workspacePath;
-    try {
-      const page = await fetchConversationPage(
-        requestedWorkspace || null,
-        conversationNextCursor,
-        30,
-        null,
-        true,
-        selectedRoleId,
-      );
-      if (requestedWorkspace !== workspacePath) return;
-      conversations = mergeConversationMetadata(conversations, page.conversations);
-      conversationNextCursor = page.nextCursor;
-    } catch {
-      // Keep the cursor so the observer can retry when it intersects again.
-    } finally {
-      if (requestedWorkspace === workspacePath) loadingMoreConversations = false;
-    }
-  }
-
-  async function refreshRecentConversations(): Promise<void> {
-    if (!tauriAvailable) return;
-    const generation = ++recentConversationGeneration;
-    const roleKey = selectedRoleKey;
-    const recentRoleId = roleKey === defaultRoleKey ? null : roleKey;
-    const replacingRoleSnapshot = recentConversationRoleKey !== roleKey;
-    if (replacingRoleSnapshot) recentConversations = [];
-    loadingRecentConversations = replacingRoleSnapshot || recentConversations.length === 0;
-    try {
-      const page = await fetchConversationPage(null, null, 20, null, true, recentRoleId);
-      if (generation !== recentConversationGeneration || roleKey !== selectedRoleKey) return;
-      recentConversations = mergeRecentConversationRefresh(recentConversations, page.conversations);
-      recentConversationRoleKey = roleKey;
-    } catch (error) {
-      console.warn("Failed to load recent conversations across workspaces:", error);
-    } finally {
-      if (generation === recentConversationGeneration && roleKey === selectedRoleKey) {
-        loadingRecentConversations = false;
-      }
-    }
-  }
-
-  async function loadProjectConversations(path: string, roleKey: string): Promise<Conversation[]> {
-    if (!tauriAvailable) return [];
-    const roleId = roleKey === defaultRoleKey ? null : roleKey;
-    const page = await fetchConversationPage(path, null, 30, null, true, roleId);
-    return page.conversations;
-  }
-
-  function handleConversationSearch(query: string): void {
-    conversationSearchQuery = query;
-    conversationSearchGeneration += 1;
-    if (conversationSearchTimer) clearTimeout(conversationSearchTimer);
-    searchConversations = [];
-    searchConversationNextCursor = null;
-    loadingMoreSearchConversations = false;
-    const normalized = query.trim();
-    if (!normalized || !tauriAvailable) return;
-    const generation = conversationSearchGeneration;
-    conversationSearchTimer = setTimeout(async () => {
-      loadingMoreSearchConversations = true;
-      try {
-        const page = await fetchConversationPage(null, null, 30, normalized, false, null);
-        if (generation !== conversationSearchGeneration) return;
-        searchConversations = page.conversations;
-        searchConversationNextCursor = page.nextCursor;
-      } catch {
-        // Leave an empty result state; a new query or scroll can retry.
-      } finally {
-        if (generation === conversationSearchGeneration) {
-          loadingMoreSearchConversations = false;
-        }
-      }
-    }, 200);
   }
 
   async function selectSidebarConversation(id: string): Promise<void> {
     navigationCaptureDepth += 1;
     try {
       if (!conversations.some((conversation) => conversation.id === id)) {
-        const meta = searchConversations.find((conversation) => conversation.id === id);
+        const meta = conversationLists.searchConversations.find(
+          (conversation) => conversation.id === id,
+        );
         if (meta) await ensureConversationLineage(meta);
       }
       const requestedWorkspace = workspacePath;
@@ -2314,6 +1727,11 @@
     SettingsWindowSurface = (await import("$lib/components/SettingsWindowSurface.svelte")).default;
   });
 
+  onMount(async () => {
+    if (!standaloneDevPreview) return;
+    StandaloneDevPreview = (await import("$lib/components/StandaloneDevPreview.svelte")).default;
+  });
+
   onMount(() => {
     if (!tauriAvailable || !frontendActivationVersion) return;
     if (!frontendActivationShouldShowNotice(frontendActivationVersion)) return;
@@ -2346,188 +1764,73 @@
     return () => media.removeEventListener("change", syncSystemTheme);
   });
 
-  // A component update installs the frontend bundle under the running shell, so
-  // the first startup snapshot can lose that race with the swap. Retry it once
-  // before degrading: a shell that never subscribes to Runtime events shows no
-  // running Turn, and only an application restart used to heal it.
-  const STARTUP_SNAPSHOT_RETRY_DELAY_MS = 400;
-  const delay = (durationMs: number) => new Promise((resolve) => setTimeout(resolve, durationMs));
-
-  onMount(async () => {
-    if (isDevInspectorWindow || standaloneDevPreview) return;
-    if (isSettingsWindow || isRoleEditorWindow) return;
-    if (isQuickChatSurface) {
-      return;
-    }
-    if (isOnboardingSurface) {
-      try {
-        await loadSettings();
-        await loadWorkspace();
-      } catch (error) {
-        console.error("Failed to load onboarding:", error);
-      } finally {
-        initialLoading = false;
-      }
-      return;
-    }
-    const mountedAt = performance.now();
-    let bootstrapReadyAt = mountedAt;
-    let startupApplied = false;
-    let requiresOnboarding = false;
-    let eventDeliveryInstalled = false;
-
-    // Warm the large Mermaid dynamic module before revealing the main window.
-    // Otherwise the first render_mermaid call can spend the Runtime's entire
-    // 20-second response deadline compiling/loading the renderer.
-    const mermaidPreload = loadMermaid().catch((error) => {
-      console.warn("Failed to preload Mermaid renderer; it will retry on demand", error);
-    });
-
-    // Live Runtime events are a lossy projection. Restore the complete durable
-    // snapshot before subscribing so startup and resync never reconstruct state
-    // from partial event delivery. Registration stays single-attempt because
-    // running it again would duplicate every Tauri listener, so a failure is
-    // reported through the host diagnostics instead of leaving a shell that
-    // shows no running Turn silent about why.
-    const installRuntimeEventDelivery = async () => {
-      if (!tauriAvailable || eventDeliveryInstalled) return;
-      eventDeliveryInstalled = true;
-      try {
-        await setupGlobalEventListeners();
-      } catch (error) {
-        console.error("Failed to subscribe to Runtime events:", error);
-        reportFrontendDiagnostic("startup_event_delivery_failed", "page-shell", error);
-      }
-    };
-
-    const applyStartupSnapshot = async () => {
-      const bootstrap = await openAgent.getStartupBootstrap<StartupBootstrap>();
-      bootstrapReadyAt = performance.now();
-      await applyStartupBootstrap(bootstrap);
-      await installRuntimeEventDelivery();
-      startupApplied = true;
-      installDownloadHook();
-      if (launchContext?.conversation_id) {
-        await revealMemorySource(launchContext.conversation_id, launchContext.message_id ?? "");
-      }
-    };
-
-    try {
-      // Seed isDarkTheme before settings load so shikiTheme is correct from first render
-      isDarkTheme = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      await mermaidPreload;
-
-      if (tauriAvailable) {
-        await applyStartupSnapshot();
-      } else {
-        await loadSettings();
-        await loadWorkspace();
-        if (settingsPreviewSection) {
-          SettingsView = (await import("$lib/components/SettingsView.svelte")).default;
-          settingsSurface = {
-            kind: settingsPreviewSection === "agents" ? "agent" : "integrations",
-            section: settingsPreviewSection,
-            everySection: true,
-          };
-        }
-        restoringSurface = "new-conversation";
-        activeConvId = null;
-      }
-    } catch (error) {
-      console.error("Failed to apply startup bootstrap:", error);
-      reportFrontendDiagnostic("startup_bootstrap_failed", "page-shell", error);
-      if (tauriAvailable) {
-        try {
-          await delay(STARTUP_SNAPSHOT_RETRY_DELAY_MS);
-          await applyStartupSnapshot();
-        } catch (retryError) {
-          console.error("Failed to apply startup bootstrap after retry:", retryError);
-          reportFrontendDiagnostic("startup_bootstrap_failed", "page-shell", retryError);
-          // A failure here must not skip the subscription below, which is the
-          // only live projection the degraded shell has left.
-          await restoreStartupFallback().catch((restoreError) => {
-            console.error("Failed to restore startup state:", restoreError);
-            reportFrontendDiagnostic("startup_restore_failed", "page-shell", restoreError);
-          });
-        }
-        // Runtime events are the transcript's only live projection of a Turn, so
-        // a degraded startup still subscribes. The fallback restore above
-        // re-reads durable state first, so this cannot resurrect a stale Turn.
-        await installRuntimeEventDelivery();
-      }
-    } finally {
-      let embeddingResourceReady = !tauriAvailable;
-      let embeddingResourceStatusKnown = !tauriAvailable;
-      const mainWindowWasVisible = tauriAvailable
-        ? await getCurrentWindow()
-            .isVisible()
-            .catch(() => false)
-        : false;
-      if (tauriAvailable) {
-        embeddingResourceReady = await openAgent
-          .invokeProduct("get_embedding_resource_status", {})
-          .then((resource) => {
-            embeddingResourceStatusKnown = true;
-            return resource.state === "ready";
-          })
-          .catch(() => false);
-      }
-      if (
-        config &&
-        !isChannelsSettingsPreview &&
-        !isAgentsSettingsPreview &&
-        !isMcpSettingsPreview
-      ) {
-        // A Runtime restart can briefly make the resource-status IPC unavailable
-        // while Vite HMR remounts this shell. Treat that as unknown so a reload
-        // of an already configured app cannot reveal the hidden onboarding
-        // window; an explicit non-ready status still opens the repair flow.
-        requiresOnboarding =
-          !config.onboarding_completed ||
-          (embeddingResourceStatusKnown && !embeddingResourceReady) ||
-          (!embeddingResourceStatusKnown && !mainWindowWasVisible);
-      }
-      const uiReadyAt = performance.now();
-      initialLoading = false;
-      await tick();
-      if (tauriAvailable) {
-        if (requiresOnboarding) {
-          await invoke("reveal_onboarding_window").catch(async () => {
-            await getCurrentWindow()
-              .show()
-              .catch(() => {});
-          });
-        } else {
-          await invoke("reveal_main_window").catch(async () => {
-            await getCurrentWindow()
-              .show()
-              .catch(() => {});
-          });
-        }
-        const revealedAt = performance.now();
-        console.info("[startup] initial window revealed", {
-          surface: requiresOnboarding ? "onboarding" : "main",
-          bootstrapMs: Math.round(bootstrapReadyAt - mountedAt),
-          applyAndListenersMs: Math.round(uiReadyAt - bootstrapReadyAt),
-          revealMs: Math.round(revealedAt - uiReadyAt),
-          mountedToVisibleMs: Math.round(revealedAt - mountedAt),
-        });
-      }
-    }
-
-    if (tauriAvailable) {
-      void refreshAgentCommands();
-      pollMemoryStatus();
-      if (!launchContext?.workspace) {
-        void initializeQuickChatShortcut(config?.quick_chat_shortcut).catch((error) => {
-          console.warn("Failed to register quick chat shortcut", error);
-        });
-        if (!import.meta.env.DEV) void checkForAppUpdate();
-      }
-      if (!startupApplied && launchContext?.conversation_id) {
-        void revealMemorySource(launchContext.conversation_id, launchContext.message_id ?? "");
-      }
-    }
+  const startup = createPageStartup({
+    isDevInspectorWindow,
+    standaloneDevPreview,
+    isSettingsWindow,
+    isRoleEditorWindow,
+    isQuickChatSurface,
+    isOnboardingSurface,
+    tauriAvailable,
+    isChannelsSettingsPreview,
+    isAgentsSettingsPreview,
+    isMcpSettingsPreview,
+    get config() {
+      return config;
+    },
+    get launchContext() {
+      return launchContext;
+    },
+    get settingsPreviewSection() {
+      return settingsPreviewSection;
+    },
+    get isDarkTheme() {
+      return isDarkTheme;
+    },
+    set isDarkTheme(next) {
+      isDarkTheme = next;
+    },
+    get initialLoading() {
+      return initialLoading;
+    },
+    set initialLoading(next) {
+      initialLoading = next;
+    },
+    get SettingsView() {
+      return SettingsView;
+    },
+    set SettingsView(next) {
+      SettingsView = next;
+    },
+    get settingsSurface() {
+      return settingsSurface;
+    },
+    set settingsSurface(next) {
+      settingsSurface = next;
+    },
+    get restoringSurface() {
+      return restoringSurface;
+    },
+    set restoringSurface(next) {
+      restoringSurface = next;
+    },
+    get activeConvId() {
+      return activeConvId;
+    },
+    set activeConvId(next) {
+      activeConvId = next;
+    },
+    loadSettings,
+    loadWorkspace,
+    applyStartupBootstrap,
+    restoreStartupFallback,
+    setupGlobalEventListeners,
+    revealMemorySource,
+    refreshAgentCommands,
+    pollMemoryStatus,
+  });
+  onMount(() => {
+    void startup.start();
   });
 
   // Data-only restore for a startup snapshot that never arrived. It re-reads
@@ -2540,7 +1843,7 @@
     await loadSettings();
     if (launchContext?.workspace) workspacePath = launchContext.workspace;
     await loadWorkspace();
-    selectedRoleKey = storedRoleSelection(workspacePath);
+    roleController.selectedRoleKey = storedRoleSelection(workspacePath);
     await loadAvailableRoles();
     const page = await fetchConversationPage(
       workspacePath || null,
@@ -2548,10 +1851,10 @@
       30,
       null,
       true,
-      selectedRoleId,
+      roleController.selectedRoleId,
     );
     conversations = page.conversations;
-    conversationNextCursor = page.nextCursor;
+    conversationLists.conversationNextCursor = page.nextCursor;
     await restoreWorkspaceConversation(workspacePath);
     void refreshRecentConversations();
   }
@@ -2592,12 +1895,13 @@
     launchContext = bootstrap.launch_context;
     recentWorkspaces = config.recent_workspaces ?? [];
     conversations = bootstrap.conversations.map(metaToConversation);
-    conversationNextCursor = bootstrap.conversation_next_cursor;
+    conversationLists.conversationNextCursor = bootstrap.conversation_next_cursor;
     activeConvId = bootstrap.active_conv_id;
     const activeMeta = activeConvId
       ? conversations.find((conversation) => conversation.id === activeConvId)
       : null;
-    selectedRoleKey = activeMeta?.roleId ?? storedRoleSelection(bootstrap.workspace_path);
+    roleController.selectedRoleKey =
+      activeMeta?.roleId ?? storedRoleSelection(bootstrap.workspace_path);
     await loadAvailableRoles();
     await reloadRoleConversations(activeConvId);
     void refreshRecentConversations();
@@ -2749,8 +2053,8 @@
     promoteConversationInRecents(existingIndex === -1 ? incoming : conversations[existingIndex]);
 
     const eventRoleKey = event.role_id ?? defaultRoleKey;
-    if (event.conv_id === activeConvId && eventRoleKey !== selectedRoleKey) {
-      selectedRoleKey = eventRoleKey;
+    if (event.conv_id === activeConvId && eventRoleKey !== roleController.selectedRoleKey) {
+      roleController.selectedRoleKey = eventRoleKey;
       window.localStorage.setItem(roleSelectionStorageKey(), eventRoleKey);
       void refreshRecentConversations();
     }
@@ -2796,714 +2100,175 @@
   }
 
   async function setupGlobalEventListeners() {
-    if (!tauriAvailable) return;
-    const registrations: Array<Promise<() => void>> = [];
-    const register = <T,>(event: string, handler: (event: { payload: T }) => void) => {
-      registrations.push(listen<T>(event, handler));
-    };
-    register("agent-plugins-changed", () => {
-      void refreshAgentCommands();
-      void openAgent
-        .invokeProduct("list_agent_plugins", {})
-        .then((plugins) => {
-          agentPlugins = plugins;
-          return checkAgentPluginUpdates();
-        })
-        .then((report) => {
-          const available = report.updates.filter((update) => update.update_available);
-          if (!shouldNotifyAgentPluginUpdates(report.updates)) return;
-          showToast({
-            title: $t("pluginUpdateAvailable"),
-            description: $t("pluginUpdateDescription").replace("{count}", String(available.length)),
-            durationMs: 6000,
-          });
-        })
-        .catch((error) => console.warn("Failed to refresh Agent Plugins:", error));
-    });
-    let runtimeResyncInFlight = false;
-
-    register<{ generation: number }>("runtime-resync-required", () => {
-      if (runtimeResyncInFlight) return;
-      runtimeResyncInFlight = true;
-      void (async () => {
-        const bootstrap = await openAgent.getStartupBootstrap<StartupBootstrap>();
-        await applyStartupBootstrap(bootstrap);
-        await invoke<number>("start_runtime_event_proxy");
-      })()
-        .catch((error) => {
-          console.error("Failed to restore Runtime state after event resync:", error);
-        })
-        .finally(() => {
-          runtimeResyncInFlight = false;
-        });
-    });
-
-    register<{
-      workspace: string | null;
-      conversation_id: string | null;
-      message_id: string | null;
-      new_conversation: boolean;
-    }>("workspace-window-open-request", (event) => {
-      const { workspace, conversation_id, message_id, new_conversation } = event.payload;
-      void (async () => {
-        if (workspace && workspace !== workspacePath) {
-          await routeWorkspace(workspace, {
-            conversationId: conversation_id ?? undefined,
-            messageId: message_id ?? undefined,
-            newConversation: new_conversation,
-          });
-        } else if (new_conversation) {
-          await activateNewConversationSurface();
-        } else if (conversation_id) {
-          await revealMemorySource(conversation_id, message_id ?? "");
-        }
-      })()
-        .catch((error) => console.error("Failed to reveal the requested workspace target:", error))
-        .finally(() => handleWindowFocusEvent(true));
-    });
-
-    register<{ visible: boolean }>(DEV_MAIN_DEBUG_VISIBILITY_EVENT, (event) => {
-      showMainDebugComponents = event.payload.visible;
-    });
-    register<{ workspace_path: string }>(ONBOARDING_COMPLETE_EVENT, (event) => {
-      void (async () => {
-        let routeResult: WorkspaceRouteResult = "current";
-        if (event.payload.workspace_path && event.payload.workspace_path !== workspacePath) {
-          routeResult = await routeWorkspace(event.payload.workspace_path, {
-            newConversation: true,
-          });
-        }
-        if (routeResult !== "routed") await invoke("reveal_main_window");
-      })().catch((error) => console.error("Failed to finish onboarding handoff:", error));
-    });
-    register("settings-changed", () => {
-      void settingsRequests
-        .resolve(() =>
-          openAgent.invokeProduct("get_settings", {}).then((value) => value as AppConfig),
-        )
-        .then((reloaded) => {
-          if (!reloaded) return;
-          const previousAutostart = config?.launch_on_startup ?? false;
-          const previousShortcut = normalizeQuickChatShortcut(
-            config?.quick_chat_shortcut ?? DEFAULT_QUICK_CHAT_SHORTCUT,
-          );
-          const next = normalizeConfigShape(reloaded as AppConfig);
-          const nextShortcut = normalizeQuickChatShortcut(next.quick_chat_shortcut);
-          config = structuredClone(next);
-          void refreshAgentCommands();
-          applyTheme(config.theme ?? "system");
-          const suggestionLanguage = (config.language ?? "zh") as Locale;
-          const suggestionWorkspace = workspacePath;
-          setLocale(suggestionLanguage);
-          void loadNewConversationSuggestions(suggestionWorkspace, suggestionLanguage).then(
-            (storedSuggestions) => {
-              if (
-                suggestionWorkspace === workspacePath &&
-                suggestionLanguage === (config?.language ?? "zh")
-              ) {
-                newConversationSuggestions = storedSuggestions;
-              }
-            },
-          );
-          if (previousShortcut !== nextShortcut && !launchContext?.workspace) {
-            void replaceQuickChatShortcut(nextShortcut).catch((error) =>
-              console.error("Failed to apply reloaded quick-chat shortcut:", error),
-            );
-          }
-          if (previousAutostart !== next.launch_on_startup && !launchContext?.workspace) {
-            const syncAutostart = next.launch_on_startup ? enableAutostart : disableAutostart;
-            void syncAutostart().catch((error) =>
-              console.error("Failed to apply reloaded autostart setting:", error),
-            );
-          }
-          void openAgent
-            .invokeProduct("list_agent_plugins", {})
-            .then((plugins) => {
-              agentPlugins = plugins;
-            })
-            .catch((error) => console.warn("Failed to refresh plugin lifecycle state:", error));
-        })
-        .catch((error) => console.error("Failed to apply reloaded settings:", error));
-    });
-    register<AgentRolesChangedEvent>("agent-roles-changed", (event) => {
-      void loadAvailableRoles().then(async () => {
-        if (event.payload.requesterLabel !== getCurrentWindow().label) return;
-        if (event.payload.deleted && selectedRoleKey === event.payload.roleId) {
-          await activateNewConversationSurface(defaultRoleKey);
-        } else if (event.payload.created && event.payload.roleId) {
-          await activateNewConversationSurface(event.payload.roleId);
-        }
-      });
-    });
-    register<{ conversationId: string }>("settings-open-conversation", (event) => {
-      void openHookConversation(event.payload.conversationId);
-    });
-    register("settings-reload-failed", () => {
-      showToast({
-        title: $t("settingsReloadFailed"),
-        description: $t("settingsReloadFailedHint"),
-        variant: "error",
-      });
-    });
-
-    register<{ conv_id: string; title: string }>("conversation-title-updated", (e) => {
-      const { conv_id, title } = e.payload;
-      void applyConversationTitleUpdate(conv_id, title);
-    });
-
-    register<{
-      task_kind: "title" | "memory" | "hook" | string;
-      conv_id?: string | null;
-      error: string;
-    }>("flash-task-failed", (e) => {
-      const taskLabel = {
-        title: $t("flashTaskTitle"),
-        memory: $t("flashTaskMemory"),
-        suggestions: $t("flashTaskSuggestions"),
-        hook: $t("flashTaskHook"),
-      }[e.payload.task_kind];
-      showToast({
-        title: taskLabel ? `${$t("flashTaskFailed")} · ${taskLabel}` : $t("flashTaskFailed"),
-        description: e.payload.error,
-        variant: "error",
-      });
-    });
-
-    register<ProviderAuthDeviceCodeEvent>("provider-auth-device-code", (event) => {
-      const verificationUri = event.payload.verification_uri.trim();
-      const userCode = event.payload.user_code.trim();
-      if (!verificationUri || !userCode) return;
-      showToast({
-        title: $t("chatgptOAuthRequired"),
-        description: $t("chatgptOAuthCode").replace("{code}", userCode),
-        variant: "info",
-        durationMs: 0,
-        action: {
-          label: $t("chatgptOAuthOpen"),
-          dismissOnClick: false,
-          onClick: async () => {
-            try {
-              await navigator.clipboard.writeText(userCode);
-            } catch {
-              // Keep the toast visible so the code can still be copied manually.
-            }
-            await openExternalUrl(verificationUri);
-          },
-        },
-      });
-    });
-
-    register<{
-      source_conv_id: string;
-      conv_id: string;
-      title: string;
-      workspace: string;
-      user_message_id?: string | null;
-    }>("conversation-compacted", (e) => {
-      const { source_conv_id, conv_id, title, workspace: ws, user_message_id } = e.payload;
-      if (ws !== (workspacePath || "")) return;
-      const sourceIdx = conversations.findIndex(
-        (conversation) => conversation.id === source_conv_id,
-      );
-      if (sourceIdx === -1 || conversations.some((conversation) => conversation.id === conv_id))
-        return;
-
-      const source = conversations[sourceIdx];
-      const movedMessages = user_message_id
-        ? source.messages.filter((message) => message.id === user_message_id)
-        : [];
-      conversations[sourceIdx] = {
-        ...source,
-        messages: user_message_id
-          ? source.messages.filter((message) => message.id !== user_message_id)
-          : source.messages,
-      };
-      const derived: Conversation = {
-        id: conv_id,
-        title,
-        messages: movedMessages,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        parentConvId: source_conv_id,
-        compactedFromConvId: source_conv_id,
-      };
-      conversations = [derived, ...conversations];
-      loadedConvIds.add(conv_id);
-
-      if (chatStreams.streamingConversationIds[source_conv_id]) {
-        const { [source_conv_id]: _old, ...rest } = chatStreams.streamingConversationIds;
-        chatStreams.streamingConversationIds = { ...rest, [conv_id]: true };
-      }
-      if (source_conv_id in chatStreams.itemsByConversation) {
-        const { [source_conv_id]: old, ...rest } = chatStreams.itemsByConversation;
-        chatStreams.itemsByConversation = { ...rest, [conv_id]: old };
-      }
-      if (source_conv_id in chatStreams.assistantMessageIds) {
-        const { [source_conv_id]: old, ...rest } = chatStreams.assistantMessageIds;
-        chatStreams.assistantMessageIds = { ...rest, [conv_id]: old };
-      }
-      if (source_conv_id in chatStreams.awaitingOutput) {
-        const { [source_conv_id]: old, ...rest } = chatStreams.awaitingOutput;
-        chatStreams.awaitingOutput = { ...rest, [conv_id]: old };
-      }
-      if (source_conv_id in chatStreams.memoryRetrievalStages) {
-        const { [source_conv_id]: old, ...rest } = chatStreams.memoryRetrievalStages;
-        chatStreams.memoryRetrievalStages = { ...rest, [conv_id]: old };
-      }
-      if (source_conv_id in chatStreams.memoryRetrievalSkippable) {
-        const { [source_conv_id]: old, ...rest } = chatStreams.memoryRetrievalSkippable;
-        chatStreams.memoryRetrievalSkippable = { ...rest, [conv_id]: old };
-      }
-      if (compactionOnlyConvIds.delete(source_conv_id)) {
-        compactionOnlyConvIds.add(conv_id);
-      }
-      const compactionRevision = compactionProgressRevisions.get(source_conv_id);
-      if (compactionRevision !== undefined) {
-        compactionProgressRevisions.delete(source_conv_id);
-        compactionProgressRevisions.set(conv_id, compactionRevision);
-      }
-      if (activeConvId === source_conv_id) {
-        if (selectedComposerDraftKey === conversationComposerDraftKey(source_conv_id)) {
-          composerDrafts.save(selectedComposerDraftKey, activeComposerDraft);
-        }
-        const remappedDraft = composerDrafts.remap(
-          conversationComposerDraftKey(source_conv_id),
-          conversationComposerDraftKey(conv_id),
-        );
-        if (selectedComposerDraftKey === conversationComposerDraftKey(source_conv_id)) {
-          selectedComposerDraftKey = conversationComposerDraftKey(conv_id);
-          activeComposerDraft = remappedDraft;
-        }
-        activeConvId = conv_id;
-        cacheRestoreSurface("conversation", conv_id);
-        openAgent
-          .invokeProduct("set_active_conversation", {
-            convId: conv_id,
-            workspace: workspacePath || "",
-          })
-          .catch(() => {});
-      }
-    });
-
-    // subagent-started: a delegated role or package scheduler created a child conversation
-    register<{
-      parent_conv_id: string | null;
-      sub_conv_id: string;
-      title: string;
-      task: string;
-      role_id?: string;
-      task_msg_id: string;
-      asst_msg_id?: string;
-      branch_id?: string;
-      workspace: string;
-      hidden_task?: boolean;
-      flow_kind?: string;
-      started?: boolean;
-    }>("subagent-started", (e) => {
-      const {
-        sub_conv_id,
-        title,
-        task,
-        role_id,
-        task_msg_id,
-        asst_msg_id,
-        branch_id,
-        workspace: ws,
-        parent_conv_id,
-        hidden_task,
-        flow_kind,
-        started,
-      } = e.payload;
-      // Only show sub-convs that belong to the current workspace
-      if (ws !== (workspacePath || "")) return;
-      // Avoid duplicates (event can fire once per spawn)
-      if (conversations.some((c) => c.id === sub_conv_id)) return;
-      // Rust already persisted this message; reuse its ID for display
-      const taskMsg: ChatMessage = {
-        id: task_msg_id,
-        role: "user",
-        content: task,
-        timestamp: Date.now(),
-      };
-      const subConv: Conversation = {
-        id: sub_conv_id,
-        title,
-        messages: hidden_task ? [] : [taskMsg],
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        parentConvId: parent_conv_id ?? undefined,
-        roleId: role_id,
-        flowKind: flow_kind,
-        flowStatus: started === false ? "pending" : flow_kind ? "running" : undefined,
-      };
-      conversations = [subConv, ...conversations];
-      loadedConvIds.add(sub_conv_id);
-      if (started !== false) {
-        chatStreams.streamingConversationIds = {
-          ...chatStreams.streamingConversationIds,
-          [sub_conv_id]: true,
-        };
-      }
-      chatStreams.itemsByConversation = { ...chatStreams.itemsByConversation, [sub_conv_id]: [] };
-      chatStreams.assistantMessageIds = {
-        ...chatStreams.assistantMessageIds,
-        [sub_conv_id]: asst_msg_id ?? crypto.randomUUID(),
-      };
-      if (branch_id) {
-        activeBranchIds = { ...activeBranchIds, [sub_conv_id]: branch_id };
-      }
-      if (started !== false) chatStreams.startTiming(sub_conv_id, taskMsg.timestamp);
-    });
-
-    // ask_user tool: backend emits with conv_id + form schema; we stash it per-conv
-    // so switching convs doesn't lose an in-flight form.
-    register<UserInputRequest>("chat-user-input-request", (e) => {
-      const req = e.payload;
-      const key = req.conv_id ?? activeConvId;
-      if (!key) return;
-      pendingUserInputs = { ...pendingUserInputs, [key]: req };
-      if (!attachPendingUserInputToMessages(key, req)) {
-        chatStreams.itemsByConversation = {
-          ...chatStreams.itemsByConversation,
-          [key]: appendUserInput(chatStreams.itemsByConversation[key] ?? [], req),
-        };
-      }
-      persistStreamDraft(key).catch(() => {});
-    });
-    if (!isDevInspectorWindow) {
-      register<{
-        request_id: string;
-        conv_id: string;
-        title?: string | null;
-        source: string;
-      }>("chat-mermaid-render-request", (e) => {
-        const request = e.payload;
-        const result = renderMermaidToolResult(request.source, mermaidConfig).then(JSON.stringify);
-        void result
-          .then((renderResult) =>
-            openAgent.submitInterruptResponse({
-              convId: request.conv_id,
-              interruptId: request.request_id,
-              response: renderResult,
-            }),
-          )
-          .catch((error) => {
-            console.warn("Failed to return Mermaid render result", error);
-          });
-      });
-    }
-    register<{
-      conv_id: string;
-      flow_id: string;
-      iteration: number;
-      message: string;
-      msg_id: string;
-      asst_msg_id?: string;
-      hidden_message?: boolean;
-    }>("plugin-flow-iteration-started", (e) => {
-      const { conv_id, flow_id, message, msg_id, asst_msg_id, hidden_message } = e.payload;
-      const userMsg: ChatMessage = {
-        id: msg_id,
-        role: "user",
-        content: message,
-        timestamp: Date.now(),
-      };
-      const idx = conversations.findIndex((c) => c.id === conv_id);
-      if (idx !== -1) {
-        const existing = conversations[idx];
-        const shouldAppendUser =
-          !hidden_message && !existing.messages.some((message) => message.id === msg_id);
-        conversations[idx] = {
-          ...existing,
-          flowKind: flow_id,
-          flowStatus: "running",
-          messages: shouldAppendUser ? [...existing.messages, userMsg] : existing.messages,
-          updatedAt: Date.now(),
-        };
-      }
-      chatStreams.streamingConversationIds = {
-        ...chatStreams.streamingConversationIds,
-        [conv_id]: true,
-      };
-      chatStreams.itemsByConversation = { ...chatStreams.itemsByConversation, [conv_id]: [] };
-      chatStreams.assistantMessageIds = {
-        ...chatStreams.assistantMessageIds,
-        [conv_id]: asst_msg_id ?? crypto.randomUUID(),
-      };
-      chatStreams.startTiming(conv_id, Date.now());
-    });
-
-    register<PluginFlowUpdatedEvent>("plugin-flow-updated", (e) => {
-      const { conv_id, flow_id, status } = e.payload;
-      applyLiveCheckpointFlow(conv_id, e.payload);
-      const eventBranchId = e.payload.branch_id ?? null;
-      const activeBranchId = activeBranchIds[conv_id] ?? null;
-      if (eventBranchId !== activeBranchId) return;
-      const idx = conversations.findIndex((c) => c.id === conv_id);
-      if (idx !== -1) {
-        conversations[idx] = {
-          ...conversations[idx],
-          flowKind: flow_id,
-          flowStatus: status,
-          updatedAt: Date.now(),
-        };
-      }
-    });
-
-    const chatEventRegistration = openAgent.subscribeToChatEvents({
-      onRunStarted: (event) => {
-        applyExternalChatRunStarted(event);
+    await installPageEvents({
+      get tauriAvailable() {
+        return tauriAvailable;
       },
-      onResponseStarted: (conv_id) => {
-        if (!chatStreams.streamingConversationIds[conv_id]) {
-          recoverUnannouncedChatStream(conv_id);
-        }
-        chatStreams.clearMemoryRetrieval(conv_id);
-        if (chatStreams.streamingConversationIds[conv_id]) {
-          chatStreams.awaitingOutput = {
-            ...chatStreams.awaitingOutput,
-            [conv_id]: true,
-          };
-        }
+      get isDevInspectorWindow() {
+        return isDevInspectorWindow;
       },
-      onModelUsage: (conv_id, usage) => {
-        liveContextUsageByConversation = {
-          ...liveContextUsageByConversation,
-          [conv_id]: usage,
-        };
+      get config() {
+        return config;
       },
-      onMemoryRetrieval: (conv_id, stage) => {
-        if (!chatStreams.streamingConversationIds[conv_id]) {
-          recoverUnannouncedChatStream(conv_id);
-        }
-        chatStreams.clearAwaitingOutput(conv_id);
-        chatStreams.memoryRetrievalStages = {
-          ...chatStreams.memoryRetrievalStages,
-          [conv_id]: stage,
-        };
-        chatStreams.memoryRetrievalSkippable = {
-          ...chatStreams.memoryRetrievalSkippable,
-          [conv_id]: stage !== "completed" && stage !== "skipped",
-        };
+      set config(next) {
+        config = next;
       },
-      onChunk: (conv_id, text) => {
-        if (text) chatStreams.clearAwaitingOutput(conv_id);
-        if (text) chatStreams.clearMemoryRetrieval(conv_id);
-        if (text) chatStreams.recordFirstResponse(conv_id);
-        applyStreamMutation(conv_id, (items) => appendChunk(items, text));
+      get workspacePath() {
+        return workspacePath;
       },
-      onThinkingChunk: (conv_id, text) => {
-        if (text) chatStreams.clearAwaitingOutput(conv_id);
-        if (text) chatStreams.clearMemoryRetrieval(conv_id);
-        if (text) chatStreams.recordFirstResponse(conv_id);
-        applyStreamMutation(conv_id, (items) => appendThinkingChunk(items, text));
+      set workspacePath(next) {
+        workspacePath = next;
       },
-      onToolCall: (conv_id, name, args, toolUseId, mcpUi) => {
-        chatStreams.clearAwaitingOutput(conv_id);
-        chatStreams.clearMemoryRetrieval(conv_id);
-        chatStreams.recordFirstResponse(conv_id);
-        let items = appendToolCall(
-          chatStreams.itemsByConversation[conv_id] ?? [],
-          name,
-          args,
-          toolUseId,
-          mcpUi,
-        );
-        const pendingInput = pendingUserInputs[conv_id];
-        if (pendingInput?.kind === "tool_approval") {
-          items = appendUserInput(items, pendingInput);
-        }
-        chatStreams.itemsByConversation = {
-          ...chatStreams.itemsByConversation,
-          [conv_id]: items,
-        };
-        persistStreamDraft(conv_id).catch(() => {});
+      get agentPlugins() {
+        return agentPlugins;
       },
-      onToolResult: (conv_id, result, toolUseId, mcpUi) => {
-        const pendingToolCall = toolUseId
-          ? (chatStreams.itemsByConversation[conv_id] ?? []).find(
-              (item) =>
-                item.type === "tool_call" &&
-                item.toolUseId === toolUseId &&
-                item.result === undefined,
-            )
-          : [...(chatStreams.itemsByConversation[conv_id] ?? [])]
-              .reverse()
-              .find((item) => item.type === "tool_call" && item.result === undefined);
-        const rolesMayHaveChanged =
-          pendingToolCall?.type === "tool_call" && pendingToolCall.name === "create_role";
-        if (attachApprovedToolResult(conv_id, result, toolUseId)) {
-          if (rolesMayHaveChanged) void loadAvailableRoles();
-          return;
-        }
-        chatStreams.itemsByConversation = {
-          ...chatStreams.itemsByConversation,
-          [conv_id]: attachToolResult(
-            chatStreams.itemsByConversation[conv_id] ?? [],
-            result,
-            toolUseId,
-            mcpUi,
-          ),
-        };
-        if (rolesMayHaveChanged) void loadAvailableRoles();
-        persistStreamDraft(conv_id).catch(() => {});
+      set agentPlugins(next) {
+        agentPlugins = next;
       },
-      onFileChange: (conv_id, change) => {
-        const existing = liveFileChangesPerConv[conv_id] ?? [];
-        if (existing.some((item) => item.id === change.id)) return;
-        liveFileChangesPerConv = {
-          ...liveFileChangesPerConv,
-          [conv_id]: [...existing, change],
-        };
+      get showMainDebugComponents() {
+        return showMainDebugComponents;
       },
-      onCheckpoint: (conv_id, checkpoint_id, branch_id) => {
-        pendingCheckpointIds = { ...pendingCheckpointIds, [conv_id]: checkpoint_id };
-        // During a batch approval, retain only the newest durable tip. Each
-        // intermediate checkpoint is valid, but hydrating it would replace the
-        // optimistic cards that are still waiting in the approval queue.
-        if (!approvalResumeQueues.has(conv_id)) {
-          void refreshLiveCheckpointTip(conv_id, checkpoint_id, branch_id);
-        } else {
-          deferredApprovalCheckpointIds.set(conv_id, {
-            checkpointId: checkpoint_id,
-            branchId: branch_id === undefined ? (activeBranchIds[conv_id] ?? null) : branch_id,
-          });
-        }
-        const location = findConversationLocation(conv_id);
-        const visibleMessages = location?.conversations[location.index].messages;
-        if (
-          visibleMessages &&
-          !visibleMessages.some((message) => message.role === "user") &&
-          !pendingExternalUserRecoveries.has(conv_id)
-        ) {
-          pendingExternalUserRecoveries.add(conv_id);
-          void loadMessagesForConv(conv_id, false, true).finally(() => {
-            pendingExternalUserRecoveries.delete(conv_id);
-          });
-        }
+      set showMainDebugComponents(next) {
+        showMainDebugComponents = next;
       },
-      onRetry: (conv_id, attempt, maxAttempts, model, error, restoredCheckpoint) => {
-        chatStreams.clearAwaitingOutput(conv_id);
-        const items = chatStreams.itemsByConversation[conv_id] ?? [];
-        const previousAttempts = items.filter((item) => item.type === "retry");
-        // A completed compaction divider describes the reply, not the failed
-        // attempt that follows it. Keep it outside the attempt bundle so the
-        // retry record cannot hide a boundary that already happened.
-        const compactionBoundaries = items.filter((item) => item.type === "compaction_boundary");
-        const failedAttemptItems = items.filter(
-          (item) => item.type !== "retry" && item.type !== "compaction_boundary",
-        );
-        chatStreams.itemsByConversation = {
-          ...chatStreams.itemsByConversation,
-          [conv_id]: [
-            ...previousAttempts,
-            ...compactionBoundaries,
-            {
-              type: "retry",
-              items: failedAttemptItems,
-              attempt: attempt - 1,
-              maxAttempts,
-              model,
-              error,
-            },
-          ],
-        };
-        const { [conv_id]: _ck, ...restCk } = pendingCheckpointIds;
-        pendingCheckpointIds = restCk;
-        if (!restoredCheckpoint && conv_id in liveFileChangesPerConv) {
-          clearLiveFileChanges(conv_id);
-        }
-        discardPersistedStreamDraft(conv_id);
+      get newConversationSuggestions() {
+        return newConversationSuggestions;
       },
-      onCompactionProgress: (convId, stage, error) => {
-        const revision = (compactionProgressRevisions.get(convId) ?? 0) + 1;
-        compactionProgressRevisions.set(convId, revision);
-        const wasStreaming = !!chatStreams.streamingConversationIds[convId];
-        const previousItems = chatStreams.itemsByConversation[convId] ?? [];
-        if (!wasStreaming && stage !== "done" && stage !== "skipped") {
-          compactionOnlyConvIds.add(convId);
-          chatStreams.streamingConversationIds = {
-            ...chatStreams.streamingConversationIds,
-            [convId]: true,
-          };
-          chatStreams.assistantMessageIds = {
-            ...chatStreams.assistantMessageIds,
-            [convId]: crypto.randomUUID(),
-          };
-        }
-
-        if (stage === "done") {
-          // Keep the completion divider exactly where the transient progress
-          // record stood. The durable replay is filtered while its continuation
-          // still streams, so clearing progress here would leave the turn
-          // without a boundary until its terminal checkpoint reconciles. A
-          // compaction-only row keeps the same divider until that cleanup.
-          if (convId in chatStreams.itemsByConversation) {
-            chatStreams.itemsByConversation = {
-              ...chatStreams.itemsByConversation,
-              [convId]: completeCompactionProgress(previousItems),
-            };
-          }
-          void reconcileCompletedCompaction(convId, revision);
-          return;
-        }
-
-        chatStreams.itemsByConversation = {
-          ...chatStreams.itemsByConversation,
-          [convId]: appendCompactionProgress(previousItems, stage, error),
-        };
-
-        if (stage === "skipped") {
-          finishCompactionProgress(convId, revision);
-          return;
-        }
-        if (stage === "failed") {
-          finishCompactionProgress(convId, revision, 1600);
-          return;
-        }
+      set newConversationSuggestions(next) {
+        newConversationSuggestions = next;
       },
-      onDone: (conv_id, asstMsgId, error, turnId) => {
-        if (
-          finalizeStreamedMessage(conv_id, error ? "failed" : "completed", asstMsgId, turnId, error)
-        ) {
-          interruptTerminalHandoffs.release(conv_id);
-        }
+      get launchContext() {
+        return launchContext;
       },
-      onFollowUpSuggestions: (convId, assistantMessageId, suggestions) => {
-        const normalized = normalizeSuggestions(suggestions);
-        if (!convId || !assistantMessageId || normalized.length !== 3) return;
-        followUpSuggestionsByMessageId = {
-          ...followUpSuggestionsByMessageId,
-          [assistantMessageId]: normalized,
-        };
+      get roleController() {
+        return roleController;
       },
-      onNewConversationSuggestions: (suggestionWorkspace, language, suggestions) => {
-        const normalized = normalizeSuggestions(suggestions);
-        if (normalized.length !== 3) return;
-        if (
-          (suggestionWorkspace || "") === (workspacePath || "") &&
-          language === (config?.language ?? "zh")
-        ) {
-          newConversationSuggestions = normalized;
-        }
+      get defaultRoleKey() {
+        return defaultRoleKey;
       },
-      onInterrupted: (conv_id, _requestId, asstMsgId, turnId) => {
-        if (finalizeStreamedMessage(conv_id, "interrupted", asstMsgId, turnId)) {
-          interruptTerminalHandoffs.release(conv_id);
-        }
-        // The live `chat-user-input-request` event has already attached the
-        // next approval to its tool card. Do not re-project the complete
-        // checkpoint here: replacing the conversation while the user clicks
-        // through approvals causes a visible flash. Checkpoint loading remains
-        // the recovery path when opening a conversation or restoring a view.
+      get settingsRequests() {
+        return settingsRequests;
       },
-      onCancelled: (conv_id, asstMsgId, turnId) => {
-        if (finalizeStreamedMessage(conv_id, "cancelled", asstMsgId, turnId)) {
-          interruptTerminalHandoffs.release(conv_id);
-        }
+      get conversations() {
+        return conversations;
       },
+      set conversations(next) {
+        conversations = next;
+      },
+      get loadedConvIds() {
+        return loadedConvIds;
+      },
+      get chatStreams() {
+        return chatStreams;
+      },
+      get compactionOnlyConvIds() {
+        return compactionOnlyConvIds;
+      },
+      get compactionProgressRevisions() {
+        return compactionProgressRevisions;
+      },
+      get activeConvId() {
+        return activeConvId;
+      },
+      set activeConvId(next) {
+        activeConvId = next;
+      },
+      get selectedComposerDraftKey() {
+        return selectedComposerDraftKey;
+      },
+      set selectedComposerDraftKey(next) {
+        selectedComposerDraftKey = next;
+      },
+      get composerDrafts() {
+        return composerDrafts;
+      },
+      get activeComposerDraft() {
+        return activeComposerDraft;
+      },
+      set activeComposerDraft(next) {
+        activeComposerDraft = next;
+      },
+      get activeBranchIds() {
+        return activeBranchIds;
+      },
+      set activeBranchIds(next) {
+        activeBranchIds = next;
+      },
+      get pendingUserInputs() {
+        return pendingUserInputs;
+      },
+      set pendingUserInputs(next) {
+        pendingUserInputs = next;
+      },
+      get mermaidConfig() {
+        return mermaidConfig;
+      },
+      get liveContextUsageByConversation() {
+        return liveContextUsageByConversation;
+      },
+      set liveContextUsageByConversation(next) {
+        liveContextUsageByConversation = next;
+      },
+      get liveFileChangesPerConv() {
+        return liveFileChangesPerConv;
+      },
+      set liveFileChangesPerConv(next) {
+        liveFileChangesPerConv = next;
+      },
+      get pendingCheckpointIds() {
+        return pendingCheckpointIds;
+      },
+      set pendingCheckpointIds(next) {
+        pendingCheckpointIds = next;
+      },
+      get approvalResumeQueues() {
+        return approvalResumeQueues;
+      },
+      get deferredApprovalCheckpointIds() {
+        return deferredApprovalCheckpointIds;
+      },
+      get pendingExternalUserRecoveries() {
+        return pendingExternalUserRecoveries;
+      },
+      get interruptTerminalHandoffs() {
+        return interruptTerminalHandoffs;
+      },
+      get followUpSuggestionsByMessageId() {
+        return followUpSuggestionsByMessageId;
+      },
+      set followUpSuggestionsByMessageId(next) {
+        followUpSuggestionsByMessageId = next;
+      },
+      refreshAgentCommands,
+      checkAgentPluginUpdates,
+      applyStartupBootstrap,
+      routeWorkspace,
+      activateNewConversationSurface,
+      revealMemorySource,
+      handleWindowFocusEvent,
+      applyTheme,
+      loadNewConversationSuggestions,
+      loadAvailableRoles,
+      openHookConversation,
+      applyConversationTitleUpdate,
+      cacheRestoreSurface,
+      attachPendingUserInputToMessages,
+      persistStreamDraft,
+      applyLiveCheckpointFlow,
+      applyExternalChatRunStarted,
+      recoverUnannouncedChatStream,
+      applyStreamMutation,
+      attachApprovedToolResult,
+      refreshLiveCheckpointTip,
+      findConversationLocation,
+      loadMessagesForConv,
+      clearLiveFileChanges,
+      discardPersistedStreamDraft,
+      reconcileCompletedCompaction,
+      finishCompactionProgress,
+      finalizeStreamedMessage,
+      normalizeSuggestions,
     });
-    await Promise.all([...registrations, chatEventRegistration]);
   }
 
   // Insert a freshly-finalized turn into the tree, then update the active path so the
@@ -3982,10 +2747,12 @@
     writeStartupRestoreHint({ workspace, surface, conversationId });
   }
 
-  async function activateNewConversationSurface(roleKey = selectedRoleKey): Promise<void> {
-    const roleChanged = roleKey !== selectedRoleKey;
+  async function activateNewConversationSurface(
+    roleKey = roleController.selectedRoleKey,
+  ): Promise<void> {
+    const roleChanged = roleKey !== roleController.selectedRoleKey;
     if (roleChanged) {
-      selectedRoleKey = roleKey;
+      roleController.selectedRoleKey = roleKey;
       if (typeof window !== "undefined") {
         window.localStorage.setItem(roleSelectionStorageKey(), roleKey);
       }
@@ -4055,8 +2822,8 @@
       conversations.find((conversation) => conversation.id === id) ??
       (await fetchConversationMeta(id).catch(() => null));
     const targetRoleKey = target?.roleId ?? defaultRoleKey;
-    if (targetRoleKey !== selectedRoleKey) {
-      selectedRoleKey = targetRoleKey;
+    if (targetRoleKey !== roleController.selectedRoleKey) {
+      roleController.selectedRoleKey = targetRoleKey;
       if (typeof window !== "undefined") {
         window.localStorage.setItem(roleSelectionStorageKey(), targetRoleKey);
       }
@@ -4155,8 +2922,12 @@
         workspaceConversationSnapshots.set(path, filtered);
       }
     }
-    recentConversations = recentConversations.filter((conversation) => conversation.id !== id);
-    searchConversations = searchConversations.filter((conversation) => conversation.id !== id);
+    conversationLists.recentConversations = conversationLists.recentConversations.filter(
+      (conversation) => conversation.id !== id,
+    );
+    conversationLists.searchConversations = conversationLists.searchConversations.filter(
+      (conversation) => conversation.id !== id,
+    );
     navigationHistory = removeNavigationLocations(
       navigationHistory,
       (location) => location.conversationId === id,
@@ -4240,7 +3011,7 @@
         messages: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        roleId: selectedRoleId ?? undefined,
+        roleId: roleController.selectedRoleId ?? undefined,
       };
       conversations = [conv, ...conversations];
       activeConvId = conv.id;
@@ -4254,7 +3025,7 @@
         title: $t("newConv"),
         workspace: wsPath,
         parentConvId: null,
-        roleId: selectedRoleId,
+        roleId: roleController.selectedRoleId,
       };
     }
 
@@ -4732,289 +3503,119 @@
 
   // ─── Workspace ────────────────────────────────────────────────────────────────
 
-  type PreparedWorkspaceSwitch = {
-    activeConversation: StartupConversationBundle | null;
-    activeConversationTree?: ConvTree;
-    activeBranchId: string | null;
-    activeConversationId: string | null;
-    conversations: Conversation[];
-    conversationNextCursor: ConversationPageCursor | null;
-    pendingUserInput?: UserInputRequest;
-    roles: AgentRole[];
-    selectedRoleKey: string;
-    newConversationSuggestions: string[];
-  };
-
-  async function prepareWorkspaceSwitch(
-    path: string,
-    preferredConversationId?: string,
-    restoreActiveConversation = true,
-  ): Promise<PreparedWorkspaceSwitch> {
-    if (!tauriAvailable) {
-      return {
-        activeConversation: null,
-        activeConversationTree: undefined,
-        activeBranchId: null,
-        activeConversationId: null,
-        conversations: [],
-        conversationNextCursor: null,
-        pendingUserInput: undefined,
-        roles: [],
-        selectedRoleKey: defaultRoleKey,
-        newConversationSuggestions: [],
-      };
-    }
-    const [roles, durableActiveId, preparedNewConversationSuggestions] = await Promise.all([
-      loadAvailableRolesForWorkspace(path),
-      restoreActiveConversation
-        ? openAgent.invokeProduct("get_active_conv_id", { workspace: path || "" }).catch(() => null)
-        : Promise.resolve(null),
-      loadNewConversationSuggestions(path, config?.language ?? "zh"),
-    ]);
-    let activeConversationId = preferredConversationId ?? durableActiveId;
-    let activeMeta = activeConversationId
-      ? await fetchConversationMeta(activeConversationId).catch(() => null)
-      : null;
-    if (activeMeta?.workspace && activeMeta.workspace !== path) activeMeta = null;
-    if (!activeMeta) activeConversationId = null;
-
-    const requestedRoleKey = activeMeta?.roleId ?? storedRoleSelection(path);
-    const selectedRoleKey =
-      requestedRoleKey === defaultRoleKey || roles.some((role) => role.id === requestedRoleKey)
-        ? requestedRoleKey
-        : defaultRoleKey;
-    const page = await fetchConversationPage(
-      path || null,
-      null,
-      30,
-      null,
-      true,
-      selectedRoleKey === defaultRoleKey ? null : selectedRoleKey,
-    );
-
-    const lineage: Conversation[] = [];
-    const visited = new Set<string>();
-    let current = activeMeta;
-    while (current && !visited.has(current.id)) {
-      visited.add(current.id);
-      lineage.push(current);
-      if (!current.parentConvId) break;
-      current = await fetchConversationMeta(current.parentConvId).catch(() => null);
-      if (current?.workspace && current.workspace !== path) current = null;
-    }
-
-    const activeConversation = activeConversationId
-      ? await Promise.all([
-          fetchRenderableCheckpoints(activeConversationId),
-          openAgent
-            .invokeProduct("get_active_branch_tip", { convId: activeConversationId })
-            .catch(() => null),
-          openAgent
-            .invokeProduct("get_branches", {
-              convId: activeConversationId,
-            })
-            .catch(() => []),
-          fetchFileChanges(activeConversationId),
-        ]).then(([checkpoints, activeBranchTip, branches, fileChanges]) => ({
-          checkpoints,
-          active_branch_tip: activeBranchTip,
-          branches,
-          file_changes: fileChanges,
-        }))
-      : null;
-
-    let preparedConversations = prepareWorkspaceConversationSnapshot(
-      mergeConversationMetadata(page.conversations, lineage),
-      workspaceConversationSnapshots.get(path) ?? [],
-      activeConversationId,
-      null,
-    );
-    let activeConversationTree: ConvTree | undefined;
-    let activeBranchId: string | null = null;
-    let pendingUserInput: UserInputRequest | undefined;
-    if (activeConversationId && activeConversation) {
-      mergeDurableFollowUpSuggestions(activeConversation.checkpoints);
-      let tree = buildTreeFromCheckpoints(
-        activeConversation.checkpoints,
-        convTrees[activeConversationId],
-      );
-      if (activeConversation.active_branch_tip) {
-        tree = selectActivePathToCheckpoint(tree, activeConversation.active_branch_tip);
-        activeBranchId =
-          activeConversation.branches.find(
-            (branch) => branch.head_checkpoint_id === activeConversation.active_branch_tip,
-          )?.id ?? null;
-      }
-      const pendingProjection = restorePendingUserInputFromCheckpoint(
-        activeConversationId,
-        computeActivePath(tree),
-        activeConversation.checkpoints,
-      );
-      pendingUserInput = pendingProjection.pendingRequest;
-      const cachedMessages =
-        workspaceConversationSnapshots
-          .get(path)
-          ?.find((conversation) => conversation.id === activeConversationId)?.messages ?? [];
-      const hydratedMessages = chatStreams.streamingConversationIds[activeConversationId]
-        ? preserveStreamingMessagesDuringHydration(
-            cachedMessages,
-            pendingProjection.messages,
-            pendingForkUserMessageIds[activeConversationId],
-          )
-        : pendingProjection.messages;
-      preparedConversations = prepareWorkspaceConversationSnapshot(
-        preparedConversations,
-        [],
-        activeConversationId,
-        hydratedMessages,
-      );
-      activeConversationTree = tree;
-    }
-
-    return {
-      activeConversation,
-      activeConversationTree,
-      activeBranchId,
-      activeConversationId,
-      conversations: preparedConversations,
-      conversationNextCursor: page.nextCursor,
-      pendingUserInput,
-      roles,
-      selectedRoleKey,
-      newConversationSuggestions: preparedNewConversationSuggestions,
-    };
-  }
-
-  async function applyWorkspace(
-    path: string,
-    target: { conversationId?: string; newConversation?: boolean } = {},
-  ): Promise<boolean> {
-    if (path === workspacePath) return true;
-    if (workspaceLoading) return false;
-
-    workspaceSwitchTarget = path;
-    workspaceLoading = true;
-    const previousWorkspacePath = workspacePath;
-    let runtimeWorkspaceChanged = false;
-    let workspaceStateCommitted = false;
-    try {
-      let nextWorkspace: WorkspaceContext = {
-        path,
-        git_branch: null,
-        has_agent_dir: false,
-        environment: { kind: "local" },
-      };
-      if (tauriAvailable) {
-        await openAgent.invokeProduct("set_workspace", { path: path || null });
-        runtimeWorkspaceChanged = true;
-      }
-      const prepared = await prepareWorkspaceSwitch(
-        path,
-        target.conversationId,
-        !target.newConversation,
-      );
-      if (tauriAvailable) {
-        nextWorkspace = (await openAgent.invokeProduct<"get_workspace_context">(
-          "get_workspace_context",
-          {},
-        )) as WorkspaceContext;
-      }
-      // Commit the prepared workspace as one state transition so the mounted
-      // transcript and composer are never replaced by an app-wide loading pass.
-      workspaceConversationSnapshots.set(previousWorkspacePath, conversations);
-      workspacePath = path;
-      workspace = nextWorkspace;
-      agentRoles = prepared.roles;
-      selectedRoleKey = prepared.selectedRoleKey;
-      conversations = prepared.conversations;
-      workspaceConversationSnapshots.set(path, conversations);
-      conversationNextCursor = prepared.conversationNextCursor;
-      searchConversations = [];
-      searchConversationNextCursor = null;
-      conversationSearchGeneration += 1;
-      activeConvId = prepared.activeConversationId;
-      restoringSurface = activeConvId ? "conversation" : "new-conversation";
-      newConversationSuggestions = prepared.newConversationSuggestions;
-      workspaceStateCommitted = true;
-
-      if (activeConvId && prepared.activeConversation) {
-        loadedConvIds.add(activeConvId);
-        if (prepared.activeConversationTree) {
-          convTrees = { ...convTrees, [activeConvId]: prepared.activeConversationTree };
-        }
-        if (prepared.activeBranchId) {
-          activeBranchIds = { ...activeBranchIds, [activeConvId]: prepared.activeBranchId };
-        }
-        if (prepared.pendingUserInput) {
-          pendingUserInputs = { ...pendingUserInputs, [activeConvId]: prepared.pendingUserInput };
-        }
-        fileChangesPerConv = {
-          ...fileChangesPerConv,
-          [activeConvId]: prepared.activeConversation.file_changes,
-        };
-        if (prepared.activeConversationTree) {
-          await syncAgentHistoryToActivePath(activeConvId, prepared.activeConversationTree);
-        }
-        if (activeConvId === target.conversationId) {
-          window.localStorage.setItem(roleSelectionStorageKey(path), selectedRoleKey);
-          await openAgent
-            .invokeProduct("set_active_conversation", {
-              convId: activeConvId,
-              workspace: path || "",
-            })
-            .catch(() => {});
-        }
-        await scrollToBottom();
-      } else if (tauriAvailable) {
-        await openAgent
-          .invokeProduct("set_active_conversation", { convId: null, workspace: path || "" })
-          .catch(() => {});
-      }
-      cacheRestoreSurface(restoringSurface, activeConvId, path);
-      await addToRecentWorkspaces(path);
-      void refreshRecentConversations();
-    } catch (error) {
-      if (runtimeWorkspaceChanged && !workspaceStateCommitted) {
-        await openAgent
-          .invokeProduct("set_workspace", { path: previousWorkspacePath || null })
-          .catch(() => {});
-      }
-      console.warn("Failed to open workspace:", path, error);
-      showToast({
-        title: $t("workspaceUnavailable"),
-        description: path,
-        descriptionFromEnd: true,
-        variant: "error",
-      });
-      return false;
-    } finally {
-      workspaceLoading = false;
-      workspaceSwitchTarget = null;
-    }
-    return true;
-  }
-
-  type WorkspaceRouteResult = "current" | "routed" | "failed";
-
-  async function routeWorkspace(
-    path: string,
-    target: {
-      conversationId?: string;
-      messageId?: string;
-      newConversation?: boolean;
-    } = {},
-  ): Promise<WorkspaceRouteResult> {
-    if (path === workspacePath) return "current";
-    if (!tauriAvailable) return (await applyWorkspace(path, target)) ? "current" : "failed";
-
-    if (await applyWorkspace(path, target)) return "current";
-    return "failed";
-  }
-
-  async function requestWorkspace(path: string) {
-    if (!path || path === workspacePath) return;
-    await routeWorkspace(path);
-  }
+  const workspaceNavigation = createWorkspaceNavigation({
+    get tauriAvailable() {
+      return tauriAvailable;
+    },
+    get config() {
+      return config;
+    },
+    get defaultRoleKey() {
+      return defaultRoleKey;
+    },
+    get workspacePath() {
+      return workspacePath;
+    },
+    set workspacePath(next) {
+      workspacePath = next;
+    },
+    get workspace() {
+      return workspace;
+    },
+    set workspace(next) {
+      workspace = next;
+    },
+    get workspaceLoading() {
+      return workspaceLoading;
+    },
+    set workspaceLoading(next) {
+      workspaceLoading = next;
+    },
+    get workspaceSwitchTarget() {
+      return workspaceSwitchTarget;
+    },
+    set workspaceSwitchTarget(next) {
+      workspaceSwitchTarget = next;
+    },
+    get conversations() {
+      return conversations;
+    },
+    set conversations(next) {
+      conversations = next;
+    },
+    get activeConvId() {
+      return activeConvId;
+    },
+    set activeConvId(next) {
+      activeConvId = next;
+    },
+    get restoringSurface() {
+      return restoringSurface;
+    },
+    set restoringSurface(next) {
+      restoringSurface = next;
+    },
+    get newConversationSuggestions() {
+      return newConversationSuggestions;
+    },
+    set newConversationSuggestions(next) {
+      newConversationSuggestions = next;
+    },
+    get convTrees() {
+      return convTrees;
+    },
+    set convTrees(next) {
+      convTrees = next;
+    },
+    get activeBranchIds() {
+      return activeBranchIds;
+    },
+    set activeBranchIds(next) {
+      activeBranchIds = next;
+    },
+    get pendingUserInputs() {
+      return pendingUserInputs;
+    },
+    set pendingUserInputs(next) {
+      pendingUserInputs = next;
+    },
+    get fileChangesPerConv() {
+      return fileChangesPerConv;
+    },
+    set fileChangesPerConv(next) {
+      fileChangesPerConv = next;
+    },
+    get workspaceConversationSnapshots() {
+      return workspaceConversationSnapshots;
+    },
+    get loadedConvIds() {
+      return loadedConvIds;
+    },
+    get chatStreams() {
+      return chatStreams;
+    },
+    get pendingForkUserMessageIds() {
+      return pendingForkUserMessageIds;
+    },
+    get roleController() {
+      return roleController;
+    },
+    get conversationLists() {
+      return conversationLists;
+    },
+    loadAvailableRolesForWorkspace,
+    loadNewConversationSuggestions,
+    storedRoleSelection,
+    roleSelectionStorageKey,
+    mergeDurableFollowUpSuggestions,
+    syncAgentHistoryToActivePath,
+    scrollToBottom,
+    cacheRestoreSurface,
+    addToRecentWorkspaces,
+    refreshRecentConversations,
+  });
+  const routeWorkspace = workspaceNavigation.routeWorkspace;
+  const requestWorkspace = workspaceNavigation.requestWorkspace;
 
   async function openSidebarConversation(conversation: Conversation): Promise<void> {
     closeAuxiliarySurfaces();
@@ -5133,87 +3734,6 @@
     if (typeof selected === "string" && selected) {
       await switchNewConversationWorkspace(selected);
     }
-  }
-
-  async function selectWslDistribution(distribution: string) {
-    wslDistribution = distribution;
-    wslPickerError = "";
-    if (!distribution) return;
-    wslPickerBusy = true;
-    try {
-      const target = await invoke<WslWorkspaceTarget>("get_wsl_home", { distribution });
-      if (wslDistribution === distribution) wslLinuxPath = target.linux_path;
-    } catch (error) {
-      if (wslDistribution === distribution) wslPickerError = String(error);
-    } finally {
-      if (wslDistribution === distribution) wslPickerBusy = false;
-    }
-  }
-
-  async function pickWslWorkspace(startNewConversation = false) {
-    if (!tauriAvailable) {
-      alert(browserModeNotice);
-      return;
-    }
-    wslPickerStartsNewConversation = startNewConversation;
-    wslPickerOpen = true;
-    wslPickerBusy = true;
-    wslPickerError = "";
-    wslDistributions = [];
-    wslDistribution = "";
-    wslLinuxPath = "";
-    try {
-      wslDistributions = await invoke<WslDistribution[]>("list_wsl_distributions");
-      if (wslDistributions.length === 0) {
-        wslPickerError = $t("wslNoDistributions");
-        return;
-      }
-      await selectWslDistribution(wslDistributions[0].name);
-    } catch (error) {
-      wslPickerError = String(error);
-    } finally {
-      if (!wslDistribution) wslPickerBusy = false;
-    }
-  }
-
-  async function resolveSelectedWslWorkspace(): Promise<WslWorkspaceTarget | null> {
-    if (!wslDistribution || !wslLinuxPath.trim()) return null;
-    wslPickerBusy = true;
-    wslPickerError = "";
-    try {
-      return await invoke<WslWorkspaceTarget>("resolve_wsl_workspace", {
-        distribution: wslDistribution,
-        linuxPath: wslLinuxPath.trim(),
-      });
-    } catch (error) {
-      wslPickerError = String(error);
-      return null;
-    } finally {
-      wslPickerBusy = false;
-    }
-  }
-
-  async function browseWslWorkspace() {
-    const target = await resolveSelectedWslWorkspace();
-    if (!target) return;
-    const selected = await openDialog({
-      directory: true,
-      multiple: false,
-      defaultPath: target.path,
-    });
-    if (typeof selected === "string" && selected) {
-      wslPickerOpen = false;
-      if (wslPickerStartsNewConversation) await switchNewConversationWorkspace(selected);
-      else await requestWorkspace(selected);
-    }
-  }
-
-  async function openSelectedWslWorkspace() {
-    const target = await resolveSelectedWslWorkspace();
-    if (!target) return;
-    wslPickerOpen = false;
-    if (wslPickerStartsNewConversation) await switchNewConversationWorkspace(target.path);
-    else await requestWorkspace(target.path);
   }
 
   // ─── Settings ────────────────────────────────────────────────────────────────
@@ -5659,7 +4179,9 @@
   {#if isDevInspectorWindow && DevInspector}
     <DevInspector />
   {:else if standaloneDevPreview}
-    <StandaloneDevPreview preview={standaloneDevPreview} />
+    {#if StandaloneDevPreview}
+      <StandaloneDevPreview preview={standaloneDevPreview} />
+    {/if}
   {:else if settingsWindowKind}
     {#if SettingsWindowSurface}
       <SettingsWindowSurface
@@ -5701,22 +4223,22 @@
     <div class="app" aria-busy={workspaceLoading} inert={workspaceLoading}>
       <!-- ─── Sidebar ─────────────────────────────────────────────────────────────── -->
       <DesktopSidebar
-        roles={agentRoles}
-        {selectedRoleKey}
+        roles={roleController.agentRoles}
+        selectedRoleKey={roleController.selectedRoleKey}
         {canGoBack}
         {canGoForward}
         {workspacePath}
         {workspaceSwitchTarget}
         {recentWorkspaces}
         {pinnedProjectPaths}
-        searchQuery={conversationSearchQuery}
+        searchQuery={conversationLists.conversationSearchQuery}
         conversations={sidebarConversations}
-        {recentConversations}
+        recentConversations={conversationLists.recentConversations}
         activeConversationId={activeConvId}
         streamingConversationIds={chatStreams.streamingConversationIds}
         hasMore={sidebarHasMoreConversations}
         loadingMore={sidebarLoadingMoreConversations}
-        {loadingRecentConversations}
+        loadingRecentConversations={conversationLists.loadingRecentConversations}
         loading={initialLoading}
         onRoleChange={changeConversationRole}
         onBack={() => navigateHistory(-1)}
@@ -5744,8 +4266,8 @@
       <DesktopTitleBar
         {workspacePath}
         {recentWorkspaces}
-        roles={agentRoles}
-        {selectedRoleKey}
+        roles={roleController.agentRoles}
+        selectedRoleKey={roleController.selectedRoleKey}
         {tauriAvailable}
         memorySyncing={isMemorySyncing}
         {checkpointFlowPanelCollapsed}
@@ -5853,25 +4375,25 @@
     </FullscreenSurface>
 
     <FullscreenSurface
-      open={roleEditorOpen}
-      title={roleEditorRole ? $t("editRole") : $t("newRole")}
+      open={roleController.roleEditorOpen}
+      title={roleController.roleEditorRole ? $t("editRole") : $t("newRole")}
       onMinimize={winMinimize}
       onMaximize={winMaximize}
       onCloseWindow={winClose}
       onClose={() => {
-        roleEditorOpen = false;
+        roleController.roleEditorOpen = false;
       }}
     >
       <RoleEditorDialog
-        open={roleEditorOpen}
-        role={roleEditorRole}
-        skills={roleEditorSkills}
+        open={roleController.roleEditorOpen}
+        role={roleController.roleEditorRole}
+        skills={roleController.roleEditorSkills}
         mcpServers={config?.mcp.servers ?? []}
-        loadingResources={roleEditorResourcesLoading}
-        saving={roleEditorSaving}
+        loadingResources={roleController.roleEditorResourcesLoading}
+        saving={roleController.roleEditorSaving}
         presentation="window"
         onClose={() => {
-          roleEditorOpen = false;
+          roleController.roleEditorOpen = false;
         }}
         onSave={saveRoleEditor}
         onDelete={deleteRoleEditor}
@@ -5883,12 +4405,12 @@
 </TooltipPrimitive.Provider>
 
 <WorkspaceDialogs
-  bind:wslPickerOpen
-  {wslPickerBusy}
-  bind:wslPickerError
-  {wslDistributions}
-  bind:wslDistribution
-  bind:wslLinuxPath
+  bind:wslPickerOpen={wslPicker.wslPickerOpen}
+  wslPickerBusy={wslPicker.wslPickerBusy}
+  bind:wslPickerError={wslPicker.wslPickerError}
+  wslDistributions={wslPicker.wslDistributions}
+  bind:wslDistribution={wslPicker.wslDistribution}
+  bind:wslLinuxPath={wslPicker.wslLinuxPath}
   onSelectDistribution={selectWslDistribution}
   onBrowseWsl={browseWslWorkspace}
   onOpenWsl={openSelectedWslWorkspace}

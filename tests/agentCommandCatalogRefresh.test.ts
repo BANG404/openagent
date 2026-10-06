@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 
 const pageRuntime = readFileSync("src/routes/PageRuntime.svelte", "utf8");
 const remoteRoute = readFileSync("src/routes/remote/+page.svelte", "utf8");
+const startup = readFileSync("src/lib/page/startup.ts", "utf8");
+const surfaceEvents = readFileSync("src/lib/page/events/surfaceEvents.ts", "utf8");
 
 describe("agent command catalog refresh", () => {
   test("reads the Runtime catalog through one refresh helper", () => {
@@ -12,16 +14,19 @@ describe("agent command catalog refresh", () => {
   });
 
   test("refreshes at every settings and plugin lifecycle change", () => {
-    const callSites = pageRuntime.match(/void refreshAgentCommands\(\);/g) ?? [];
+    const callSites =
+      [pageRuntime, startup, surfaceEvents]
+        .join("\n")
+        .match(/void (?:options\.)?refreshAgentCommands\(\);/g) ?? [];
     // Startup plus the settings-changed, agent-plugins-changed, and settings
     // save paths. A disabled plugin must leave the composer palette without an
     // application restart.
     expect(callSites.length).toBeGreaterThanOrEqual(4);
-    expect(pageRuntime).toMatch(
-      /register\("agent-plugins-changed", \(\) => \{\s*\n\s*void refreshAgentCommands\(\);/,
+    expect(surfaceEvents).toMatch(
+      /register\("agent-plugins-changed", \(\) => \{\s*\n\s*void options\.refreshAgentCommands\(\);/,
     );
-    expect(pageRuntime).toMatch(
-      /register\("settings-changed", \(\) => \{[\s\S]*?void refreshAgentCommands\(\);/,
+    expect(surfaceEvents).toMatch(
+      /register\("settings-changed", \(\) => \{[\s\S]*?void options\.refreshAgentCommands\(\);/,
     );
     expect(pageRuntime).toMatch(
       /async function saveSettings\([\s\S]*?void refreshAgentCommands\(\);/,

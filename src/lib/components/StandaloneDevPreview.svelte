@@ -35,14 +35,16 @@
     WslDistribution,
   } from "$lib/types";
 
-  import AgentBookReader, { type AgentBookTurn } from "$lib/components/AgentBookReader.svelte";
+  import type { AgentBookTurn } from "$lib/components/AgentBookReader.svelte";
+  let BookReader = $state<typeof import("./AgentBookReader.svelte").default | null>(null);
   import BackgroundTerminalToggleButton from "$lib/components/BackgroundTerminalToggleButton.svelte";
   import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
   import CheckpointFlowToggleButton from "$lib/components/CheckpointFlowToggleButton.svelte";
   import CompactionStatus from "$lib/components/CompactionStatus.svelte";
   import DesktopShellPreview from "$lib/components/DesktopShellPreview.svelte";
   import FollowUpSuggestions from "$lib/components/FollowUpSuggestions.svelte";
-  import MessageInput, { type SlashCommand } from "$lib/components/MessageInput.svelte";
+  import MessageInput from "$lib/components/MessageInput.svelte";
+  import type { SlashCommand } from "$lib/composer/types";
   import MessageDivider from "$lib/components/MessageDivider.svelte";
   import MessageList from "$lib/components/MessageList.svelte";
   import MediaSourcePreview from "$lib/components/MediaSourcePreview.svelte";
@@ -980,6 +982,11 @@
   }
 
   onMount(() => {
+    if (preview === "book-mode") {
+      void import("./AgentBookReader.svelte").then((module) => {
+        BookReader = module.default;
+      });
+    }
     applyDocumentTheme(theme);
     void initI18n(locale);
     panelWidth = Math.min(
@@ -1158,16 +1165,18 @@
     </section>
   </main>
 {:else if preview === "book-mode"}
-  <AgentBookReader
-    turns={bookTurns}
-    activeKey="book-preview-one"
-    shikiTheme={theme === "dark" ? "github-dark" : "github-light"}
-    mermaidConfig={mermaidConfigFor(theme === "dark")}
-    fontSize={17}
-    onClose={() => {}}
-    onSubmitUserInput={() => {}}
-    onCancelUserInput={() => {}}
-  />
+  {#if BookReader}
+    <BookReader
+      turns={bookTurns}
+      activeKey="book-preview-one"
+      shikiTheme={theme === "dark" ? "github-dark" : "github-light"}
+      mermaidConfig={mermaidConfigFor(theme === "dark")}
+      fontSize={17}
+      onClose={() => {}}
+      onSubmitUserInput={() => {}}
+      onCancelUserInput={() => {}}
+    />
+  {/if}
 {:else if preview === "media-sources"}
   <MediaSourcePreview {locale} />
 {:else if preview === "permission-settings"}

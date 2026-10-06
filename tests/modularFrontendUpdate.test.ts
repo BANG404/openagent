@@ -1,10 +1,11 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
+import { hostRustSource } from "./sourceSurfaces";
 
 const updater = readFileSync("src/lib/appUpdater.ts", "utf8");
 const route = readFileSync("src/routes/PageRuntime.svelte", "utf8");
 const clientHooks = readFileSync("src/hooks.client.ts", "utf8");
-const host = readFileSync("src-tauri/src/lib.rs", "utf8");
+const host = hostRustSource();
 const hostResources = readFileSync("src-tauri/src/frontend_resource.rs", "utf8");
 
 test("production update checks stage and activate a verified frontend resource", () => {

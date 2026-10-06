@@ -107,19 +107,26 @@ describe("desktop command boundary", () => {
   test("routes Agent Plugin asset reads through the Runtime product dispatcher", () => {
     const contracts = readFileSync("sdk/typescript/src/contracts.ts", "utf8");
     const gateway = readFileSync(
-      "sdk/rust/openagent-runtime/src/commands/remote_gateway.rs",
+      "sdk/rust/openagent-runtime/src/commands/remote_gateway/desktop_operations.rs",
       "utf8",
     );
 
     expect(contracts).toContain('"read_agent_plugin_asset"');
     expect(gateway).toContain('"read_agent_plugin_asset" =>');
-    expect(gateway).toContain("super::read_agent_plugin_asset(runtime_state, plugin_id, entry)");
+    expect(gateway).toContain(
+      "crate::commands::read_agent_plugin_asset(runtime_state, plugin_id, entry)",
+    );
   });
 
   test("registers product capabilities through the Agent Plugin descriptor", () => {
-    const plugins = readFileSync("sdk/rust/openagent-runtime/src/agent_plugins.rs", "utf8");
+    const plugins = [
+      "sdk/rust/openagent-runtime/src/agent_plugins.rs",
+      "sdk/rust/openagent-runtime/src/agent_plugins/builtins.rs",
+    ]
+      .map((path) => readFileSync(path, "utf8"))
+      .join("\n");
     const protocol = readFileSync("sdk/rust/openagent-protocol/src/lib.rs", "utf8");
-    const settings = readFileSync("src/lib/components/SettingsViewTabsPrimary.svelte", "utf8");
+    const settings = readFileSync("src/lib/components/settings/SettingsPluginsTab.svelte", "utf8");
 
     // Product package ids remain one shared compatibility catalog, but domain
     // packages must not be registered as Runtime implementations. Goal,
@@ -133,14 +140,14 @@ describe("desktop command boundary", () => {
     expect(plugins).toContain("id: MULTI_AGENT_V2_ID,");
     expect(plugins).toContain("legacy_enabled: multi_agent_v2_legacy_enabled,");
     expect(protocol).toContain("pub plugin_id: Option<String>");
-    expect(settings).toContain("{#each view.agentPlugins as plugin (plugin.id)}");
+    expect(settings).toContain("{#each plugins.agentPlugins as plugin (plugin.id)}");
     expect(settings).not.toContain('value="cua-driver" class="application-settings-surface');
   });
 
   test("resolves native open paths through the active desktop Runtime mode", () => {
-    const host = readFileSync("src-tauri/src/lib.rs", "utf8");
+    const host = readFileSync("src-tauri/src/native_commands.rs", "utf8");
     const start = host.indexOf("async fn resolve_desktop_open_path");
-    const end = host.indexOf("async fn read_workspace_text_snippet", start);
+    const end = host.indexOf("async fn read_text_file", start);
     const openPathBoundary = host.slice(start, end);
 
     expect(start).toBeGreaterThanOrEqual(0);

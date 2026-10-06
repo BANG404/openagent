@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
+import { hostRustSource } from "./sourceSurfaces";
 
 const windowControlsUrl = new URL("../src/lib/components/WindowControls.svelte", import.meta.url);
 const onboardingFlowUrl = new URL("../src/lib/components/OnboardingFlow.svelte", import.meta.url);
-const desktopHostUrl = new URL("../src-tauri/src/lib.rs", import.meta.url);
 
 describe("Windows window controls", () => {
   test("follow the title-bar height and native outer-corner state", async () => {
@@ -37,7 +37,7 @@ describe("Windows window controls", () => {
     const [controls, onboarding, host] = await Promise.all([
       readFile(windowControlsUrl, "utf8"),
       readFile(onboardingFlowUrl, "utf8"),
-      readFile(desktopHostUrl, "utf8"),
+      hostRustSource(),
     ]);
 
     expect(controls).toContain("canMaximize = true");

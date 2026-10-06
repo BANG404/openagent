@@ -1,3 +1,4 @@
+import { transcriptSource } from "./sourceSurfaces";
 import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 
@@ -9,7 +10,6 @@ const processRecordGroupUrl = new URL(
   "../src/lib/components/ProcessRecordGroup.svelte",
   import.meta.url,
 );
-const messageListUrl = new URL("../src/lib/components/MessageList.svelte", import.meta.url);
 const transcriptListUrl = new URL("../src/lib/components/TranscriptList.svelte", import.meta.url);
 const agentBookReaderUrl = new URL("../src/lib/components/AgentBookReader.svelte", import.meta.url);
 
@@ -27,7 +27,7 @@ describe("process record group", () => {
 
   test("mounts the process disclosure only for completed assistant turns", async () => {
     const [source, bookSource] = await Promise.all([
-      readSource(messageListUrl),
+      transcriptSource(),
       readSource(agentBookReaderUrl),
     ]);
 
@@ -38,7 +38,7 @@ describe("process record group", () => {
   test("keeps completed process records collapsed by default", async () => {
     const [groupSource, messageSource] = await Promise.all([
       readSource(processRecordGroupUrl),
-      readSource(messageListUrl),
+      transcriptSource(),
     ]);
 
     expect(groupSource).toContain("let open = $state(false)");
@@ -53,7 +53,7 @@ describe("process record group", () => {
   test("keeps final rich output mounted while completion reveals the process disclosure", async () => {
     const [groupSource, messageSource] = await Promise.all([
       readSource(processRecordGroupUrl),
-      readSource(messageListUrl),
+      transcriptSource(),
     ]);
 
     expect(groupSource).toContain("{#if grouped}");
@@ -92,7 +92,7 @@ describe("process record group", () => {
   test("keeps every fully mounted transcript row visible", async () => {
     const [source, messageSource] = await Promise.all([
       readSource(transcriptListUrl),
-      readSource(messageListUrl),
+      transcriptSource(),
     ]);
 
     expect(source).toMatch(

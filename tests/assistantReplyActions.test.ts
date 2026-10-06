@@ -1,11 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { readFile } from "node:fs/promises";
-
-const messageListUrl = new URL("../src/lib/components/MessageList.svelte", import.meta.url);
+import { transcriptSource } from "./sourceSurfaces";
 
 describe("assistant reply actions", () => {
   test("renders actions for completed turns while a later turn streams", async () => {
-    const source = await readFile(messageListUrl, "utf8");
+    const source = await transcriptSource();
 
     expect(source).toMatch(
       /turnStatus\s*=\s*assistantTurnStatus\(turnMessages, assistantIsStreaming\).*turnIsTerminal\s*=\s*\["completed", "cancelled", "failed"\]\.includes\(turnStatus\)/s,

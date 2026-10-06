@@ -6,12 +6,12 @@ is never loaded as a replaceable dynamic library.
 
 ## Supported boundaries
 
-| Surface                        | Development                                      | Published delivery                                                                          | Activation                                                |
-| ------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| Frontend                       | Vite HMR through `bun tauri dev`                 | Signed `frontend-beta`, `frontend-rc`, or `frontend-stable` resource                        | Confirmed WebView reload with rollback                    |
-| Desktop Runtime sidecar       | Rebuild and restart `openagent-server`           | Signed Runtime channel or versioned SDK release binaries plus `openagent-sdk-manifest.json` | Supervised drain, restart, probe, reconnect, and rollback |
-| Cua Driver                     | Installed Agent Plugin package                  | GitHub `openagent-cua-driver` release archive with published SHA-256 digest                | Activate through the normal plugin updater               |
-| Desktop native shell           | Tauri rebuild/restart                            | Signed installer and Tauri updater                                                          | Application restart                                       |
+| Surface                 | Development                            | Published delivery                                                                          | Activation                                                |
+| ----------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Frontend                | Vite HMR through `bun tauri dev`       | Signed `frontend-beta`, `frontend-rc`, or `frontend-stable` resource                        | Confirmed WebView reload with rollback                    |
+| Desktop Runtime sidecar | Rebuild and restart `openagent-server` | Signed Runtime channel or versioned SDK release binaries plus `openagent-sdk-manifest.json` | Supervised drain, restart, probe, reconnect, and rollback |
+| Cua Driver              | Installed Agent Plugin package         | GitHub `openagent-cua-driver` release archive with published SHA-256 digest                 | Activate through the normal plugin updater                |
+| Desktop native shell    | Tauri rebuild/restart                  | Signed installer and Tauri updater                                                          | Application restart                                       |
 
 The standalone SDK release is independent from the desktop release. Updating a
 Runtime sidecar therefore does not require rebuilding the native shell. The
@@ -82,6 +82,14 @@ errors. Both rolling log families retain at most 15 files; multiple desktop host
 processes may append to the same host file for a given day.
 
 ## Desktop Runtime boundary
+
+The host's `component_updates/` module owns activation coordination.
+`barrier.rs` acquires and releases the single graceful write barrier;
+`runtime.rs` keeps candidate validation, replacement, reconnect, and rollback in
+one transaction; `frontend.rs` owns resource navigation, confirmation, and its
+deadline. `sources.rs` owns channel resource sources and `versions.rs` projects
+release identities. Shell preparation stays in `desktop_exit.rs` and acquires
+the same barrier before its shared bounded teardown.
 
 Release Runtime bootstrap synchronizes compatible installed plugin subscriptions
 before mounting package processes when the Runtime version changes. Plugin
@@ -158,9 +166,9 @@ proxied WebView requests to `/api`, and re-emits Runtime messages through the
 existing desktop event names. A lagged or disconnected stream stops delivery;
 the frontend restores a fresh durable startup snapshot before restarting it.
 Every supervised desktop launch explicitly enables this product surface with
-  `--desktop-api`. The resulting server exposes the typed desktop `/api/desktop/*`
-  surface on the same process; browser Cookie/CSRF sessions continue to use the
-  separate Remote Gateway surface.
+`--desktop-api`. The resulting server exposes the typed desktop `/api/desktop/*`
+surface on the same process; browser Cookie/CSRF sessions continue to use the
+separate Remote Gateway surface.
 Runtime-generated media and HTML URLs are rewritten to the private
 `openagent-runtime` protocol. Rust adds authentication and permits only bounded
 GET/HEAD asset routes, including byte ranges for media; the Bearer token never
@@ -222,7 +230,7 @@ release advances `package.json` in lockstep with the shell.
 
 Treat application SemVer as an update identity, never as a compatibility
 contract. Each replaceable component declares protocol ranges for every live
-  edge it consumes: Runtime manifests cover the shell/Runtime
+edge it consumes: Runtime manifests cover the shell/Runtime
 transport, while frontend manifest schema 2 names both `compatibility.shell`
 and `compatibility.runtime`. The shell accepts a candidate only when its own
 protocol values fall inside every declared range. A frontend-shell contract

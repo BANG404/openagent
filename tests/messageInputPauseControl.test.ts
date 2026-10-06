@@ -17,7 +17,7 @@ describe("stream pause control", () => {
   test("resumes a paused stream after queuing a follow-up", async () => {
     const [desktop, remote, previews] = await Promise.all([
       Bun.file(new URL("../src/routes/PageRuntime.svelte", import.meta.url)).text(),
-      Bun.file(new URL("../src/routes/remote/+page.svelte", import.meta.url)).text(),
+      Bun.file(new URL("../src/lib/remote/execution.svelte.ts", import.meta.url)).text(),
       Bun.file(new URL("../src/lib/devPreview.ts", import.meta.url)).text(),
     ]);
 
@@ -42,28 +42,32 @@ describe("stream pause control", () => {
   });
 
   test("gates re-projection behind IME composition", async () => {
-    const source = await Bun.file(
-      new URL("../src/lib/components/MessageInput.svelte", import.meta.url),
-    ).text();
+    const [source, editor] = await Promise.all([
+      Bun.file(new URL("../src/lib/components/MessageInput.svelte", import.meta.url)).text(),
+      Bun.file(new URL("../src/lib/composer/editor.svelte.ts", import.meta.url)).text(),
+    ]);
 
-    expect(source).toMatch(
+    expect(editor).toMatch(
       /if \(!editorEl \|\| composing \|\| nextValue === lastProjected\) return;/,
     );
-    expect(source).toContain("oncompositionstart={handleCompositionStart}");
-    expect(source).toContain("oncompositionend={handleCompositionEnd}");
-    expect(source).toMatch(
+    expect(source).toContain("oncompositionstart={editorController.handleCompositionStart}");
+    expect(source).toContain("oncompositionend={editorController.handleCompositionEnd}");
+    expect(editor).toMatch(
       /function handleBeforeInput\(event: InputEvent\) \{\s+if \(composing\) return;/,
     );
   });
 
   test("replaces a selected range on backward deletion and hides the placeholder during IME", async () => {
-    const source = await Bun.file(
-      new URL("../src/lib/components/MessageInput.svelte", import.meta.url),
-    ).text();
+    const [source, editor] = await Promise.all([
+      Bun.file(new URL("../src/lib/components/MessageInput.svelte", import.meta.url)).text(),
+      Bun.file(new URL("../src/lib/composer/editor.svelte.ts", import.meta.url)).text(),
+    ]);
 
-    expect(source).toMatch(
+    expect(editor).toMatch(
       /case "deleteContentBackward":\s+if \(start !== end\) \{\s+replace\(start, end, ""\);/s,
     );
-    expect(source).toContain("class:input-editor-empty={value.length === 0 && !composing}");
+    expect(source).toContain(
+      "class:input-editor-empty={value.length === 0 && !editorController.composing}",
+    );
   });
 });

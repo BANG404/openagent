@@ -1,0 +1,69 @@
+[scenario]
+name = "canonical composer edits and IME in the native WebView"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "selection, history, Markdown, clipboard and IME remain coordinated"
+action = "eval"
+script = '''(async () => {
+  const editor = document.querySelector('[contenteditable="true"]');
+  if (!(editor instanceof HTMLElement)) throw new Error('composer missing');
+  const settle = () => new Promise(resolve => requestAnimationFrame(resolve));
+  const assert = (condition, description) => { if (!condition) throw new Error(description); };
+  const key = (key, extra = {}) => editor.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...extra }));
+  const input = (inputType, data = null) => editor.dispatchEvent(new InputEvent('beforeinput', { inputType, data, bubbles: true, cancelable: true }));
+  const select = () => {
+    editor.focus();
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  };
+  const fill = async text => { select(); input(text ? 'insertText' : 'deleteContentBackward', text || null); await settle(); };
+  const visible = () => editor.textContent.trim();
+  await fill('alpha');
+  input('insertText', ' beta');
+  await settle();
+  assert(visible() === 'alpha beta', 'typing lost the canonical text');
+  key('z', { ctrlKey: true });
+  await settle();
+  assert(visible() === 'alpha', 'Undo did not restore the preceding edit');
+  key('z', { ctrlKey: true, shiftKey: true });
+  await settle();
+  assert(visible() === 'alpha beta', 'Redo did not restore the edit');
+  select(); input('deleteContentBackward'); await settle();
+  assert(visible() === '', 'Backspace did not delete the selected range');
+  await fill('bold'); select(); key('b', { ctrlKey: true }); await settle();
+  assert(editor.querySelector('strong')?.textContent === 'bold', 'Markdown formatting lost its DOM projection');
+  key('z', { ctrlKey: true }); await settle();
+  assert(!editor.querySelector('strong') && visible() === 'bold', 'Undo did not restore unformatted text');
+  await fill('copy'); select();
+  const clipboard = new DataTransfer();
+  editor.dispatchEvent(new ClipboardEvent('cut', { clipboardData: clipboard, bubbles: true, cancelable: true }));
+  await settle();
+  assert(clipboard.getData('text/plain') === 'copy' && visible() === '', 'Cut lost its clipboard payload or model deletion: ' + JSON.stringify({ clipboard: clipboard.getData('text/plain'), editor: visible() }));
+  clipboard.setData('text/plain', 'pasted');
+  editor.dispatchEvent(new ClipboardEvent('paste', { clipboardData: clipboard, bubbles: true, cancelable: true }));
+  await settle();
+  assert(visible() === 'pasted', 'plain-text Paste did not update the model');
+  await fill('');
+  editor.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+  await settle();
+  assert(!editor.classList.contains('input-editor-empty'), 'placeholder remained visible during IME');
+  input('insertText', 'duplicate');
+  key('Enter', { isComposing: true });
+  key('z', { ctrlKey: true, isComposing: true });
+  editor.textContent = '中文';
+  editor.dispatchEvent(new CompositionEvent('compositionend', { data: '中文', bubbles: true }));
+  await settle();
+  assert(visible() === '中文', 'IME text was lost or inserted twice: ' + JSON.stringify(visible()));
+  key('z', { ctrlKey: true }); await settle();
+  assert(visible() === '', 'IME commit was not one undoable edit');
+  key('z', { ctrlKey: true, shiftKey: true }); await settle();
+  assert(visible() === '中文', 'IME redo failed');
+  await fill('- item'); input('insertLineBreak'); input('insertText', 'next'); await settle();
+  assert(editor.querySelectorAll('.composer-block-listItem').length === 2, 'soft line break did not continue the list');
+  return 'canonical edits, selection, undo/redo, formatting, clipboard and IME passed';
+})()'''

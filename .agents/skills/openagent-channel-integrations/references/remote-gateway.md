@@ -74,6 +74,40 @@ reject the duplicate action.
 
 ## Transport behavior
 
+The remote page composes browser controllers under `src/lib/remote/`.
+`connection.ts` owns the only SSE subscription, retry timer, backoff, and
+request generation. Workspace changes, new conversations, deletion, and
+unmount retire that generation; late snapshots, history, subscriptions, and
+retry failures must not update the newly selected conversation. A reconnect
+preserves the pending turn and resets backoff after a received state.
+`attachments.ts` owns browser file capabilities and preview URL cleanup,
+including uploads that complete after unmount. The page retains the canonical
+conversation projection and submits ordinary input through the shared client.
+`execution.svelte.ts` owns optimistic turn IDs and messages, queued input,
+pause state, fork submission, and interrupt resolution tracking. It receives
+the canonical conversation and composer draft through a typed writable facade;
+reconnect and durable state reconciliation use that same controller state.
+Submission failure restores the submitted draft and attachments. A terminal
+state drains the next queued input through the ordinary submission method.
+`catalog.svelte.ts` owns workspace roles, list loading, metadata, and list
+actions with request generations. `history.svelte.ts` owns the selected branch
+tree and file changes; reset retires outstanding history requests. These
+controllers receive the selected conversation through typed dependencies;
+they must not create another live conversation or transport state owner.
+`tests/remoteConnection.test.ts` covers retirement, delayed subscription
+cleanup, retry ownership, backoff, and disposal.
+
+Run `bun run test:blackbox:remote-page` against an isolated debug Tauri window
+with `TAURI_PILOT_SOCKET` set explicitly. Its loopback HTTP/SSE fixture mounts
+the actual compiled remote route in that WebView while keeping the debug
+bridge's local origin. It covers pairing and CSRF, state projection, a failed
+reconnect and recovery, conversation and workspace replacement, and HTTP
+attachment upload/removal, assistant quote selection, and selection dismissal
+in both themes and locales. The fixture verifies
+the frontend contract; gateway authentication and confinement still require
+their SDK integration tests. The runner restores the original page and stops
+its fixture server in `finally`.
+
 - The desktop application must remain running.
 - The gateway intentionally exposes the product conversation surface and the
   workspace presentation capabilities required by the shared chat components.

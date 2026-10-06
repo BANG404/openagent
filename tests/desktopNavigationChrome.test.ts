@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
-import { settingsViewSource } from "./sourceSurfaces";
+import { settingsViewSource, pageRuntimeSource, hostRustSource } from "./sourceSurfaces";
 
 const routeUrl = new URL("../src/routes/PageRuntime.svelte", import.meta.url);
 const componentsUrl = new URL("../src/lib/components/", import.meta.url);
@@ -138,7 +138,7 @@ describe("desktop navigation chrome", () => {
     expect(sidebar).toContain('{#if platform !== "macos"}');
     const menuBar = await readFile(new URL("ApplicationMenuBar.svelte", componentsUrl), "utf8");
     expect(menuBar).toContain('key === "w") runShortcut(event, onCloseWindow)');
-    const host = await readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+    const host = hostRustSource();
     expect(host).toContain("tauri::RunEvent::Reopen");
     expect(titleBar).toMatch(/\.title-bar\s*{[^}]*background: transparent;/s);
     expect(titleBar).toContain("height: var(--desktop-titlebar-height)");
@@ -265,7 +265,7 @@ describe("desktop navigation chrome", () => {
     const menu = await readFile(new URL("ApplicationMenuBar.svelte", componentsUrl), "utf8");
     const settings = await settingsViewSource();
     const fullscreenSurface = await readFile(fullscreenSurfaceUrl, "utf8");
-    const host = await readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+    const host = hostRustSource();
 
     // The application menu never constructs another application window.
     expect(route).not.toContain("openSettingsWindow");
@@ -278,7 +278,8 @@ describe("desktop navigation chrome", () => {
     expect(route).toContain("sections={settingsSurfaceSections}");
     expect(route).toContain("{#key settingsSurface.kind}");
     expect(route).toContain("<SettingsWindowSkeleton");
-    expect(route).toContain("roleEditorOpen = true");
+    expect(await pageRuntimeSource()).toContain("roleEditorOpen = true");
+    expect(route).toContain("open={roleController.roleEditorOpen}");
 
     // The host still owns the standalone utility-window WebView route.
     expect(route).toContain("<SettingsWindowSurface");
@@ -311,7 +312,7 @@ describe("desktop navigation chrome", () => {
     expect(menu).not.toContain('onOpenSettingsWindow("automation"');
     expect(settings).toContain('<Tabs.Content value="execution"');
     expect(settings).toMatch(
-      /if \(visibleSections\.has\("channels"\)\) \{[\s\S]*?wechatStatusTimer = setInterval/,
+      /if \(!isTauri\(\) \|\| !options\.visibleSections\.has\("channels"\)\) return;[\s\S]*?wechatStatusTimer = setInterval/,
     );
     expect(host).toContain("async fn open_settings_window(");
     expect(host).toContain("if let Some(window) = app.get_webview_window(spec.label)");
@@ -339,21 +340,26 @@ describe("desktop navigation chrome", () => {
       route.indexOf("async function addToRecentWorkspaces"),
     );
 
-    expect(route).toContain("fetchConversationPage(null, null, 30, normalized, false, null)");
-    expect(route).toContain("null,\n          searchConversationNextCursor");
+    const page = await pageRuntimeSource();
+    expect(page).toContain("fetchConversationPage(null, null, 30, normalized, false, null)");
+    expect(page).toMatch(/fetchConversationPage\(\s*null,\s*searchConversationNextCursor,/);
     expect(openConversation).toContain("await routeWorkspace(conversationWorkspace, {");
     expect(openConversation).toContain("conversationId: conversation.id");
     expect(openConversation).toContain('if (result !== "current") return');
-    expect(route).toContain('openAgent.invokeProduct("set_workspace"');
+    const workspace = await readFile(
+      new URL("../src/lib/page/workspaceNavigation.ts", import.meta.url),
+      "utf8",
+    );
+    expect(workspace).toContain('openAgent.invokeProduct("set_workspace"');
     expect(route).not.toContain('invoke("open_workspace_window"');
-    const applyWorkspace = route.slice(
-      route.indexOf("async function applyWorkspace"),
-      route.indexOf("type WorkspaceRouteResult"),
+    const applyWorkspace = workspace.slice(
+      workspace.indexOf("async function applyWorkspace"),
+      workspace.indexOf("async function routeWorkspace"),
     );
     expect(applyWorkspace.indexOf('openAgent.invokeProduct("set_workspace"')).toBeLessThan(
       applyWorkspace.indexOf("prepareWorkspaceSwitch("),
     );
-    expect(route).toContain("target.conversationId,\n        !target.newConversation");
+    expect(workspace).toContain("target.conversationId,\n        !target.newConversation");
     expect(route).toContain('await invoke("create_workspace_window", { path: workspacePath })');
     expect(route).toContain("onNewWindow={createNewWindow}");
     const createNewWindow = route.slice(
@@ -364,7 +370,7 @@ describe("desktop navigation chrome", () => {
   });
 
   test("bounds native quit and restart cleanup with an independent exit watchdog", async () => {
-    const host = await readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+    const host = hostRustSource();
     const runtimeProcess = await readFile(
       new URL("../src-tauri/src/runtime_process.rs", import.meta.url),
       "utf8",
@@ -381,9 +387,9 @@ describe("desktop navigation chrome", () => {
       new URL("../src-tauri/src/plugin_daemon_supervisor.rs", import.meta.url),
       "utf8",
     );
-    const exit = host.slice(
-      host.indexOf("fn hide_desktop_surfaces"),
-      host.indexOf("#[tauri::command]\nasync fn quit_app"),
+    const exit = await readFile(
+      new URL("../src-tauri/src/desktop_exit.rs", import.meta.url),
+      "utf8",
     );
 
     expect(exit).toContain("timeout(DESKTOP_RUNTIME_STOP_TIMEOUT, supervisor.stop())");
@@ -402,13 +408,13 @@ describe("desktop navigation chrome", () => {
     // The bounded teardown is shared with the shell install preparation, which
     // stops the same children without restarting, so both paths reach it
     // through the same idempotent helper.
-    expect(host).toContain("async fn stop_desktop_children(app: &tauri::AppHandle)");
+    expect(exit).toContain("async fn stop_desktop_children(app: &tauri::AppHandle)");
     expect(exit).toContain("stop_desktop_children(&app).await");
     expect(exit).toContain("if step == DesktopExitStep::Start");
     expect(exit).toContain("advance_desktop_exit_phase()");
-    expect(host).toContain("request_desktop_exit(app, DesktopExitAction::Restart)");
-    expect(host).toContain("request_child_workspace_window_shutdown()");
-    expect(host).toContain("openagent-parent-shutdown-monitor");
+    expect(exit).toContain("request_desktop_exit(app, DesktopExitAction::Restart)");
+    expect(exit).toContain("request_child_workspace_window_shutdown()");
+    expect(exit).toContain("openagent-parent-shutdown-monitor");
     expect(host).toContain("is_parent_controlled_workspace_window_process()");
     expect(runtimeProcess).toContain("let result = stop_child(&mut runtime.child).await");
     expect(runtimeProcess).toContain("drop(runtime)");
@@ -456,7 +462,7 @@ describe("desktop navigation chrome", () => {
   });
 
   test("keeps the system tray and its actions in the native host", async () => {
-    const host = await readFile(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
+    const host = hostRustSource();
     const route = await readFile(routeUrl, "utf8");
 
     expect(host).toContain("TrayIconBuilder::with_id(DESKTOP_TRAY_ID)");
@@ -479,7 +485,9 @@ describe("desktop navigation chrome", () => {
       "utf8",
     );
 
-    expect(route).toContain("fetchConversationPage(null, null, 20, null, true, recentRoleId)");
+    expect(await pageRuntimeSource()).toContain(
+      "fetchConversationPage(null, null, 20, null, true, recentRoleId)",
+    );
     expect(route).not.toContain("recentConversationNextCursor");
     expect(route).not.toContain("loadNextRecentConversationPage");
     expect(sidebar).toContain("onChange={changeRole}");
@@ -515,30 +523,34 @@ describe("desktop navigation chrome", () => {
 
   test("prepares workspace switches without replacing the mounted application shell", async () => {
     const route = await readFile(routeUrl, "utf8");
+    const workspace = await readFile(
+      new URL("../src/lib/page/workspaceNavigation.ts", import.meta.url),
+      "utf8",
+    );
     const loadingState = route.slice(
       route.indexOf("let mainContentLoading"),
       route.indexOf("let newConversationLayout"),
     );
-    const applyWorkspace = route.slice(
-      route.indexOf("async function applyWorkspace"),
-      route.indexOf("async function requestWorkspace"),
+    const applyWorkspace = workspace.slice(
+      workspace.indexOf("async function applyWorkspace"),
+      workspace.indexOf("async function requestWorkspace"),
     );
 
     expect(loadingState).not.toContain("workspaceLoading");
     expect(route).toContain("loading={initialLoading}");
     expect(route).toContain("inert={workspaceLoading}");
     expect(applyWorkspace.indexOf("const prepared =")).toBeLessThan(
-      applyWorkspace.indexOf("workspacePath = path"),
+      applyWorkspace.indexOf("options.workspacePath = path"),
     );
     expect(applyWorkspace).not.toContain("conversations = []");
-    expect(applyWorkspace).toContain("conversations = prepared.conversations");
+    expect(applyWorkspace).toContain("options.conversations = prepared.conversations");
     expect(applyWorkspace).not.toContain("loadedConvIds.clear()");
     expect(applyWorkspace).not.toContain("await hydrateConversation(");
-    expect(route.indexOf("prepareWorkspaceConversationSnapshot(")).toBeLessThan(
-      route.indexOf("workspacePath = path"),
+    expect(workspace.indexOf("prepareWorkspaceConversationSnapshot(")).toBeLessThan(
+      workspace.indexOf("options.workspacePath = path"),
     );
-    expect(route).toContain("restoreActiveConversation = true");
-    expect(route).toContain(
+    expect(workspace).toContain("restoreActiveConversation = true");
+    expect(workspace).toContain(
       'restoreActiveConversation\n        ? openAgent.invokeProduct("get_active_conv_id"',
     );
   });
@@ -633,7 +645,9 @@ describe("desktop navigation chrome", () => {
     expect(conversationSurface).not.toContain("checkpointFlowPanelCollapsed = $bindable(");
     expect(conversationSurface).not.toContain("<BackgroundTerminalPanel");
     expect(conversationSurface).not.toContain("conversationDetailsAvailable(");
-    expect(route).toContain("shouldAutoOpenCheckpointFlowPanel(previous, next.flow)");
+    expect(await pageRuntimeSource()).toContain(
+      "shouldAutoOpenCheckpointFlowPanel(previous, next.flow)",
+    );
     expect(titleBar).toContain("<CheckpointFlowToggleButton");
     expect(titleBar).toContain("{#if rightSidebarAvailable}");
     expect(panel).not.toContain('activePanel === "browser"');

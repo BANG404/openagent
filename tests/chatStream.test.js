@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
+import { transcriptSource } from "./sourceSurfaces";
 import {
   appendCompactionProgress,
   clearCompactionProgress,
@@ -19,11 +20,11 @@ import {
   terminalEventMatchesActiveStream,
 } from "../src/lib/checkpointTree";
 
-const routeSourceUrl = new URL("../src/routes/PageRuntime.svelte", import.meta.url);
+const chatEventsUrl = new URL("../src/lib/page/events/chatEvents.ts", import.meta.url);
 
 describe("model request activity", () => {
   test("shows waiting for every Rig completion round and clears it on a tool call", async () => {
-    const route = await readFile(routeSourceUrl, "utf8");
+    const route = await readFile(chatEventsUrl, "utf8");
     const responseStart = route.slice(
       route.indexOf("onResponseStarted:"),
       route.indexOf("onMemoryRetrieval:", route.indexOf("onResponseStarted:")),
@@ -35,7 +36,7 @@ describe("model request activity", () => {
 
     expect(responseStart).toContain("[conv_id]: true");
     expect(responseStart).not.toContain("hasStreamOutput");
-    expect(toolCall).toContain("chatStreams.clearAwaitingOutput(conv_id)");
+    expect(toolCall).toContain("options.chatStreams.clearAwaitingOutput(conv_id)");
   });
 });
 
@@ -133,9 +134,12 @@ describe("background checkpoint reconciliation", () => {
 
 describe("external conversation hydration", () => {
   test("does not restore render_mermaid as a manual approval", async () => {
-    const pageSource = await readFile(routeSourceUrl, "utf8");
-    expect(pageSource).toContain('if (toolUse.name === "render_mermaid") return [];');
-    expect(pageSource).toContain("restoreMermaidRenderRequests(convId, tipCheckpoint)");
+    const [projection, checkpoints] = await Promise.all([
+      readFile(new URL("../src/lib/page/pendingInputProjection.ts", import.meta.url), "utf8"),
+      readFile(new URL("../src/lib/page/checkpoints.ts", import.meta.url), "utf8"),
+    ]);
+    expect(projection).toContain('if (toolUse.name === "render_mermaid") return [];');
+    expect(checkpoints).toContain("options.restoreMermaidRenderRequests(convId, tipCheckpoint)");
   });
 
   test("keeps a quick-chat user message that arrives during foreground hydration", () => {
@@ -152,16 +156,16 @@ describe("external conversation hydration", () => {
   });
 
   test("reloads the first durable checkpoint when a live run has no user message", async () => {
-    const pageSource = await readFile(
-      new URL("../src/routes/PageRuntime.svelte", import.meta.url),
+    const checkpoints = await readFile(
+      new URL("../src/lib/page/checkpoints.ts", import.meta.url),
       "utf8",
     );
-
-    expect(pageSource).toMatch(
+    expect(checkpoints).toMatch(
       /const messageIdsAtStart = new Set\([\s\S]*?\.messages\.map\(\(message\) => message\.id\)/,
     );
-    expect(pageSource).toMatch(
-      /onCheckpoint:[\s\S]*?!visibleMessages\.some\(\(message\) => message\.role === "user"\)[\s\S]*?pendingExternalUserRecoveries\.add\(conv_id\)[\s\S]*?loadMessagesForConv\(conv_id, false, true\)/,
+    const events = await readFile(chatEventsUrl, "utf8");
+    expect(events).toMatch(
+      /onCheckpoint:[\s\S]*?!visibleMessages\.some\(\(message\) => message\.role === "user"\)[\s\S]*?options\.pendingExternalUserRecoveries\.add\(conv_id\)[\s\S]*?options\.loadMessagesForConv\(conv_id, false, true\)/,
     );
   });
 });
@@ -208,10 +212,7 @@ describe("conversation transition rendering", () => {
       new URL("../src/lib/components/ConversationSurface.svelte", import.meta.url),
       "utf8",
     );
-    const messageListSource = await readFile(
-      new URL("../src/lib/components/MessageList.svelte", import.meta.url),
-      "utf8",
-    );
+    const messageListSource = await transcriptSource();
     const dispatchSource = pageSource.slice(
       pageSource.indexOf("async function dispatchChatMessage"),
       pageSource.indexOf("async function sendMessage"),

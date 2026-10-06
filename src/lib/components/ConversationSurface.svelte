@@ -31,7 +31,8 @@
   import CheckpointFlowPanelHost from "./CheckpointFlowPanelHost.svelte";
   import FollowUpSuggestions from "./FollowUpSuggestions.svelte";
   import LoadingSkeleton from "./LoadingSkeleton.svelte";
-  import MessageInput, { type SlashCommand } from "./MessageInput.svelte";
+  import MessageInput from "./MessageInput.svelte";
+  import type { SlashCommand } from "$lib/composer/types";
   import MessageList from "./MessageList.svelte";
   import Tooltip from "./Tooltip.svelte";
   import NewConversationContext from "./NewConversationContext.svelte";
