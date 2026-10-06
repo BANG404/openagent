@@ -29,6 +29,11 @@ unknown compatibility keys and malformed ranges reject the manifest. Missing
 declarations retain the protocol-1 baseline. Incompatible installations preserve
 package data and update provenance while contributing no executable components.
 
+The optional `embedding.status` and `embedding.embed` Host Bridge operations
+expose local Runtime inference under protocol 1. Follow
+[embedding resources](../../openagent-embedding-resources/references/model-provenance.md#plugin-inference)
+for detection, request bounds, model identity and resource ownership.
+
 Release Runtime-version changes synchronize installed GitHub subscriptions in
 the primary Runtime before plugin processes mount. Checks and downloads are
 bounded; offline, incompatible and failed candidates preserve the installed
@@ -45,16 +50,15 @@ The archive still passes complete manifest/protocol validation, digest checks
 and name/version agreement before atomic replacement. No host-access grant or
 plugin enablement setting is changed. Plugin data migrations remain package-owned.
 
-Pinned standard package publication uses `scripts/plugin-release.mjs` and
-`plugin-releases.yml`: SemVer advances independently from Runtime via
-Conventional Commits; unchanged source reuses a release, and otherwise changes
-without a release-worthy subject receive a patch increment. Immutable
-`plugin-vX.Y.Z` tags point to the accepted source and avoid manual `v*` workflows.
-Only packaged manifests are stamped; source checkouts retain their development
-version. Every staged package is tested before publication. The retained
-`openagent-plugin-releases.json` maps package versions to source and protocol.
+Package authors determine versions and verified protocol ranges during the
+change, following [plugin versioning](versioning.md). Pinned standard package
+publication uses `scripts/plugin-release.mjs` and `plugin-releases.yml` to validate
+and package those source identities without rewriting manifests. Every staged
+package is tested before publication; unchanged source reuses an existing
+release. The retained `openagent-plugin-releases.json` maps package versions to
+source and protocol.
 Configure `OPENAGENT_PLUGIN_RELEASE_TOKEN` with contents write access only to
-the five standard-package repositories. Cross-repository SDK dispatch also
+the indexed standard-package repositories. Cross-repository SDK dispatch also
 requires Actions write access on OpenAgent for its dispatcher App.
 
 The Runtime exposes a typed descriptor rather than raw manifest JSON. Its

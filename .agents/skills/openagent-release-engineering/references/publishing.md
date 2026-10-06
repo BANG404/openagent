@@ -45,9 +45,11 @@ Candidate construction and publication are separate phases:
 
 Runtime-selected desktop releases run `plugin-releases.yml` after qualification
 and before SDK publication. It checks out the immutable qualified SDK contract,
-stages pinned standard packages with independently calculated SemVer, tests the
-packaged bytes, then publishes immutable `plugin-v*` releases. The plugin
-contract owns range declarations and repository token requirements. Independent
+stages pinned standard packages using their checked-in versions without rewriting
+manifests, tests the packaged bytes, then publishes or reuses immutable releases.
+The [plugin versioning contract](../../openagent-plugin-development/references/versioning.md)
+owns version decisions, range declarations, reuse and collision checks. The plugin
+contract owns repository token requirements. Independent
 SDK publication dispatches and waits for this same pipeline on public `master`;
 it does not duplicate plugin release logic. Configure the dispatcher App for Actions write
 on OpenAgent and the host's `OPENAGENT_PLUGIN_RELEASE_TOKEN` for contents write

@@ -64,6 +64,13 @@ Publish accepted package commits before advancing their parent gitlinks so clean
 CI checkouts can retrieve the pinned revisions. Plugin source changes alone do
 not select native or embedding checks.
 
+Automation fetches plugin tags and runs the
+[source version guard](../../openagent-plugin-development/references/versioning.md#release-validation-and-reuse)
+against the supplied PR/merge/release baseline. Local preflight runs the same
+guard against its OWT base before module checks. A changed plugin gitlink requires
+a source manifest version increase even before a release tag exists; tagged
+version collisions are also rejected.
+
 The pre-push source boundary checks every commit introduced by a push using
 `.githooks/public-host-sources.txt`. Retain entries for retired public Tauri
 resource adapters while their introduction remains in unpublished history.

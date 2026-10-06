@@ -2,6 +2,10 @@ name: Automation checks
 
 on:
   workflow_call:
+    inputs:
+      base_sha:
+        type: string
+        default: ""
     secrets:
       OPENAGENT_CI_REPORTER_PRIVATE_KEY:
         required: false
@@ -20,7 +24,19 @@ jobs:
           fetch-depth: 0
 
       - name: Initialize pinned plugin sources
-        run: git submodule update --init --recursive -- plugins
+        run: |
+          git submodule update --init --recursive -- plugins
+          git submodule foreach --recursive 'git fetch --tags origin'
+
+      - name: Require source-owned plugin versions
+        env:
+          PLUGIN_BASE_SHA: ${{ inputs.base_sha }}
+        run: |
+          base="$PLUGIN_BASE_SHA"
+          if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
+            base="$(git rev-parse HEAD^)"
+          fi
+          node scripts/plugin-release.mjs --verify --base "$base"
 
       - name: Resolve pinned SDK revision
         id: sdk

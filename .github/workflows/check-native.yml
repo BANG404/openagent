@@ -389,6 +389,17 @@ jobs:
             sleep "$delay"
           done
 
+      - name: Exercise authenticated plugin embedding
+        env:
+          CARGO_TARGET_DIR: sdk/target/embedded-host
+          OPENAGENT_TEST_EMBEDDING_MODEL_DIR: ${{ github.workspace }}/src-tauri/resources/models/all-MiniLM-L6-v2-q
+        shell: bash
+        run: |
+          if ! cargo test --manifest-path sdk/Cargo.toml -p openagent-runtime --lib bundled_model_inference_through_authenticated_plugin_http -- --ignored >"$RUNNER_TEMP/plugin-embedding.log" 2>&1; then
+            echo "::error::Authenticated plugin embedding test failed; private diagnostic output was suppressed."
+            exit 1
+          fi
+
   required:
     name: Required native capabilities
     if: always()
