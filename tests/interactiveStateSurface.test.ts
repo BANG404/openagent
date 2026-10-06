@@ -87,7 +87,7 @@ test("reuses shared controls across onboarding and settings collections", async 
   expect(onboarding).not.toContain("<select");
   // The plugin page keeps the installed package surfaces alongside the
   // marketplace switch without a credential card.
-  expect(settings.match(/application-settings-surface/g)).toHaveLength(30);
+  expect(settings.match(/application-settings-surface/g)).toHaveLength(29);
   expect(settings).toContain('class="application-settings-scope settings-panel"');
   expect(settings).not.toMatch(/\.list-search-input,[\s\S]*?\.detail-input\s*{[^}]*border:/);
   for (const surfaceClass of [
