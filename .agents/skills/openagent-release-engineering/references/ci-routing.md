@@ -30,7 +30,8 @@ two verification routes:
   bundle budgets resolve both direct Vite manifest entries and source modules
   emitted through a manifest entry's dynamic imports, so code splitting does
   not fail a valid budget target before size measurement. The settings view
-  budget is 208 KiB raw and 64 KiB gzip; keep the raw limit explicit because
+  budget is 208 KiB raw and 64 KiB gzip; the main route dependency graph is
+  bounded to 1401 KiB raw and 448 KiB gzip. Keep the raw limits explicit because
   this view is the largest settings surface and its gzip size can hide source
   growth.
   Run bundle measurement through `bun run check:bundle-size`, which uses Node's

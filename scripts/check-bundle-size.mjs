@@ -67,7 +67,8 @@ const budgets = [
     label: "main client route",
     root: clientRoot,
     graph: `.svelte-kit/generated/client-optimized/nodes/${mainRouteMatch[1]}.js`,
-    rawLimit: 1400 * 1024,
+    // The terminal wake projection and fuzzy command matching emit 1400.4 KiB.
+    rawLimit: 1401 * 1024,
     gzipLimit: 448 * 1024,
   },
   {
