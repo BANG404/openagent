@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-05T10:22:09.554Z",
+  "generated_at": "2026-10-06T00:59:51.883Z",
   "plugins": [
     {
       "id": "chat-groups",
       "display_name": "Chat Groups",
       "description": "Mention-aware group conversations for OpenAgent.",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "repository": "https://github.com/BANG404/openagent-chat-groups",
       "homepage": "https://github.com/BANG404/openagent-chat-groups",
       "source_url": "https://github.com/BANG404/openagent-chat-groups.git",
@@ -31,7 +31,7 @@
             "notice.unexpected": "Chat Groups operation failed ({code})"
           },
           "zh": {
-            "display_name": "Chat Groups",
+            "display_name": "聊天群组",
             "description": "支持提及成员的 OpenAgent 群组会话。",
             "notice.conversationWorkspace": "该会话不属于当前工作区",
             "notice.titleEmpty": "标题不能为空",
@@ -53,7 +53,7 @@
       "id": "goal",
       "display_name": "Goal",
       "description": "Persistent goal execution with an autonomous continuation loop.",
-      "version": "2.2.1",
+      "version": "2.2.2",
       "repository": "https://github.com/BANG404/openagent-goal",
       "homepage": "https://github.com/BANG404/openagent-goal",
       "source_url": "https://github.com/BANG404/openagent-goal.git",
@@ -94,7 +94,7 @@
             "notice.unexpected": "Goal operation failed ({code})"
           },
           "zh": {
-            "display_name": "Goal",
+            "display_name": "目标",
             "description": "通过自主续行循环持续执行目标任务。",
             "commands.goal.label": "目标",
             "commands.goal.description": "查看、设置、编辑、暂停、恢复或清除持续执行的目标。",
@@ -132,7 +132,7 @@
       "id": "graph",
       "display_name": "Graph",
       "description": "Dependency graph execution through OpenAgent checkpoints.",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "repository": "https://github.com/BANG404/openagent-graph",
       "homepage": "https://github.com/BANG404/openagent-graph",
       "source_url": "https://github.com/BANG404/openagent-graph.git",
@@ -168,7 +168,7 @@
             "notice.unexpected": "Graph operation failed ({code})"
           },
           "zh": {
-            "display_name": "Graph",
+            "display_name": "任务图",
             "description": "通过 OpenAgent 检查点执行依赖关系图任务。",
             "commands.graph.label": "依赖图",
             "commands.graph.description": "执行具有依赖关系的图节点。",
@@ -201,7 +201,7 @@
       "id": "cua-driver",
       "display_name": "Cua Driver",
       "description": "Desktop control through the OpenAgent Cua Driver daemon.",
-      "version": "1.2.2",
+      "version": "1.2.3",
       "repository": "https://github.com/BANG404/openagent-cua-driver",
       "homepage": "https://github.com/BANG404/openagent-cua-driver",
       "source_url": "https://github.com/BANG404/openagent-cua-driver.git",
@@ -230,7 +230,7 @@
             "notice.unexpected": "Cua Driver operation failed ({code})"
           },
           "zh": {
-            "display_name": "Cua Driver",
+            "display_name": "桌面控制",
             "description": "通过 OpenAgent Cua Driver 守护进程控制桌面。",
             "notice.pluginData": "未设置 PLUGIN_DATA，启动器没有位置保存下载的驱动。OpenAgent 主机会将它设为插件专用的可写目录；若要在 OpenAgent 外运行，请将其设为可写的空目录，或将 OPENAGENT_CUA_DRIVER_BIN 设为本机已有的 Cua Driver 路径。",
             "notice.unsupportedPlatform": "Cua Driver 没有为 {platform} 提供固定版本。支持的平台：{supported}。若要在此设备运行，请将 OPENAGENT_CUA_DRIVER_BIN 指向为本机编译的驱动。",
@@ -256,7 +256,7 @@
       "id": "message-board",
       "display_name": "Message Board",
       "description": "Durable channels, threads, search, subscriptions, and idempotent agent collaboration.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "repository": "https://github.com/BANG404/message-board",
       "homepage": "https://github.com/BANG404/message-board",
       "source_url": "https://github.com/BANG404/message-board.git",
@@ -298,7 +298,7 @@
             "notice.storage": "Cannot access board data ({code}); preserve the data and retry after fixing the storage error."
           },
           "zh": {
-            "display_name": "Message Board",
+            "display_name": "留言板",
             "description": "为智能体提供持久化频道、话题、搜索、订阅和幂等消息协作。",
             "notice.required": "必须填写 {field}",
             "notice.length": "{field} 超过 256 个字符",
