@@ -20,6 +20,7 @@
   import ReasoningEffortSelect from "./ReasoningEffortSelect.svelte";
   import WorkspaceSwitcher from "./WorkspaceSwitcher.svelte";
   import { applySlashCommandSelection } from "./slashCommandSelection";
+  import { filterSlashCommands } from "./slashCommandMatching";
   import {
     insertSoftLineBreak,
     parseBlocks,
@@ -570,14 +571,11 @@
 
   const slashPaletteItems = $derived.by<PaletteItem[]>(() => {
     if (paletteMode !== "slash") return [];
-    const q = paletteQuery.toLowerCase();
-    return slashCommands
-      .filter((c) => !q || c.name.startsWith(q))
-      .map((c) => ({
-        id: c.id,
-        label: `/${c.name}`,
-        detail: c.description,
-      }));
+    return filterSlashCommands(slashCommands, paletteQuery).map((c) => ({
+      id: c.id,
+      label: `/${c.name}`,
+      detail: c.description,
+    }));
   });
 
   const paletteItems = $derived(paletteMode === "slash" ? slashPaletteItems : mentionItems);

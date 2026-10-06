@@ -805,6 +805,13 @@
       description: "Compact context",
       run: () => {},
     },
+    ...["model", "memory", "goal:pause", "graph:run"].map((name) => ({
+      id: name,
+      name,
+      label: `/${name}`,
+      description: `Preview ${name}`,
+      insertText: `/${name}`,
+    })),
   ];
 
   const workspace: WorkspaceContext = {

@@ -1,0 +1,61 @@
+[scenario]
+name = "slash suggestions accept unordered characters"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "match, recover from empty results and select by keyboard"
+action = "eval"
+script = '''(async () => {
+  const wait = async (read, description) => {
+    const deadline = Date.now() + 5000;
+    while (Date.now() < deadline) {
+      if (read()) return;
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    throw new Error(description);
+  };
+  const editor = document.querySelector('[contenteditable="true"]');
+  if (!(editor instanceof HTMLElement)) throw new Error('composer missing');
+  const labels = () => [...document.querySelectorAll('.palette-label')].map(el => el.textContent.trim());
+  const key = key => editor.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+  const fill = async value => {
+    editor.focus();
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    editor.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: value, bubbles: true, cancelable: true }));
+    await new Promise(resolve => requestAnimationFrame(resolve));
+  };
+  await fill('/');
+  await wait(() => labels().length === 5, 'empty query did not preserve the catalog');
+  await fill('/m');
+  await wait(() => labels().join(',') === '/model,/memory,/compact', 'prefix matches did not rank first');
+  for (const query of ['/CMT', '/tpm']) {
+    await fill(query);
+    await wait(() => labels().join(',') === '/compact', 'nonadjacent or unordered match missing: ' + query);
+  }
+  await fill('/mm');
+  await wait(() => labels().join(',') === '/memory', 'repeated characters did not match memory');
+  for (const query of ['/mmm', '/xyz']) {
+    await fill(query);
+    await wait(() => labels().length === 0 && /No matching commands|无匹配的指令/.test(document.body.textContent), 'no-result state missing: ' + query);
+  }
+  await fill('/pause:goal');
+  await wait(() => labels().join(',') === '/goal:pause', 'namespaced unordered match missing');
+  key('ArrowDown');
+  key('Tab');
+  await wait(() => editor.textContent.trim() === '/goal:pause' && labels().length === 0, 'Tab did not insert the canonical command');
+  await fill('/run:graph');
+  await wait(() => labels().join(',') === '/graph:run', 'recovery from previous selection failed');
+  key('Enter');
+  await wait(() => editor.textContent.trim() === '/graph:run' && labels().length === 0, 'Enter did not insert the canonical command');
+  await fill('/xyz');
+  key('Escape');
+  await wait(() => !document.querySelector('.palette'), 'Escape did not dismiss the palette');
+  await fill('/tpm');
+  await wait(() => labels().join(',') === '/compact', 'palette did not recover after Escape');
+  return 'unordered matching, ranking, multiplicity, empty-result recovery and keyboard selection passed';
+})()'''
