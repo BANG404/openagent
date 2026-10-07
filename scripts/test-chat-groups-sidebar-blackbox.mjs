@@ -35,7 +35,20 @@ writeFileSync(
   JSON.stringify({
     groups: [
       group,
-      { ...group, id: "second-group", title: "Second group", updated_at: 1 },
+      {
+        ...group,
+        id: "second-group",
+        title: "Second group",
+        updated_at: 1,
+        owner_conversation_id: "owner-chat",
+      },
+      {
+        ...group,
+        id: "role-owner-group",
+        title: "Role owner group",
+        updated_at: 1,
+        owner_conversation_id: "role-owner-chat",
+      },
       {
         ...group,
         id: "foreign-group",
@@ -44,6 +57,22 @@ writeFileSync(
       },
     ],
     members: [
+      {
+        id: "owner",
+        group_id: "second-group",
+        conversation_id: "owner-chat",
+        role_id: null,
+        role_name: "创建聊天组讨论今日科技新闻",
+        joined_at: 1,
+      },
+      {
+        id: "role-owner",
+        group_id: "role-owner-group",
+        conversation_id: "role-owner-chat",
+        role_id: "lead-role",
+        role_name: "Research Lead",
+        joined_at: 1,
+      },
       {
         id: "member",
         group_id: group.id,
@@ -188,6 +217,8 @@ try {
         "frame did not follow live language/theme",
       );
       evaluate(`window.__chatGroupsSidebarPass=${JSON.stringify({ theme, language })}; true`);
+      pilot(["snapshot", "-i"]);
+      pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-owner.toml")]);
       pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-messages.toml")]);
       pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-style.toml")]);
       pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-markdown.toml")]);

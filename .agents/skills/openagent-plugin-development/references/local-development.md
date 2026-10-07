@@ -97,6 +97,12 @@ Run package-owned validation and the applicable native black-box scenario;
 retain report paths and record tested Git revisions. Index validation alone
 does not prove Runtime functionality or qualify a published release.
 
+Chat Groups owns group membership and owner identity in its package. Follow its
+bundled Skill for creation/start semantics and state upgrades. Run
+`test:blackbox:chat-groups-sidebar` for unbound and role-bound owner labels,
+language-stable owner mentions, reload and the four theme/language combinations;
+run `test:blackbox:chat-groups-wake` for real hidden wakes and transcript recovery.
+
 ## Developer acceptance before publication
 
 The installable Plugin Kit development workflow uses `/openagent-plugin-kit:create`
