@@ -1,0 +1,45 @@
+[scenario]
+name = "Chat Groups owner identity and mentions"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "owner labels follow the locale and owner mentions do not use a conversation title"
+action = "eval"
+script = '''(async()=>{
+  const d=document.querySelector('#checkpoint-flow-panel iframe').contentDocument;
+  const owner=window.__chatGroupsSidebarPass.language==='zh'?'群主':'Group owner';
+  async function choose(title){
+    d.querySelector('#picker').open=true;
+    [...d.querySelectorAll('#choices button')].find(b=>b.textContent===title).click();
+    const deadline=Date.now()+8000;
+    while(Date.now()<deadline){
+      if(d.querySelector('#group-title').textContent===title && d.querySelector('#member-list button[data-member-type=owner]'))return;
+      await new Promise(r=>setTimeout(r,100));
+    }
+    throw new Error('owner group failed to load');
+  }
+  await choose('Second group');
+  let button=d.querySelector('#member-list button[data-member-type=owner]');
+  if(button.textContent!==owner||d.querySelector('#member-list').textContent.includes('创建聊天组'))throw new Error('conversation title used as owner name');
+  const draft=d.querySelector('#draft');draft.value='';draft.dispatchEvent(new Event('input',{bubbles:true}));
+  button.click();if(draft.value!=='@owner ')throw new Error('owner mention is not language-stable');
+  draft.value='@';draft.setSelectionRange(1,1);draft.dispatchEvent(new Event('input',{bubbles:true}));
+  const option=[...d.querySelectorAll('#mention-palette [role=option]')].find(b=>b.textContent.includes(owner));
+  if(!option)throw new Error('localized owner missing in mention suggestions');
+  option.click();if(draft.value!=='@owner ')throw new Error('owner palette mention failed');
+  draft.value='';draft.dispatchEvent(new Event('input',{bubbles:true}));
+  await choose('Role owner group');
+  button=d.querySelector('#member-list button[data-member-type=owner]');
+  if(button.textContent!==`Research Lead · ${owner}`)throw new Error('role-bound owner lost role or owner identity');
+  button.click();if(draft.value!=='@"Research Lead" ')throw new Error('role-bound owner mention failed');
+  draft.value='';draft.dispatchEvent(new Event('input',{bubbles:true}));
+  d.querySelector('#picker').open=true;
+  [...d.querySelectorAll('#choices button')].find(b=>b.textContent==='Saved group').click();
+  const deadline=Date.now()+8000;
+  while(Date.now()<deadline){
+    if(d.querySelectorAll('article').length>=205&&d.querySelector('#member-list').textContent==='ReviewerResearch Lead')return true;
+    await new Promise(r=>setTimeout(r,100));
+  }
+  throw new Error('returning to saved group lost members or history');
+})()'''

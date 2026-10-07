@@ -98,6 +98,7 @@ await pilot(["snapshot", "-i"]);
 const original = await invoke("get_settings", {});
 assert.equal(resolve(original.workspace), resolve(join(home, "workspace")), "wrong fixture socket");
 /** @type {string[]} */ const conversations = [];
+/** @type {any[]} */ const discussionRoles = [];
 let installed = false;
 try {
   const config = structuredClone(original);
@@ -144,6 +145,17 @@ try {
     source: join(repo, "plugins/chat-groups"),
   });
   installed = true;
+  for (const name of ["Product reviewer", "Developer reviewer", "News reviewer"]) {
+    discussionRoles.push(
+      await invoke("save_agent_role", {
+        id: null,
+        name,
+        description: "Reply concisely to the fixture message.",
+        skillIds: [],
+        mcpServerIds: [],
+      }),
+    );
+  }
   for (const theme of ["light", "dark"])
     for (const language of ["en", "zh"]) {
       await invoke("save_settings", { config: { ...config, theme, language } });
@@ -201,10 +213,39 @@ try {
         return JSON.parse(result.content[0].text);
       }
       const group = await call("chat_group_create", { title: `Wake ${id}` });
+      assert.equal(group.created_by_conversation_id, id);
+      const related = await call("chat_group_list", { conversation_id: id });
+      assert(related.some((/** @type {any} */ item) => item.id === group.id));
       const member = await call("chat_group_add_member", {
         group_id: group.id,
         conversation_id: id,
       });
+      assert.equal(member.member_type, "owner");
+      assert.equal(member.role_name, language === "zh" ? "群主" : "Group owner");
+      const started = await call("chat_group_start", {
+        group_id: group.id,
+        title: group.title,
+        roles: [discussionRoles[0].id, ...discussionRoles.slice(1).map((role) => role.name)],
+        content: `Begin the discussion ${probe.marker}`,
+      });
+      assert.equal(started.group.id, group.id, "start created a duplicate group");
+      assert.equal(started.members.length, 4, "selected roles were not actually joined");
+      assert.equal(started.members[0].id, member.id, "owner membership changed");
+      assert.equal(started.discussion_started, true);
+      assert.equal(started.message.mentions.length, 3);
+      const childIds = started.members.slice(1).map((/** @type {any} */ m) => m.conversation_id);
+      conversations.push(...childIds);
+      await until(`(async()=>{
+        const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
+        for(const id of ${JSON.stringify(childIds)}){
+          const checkpoints=await c.invokeProduct('get_renderable_checkpoints',{convId:id});
+          const messages=checkpoints.at(-1)?.data?.messages||[];
+          if(!messages.some(m=>m.plugin_tags?.includes('plugin:chat-groups:control')&&m.plugin_user_visible===false))return false;
+          if(!messages.some(m=>m.role==='assistant'&&JSON.stringify(m.content).includes(${JSON.stringify(`GROUP_WOKE_${id}`)})))return false;
+        }
+        return true;
+      })()`);
+      console.log(`Joined roles and startup wakes passed: ${theme}/${language}`);
       await call("chat_group_send_message", {
         group_id: group.id,
         content: `Please reply ${probe.marker}`,
@@ -274,6 +315,7 @@ try {
   console.log(`Chat Groups hidden wake passed: ${artifacts}`);
 } finally {
   for (const id of conversations) await invoke("delete_conversation", { convId: id });
+  for (const role of discussionRoles) await invoke("delete_agent_role", { id: role.id });
   if (installed) await invoke("uninstall_agent_plugin", { id: "chat-groups" });
   await invoke("save_settings", { config: original });
   model.closeAllConnections();
