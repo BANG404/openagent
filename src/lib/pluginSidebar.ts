@@ -1,4 +1,9 @@
-import type { AgentPluginSidebarViewSummary, AgentPluginSummary } from "./types";
+import type {
+  AgentPluginSidebarViewSummary,
+  AgentPluginSummary,
+  ChatMessage,
+  StreamItem,
+} from "./types";
 import type { RightSidebarPanel } from "./rightSidebar";
 import { pluginText } from "./pluginI18n";
 
@@ -10,7 +15,8 @@ import { pluginText } from "./pluginI18n";
  * panel that was already selected navigates to an available fallback instead of
  * rendering an empty surface.
  */
-export type PluginSidebarLifecycle = "available" | "disabled" | "invalid" | "out-of-scope";
+export type PluginSidebarLifecycle =
+  "available" | "disabled" | "invalid" | "out-of-scope" | "inactive";
 
 export type PluginSidebarPanel = Extract<RightSidebarPanel, `plugin:${string}:${string}`>;
 
@@ -33,6 +39,8 @@ export interface PluginSidebarEntry {
 export interface PluginSidebarContext {
   hasWorkspace: boolean;
   hasConversation: boolean;
+  /** Tool names projected from the selected branch, including its live stream. */
+  toolNames?: readonly string[];
 }
 
 /**
@@ -49,7 +57,51 @@ export function pluginSidebarLifecycle(
   if (plugin.error) return "invalid";
   if (view.scope === "workspace" && !context.hasWorkspace) return "out-of-scope";
   if (view.scope === "conversation" && !context.hasConversation) return "out-of-scope";
+  if (
+    view.activation_tools !== undefined &&
+    (!context.hasConversation ||
+      !view.activation_tools.some((name) => context.toolNames?.includes(name)))
+  )
+    return "inactive";
   return "available";
+}
+
+/** Only actual assistant tool calls activate panels; text and discovery do not. */
+export function branchToolNames(
+  messages: readonly ChatMessage[],
+  streamItems: readonly StreamItem[],
+): string[] {
+  const names = new Set<string>();
+  function visit(items: readonly StreamItem[]): void {
+    for (const item of items) {
+      if (item.type === "tool_call") names.add(item.name);
+      else if (item.type === "retry") visit(item.items);
+    }
+  }
+  for (const message of messages) {
+    if (message.role !== "assistant") continue;
+    visit(message.items ?? []);
+    for (const call of message.toolCalls ?? []) names.add(call.name);
+  }
+  visit(streamItems);
+  return [...names];
+}
+
+/** Open each conditional panel once per branch, preserving subsequent user choices. */
+export class PluginSidebarActivationStore {
+  readonly #seen = new Map<string, Set<PluginSidebarPanel>>();
+
+  activate(scope: string, entries: readonly PluginSidebarEntry[]): PluginSidebarPanel | null {
+    const seen = this.#seen.get(scope) ?? new Set<PluginSidebarPanel>();
+    this.#seen.set(scope, seen);
+    let panel: PluginSidebarPanel | null = null;
+    for (const entry of entries) {
+      if (entry.lifecycle !== "available" || entry.view.activation_tools === undefined) continue;
+      if (!seen.has(entry.panel)) panel ??= entry.panel;
+      seen.add(entry.panel);
+    }
+    return panel;
+  }
 }
 
 /**

@@ -112,7 +112,9 @@
   import type { RightSidebarPanel } from "$lib/rightSidebar";
   import {
     availablePluginSidebarViews,
+    branchToolNames,
     firstAvailablePluginSidebarPanel,
+    PluginSidebarActivationStore,
     pluginSidebarEntries,
     pluginSidebarRevision as pluginSidebarRevisionOf,
   } from "$lib/pluginSidebar";
@@ -861,6 +863,7 @@
   let pluginSidebarContext = $derived({
     hasWorkspace: workspacePath.trim().length > 0,
     hasConversation: activeConvId !== null,
+    toolNames: branchToolNames(messages, isCurrentStreaming ? currentStreamItems : []),
   });
   let pluginSidebarRegistry = $derived(
     pluginSidebarEntries(agentPlugins, pluginSidebarContext, $locale),
@@ -894,6 +897,7 @@
     conversationBranchScopeKey(rightSidebarConversationId, rightSidebarBranchId),
   );
   const rightSidebarScopes = new RightSidebarScopeStore();
+  const pluginSidebarActivations = new PluginSidebarActivationStore();
   let currentRightSidebarScopeKey = $state<string | null>(null);
 
   $effect(() => {
@@ -911,6 +915,18 @@
     );
     rightSidebarPanel = restored.panel;
     rightSidebarCollapseRequested = restored.collapsed;
+  });
+
+  $effect(() => {
+    const scope = rightSidebarScopeKey;
+    const entries = pluginSidebarRegistry;
+    if (mainContentLoading || currentRightSidebarScopeKey !== scope) return;
+    const panel = pluginSidebarActivations.activate(scope, entries);
+    if (!panel) return;
+    untrack(() => {
+      rightSidebarPanel = panel;
+      rightSidebarCollapseRequested = false;
+    });
   });
 
   $effect(() => {

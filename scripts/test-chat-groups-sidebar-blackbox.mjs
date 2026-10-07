@@ -1,7 +1,7 @@
 // @ts-check
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { captureBlackboxScreenshot } from "./blackbox-screenshot.mjs";
@@ -208,6 +208,10 @@ try {
       "chat-groups": true,
       "cua-driver": false,
     },
+    agent_plugins_mcp_tool_modes: {
+      ...original.agent_plugins_mcp_tool_modes,
+      "chat-groups": "direct",
+    },
     permission_profile: {
       enforcement: "managed",
       file_system: {
@@ -220,7 +224,17 @@ try {
     },
   };
   invoke("save_settings", { config });
-  const summary = invoke("install_agent_plugin", { source: join(repo, "plugins/chat-groups") });
+  // This runner qualifies the package document with workspace/conversation
+  // context. The activation runner separately qualifies the original manifest.
+  const panelFixture = join(artifacts, "chat-groups-panel-fixture");
+  cpSync(join(repo, "plugins/chat-groups"), panelFixture, {
+    recursive: true,
+    filter: (source) => !source.endsWith(".git"),
+  });
+  const manifest = JSON.parse(readFileSync(join(panelFixture, "plugin.json"), "utf8"));
+  delete manifest.extensions.openagent.sidebar[0].activation_tools;
+  writeFileSync(join(panelFixture, "plugin.json"), JSON.stringify(manifest));
+  const summary = invoke("install_agent_plugin", { source: panelFixture });
   installed = true;
   assert.equal(summary.sidebar_views.length, 1);
   assert.deepEqual(summary.warnings, []);
@@ -242,6 +256,10 @@ try {
         `(async()=>{const {emit}=await import('/src/lib/openagent/tauriClient.ts');await emit('settings-changed');return true;})()`,
       );
       await until(
+        `(async()=>{try{const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');await c.invokeProduct('call_agent_plugin_tool',{plugin_id:'chat-groups',tool_name:'chat_group_list',arguments:{workspace:${JSON.stringify(workspace)}}});return true;}catch{return false;}})()`,
+        "package tools did not reconnect after fixture settings changed",
+      );
+      await until(
         `(()=>{const d=document.querySelector('#checkpoint-flow-panel iframe')?.contentDocument;return d?.documentElement.lang===${JSON.stringify(language)}&&d.documentElement.dataset.theme===${JSON.stringify(theme)};})()`,
         "frame did not follow live language/theme",
       );
@@ -255,8 +273,9 @@ try {
       pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-conversation.toml")]);
       for (const surface of ["markdown", "mentions", "scrollbar", "conversation"]) {
         if (surface === "conversation") {
+          pilot(["snapshot", "-i"]);
           evaluate(
-            "(async()=>{const {emitTo}=await import('/node_modules/@tauri-apps/api/event.js');await emitTo('main','settings-open-conversation',{conversationId:'reviewer'});return true;})()",
+            "(()=>{const b=[...document.querySelectorAll('.conv-item,.workspace-conversation-row')].find(b=>b.textContent.includes('Sidebar reviewer'));if(!b)throw new Error('reviewer conversation missing');b.click();return true;})()",
           );
           await until(
             "(()=>{const d=document.querySelector('#checkpoint-flow-panel iframe')?.contentDocument;return d?.querySelector('#choices').children.length===1&&d.querySelector('#group-title').textContent==='Saved group'&&!d.querySelector('#draft').disabled;})()",

@@ -1,0 +1,15 @@
+[scenario]
+name = "Plugin sidebar activation follows the selected branch"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "select a sibling through visible branch navigation"
+action = "eval"
+script = '''(()=>{
+  const nav=document.querySelector('.msg-branch-nav');
+  const buttons=nav?.querySelectorAll('button');
+  const target=buttons?.[window.__activationDirection==='previous'?0:1];
+  if(!target||target.disabled)throw new Error('sibling branch navigation unavailable');
+  target.click();return true;
+})()'''

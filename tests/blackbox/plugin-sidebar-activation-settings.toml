@@ -1,0 +1,35 @@
+[scenario]
+name = "Plugin sidebar activation settings explains hidden views"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "open plugin settings from integrations"
+action = "eval"
+script = '''(async()=>{
+  document.querySelector('#application-integrations-menu').click();
+  await new Promise(r=>setTimeout(r,100));
+  const item=[...document.querySelectorAll('[role=menuitem]')].find(e=>/Plugins|插件/.test(e.textContent));
+  if(!item)throw new Error('plugins menu missing');item.click();return true;
+})()'''
+
+[[step]]
+name = "inactive reason and disabled open action agree with branch visibility"
+action = "eval"
+script = '''(async()=>{
+  const end=Date.now()+10000;
+  while(Date.now()<end){
+    const installed=[...document.querySelectorAll('.plugin-management-tabs [role=tab]')].find(e=>/Installed|已安装/.test(e.textContent));
+    if(installed?.getAttribute('aria-selected')==='false')installed.click();
+    const trigger=document.querySelector('[data-plugin-id="chat-groups"] .plugin-accordion-trigger');
+    if(trigger?.getAttribute('aria-expanded')==='false')trigger.click();
+    const row=[...document.querySelectorAll('.plugin-sidebar-view-row')].find(e=>/Chat Groups|聊天群组/.test(e.textContent));
+    if(row){
+      if(!row.textContent.includes(window.__activationInactiveCopy)||!row.querySelector('button')?.disabled)throw new Error('inactive sidebar remains actionable in settings');
+      const close=document.querySelector('[role=dialog] button[aria-label="Close"], [role=dialog] button[aria-label="关闭"]');
+      if(!close)throw new Error('settings close missing');close.click();return true;
+    }
+    await new Promise(r=>setTimeout(r,100));
+  }
+  throw new Error('plugin sidebar declaration missing');
+})()'''

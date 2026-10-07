@@ -666,6 +666,8 @@ export interface AgentPluginSidebarViewSummary {
   scope: "global" | "workspace" | "conversation";
   icon?: string | null;
   capabilities: string[];
+  /** Hidden until the selected branch contains one of these exact tool names. */
+  activation_tools?: string[];
 }
 
 export interface AgentPluginAutomationHookSummary {

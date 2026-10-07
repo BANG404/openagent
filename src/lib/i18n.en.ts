@@ -387,6 +387,7 @@ const en: Record<TranslationKeys, string> = {
   pluginSidebarDisabled: "Enable the plugin to open this view",
   pluginSidebarInvalid: "The plugin could not be loaded",
   pluginSidebarOutOfScope: "Requires an open workspace or conversation",
+  pluginSidebarInactive: "Appears when this branch uses a matching tool",
   pluginMessageAriaLabel: "Plugin message",
   pluginMessageFrom: "From plugin",
   pluginMessageSourceUnknown: "Unknown plugin",

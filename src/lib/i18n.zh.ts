@@ -381,6 +381,7 @@ export const zh = {
   pluginSidebarDisabled: "启用插件后可打开此视图",
   pluginSidebarInvalid: "插件加载失败",
   pluginSidebarOutOfScope: "需要一个打开的工作区或会话",
+  pluginSidebarInactive: "当前分支调用匹配工具后显示",
   pluginMessageAriaLabel: "插件消息",
   pluginMessageFrom: "来自插件",
   pluginMessageSourceUnknown: "未知插件",

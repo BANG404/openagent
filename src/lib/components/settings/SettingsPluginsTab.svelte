@@ -435,7 +435,9 @@
                               ? $t("pluginSidebarDisabled")
                               : lifecycle === "invalid"
                                 ? $t("pluginSidebarInvalid")
-                                : $t("pluginSidebarOutOfScope")}
+                                : lifecycle === "inactive"
+                                  ? $t("pluginSidebarInactive")
+                                  : $t("pluginSidebarOutOfScope")}
                           </span>
                         {/if}
                       </span>
