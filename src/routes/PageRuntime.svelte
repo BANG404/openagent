@@ -1636,6 +1636,18 @@
     promoteConversationInRecents(updated);
   }
 
+  async function loadConversationChildren(id: string): Promise<void> {
+    if (!tauriAvailable) return;
+    const requestedWorkspace = workspacePath;
+    try {
+      const children = await fetchChildConversations(id, requestedWorkspace || null);
+      if (requestedWorkspace !== workspacePath) return;
+      conversations = mergeConversationMetadata(conversations, children);
+    } catch (error) {
+      console.error(`Failed to load child conversations for ${id}:`, error);
+    }
+  }
+
   async function selectSidebarConversation(id: string): Promise<void> {
     navigationCaptureDepth += 1;
     try {
@@ -1645,18 +1657,7 @@
         );
         if (meta) await ensureConversationLineage(meta);
       }
-      const requestedWorkspace = workspacePath;
-      const loadChildren = tauriAvailable
-        ? fetchChildConversations(id, requestedWorkspace || null)
-            .then((children) => {
-              if (requestedWorkspace !== workspacePath) return;
-              conversations = mergeConversationMetadata(conversations, children);
-            })
-            .catch((error) => {
-              console.error(`Failed to load child conversations for ${id}:`, error);
-            })
-        : Promise.resolve();
-      await Promise.all([switchConversation(id), loadChildren]);
+      await switchConversation(id);
     } finally {
       navigationCaptureDepth -= 1;
     }
@@ -1905,6 +1906,7 @@
       activeMeta?.roleId ?? storedRoleSelection(bootstrap.workspace_path);
     await loadAvailableRoles();
     await reloadRoleConversations(activeConvId);
+    if (activeConvId) await loadConversationChildren(activeConvId);
     void refreshRecentConversations();
 
     if (activeConvId && bootstrap.active_conversation) {
@@ -2831,6 +2833,7 @@
       handleConversationSearch("");
       await Promise.all([reloadRoleConversations(id), refreshRecentConversations()]);
     }
+    await loadConversationChildren(id);
     if (activeConvId === id) return;
     restoringSurface = "conversation";
     activeConvId = id;

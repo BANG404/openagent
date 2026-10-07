@@ -6,7 +6,7 @@
       "id": "chat-groups",
       "display_name": "Chat Groups",
       "description": "Mention-aware group conversations for OpenAgent.",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "repository": "https://github.com/BANG404/openagent-chat-groups",
       "homepage": "https://github.com/BANG404/openagent-chat-groups",
       "source_url": "https://github.com/BANG404/openagent-chat-groups.git",
@@ -37,6 +37,7 @@
             "notice.partialGroup": "Group '{group_id}' was saved; retry with group_id to finish adding roles",
             "notice.memberOwner": "Group owner",
             "notice.memberAgent": "Agent",
+            "notice.notMember": "Conversation is not a member of this chat group",
             "notice.backupFailed": "Chat Groups backup could not be saved"
           },
           "zh": {
@@ -62,6 +63,7 @@
             "notice.partialGroup": "群组“{group_id}”已保存；请传入 group_id 重试以完成添加角色",
             "notice.memberOwner": "群主",
             "notice.memberAgent": "智能体",
+            "notice.notMember": "该会话不是此聊天组的成员",
             "notice.backupFailed": "无法保存群组数据备份，原文件已保留"
           }
         }

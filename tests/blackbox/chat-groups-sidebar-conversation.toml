@@ -47,7 +47,8 @@ script = '''(async()=>{
     frame.contentWindow.addEventListener('message',receive);
     window.dispatchEvent(new MessageEvent('message',{source:frame.contentWindow,data:{type:'openagent:sidebar-ready',version:1}}));
   });
-  frame.contentWindow.postMessage({...context,branch_id:'reviewer-second-branch'},'*');await delay(100);
+  frame.contentWindow.postMessage({...context,branch_id:'reviewer-second-branch'},'*');
+  await until(()=>d.querySelector('#group-title').textContent==='Saved group'&&!draft.disabled);
   if(d.querySelector('#group-title').textContent!=='Saved group'||!draft.value.startsWith('Saved conversation draft'))throw new Error('branch switch changed conversation association');
   frame.contentWindow.postMessage(context,'*');
   const text=`Conversation user ${window.__chatGroupsSidebarPass.theme} ${window.__chatGroupsSidebarPass.language}`;

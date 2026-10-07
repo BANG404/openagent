@@ -1,5 +1,12 @@
 # Shared Runtime Types
 
+Child conversations keep their own saved role identity. After restoring the
+active conversation or switching to it, load its children independently of
+the sidebar's role filter and merge their metadata without replacing live
+messages. Startup restoration must not depend on receiving a creation event.
+The Chat Groups wake scenario checks both live join-only children and their
+visibility after reload.
+
 Plugin MCP descriptors carry additive `mcp_tool_mode` metadata. Installed
 Settings cards resolve the optional user override separately from the package
 default; the shared Select writes through the controller setter. Display names

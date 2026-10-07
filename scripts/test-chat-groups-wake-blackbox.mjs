@@ -222,12 +222,29 @@ try {
       });
       assert.equal(member.member_type, "owner");
       assert.equal(member.role_name, language === "zh" ? "群主" : "Group owner");
-      const started = await call("chat_group_start", {
+      const joined = await call("chat_group_start", {
         group_id: group.id,
         title: group.title,
         roles: [discussionRoles[0].id, ...discussionRoles.slice(1).map((role) => role.name)],
+        content: `Join the discussion ${probe.marker}`,
+        start_discussion: false,
+      });
+      assert.equal(joined.members.length, 4);
+      assert.equal(joined.discussion_started, false);
+      await until("document.querySelectorAll('.sub-conv-item').length === 3");
+      assert.equal(
+        await evaluate("document.querySelectorAll('.sub-conv-item.streaming').length"),
+        "0",
+      );
+      const started = await call("chat_group_start", {
+        group_id: group.id,
+        title: group.title,
         content: `Begin the discussion ${probe.marker}`,
       });
+      assert.deepEqual(
+        started.members.map((/** @type {any} */ item) => item.id),
+        joined.members.map((/** @type {any} */ item) => item.id),
+      );
       assert.equal(started.group.id, group.id, "start created a duplicate group");
       assert.equal(started.members.length, 4, "selected roles were not actually joined");
       assert.equal(started.members[0].id, member.id, "owner membership changed");
@@ -235,6 +252,23 @@ try {
       assert.equal(started.message.mentions.length, 3);
       const childIds = started.members.slice(1).map((/** @type {any} */ m) => m.conversation_id);
       conversations.push(...childIds);
+      const children = await invoke("get_child_conversations", {
+        parentConvId: id,
+        workspace: original.workspace,
+      });
+      assert.equal(
+        children.length,
+        3,
+        "group participants were not linked to their owner conversation",
+      );
+      assert.deepEqual(
+        children.map((/** @type {any} */ child) => child.id).sort(),
+        [...childIds].sort(),
+      );
+      assert(
+        children.every((/** @type {any} */ child) => child.parent_conv_id === id && child.role_id),
+        "role or parent binding missing",
+      );
       await until(`(async()=>{
         const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
         for(const id of ${JSON.stringify(childIds)}){
@@ -275,6 +309,7 @@ try {
       await until(
         `window.__groupWakeReload!==true && document.body.textContent.includes('GROUP_WOKE_${id}')`,
       );
+      await until("document.querySelectorAll('.sub-conv-item').length === 3");
       await evaluate(
         `window.__groupWakeProbe=${JSON.stringify({ ...probe, restored: true })}; true`,
       );

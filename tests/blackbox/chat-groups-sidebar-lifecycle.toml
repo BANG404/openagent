@@ -4,12 +4,25 @@ fail_fast = true
 global_timeout_ms = 60000
 
 [[step]]
-name = "disable through Settings and hide the package panel"
+name = "open plugin Settings"
 action = "eval"
 script = '''(async()=>{
   document.querySelector('#application-integrations-menu').click();
   await new Promise(r=>setTimeout(r,0));
   [...document.querySelectorAll('[role=menuitem]')].find(b=>/Plugins|插件/.test(b.textContent)).click();
+  return true;
+})()'''
+
+[[step]]
+name = "wait for plugin Settings to load"
+action = "wait"
+selector = ".plugin-management-tabs button[data-filter=installed]"
+timeout_ms = 30000
+
+[[step]]
+name = "disable through Settings and hide the package panel"
+action = "eval"
+script = '''(async()=>{
   const deadline=Date.now()+8000;
   while(Date.now()<deadline){
     document.querySelector('.plugin-management-tabs button:nth-of-type(2)')?.click();

@@ -97,7 +97,12 @@ Run package-owned validation and the applicable native black-box scenario;
 retain report paths and record tested Git revisions. Index validation alone
 does not prove Runtime functionality or qualify a published release.
 
-Chat Groups owns group membership and owner identity in its package. Follow its
+Chat Groups creates role-bound participants through the generic conversation
+bridge, linking them to its real owner conversation. Runtime task delegation
+is separate: group sends require existing membership and cannot auto-enroll a
+spawned task. The package publishes the shared child-conversation projection
+for join-only participants before their first wake. Chat Groups owns group
+membership and owner identity in its package. Follow its
 bundled Skill for creation/start semantics and state upgrades. Run
 `test:blackbox:chat-groups-sidebar` for unbound and role-bound owner labels,
 language-stable owner mentions, reload and the four theme/language combinations;
