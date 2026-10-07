@@ -1,0 +1,28 @@
+[scenario]
+name = "Chat Groups request failure and recovery"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "foreign tool failures are scoped and drafts survive"
+action = "eval"
+script = '''(async()=>{
+  const frame=document.querySelector('#checkpoint-flow-panel iframe'),d=frame.contentDocument;
+  d.querySelector('#draft').value='Preserve on failure';d.querySelector('#draft').dispatchEvent(new Event('input',{bubbles:true}));
+  const scope=await new Promise(resolve=>{
+    const receive=e=>{if(e.source===parent&&e.data?.type==='openagent:sidebar-context'){frame.contentWindow.removeEventListener('message',receive);resolve(e.data.scope);}};
+    frame.contentWindow.addEventListener('message',receive);
+    window.dispatchEvent(new MessageEvent('message',{source:frame.contentWindow,data:{type:'openagent:sidebar-ready',version:1}}));
+  });
+  const result=await new Promise(resolve=>{
+    const receive=e=>{if(e.data?.type==='openagent:sidebar-tool-result'&&e.data.request_id==='foreign'){frame.contentWindow.removeEventListener('message',receive);resolve(e.data);}};
+    frame.contentWindow.addEventListener('message',receive);
+    window.dispatchEvent(new MessageEvent('message',{source:frame.contentWindow,data:{type:'openagent:sidebar-tool-call',version:1,scope,request_id:'foreign',plugin_id:'message-board',tool_name:'foreign_tool',arguments:{}}}));
+  });
+  if(result.ok)throw new Error('a foreign tool was allowed');
+  if(d.querySelector('#draft').value!=='Preserve on failure')throw new Error('failed request erased draft');
+  d.querySelector('#refresh').click();
+  await new Promise(r=>setTimeout(r,1000));
+  if(!d.querySelector('#error').hidden)throw new Error('refresh did not recover');
+  return true;
+})()'''

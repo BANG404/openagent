@@ -23,7 +23,7 @@ describe("official plugin registry", () => {
       "https://github.com/BANG404/openagent-goal.git",
     );
     expect(registry.plugins.map((plugin) => plugin.version)).toEqual([
-      "1.0.5",
+      "1.1.0",
       "2.2.2",
       "1.0.6",
       "1.3.0",

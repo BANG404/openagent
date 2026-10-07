@@ -24,8 +24,8 @@ a listed view is never an entry the sidebar would refuse to mount.
 When the selected panel stops being available - its plugin was disabled, its
 package failed to load, or the scope emptied - the shell navigates to a built-in
 fallback instead of rendering an empty surface. A plugin panel that is the only
-remaining detail surface replaces the empty status view, matching the existing
-chat-group recovery, so a sidebar that is open on nothing never survives.
+remaining detail surface replaces the empty status view, so a sidebar that is
+open on nothing never survives.
 
 The plugin manager in Settings lists each declared view with the same lifecycle
 state and offers "open in sidebar", which selects the panel and expands the
@@ -44,6 +44,24 @@ so an install, update, remove, manual refresh, or enable/disable replaces the
 mounted document instead of leaving the panel on the snapshot it read first.
 Treat a panel as a live view of the installed package rather than a static HTML
 page.
+
+## Package tool requests
+
+Workspace-capable panels receive `tool_calls: true` in context and may send
+`openagent:sidebar-tool-call` version 1 with the current `scope`, a bounded
+`request_id`, `tool_name`, and object `arguments`. The host validates the frame
+source, scope and payload size, calls `call_agent_plugin_tool` for the panel's
+own plugin, and returns `openagent:sidebar-tool-result` with matching request
+ID/scope, `ok`, and the MCP `result` or `error`. Never accept a plugin ID or
+sender context from a frame; host workspace/locale and empty Agent sender IDs
+replace `_openagent`. Drop replies after scope, document, or frame replacement.
+`openagent:sidebar-ready` version 1 requests context after bootstrap.
+
+Chat Groups declares a workspace panel in its package. The shell does not parse
+group state or transcript tool results to create a built-in group panel. Native
+qualification is `test:blackbox:chat-groups-sidebar` with a fresh isolated home
+and explicit pilot socket, covering existing data, send/reload, workspace
+isolation, enablement and live locale/theme changes.
 
 A panel document is still a single declared entry: package sub-resources are
 outside the current asset boundary, so a plugin page must inline its own styles

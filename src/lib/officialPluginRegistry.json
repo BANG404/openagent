@@ -6,7 +6,7 @@
       "id": "chat-groups",
       "display_name": "Chat Groups",
       "description": "Mention-aware group conversations for OpenAgent.",
-      "version": "1.0.5",
+      "version": "1.1.0",
       "repository": "https://github.com/BANG404/openagent-chat-groups",
       "homepage": "https://github.com/BANG404/openagent-chat-groups",
       "source_url": "https://github.com/BANG404/openagent-chat-groups.git",
@@ -16,6 +16,7 @@
         "translations": {
           "en": {
             "display_name": "Chat Groups",
+            "sidebar.groups.title": "Chat Groups",
             "description": "Mention-aware group conversations for OpenAgent.",
             "notice.conversationWorkspace": "Conversation is outside the current workspace",
             "notice.titleEmpty": "title is empty",
@@ -32,6 +33,7 @@
           },
           "zh": {
             "display_name": "聊天群组",
+            "sidebar.groups.title": "聊天群组",
             "description": "支持提及成员的 OpenAgent 群组会话。",
             "notice.conversationWorkspace": "该会话不属于当前工作区",
             "notice.titleEmpty": "标题不能为空",

@@ -432,7 +432,7 @@ optional icon, package-relative entry, scope (`global`, `workspace`, or
 `conversation`), and requested host capabilities. Supported capabilities are
 `workspace`, `conversation`, `branch`, `files`, `locale`, and `theme`; the host
 only includes data requested by the view. The host registers it beside the built-in
-`status`, `files`, `terminal`, and `group` panels and persists selection with
+`status`, `files`, and `terminal` panels and persists selection with
 the existing conversation/branch scope store.
 
 The host's navigation owns the visible sidebar view title. Plugin HTML starts
@@ -451,6 +451,12 @@ changes.
 Plugins never receive transcript contents, prompts, model output, Inspector
 records, trace payloads, or another plugin's data. UI failures unmount only the
 affected view and leave the main conversation surface usable.
+
+Workspace-capable sidebar frames can use the optional version-1 package tool
+bridge documented in the [sidebar owner](../../openagent-chat-frontend/references/plugin-sidebar.md#package-tool-requests).
+Detect `tool_calls` in context before using it. This uses the existing typed
+plugin tool operation and preserves Runtime permissions and package ownership;
+it grants no direct network, token, transcript, or filesystem access.
 
 ## Lifecycle and updates
 

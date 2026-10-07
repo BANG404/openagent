@@ -1,0 +1,41 @@
+[scenario]
+name = "Chat Groups send and draft preservation"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "draft survives group switching"
+action = "eval"
+script = '''(async()=>{
+  const d=document.querySelector('#checkpoint-flow-panel iframe').contentDocument;
+  const draft=d.querySelector('#draft');draft.value='Keep this draft';draft.dispatchEvent(new Event('input',{bubbles:true}));
+  d.querySelector('#picker').open=true;
+  [...d.querySelectorAll('#choices button')].find(b=>b.textContent==='Second group').click();
+  await new Promise(r=>setTimeout(r,700));
+  if(draft.value)throw new Error('draft leaked to another group');
+  d.querySelector('#picker').open=true;
+  [...d.querySelectorAll('#choices button')].find(b=>b.textContent==='Saved group').click();
+  await new Promise(r=>setTimeout(r,700));
+  if(draft.value!=='Keep this draft')throw new Error('group draft was lost');
+  return true;
+})()'''
+
+[[step]]
+name = "send a user message and observe the durable result"
+action = "eval"
+script = '''(async()=>{
+  const d=document.querySelector('#checkpoint-flow-panel iframe').contentDocument;
+  const pass=window.__chatGroupsSidebarPass;
+  const text=`Sidebar ${pass.theme} ${pass.language}`;
+  const draft=d.querySelector('#draft');draft.value=text;draft.dispatchEvent(new Event('input',{bubbles:true}));
+  d.querySelector('#send').click();
+  const deadline=Date.now()+20000;
+  while(Date.now()<deadline){
+    if([...d.querySelectorAll('article p')].some(p=>p.textContent===text)&&!draft.value){
+      if(d.querySelector('#send').textContent!==(pass.language==='zh'?'发送':'Send'))throw new Error('send copy is not localized');
+      return true;
+    }
+    await new Promise(r=>setTimeout(r,100));
+  }
+  throw new Error('sidebar user message failed');
+})()'''

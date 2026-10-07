@@ -1,0 +1,50 @@
+[scenario]
+name = "Chat Groups sidebar enablement"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "disable through Settings and hide the package panel"
+action = "eval"
+script = '''(async()=>{
+  document.querySelector('#application-integrations-menu').click();
+  await new Promise(r=>setTimeout(r,0));
+  [...document.querySelectorAll('[role=menuitem]')].find(b=>/Plugins|插件/.test(b.textContent)).click();
+  const deadline=Date.now()+8000;
+  while(Date.now()<deadline){
+    document.querySelector('.plugin-management-tabs button:nth-of-type(2)')?.click();
+    const card=document.querySelector('.plugin-accordion-item[data-plugin-id="chat-groups"]');
+    const control=card?.querySelector('.plugin-accordion-header [role=switch]');
+    if(control){control.click();break;}
+    await new Promise(r=>setTimeout(r,100));
+  }
+  while(Date.now()<deadline){
+    if(!document.querySelector('#checkpoint-flow-panel iframe'))return true;
+    await new Promise(r=>setTimeout(r,100));
+  }
+  throw new Error('disabled group panel remained mounted');
+})()'''
+
+[[step]]
+name = "re-enable the installed package without losing saved messages"
+action = "eval"
+script = '''(async()=>{
+  const card=document.querySelector('.plugin-accordion-item[data-plugin-id="chat-groups"]');
+  const control=card?.querySelector('.plugin-accordion-header [role=switch]');
+  if(!control||control.getAttribute('aria-checked')!=='false')throw new Error('package was not disabled');
+  control.click();
+  const saved=Date.now()+6000;
+  while(Date.now()<saved){
+    if(control.getAttribute('aria-checked')==='true'&&[...document.querySelectorAll('.panel-navigation button')].some(b=>/Chat Groups|聊天群组/.test(b.textContent)))break;
+    await new Promise(r=>setTimeout(r,100));
+  }
+  document.querySelector('.fullscreen-surface-close')?.click();
+  const deadline=Date.now()+8000;
+  while(Date.now()<deadline){
+    const expand=[...document.querySelectorAll('button')].find(b=>/^(Expand right sidebar|展开右侧栏)$/.test(b.getAttribute('aria-label')||''));expand?.click();
+    const tab=[...document.querySelectorAll('.panel-navigation button')].find(b=>/Chat Groups|聊天群组/.test(b.textContent));tab?.click();
+    if(document.querySelector('#checkpoint-flow-panel iframe')?.contentDocument?.querySelectorAll('article').length===209)return true;
+    await new Promise(r=>setTimeout(r,100));
+  }
+  throw new Error('re-enabled group sidebar did not recover');
+})()'''

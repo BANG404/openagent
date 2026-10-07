@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { onDestroy, untrack } from "svelte";
+  import { onDestroy, onMount, untrack } from "svelte";
   import { t } from "$lib/i18n";
   import type { AgentPluginSidebarViewSummary } from "$lib/types";
   import { desktopOpenAgent } from "$lib/openagent/tauriClient";
+  import { sidebarToolArguments, sidebarToolRequest } from "$lib/pluginSidebarBridge";
 
   let {
     view,
@@ -41,18 +42,83 @@
       version: 1,
       plugin_id: view.id.split(":")[1] ?? "",
       scope: scopeKey,
+      tool_calls: Boolean(context.workspacePath && view.capabilities?.includes("workspace")),
     };
     if (capabilities.has("workspace")) payload.workspace = context.workspacePath ?? null;
     if (capabilities.has("conversation")) payload.conversation_id = context.conversationId ?? null;
     if (capabilities.has("branch")) payload.branch_id = context.branchId ?? null;
     if (capabilities.has("files")) payload.file_changes = context.fileChanges ?? [];
     if (capabilities.has("locale")) payload.locale = context.locale ?? locale;
-    if (capabilities.has("theme")) payload.theme = context.theme ?? theme;
+    if (capabilities.has("theme")) {
+      const preference = context.theme ?? theme;
+      payload.theme =
+        preference === "system"
+          ? document.documentElement.classList.contains("dark")
+            ? "dark"
+            : "light"
+          : preference;
+    }
     return payload;
   }
 
   function postContext(): void {
     frame?.contentWindow?.postMessage(pluginContext(), "*");
+  }
+
+  onMount(() => {
+    const observer = new MutationObserver(postContext);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  });
+
+  const pendingRequests = new Set<string>();
+
+  async function receive(event: MessageEvent): Promise<void> {
+    const target = frame?.contentWindow;
+    if (!target || event.source !== target) return;
+    if (event.data?.type === "openagent:sidebar-ready" && event.data?.version === 1) {
+      postContext();
+      return;
+    }
+    const request = sidebarToolRequest(event.data, scopeKey);
+    if (!request || !context.workspacePath || !view.capabilities?.includes("workspace")) return;
+    if (pendingRequests.has(request.request_id) || pendingRequests.size >= 16) return;
+    const identity = assetIdentity;
+    const scope = scopeKey;
+    const workspace = context.workspacePath;
+    pendingRequests.add(request.request_id);
+    let result: unknown;
+    let error: string | undefined;
+    try {
+      result = await desktopOpenAgent.invokeProduct("call_agent_plugin_tool", {
+        plugin_id: view.id.split(":")[1],
+        tool_name: request.tool_name,
+        arguments: sidebarToolArguments(request.arguments, workspace, context.locale ?? locale),
+      });
+    } catch (cause) {
+      error = String(cause);
+    } finally {
+      pendingRequests.delete(request.request_id);
+    }
+    if (
+      target !== frame?.contentWindow ||
+      identity !== assetIdentity ||
+      scope !== scopeKey ||
+      workspace !== context.workspacePath
+    )
+      return;
+    target.postMessage(
+      {
+        type: "openagent:sidebar-tool-result",
+        version: 1,
+        request_id: request.request_id,
+        scope,
+        ok: error === undefined,
+        result,
+        error,
+      },
+      "*",
+    );
   }
 
   async function load(): Promise<void> {
@@ -105,6 +171,8 @@
     if (src) URL.revokeObjectURL(src);
   });
 </script>
+
+<svelte:window onmessage={receive} />
 
 <section class="plugin-panel" aria-label={view.title}>
   {#if loading}

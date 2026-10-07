@@ -1,0 +1,209 @@
+// @ts-check
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { captureBlackboxScreenshot } from "./blackbox-screenshot.mjs";
+import { resolveBlackboxHome } from "./tauri-test-environment.mjs";
+
+const repo = resolve(import.meta.dirname, "..");
+const fixture = resolve(resolveBlackboxHome(process.env, { instanceName: "chat-groups-sidebar" }));
+assert(
+  process.env.OPENAGENT_HOME && process.env.TAURI_PILOT_SOCKET,
+  "set isolated OPENAGENT_HOME and its TAURI_PILOT_SOCKET",
+);
+assert(
+  ![".openagent", ".openagent-dev"].some((name) => fixture === resolve(homedir(), name)),
+  "use a fixture home",
+);
+assert(
+  !existsSync(join(fixture, "plugins/chat-groups")),
+  "preserve the installed package and use a fresh fixture",
+);
+const artifacts =
+  process.env.BLACKBOX_ARTIFACT_DIR ||
+  mkdtempSync(join(tmpdir(), "openagent-chat-groups-sidebar-report-"));
+mkdirSync(artifacts, { recursive: true });
+const workspace = join(fixture, "workspace");
+mkdirSync(workspace, { recursive: true });
+const dataRoot = join(fixture, "plugin-data/chat-groups");
+mkdirSync(dataRoot, { recursive: true });
+const group = { id: "saved-group", title: "Saved group", workspace, created_at: 1, updated_at: 2 };
+writeFileSync(
+  join(dataRoot, "chat-groups.json"),
+  JSON.stringify({
+    groups: [
+      group,
+      { ...group, id: "second-group", title: "Second group", updated_at: 1 },
+      {
+        ...group,
+        id: "foreign-group",
+        title: "Foreign group",
+        workspace: join(fixture, "other-workspace"),
+      },
+    ],
+    members: [
+      {
+        id: "member",
+        group_id: group.id,
+        conversation_id: "reviewer",
+        branch_id: "branch",
+        role_id: "role",
+        role_name: "Reviewer",
+        joined_at: 1,
+      },
+    ],
+    messages: Array.from({ length: 205 }, (_, index) => ({
+      id: `saved-${index}`,
+      group_id: group.id,
+      seq: index + 1,
+      sender_type: "user",
+      sender_id: null,
+      content: `Saved message ${index + 1}`,
+      mentions: [],
+      created_at: index + 1,
+    })),
+    rosters: {},
+  }),
+);
+
+/** @param {string[]} args */
+function pilot(args) {
+  const result = spawnSync("tauri-pilot", [...args, "--window", "main"], {
+    env: process.env,
+    cwd: artifacts,
+    encoding: "utf8",
+    windowsHide: true,
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout || String(result.error));
+  return result.stdout.trim();
+}
+/** @param {string} script */
+const evaluate = (script) => pilot(["eval", script]);
+/** @param {string} operation @param {unknown} args @returns {any} */
+function invoke(operation, args) {
+  return JSON.parse(
+    evaluate(
+      `(async()=>{const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');return JSON.stringify({value:await c.invokeProduct(${JSON.stringify(operation)},${JSON.stringify(args)})});})()`,
+    ),
+  ).value;
+}
+/** @param {string} expression @param {string} message */
+async function until(expression, message) {
+  const deadline = Date.now() + 30000;
+  while (Date.now() < deadline) {
+    if (evaluate(expression) === "true") return;
+    await new Promise((done) => setTimeout(done, 100));
+  }
+  throw new Error(message);
+}
+const original = invoke("get_settings", {});
+let installed = false;
+try {
+  invoke("set_workspace", { path: workspace });
+  const config = {
+    ...original,
+    workspace,
+    onboarding_completed: true,
+    agent_plugins_enabled: {
+      ...original.agent_plugins_enabled,
+      "chat-groups": true,
+      "cua-driver": false,
+    },
+    permission_profile: {
+      enforcement: "managed",
+      file_system: {
+        entries: [
+          { access: "read", path: { kind: "host_root" } },
+          { access: "write", path: { kind: "workspace" } },
+        ],
+      },
+      network: "enabled",
+    },
+  };
+  invoke("save_settings", { config });
+  const summary = invoke("install_agent_plugin", { source: join(repo, "plugins/chat-groups") });
+  installed = true;
+  assert.equal(summary.sidebar_views.length, 1);
+  assert.deepEqual(summary.warnings, []);
+  evaluate("window.location.reload(); true");
+  await until(
+    "!!document.querySelector('#application-integrations-menu')",
+    "fixture startup failed",
+  );
+  // The scenario uses the real shell's navigation and the package document.
+  pilot(["snapshot", "-i"]);
+  pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar.toml")]);
+  for (const theme of ["light", "dark"]) {
+    for (const language of ["en", "zh"]) {
+      invoke("save_settings", { config: { ...config, theme, language } });
+      evaluate(
+        `(async()=>{const {emit}=await import('/src/lib/openagent/tauriClient.ts');await emit('settings-changed');return true;})()`,
+      );
+      await until(
+        `(()=>{const d=document.querySelector('#checkpoint-flow-panel iframe')?.contentDocument;return d?.documentElement.lang===${JSON.stringify(language)}&&d.documentElement.dataset.theme===${JSON.stringify(theme)};})()`,
+        "frame did not follow live language/theme",
+      );
+      evaluate(`window.__chatGroupsSidebarPass=${JSON.stringify({ theme, language })}; true`);
+      pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-messages.toml")]);
+      const screenshot = join(artifacts, `${theme}-${language}.png`);
+      if (process.env.BLACKBOX_NATIVE_WINDOW_HANDLE) {
+        const capture = spawnSync(
+          process.env.PYTHON_BIN || "python",
+          [
+            join(repo, "scripts/capture-windows-window.py"),
+            "--hwnd",
+            process.env.BLACKBOX_NATIVE_WINDOW_HANDLE,
+            "--output",
+            screenshot,
+          ],
+          { encoding: "utf8", windowsHide: true },
+        );
+        assert.equal(capture.status, 0, capture.stderr || String(capture.error));
+      } else captureBlackboxScreenshot(pilot, screenshot);
+    }
+  }
+  const stored = JSON.parse(readFileSync(join(dataRoot, "chat-groups.json"), "utf8"));
+  assert.equal(stored.messages.length, 209);
+  assert(
+    stored.messages
+      .slice(205)
+      .every((/** @type {any} */ item) => item.sender_type === "user" && item.sender_id === null),
+    "sidebar impersonated an Agent sender",
+  );
+  // A tool failure must preserve the draft, then a manual Refresh recovers.
+  pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-recovery.toml")]);
+  evaluate("window.location.reload(); true");
+  await until(
+    "document.querySelector('#checkpoint-flow-panel iframe')?.contentDocument?.querySelectorAll('article').length===209",
+    "sent messages did not survive reload",
+  );
+  pilot(["snapshot", "-i"]);
+  pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-lifecycle.toml")]);
+  writeFileSync(
+    join(artifacts, "report.json"),
+    JSON.stringify(
+      {
+        version: summary.version,
+        messages: stored.messages.length,
+        themes: ["light", "dark"],
+        locales: ["en", "zh"],
+        passed: true,
+      },
+      null,
+      2,
+    ),
+  );
+  console.log(`Chat Groups sidebar passed: ${artifacts}`);
+} catch (error) {
+  console.error(
+    evaluate(
+      `(()=>{const d=document.querySelector('#checkpoint-flow-panel iframe')?.contentDocument;return JSON.stringify({error:d?.querySelector('#error')?.textContent,draft:d?.querySelector('#draft')?.value,sendDisabled:d?.querySelector('#send')?.disabled,articles:d?.querySelectorAll('article').length});})()`,
+    ),
+  );
+  throw error;
+} finally {
+  if (installed) invoke("uninstall_agent_plugin", { id: "chat-groups" });
+  invoke("save_settings", { config: original });
+}
