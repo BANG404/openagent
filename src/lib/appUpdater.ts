@@ -173,7 +173,12 @@ async function installUpdates(updates: AvailableUpdates): Promise<void> {
       return;
     }
     componentUpdateStarted = true;
-    if (updates.runtime) {
+    if (updates.shell) {
+      await invoke("prepare_shell_handoff", {
+        shellVersion: updates.shell.version,
+      });
+    }
+    if (updates.runtime && !updates.shell) {
       updateToast(progressToastId, {
         description: translate("runtimeUpdateInProgressDescription"),
       });
@@ -182,18 +187,15 @@ async function installUpdates(updates: AvailableUpdates): Promise<void> {
         target: updates.runtime.target,
       });
     }
-    if (updates.frontend) {
+    if (updates.frontend && !updates.shell) {
       updateToast(progressToastId, {
         description: translate("frontendUpdateInProgressDescription"),
       });
-      // A shell install ends this process after the Runtime is stopped. Leave
-      // the frontend selection pending for the replacement process instead of
-      // navigating this WebView into a frontend that cannot bootstrap.
       await invoke<void>("activate_frontend_resource", {
         version: updates.frontend.version,
-        navigate: !updates.shell,
+        navigate: true,
       });
-      frontendActivationCommitted = !updates.shell;
+      frontendActivationCommitted = true;
     }
     if (updates.shell) {
       const shell = updates.shell;
@@ -287,30 +289,29 @@ export async function checkForAppUpdate(notifyWhenUpToDate = false): Promise<voi
   mutableAppUpdateState.set("checking");
 
   try {
-    let runtime: PreparedRuntimeResource | null = null;
-    try {
-      runtime = await checkForRuntimeResourceUpdate();
-    } catch (error) {
-      console.warn("[openagent] Runtime resource update check failed", error);
-    }
-    let frontend: PreparedFrontendResource | null = null;
-    try {
-      frontend = await checkForFrontendResourceUpdate();
-    } catch (error) {
-      console.warn("[openagent] Frontend resource update check failed", error);
-    }
     await reportComponentUpdateEvent("shell", "check_started");
-    let shell: Update | null;
-    try {
-      shell = await withAppUpdateTimeout(check());
-      await reportComponentUpdateEvent(
-        "shell",
-        shell ? "check_available" : "check_current",
-        shell ? { currentVersion: shell.currentVersion, candidateVersion: shell.version } : {},
+    const shell = await withAppUpdateTimeout(check());
+    await reportComponentUpdateEvent(
+      "shell",
+      shell ? "check_available" : "check_current",
+      shell ? { currentVersion: shell.currentVersion, candidateVersion: shell.version } : {},
+    );
+    const shellDownload = shell ? downloadShellUpdate(shell) : null;
+    if (shellDownload !== null) void shellDownload.catch(() => {});
+    let runtime: PreparedRuntimeResource | null = null;
+    let frontend: PreparedFrontendResource | null = null;
+    if (shell) {
+      // A signed immutable distribution stages all resources concurrently while
+      // the shell installer downloads. Installation happens after replacement.
+      await withAppUpdateTimeout(
+        invoke("prepare_release_resources", { version: shell.version }),
+        RESOURCE_UPDATE_PREPARE_TIMEOUT_MS,
       );
-    } catch (error) {
-      await reportComponentUpdateEvent("shell", "check_failed", {}, error);
-      throw error;
+    } else {
+      [runtime, frontend] = await Promise.all([
+        checkForRuntimeResourceUpdate(),
+        checkForFrontendResourceUpdate(),
+      ]);
     }
     if (!shell && !runtime && !frontend) {
       if (notifyWhenUpToDate) {
@@ -323,8 +324,6 @@ export async function checkForAppUpdate(notifyWhenUpToDate = false): Promise<voi
       return;
     }
 
-    const shellDownload = shell ? downloadShellUpdate(shell) : null;
-    if (shellDownload !== null) void shellDownload.catch(() => {});
     const updates: AvailableUpdates = { runtime, frontend, shell, shellDownload };
     const releaseUrl = shell ? appUpdateReleaseUrl(shell.version) : undefined;
     const componentVersionCandidates: Array<ComponentVersionTransition | null> = [

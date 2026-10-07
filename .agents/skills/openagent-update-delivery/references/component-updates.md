@@ -21,13 +21,17 @@ versioned directory and explicitly reloads the process. If the replacement
 fails to start, the supervisor restarts the prior binary.
 
 When a release contains the frontend, Runtime, and native shell together, the
-desktop checks aggregate them into one update notification. Frontend and Runtime
-resources are downloaded and verified before activation; the Tauri updater
-downloads the shell package in the background but installs it only after the
-user selects the update action. When the shell is also selected, activation
-records a pending frontend selection without navigating the current WebView,
-then installs the shell and restarts the application. The replacement process
-serves and confirms that frontend after its Runtime has started. Frontend-only
+desktop checks aggregate them into one update notification. Runtime and frontend
+preparation starts after the shell check; the shell and its exact distribution
+download concurrently. All required downloads finish before activation.
+When the shell is selected, the old host verifies staged candidate identities
+and durably writes
+`resources/updates/shell-handoff.json`. It does not replace the old Runtime or
+activate the new frontend. The shell installer runs first; the replacement
+process reverifies the recorded Runtime, starts and probes it, then activates
+the staged frontend and arms its confirmation deadline. No moving channel is
+queried to reconstruct a handoff. An identical handoff may be retried, while a
+different pending transaction refuses overwrite. Frontend-only
 activation reloads and confirms the frontend in the current process.
 Component-only releases keep the same notification model without restarting
 the shell.
@@ -268,3 +272,48 @@ development build at a production fixed channel merely to test update state.
 About presents only the product release, so a development run must show the
 active frontend resource's release identity there, or the packaged shell
 version while no external resource is active, and no component version line.
+
+
+## Independent shell provisioning and shell-first continuation
+
+New signed Runtime manifests bind their platform sandbox helpers as well as the
+server executable. Runtime installation stages both under one version directory;
+every reuse and activation verifies helper bytes. Published legacy manifests that
+omit this field remain readable, while newly generated development and product
+manifests must include their exact SDK's helpers. Future-release download does
+not replace the running process's embedding seed. Bootstrap persistence inspection
+uses the verified candidate directly before committing its Runtime selection.
+
+The packaged application embeds only `src/bootstrap/`, built independently with
+`bootstrap.vite.config.js`. It imports Tauri IPC and shared UI/translation tokens,
+not SDK transport or product application state. Release startup creates the
+visible main window before downloading or inspecting Runtime resources.
+`desktop_bootstrap/provisioning.rs` owns downloading, bounded signed resource
+admission, progress, retry and offline-directory import. A versioned,
+Minisign-signed `openagent-distribution.json` binds all initial Runtime, frontend,
+sandbox-helper and embedding bytes to the exact shell release. Mutable component
+channels never supply initial installation or a coupled shell update.
+
+Every resource downloads concurrently into a content-addressed cache. Interrupted
+HTTP transfers use validated Range responses; corrupt completed transfers are
+removed, verified cached files can be used without their source, and no Runtime
+or frontend is activated before the whole distribution is staged. Offline
+installers contain that same signed set for their platform; the online installer
+contains only the shell and bootstrap. Windows offline installers include the
+WebView2 offline installer. System OS libraries and model-provider access remain
+platform/use prerequisites rather than application resources.
+
+When Tauri discovers a newer shell, `prepare_release_resources` stages its exact
+immutable distribution while the shell installer downloads. The running host
+does not execute future Runtime protocols. After the graceful barrier succeeds,
+`prepare_shell_handoff` verifies the staged plan and records the target shell
+identity. The installer replaces the shell first. The replacement shell reads
+and re-verifies the cached distribution, installs Runtime and helpers, provides
+the embedding seed to Runtime, starts its inspected application data, then
+activates and confirms the frontend. Runtime alone owns backup/transition consent
+and embedding-model admission. Failure leaves the bootstrap window usable for
+retry or importing an exact-version resource directory.
+
+Frontend-host protocol 2 requires shell provisioning and continuation commands.
+New frontend artifacts declare that protocol so older protocol-1 shells reject
+them until a shell update completes; legacy frontend manifests remain readable.

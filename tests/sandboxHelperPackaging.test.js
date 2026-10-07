@@ -57,23 +57,15 @@ describe("sandbox helper packaging", () => {
   test("packages Windows helpers only in the NSIS Windows bundle", () => {
     expect(baseTauriConfig.bundle.resources).not.toHaveProperty("resources/codex-resources/");
     expect(windowsTauriConfig.bundle.targets).toEqual(["nsis"]);
-    expect(windowsTauriConfig.bundle.resources).toEqual({
-      "resources/codex-resources/": "codex-resources/",
-    });
+    expect(windowsTauriConfig.bundle.resources).toBeUndefined();
   });
 
   test("keeps embedded Runtime code out of ordinary desktop binaries", () => {
-    expect(cargoManifest).toContain("default = []");
-    expect(cargoManifest).toContain(
-      'embedded-runtime = ["dep:openagent-app", "dep:openagent-protocol", "dep:openagent-runtime"]',
-    );
     for (const dependency of ["openagent-app", "openagent-protocol", "openagent-runtime"]) {
-      expect(cargoManifest).toContain(
-        `${dependency} = { path = "../sdk/rust/${dependency}", optional = true }`,
-      );
+      expect(cargoManifest).not.toContain(`${dependency} = {`);
     }
-    expect(cargoManifest).toContain('required-features = ["embedded-runtime"]');
-    expect(tauriLauncher).toContain('arguments_.push("--features", "embedded-runtime")');
-    expect(packageManifest.scripts["dev:agent-server"]).toContain("--features embedded-runtime");
+    expect(cargoManifest).toContain("autobins = false");
+    expect(tauriLauncher).toContain('"embedded-cargo.cmd"');
+    expect(packageManifest.scripts["dev:agent-server"]).toContain("scripts/embedded-cargo.mjs");
   });
 });

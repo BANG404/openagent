@@ -13,15 +13,16 @@
   mix library, setup-helper, and command-runner revisions. Keep any compiler
   warning override narrowly scoped to that third-party helper build; native
   host and SDK warnings remain errors.
-- Windows bundles both sandbox helpers only through the Windows Tauri config
-  and produces NSIS plus updater artifacts, not WiX. Linux strips
-  `codex-bwrap`, embeds its SHA-256 at release compilation, and packages those
-  exact bytes through `externalBin`.
+- Windows produces NSIS plus updater artifacts, not WiX. Signed Runtime
+  manifests bind the pinned sandbox helpers; installation verifies and places
+  them next to that Runtime under `codex-resources/`. Linux's helper is installed
+  there as executable `bwrap`. Offline bundles contain the same signed bytes.
 - Cua Driver is delivered by the verified Agent Plugin release at
   `https://github.com/BANG404/openagent-cua-driver`; the desktop bundle does
   not package or download a Cua binary.
-- Use `bun run tauri:build` for release builds so generated helper digests reach
-  Cargo. Keep the release Cargo profile size-oriented and audit installer size,
+- Use `bun run tauri:build` for shell release builds; helper compilation and its
+  digests belong to the qualified SDK Runtime, outside shell compilation.
+  Keep the release Cargo profile size-oriented and audit installer size,
   not generated `target/` contents. The ordinary desktop build must leave the
   `embedded-runtime` Cargo feature disabled; only the explicit embedded
   diagnostic may link the in-process Runtime command adapter.
@@ -47,7 +48,7 @@
   an immutable release tag on that exact SHA, explicitly dispatch current SDK CI
   automation with the immutable SHA, and stage the exact manifest, Runtime
   binaries, and checksums as one private workflow artifact. Tauri release jobs
-  must verify and reuse those exact binaries as their `externalBin` sidecars;
+  must verify and reuse those exact binaries in their signed distributions;
   never compile the pinned Runtime a second time. A failed or mismatched staged
   candidate stops desktop tagging. Publish the SDK tag only after every
   selected desktop candidate is attached to the desktop draft and the remaining
@@ -64,7 +65,7 @@
   source or a checksummed development snapshot. The release-qualified server is
   the executable Runtime sidecar used by the desktop host.
   Publish an exact desktop-to-SDK mapping manifest with the desktop release.
-  additionally package the exact pinned server as an `externalBin` fallback and
+  include the exact pinned server in the complete offline resource set and
   publish only those release-qualified binaries through a fixed runtime channel
   whose manifest has a detached signature from the Tauri updater trust root.
   Ordinary public CI artifacts and caches must still never expose private SDK
@@ -76,7 +77,7 @@
 - Trusted nightly and explicit full SDK qualification may refresh the public
   `runtime-dev` channel after the exact private `main` commit passes. That
   channel may contain only signed Runtime manifests, release-built server
-  binaries, and the behavior-free TypeScript SDK snapshot. Fork pull requests
+  binaries, pinned sandbox helpers, and the behavior-free TypeScript SDK snapshot. Fork pull requests
   may consume the exact checksummed TypeScript snapshot for frontend checks;
   never expose private Rust sources, credentials,
   caches, diagnostics, or an artifact for a different gitlink SHA.
@@ -89,7 +90,9 @@
   before downloading artifacts, and retain integration coverage with an
   ephemeral test key; never require or print the production signing key locally.
 - Record `frontend`, `runtime`, and `nativeShell` in release metadata. Component
-  releases build only their selected resources; only `nativeShell` builds Tauri
+  releases build their selected resources; `nativeShell` also prepares the complete
+  Runtime/frontend/embedding/helper set needed for initial shell provisioning.
+  Only `nativeShell` builds Tauri
   updater artifacts, full installers, Store packages, or fixed `latest.json`.
   RC and Stable promotions inherit the source component set, and legacy
   manifests without it conservatively select every component.
@@ -100,13 +103,34 @@
   while preserving incremental compilation for repeated runs. Respect an
   explicit `CARGO_TARGET_DIR`, leave custom runners untouched, and do not leak
   the derived directory into helper or private Runtime builds. Stage rebuilt
-  helper resources only when their bytes change. Ordinary development also
-  prepares and supervises the debug Runtime sidecar by default; keep embedded
+  helper resources only when their bytes change. Ordinary public development
+  verifies and supervises its exact signed prebuilt Runtime; explicit source
+  development rebuilds the debug Runtime. Keep embedded
   composition as an explicit diagnostic command rather than a silent fallback.
-  Watch private Runtime Rust and Cargo inputs through the development command,
+  In source development, watch private Runtime Rust and Cargo inputs through the development command,
   finish rebuilding and staging changed server bytes before signaling a pending
   update. In Tauri development, defer both frontend HMR and the final Tauri reload
   stamp through the Runtime-owned graceful update barrier so an active Agent is
   never cancelled by source refresh. Never let Tauri's direct source watcher
   restart against a stale sidecar. A failed server build keeps the current
   process running and retries on the next source change.
+
+## Online and offline distributions
+
+The ordinary updater/install package embeds only the standalone shell bootstrap.
+`tauri.full.conf.json` bundles `resources/bootstrap-release/`, a platform subset
+of the immutable signed product distribution. On Windows its NSIS package also
+includes WebView2's offline installer. Both packages run the identical shell
+executable and import identical component bytes; full packaging does not compile
+another product. `distribution-resources` binds signed Runtime and frontend
+candidates, pinned sandbox helpers, embedding provenance files, and the exact
+TypeScript snapshot. Release publication must gate on
+`publish-distribution-resources`. `stage-distribution.mjs` verifies and selects
+only the matching platform for offline packaging. The desktop release exposes
+`sdk-dev-manifest.json` and all of its public development-kit assets, including
+an explicit source-SDK to release-qualified Runtime-SDK mapping.
+
+`build.removeUnusedCommands` stays false: the embedded bootstrap is intentionally
+smaller than the downloadable product frontend. Trimming plugin commands against
+bootstrap-only assets removes commands the verified product frontend needs after
+installation. Capability permissions remain the native authorization boundary.

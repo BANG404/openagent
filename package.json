@@ -71,7 +71,7 @@
     "test:blackbox:slash-command-matching": "bun scripts/test-slash-command-matching-blackbox.mjs",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "test:agent-runtime": "cargo test --manifest-path sdk/rust/openagent-runtime/Cargo.toml",
-    "dev:agent-server": "cargo run --manifest-path src-tauri/Cargo.toml --features embedded-runtime --bin openagent-agent-server",
+    "dev:agent-server": "bun scripts/embedded-cargo.mjs run --bin openagent-agent-server",
     "dev:agent-input-api": "cargo run --manifest-path sdk/rust/openagent-runtime/Cargo.toml --features test-api --bin openagent-runtime-test-api -- --port 0",
     "format:rust:check": "cargo fmt --manifest-path src-tauri/Cargo.toml -- --check",
     "lint:rust": "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings -D clippy::too_many_lines",
@@ -91,7 +91,13 @@
     "release:prepare:rc": "bun scripts/release.mjs --channel=rc",
     "release:prepare:stable": "bun scripts/release.mjs --channel=stable",
     "changelog": "git-cliff -o CHANGELOG.md",
-    "changelog:unreleased": "git-cliff --unreleased"
+    "changelog:unreleased": "git-cliff --unreleased",
+    "dev:prepare": "bun scripts/prepare-dev-kit.mjs",
+    "dev:frontend": "vite dev",
+    "dev:desktop": "bun scripts/tauri.mjs dev",
+    "dev:desktop:source": "bun scripts/prepare-source-dev.mjs",
+    "build:bootstrap": "vite build --config bootstrap.vite.config.js",
+    "test:blackbox:shell-resources": "bun scripts/test-shell-resources-blackbox.mjs"
   },
   "license": "GPL-3.0-or-later",
   "overrides": {

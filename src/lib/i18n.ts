@@ -98,3 +98,5 @@ export async function initI18n(savedLanguage?: string | null): Promise<void> {
   invoke("plugin:i18n|set_locale", { locale: target }).catch(() => {});
   listenLocale().catch(() => {});
 }
+
+export { bootstrapText } from "./bootstrapI18n";

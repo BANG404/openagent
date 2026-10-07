@@ -21,16 +21,16 @@ The desktop application targets Windows, macOS, and Linux. It uses Svelte 5 with
 
 ## What you can do
 
-| Capability | Current behavior |
-| --- | --- |
-| Work in a project | Read and patch files, inspect images, run terminal commands, and follow interactive or background terminal sessions. |
-| Continue complex work | Delegate to child agents, reuse specialized roles, queue follow-up messages, and retain conversation branches and compacted context. |
-| Schedule a continuation | Ask the agent to arrange a timed wake or a supported completion-condition wake, then list or cancel pending hooks through its tools. |
-| Review and recover | Inspect tool calls and file changes, answer structured questions, approve calls when configured, and roll back files or conversation checkpoints. |
-| Read rich results | Stream Markdown, highlighted code, validated Mermaid diagrams, ECharts charts, file/link capsules, and image/video output; open long replies in book mode. |
-| Keep useful context | Use global and workspace memory, local semantic retrieval, reusable skills, and background Flash tasks for titles, memory, and suggestions. |
-| Extend the agent | Connect MCP services, install Agent Plugins, and use package-provided commands, tools, skills, automation, and sidebar or conversation UI. |
-| Reach it remotely | Connect supported messaging platforms or pair a browser with the remote gateway. |
+| Capability              | Current behavior                                                                                                                                           |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Work in a project       | Read and patch files, inspect images, run terminal commands, and follow interactive or background terminal sessions.                                       |
+| Continue complex work   | Delegate to child agents, reuse specialized roles, queue follow-up messages, and retain conversation branches and compacted context.                       |
+| Schedule a continuation | Ask the agent to arrange a timed wake or a supported completion-condition wake, then list or cancel pending hooks through its tools.                       |
+| Review and recover      | Inspect tool calls and file changes, answer structured questions, approve calls when configured, and roll back files or conversation checkpoints.          |
+| Read rich results       | Stream Markdown, highlighted code, validated Mermaid diagrams, ECharts charts, file/link capsules, and image/video output; open long replies in book mode. |
+| Keep useful context     | Use global and workspace memory, local semantic retrieval, reusable skills, and background Flash tasks for titles, memory, and suggestions.                |
+| Extend the agent        | Connect MCP services, install Agent Plugins, and use package-provided commands, tools, skills, automation, and sidebar or conversation UI.                 |
+| Reach it remotely       | Connect supported messaging platforms or pair a browser with the remote gateway.                                                                           |
 
 Image, PDF, and text attachments support drag/paste, previews, checkpoint restoration, and branch editing. Actual model and attachment capabilities depend on the selected provider and model.
 
@@ -38,8 +38,8 @@ Image, PDF, and text attachments support drag/paste, previews, checkpoint restor
 
 Download an installer or application bundle for your platform from [GitHub Releases](https://github.com/BANG404/openagent/releases). Choose a release that includes desktop installers; component-only releases update an existing installation.
 
-- **Full bundle:** includes the local embedding model seed and is suitable for a first installation.
-- **Lightweight bundle:** downloads and verifies that model during setup. Automatic desktop updates use lightweight artifacts and preserve the installed model.
+- **Offline bundle (full):** includes Runtime, frontend, embedding, and platform helpers; Windows also includes WebView2.
+- **Online bundle:** starts the desktop shell first, then downloads and verifies application resources. Updates download resources concurrently, replace the shell first, and continue installation after restart.
 
 On first launch, the setup window guides you through preferences, a model service, default models, and resource readiness. Select a workspace folder, enter your service credentials and endpoint, verify the connection, and choose the Chat and Flash models. Chat handles the main conversation; Flash handles smaller background tasks. Sending remains disabled until an available chat model is configured.
 
@@ -49,11 +49,11 @@ You can change services and defaults later from the **Models** menu. OpenAgent s
 
 The composer offers an approval selector. The **Agent → Execution & Permissions** surface configures approval and sandbox policy separately.
 
-| Approval mode | Behavior |
-| --- | --- |
-| Manual | Requests review for tool calls, except explicitly exempt lifecycle controls. |
-| Automatic | A Flash task assesses each proposed call; consequential or uncertain calls require review. |
-| Off | Runs calls without the approval flow. This is the default approval mode. |
+| Approval mode | Behavior                                                                                   |
+| ------------- | ------------------------------------------------------------------------------------------ |
+| Manual        | Requests review for tool calls, except explicitly exempt lifecycle controls.               |
+| Automatic     | A Flash task assesses each proposed call; consequential or uncertain calls require review. |
+| Off           | Runs calls without the approval flow. This is the default approval mode.                   |
 
 Approval never expands filesystem or network access. The default managed profile permits host-wide reads and workspace-scoped writes, keeps `.git`, `.agents`, and `.codex` read-only beneath broad writable roots, and restricts networking. Read-only presets and explicit path rules are also available. Disabled isolation uses the application's ambient process access.
 
@@ -85,15 +85,15 @@ Goal, Graph, and Chat Groups own their workflows inside their packages. Child-ag
 
 Application configuration and durable data use one root:
 
-| Scope | Location |
-| --- | --- |
-| Installed application | `~/.openagent/` on every supported platform |
-| Debug desktop | `~/.openagent-dev/` |
-| Explicit application root | The directory selected by `OPENAGENT_HOME` |
-| Global user memory | `<OPENAGENT_HOME>/memory.md` |
-| Workspace memory | `<workspace>/.agents/memory.md` |
-| Global / project skills | `~/.agents/skills/` / `<workspace>/.agents/skills/` |
-| Workspace design context | `<workspace>/DESIGN.md` |
+| Scope                     | Location                                            |
+| ------------------------- | --------------------------------------------------- |
+| Installed application     | `~/.openagent/` on every supported platform         |
+| Debug desktop             | `~/.openagent-dev/`                                 |
+| Explicit application root | The directory selected by `OPENAGENT_HOME`          |
+| Global user memory        | `<OPENAGENT_HOME>/memory.md`                        |
+| Workspace memory          | `<workspace>/.agents/memory.md`                     |
+| Global / project skills   | `~/.agents/skills/` / `<workspace>/.agents/skills/` |
+| Workspace design context  | `<workspace>/DESIGN.md`                             |
 
 The application root contains `config.toml`, the conversation SQLite database, attachments, logs, installed plugins, plugin data, and versioned resources. Valid external configuration edits reload automatically. The Runtime owns persistence, backup, and migration behavior; see [configuration and application data](.agents/skills/openagent-configuration/references/data-and-startup.md).
 
@@ -115,34 +115,48 @@ Local host and Runtime logs live in `<OPENAGENT_HOME>/logs`, with up to 15 files
 
 ## Develop from source
 
-### Requirements
+### Public frontend development (no private SDK access)
 
-- Git and access to the private `BANG404/openagent-sdk` repository. Its submodule URL uses SSH, so configure an authorized SSH key.
-- Bun **1.2.21**, matching `package.json` and CI, plus Node.js for scripts that explicitly invoke `node`.
-- A current stable Rust toolchain and the native build dependencies for Tauri 2 on your platform. Windows requires MSVC build tools and WebView2; Linux sandbox-helper builds additionally need `libcap` development headers, `pkg-config`, and GNU `strip`.
-
-Dependency versions are pinned by the lockfiles; use the stable Rust toolchain used by native CI. Read the [local development guidance](.agents/skills/openagent-release-engineering/references/local-commands.md) and, on Windows, the [setup guide](.agents/skills/openagent-windows-development/references/setup-and-sync.md).
+Install Bun **1.2.21** and Node.js; native debugging also requires Rust and your
+platform's Tauri build dependencies. Choose a source tag with a published kit:
 
 ```bash
-git clone --recurse-submodules https://github.com/BANG404/openagent.git
+git clone https://github.com/BANG404/openagent.git
 cd openagent
-bun run prepare:worktree:dev
-bun tauri dev
+git checkout <published-source-tag>
+bun install --frozen-lockfile
+bun run dev:prepare
+bun run dev:desktop
 ```
 
-Preparation initializes the pinned submodules, installs frozen dependencies, and builds the development sandbox helpers and Runtime sidecar. Existing checkouts use the same preparation command. Source builds require the private SDK; users without access can install published desktop builds.
+Preparation verifies and downloads the TypeScript snapshot, Runtime and helpers
+matching the source's SDK SHA, without initializing private submodules. Select a
+desktop release kit with `bun run dev:prepare --release vX.Y.Z`; its client SHA
+must match source. Interrupted downloads resume; desktop launch rechecks cached
+bytes. Browser-only development uses `bun run dev:frontend`.
+See [public development kits](.agents/skills/openagent-release-engineering/references/public-development.md).
 
-| Command | Purpose |
-| --- | --- |
-| `bun tauri dev` | Start the desktop with Vite and a supervised external Runtime. |
-| `bun run dev` | Frontend-only development on an available loopback port; provides no desktop Runtime. |
-| `bun run tauri:dev:embedded` | Explicit embedded-Runtime diagnostic mode. |
-| `bun run preflight` | Select and run checks for the actual changed files. |
-| `bun run preflight --dry-run` | Inspect the check plan. |
-| `bun run tauri:build` | Build the lightweight desktop installer and updater artifact. |
-| `bun run tauri:build:full` | Build a first-install bundle with the embedding seed. |
+### SDK source and delivery
 
-Development uses an available Vite port and isolated application data. The launcher gives each worktree/data fixture a separate native development target directory; Runtime and helper output remain under `sdk/target`. SDK source changes rebuild the sidecar before the host restarts. See [development Runtime refresh](.agents/skills/openagent-release-engineering/references/development-runtime.md).
+With private SDK access, use `bun run prepare:worktree:dev`, then
+`bun run dev:desktop:source` for SDK watching and Runtime rebuilding. Keep the
+default directory on `master` for debugging; use isolated OWT worktrees for
+changes and release tags for reproducible product versions.
+
+Online installers contain the shell and standalone bootstrap. First launch
+downloads Runtime, frontend, helpers and embedding resources concurrently.
+Offline installers include the same complete platform resources and Windows
+offline WebView2. Updates download shell and resources together, replace the shell
+first, then install resources. The bootstrap supports retry and offline import.
+
+| Command                      | Purpose                                            |
+| ---------------------------- | -------------------------------------------------- |
+| `bun run dev:prepare`        | Fetch the pinned public development kit.           |
+| `bun run dev:desktop`        | Debug the native frontend with a prebuilt Runtime. |
+| `bun run dev:desktop:source` | Explicit SDK source development.                   |
+| `bun run preflight`          | Select verification for actual changes.            |
+| `bun run tauri:build`        | Build the online shell installer and updater.      |
+| `bun run tauri:build:full`   | Bundle offline installation from verified seeds.   |
 
 ### Architecture and repository layout
 
@@ -155,16 +169,16 @@ flowchart LR
   Runtime --> Tools["Providers, tools, MCP, plugins"]
 ```
 
-| Path | Ownership |
-| --- | --- |
-| `src/` | Svelte routes, feature controllers, components, localization, and streamed rendering. |
-| `src-tauri/` | Native host adapters, resource protocols, process supervision, and packaging. |
-| `sdk/` | Pinned private Runtime and typed transport/client source. |
-| `plugins/` | Pinned independent plugin repositories and the local development index. |
-| `scripts/`, `tests/` | Preparation, checks, release automation, and deterministic verification. |
-| `.agents/skills/` | Focused architecture contracts and contributor workflows. |
+| Path                 | Ownership                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------- |
+| `src/`               | Svelte routes, feature controllers, components, localization, and streamed rendering. |
+| `src-tauri/`         | Native host adapters, resource protocols, process supervision, and packaging.         |
+| `sdk/`               | Pinned private Runtime and typed transport/client source.                             |
+| `plugins/`           | Pinned independent plugin repositories and the local development index.               |
+| `scripts/`, `tests/` | Preparation, checks, release automation, and deterministic verification.              |
+| `.agents/skills/`    | Focused architecture contracts and contributor workflows.                             |
 
-The host remains thin; runtime state machines and durable data belong to the SDK. The public frontend and host can be contributed to separately, but complete source builds need the pinned private dependencies.
+The host remains thin; runtime state machines and durable data belong to the SDK. The public frontend and host can be contributed to separately, and Runtime source changes need the pinned private dependencies.
 
 ### Contribute
 

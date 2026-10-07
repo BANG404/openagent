@@ -1,6 +1,7 @@
 src-tauri/src/bin/openagent-agent-server.rs
 src-tauri/src/component_updates/barrier.rs
 src-tauri/src/component_updates/frontend.rs
+src-tauri/src/component_updates/handoff.rs
 src-tauri/src/component_updates/mod.rs
 src-tauri/src/component_updates/runtime.rs
 src-tauri/src/component_updates/sources.rs
@@ -14,6 +15,7 @@ src-tauri/src/desktop_bootstrap/instances.rs
 src-tauri/src/desktop_bootstrap/mod.rs
 src-tauri/src/desktop_bootstrap/mode.rs
 src-tauri/src/desktop_bootstrap/persistence.rs
+src-tauri/src/desktop_bootstrap/provisioning.rs
 src-tauri/src/desktop_exit.rs
 src-tauri/src/desktop_plugins.rs
 src-tauri/src/desktop_windows/focus.rs
@@ -46,6 +48,7 @@ src-tauri/src/main.rs
 src-tauri/src/native_commands.rs
 src-tauri/src/plugin_daemon_supervisor.rs
 src-tauri/src/process_lifetime.rs
+src-tauri/src/resource_download.rs
 src-tauri/src/runtime_asset_protocol.rs
 src-tauri/src/runtime_process.rs
 src-tauri/src/runtime_proxy_commands.rs

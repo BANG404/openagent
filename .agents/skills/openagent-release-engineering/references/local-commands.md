@@ -11,13 +11,15 @@ In a fresh checkout or isolated task worktree:
 
 ```bash
 bun run prepare:worktree:dev
-bun tauri dev
+bun run dev:desktop:source
 ```
 
 Preparation initializes pinned submodules, installs the frozen Bun lockfile,
 and builds the platform's development sandbox helpers and Runtime sidecar.
 Ordinary desktop development supervises an external `openagent-server` and uses
 `~/.openagent-dev`; select `OPENAGENT_HOME` only for a task-specific fixture.
+Public development without SDK permissions uses `bun run dev:prepare` then
+`bun run dev:desktop`; see [public development](public-development.md).
 Use `bun run dev` for frontend-only work and `bun run tauri:dev:embedded` only
 for an explicit embedded-Runtime diagnostic. See
 [development Runtime refresh](development-runtime.md) for reload ordering and
@@ -43,8 +45,10 @@ bun run tauri:build
 bun run tauri:build:full
 ```
 
-The first command builds lightweight installers and updater artifacts. The
-second builds the first-install overlay with the embedding seed. Packaging and
+The first command builds online shell installers and updater artifacts. The
+second builds the offline overlay from a previously verified platform distribution
+under `src-tauri/resources/bootstrap-release/`. Neither shell command compiles
+private Runtime or sandbox helpers. Packaging and
 release artifact requirements belong to [artifacts.md](artifacts.md).
 
 ## Release preparation

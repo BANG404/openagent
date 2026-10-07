@@ -9,7 +9,7 @@ const DOWNLOADS = [
     platform: "Windows",
     architecture: "x64",
     package: "Standard installer",
-    description: "Smallest download; fetches the embedding model during first setup.",
+    description: "Online shell; downloads Runtime, frontend, and embedding resources after launch.",
     pattern: /(?<!-full)-setup\.exe$/,
   },
   {
@@ -17,7 +17,7 @@ const DOWNLOADS = [
     platform: "Windows",
     architecture: "x64",
     package: "Full installer",
-    description: "Includes the embedding model for offline first setup.",
+    description: "Includes Runtime, frontend, embedding, and WebView2 for offline first setup.",
     pattern: /-full-setup\.exe$/,
   },
   {
@@ -25,7 +25,7 @@ const DOWNLOADS = [
     platform: "macOS",
     architecture: "Apple Silicon",
     package: "DMG",
-    description: "Standard installer for Apple Silicon Macs.",
+    description: "Online shell for Apple Silicon; downloads application resources after launch.",
     pattern: /_aarch64\.dmg$/,
   },
   {
@@ -33,7 +33,7 @@ const DOWNLOADS = [
     platform: "macOS",
     architecture: "Apple Silicon",
     package: "Full DMG",
-    description: "Includes the embedding model for offline first setup.",
+    description: "Includes Runtime, frontend, and embedding for offline first setup.",
     pattern: /_aarch64-full\.dmg$/,
   },
   {
@@ -41,7 +41,7 @@ const DOWNLOADS = [
     platform: "macOS",
     architecture: "Intel",
     package: "DMG",
-    description: "Standard installer for Intel Macs.",
+    description: "Online shell for Intel Macs; downloads application resources after launch.",
     pattern: /_x64\.dmg$/,
   },
   {
@@ -49,7 +49,7 @@ const DOWNLOADS = [
     platform: "macOS",
     architecture: "Intel",
     package: "Full DMG",
-    description: "Includes the embedding model for offline first setup.",
+    description: "Includes Runtime, frontend, and embedding for offline first setup.",
     pattern: /_x64-full\.dmg$/,
   },
   {
@@ -57,7 +57,7 @@ const DOWNLOADS = [
     platform: "Linux",
     architecture: "x64",
     package: "AppImage",
-    description: "Portable standard package for most Linux distributions.",
+    description: "Portable online shell; downloads application resources after launch.",
     pattern: /(?<!-full)\.AppImage$/,
   },
   {
@@ -65,7 +65,7 @@ const DOWNLOADS = [
     platform: "Linux",
     architecture: "x64",
     package: "Full AppImage",
-    description: "Portable package with the embedding model included.",
+    description: "Portable offline package with Runtime, frontend, embedding, and sandbox helpers.",
     pattern: /-full\.AppImage$/,
   },
   {
@@ -177,7 +177,7 @@ export function createReleaseNotes({ manifest, changelog, assetNames, repository
       return `| ${download.platform} | ${download.architecture} | ${download.package} | [Download](${assetUrl(repository, manifest.tag, name)}) | ${download.description} |`;
     });
     lines.push(
-      "Standard packages are smaller and download the embedding model during first setup. Full packages include it for offline first setup.",
+      "Standard packages are online shells that download verified application resources after launch. Full packages include Runtime, frontend, embedding, and platform helpers for offline first setup. Model providers may still require a network connection.",
       "",
       "| Platform | Architecture | Package | Link | Description |",
       "| --- | --- | --- | --- | --- |",

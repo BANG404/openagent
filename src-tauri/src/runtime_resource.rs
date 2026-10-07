@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tokio::io::AsyncWriteExt;
+
 use tokio::sync::Mutex;
 
 const MANIFEST_FILE: &str = "openagent-sdk-manifest.json";
@@ -45,6 +45,8 @@ pub struct RuntimeResourceManifest {
     pub release_version: Option<String>,
     pub protocol: RuntimeResourceProtocolRange,
     pub artifacts: BTreeMap<String, RuntimeResourceArtifact>,
+    #[serde(default)]
+    pub helpers: BTreeMap<String, BTreeMap<String, RuntimeResourceArtifact>>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -104,6 +106,13 @@ impl RuntimeResourceManager {
         }
     }
 
+    pub(crate) fn with_manifest_url(&self, manifest_url: String) -> Self {
+        let mut manager = self.clone();
+        manager.source.signature_url = format!("{manifest_url}.sig");
+        manager.source.manifest_url = manifest_url;
+        manager
+    }
+
     pub fn resources_dir(&self) -> &Path {
         &self.resources_dir
     }
@@ -126,6 +135,12 @@ impl RuntimeResourceManager {
         }
         let active = self.active_resource_locked().await?;
         let active_entry = selection_entry(&verified);
+        if active
+            .as_ref()
+            .is_some_and(|active| selection_entry(active) == active_entry)
+        {
+            return Ok(());
+        }
         let previous = active
             .as_ref()
             .filter(|active| selection_entry(active) != active_entry)
@@ -208,7 +223,20 @@ impl RuntimeResourceManager {
 
         let version_dir = self.resources_dir.join(&manifest.version).join(&target);
         let installed = installed_resource(&version_dir, &manifest, &target, &artifact);
-        if verify_installed(&installed, &artifact).await {
+        if self
+            .load_installed(&manifest.version, &target)
+            .await
+            .is_ok()
+            && read_bounded_file(
+                &installed.manifest_path,
+                MAX_MANIFEST_BYTES,
+                "cached runtime manifest",
+            )
+            .await
+            .is_ok_and(|bytes| bytes == manifest_bytes)
+            && verify_installed(&installed, &artifact).await
+            && verify_helpers(&version_dir, &manifest, &target).await?
+        {
             return Ok(installed);
         }
 
@@ -221,6 +249,25 @@ impl RuntimeResourceManager {
             let binary_path = staging.join(&artifact.file);
             self.download_artifact(artifact_url, &binary_path, &artifact, &mut on_progress)
                 .await?;
+            if let Some(helpers) = manifest.helpers.get(&target) {
+                let helper_dir = staging.join("codex-resources");
+                tokio::fs::create_dir_all(&helper_dir)
+                    .await
+                    .map_err(|error| error.to_string())?;
+                for (name, helper) in helpers {
+                    let url = Url::parse(&self.source.manifest_url)
+                        .map_err(|error| error.to_string())?
+                        .join(&helper.file)
+                        .map_err(|error| error.to_string())?;
+                    let destination = helper_dir.join(if name == "codex-bwrap-linux-x64" {
+                        "bwrap"
+                    } else {
+                        name
+                    });
+                    self.download_artifact(url, &destination, helper, &mut on_progress)
+                        .await?;
+                }
+            }
             tokio::fs::write(staging.join(MANIFEST_FILE), &manifest_bytes)
                 .await
                 .map_err(|error| format!("failed to stage runtime manifest: {error}"))?;
@@ -235,7 +282,9 @@ impl RuntimeResourceManager {
             let _ = tokio::fs::remove_dir_all(&staging).await;
         }
         result?;
-        if !verify_installed(&installed, &artifact).await {
+        if !verify_installed(&installed, &artifact).await
+            || !verify_helpers(&version_dir, &manifest, &target).await?
+        {
             return Err("installed runtime resource failed verification".to_string());
         }
         Ok(installed)
@@ -247,37 +296,9 @@ impl RuntimeResourceManager {
         maximum: usize,
         label: &str,
     ) -> Result<Vec<u8>, String> {
-        let mut response = self
-            .client
-            .get(url)
-            .send()
+        crate::resource_download::bounded(&self.client, url, maximum)
             .await
-            .map_err(|error| format!("failed to download {label}: {error}"))?
-            .error_for_status()
-            .map_err(|error| format!("failed to download {label}: {error}"))?;
-        if response
-            .content_length()
-            .is_some_and(|length| length > maximum as u64)
-        {
-            return Err(format!("{label} exceeds the maximum allowed size"));
-        }
-        let mut bytes = Vec::with_capacity(
-            response
-                .content_length()
-                .map(|length| length as usize)
-                .unwrap_or_default(),
-        );
-        while let Some(chunk) = response
-            .chunk()
-            .await
-            .map_err(|error| format!("failed to read {label}: {error}"))?
-        {
-            if bytes.len().saturating_add(chunk.len()) > maximum {
-                return Err(format!("{label} exceeds the maximum allowed size"));
-            }
-            bytes.extend_from_slice(&chunk);
-        }
-        Ok(bytes)
+            .map_err(|error| format!("failed to read {label}: {error}"))
     }
 
     async fn active_resource_locked(&self) -> Result<Option<InstalledRuntimeResource>, String> {
@@ -364,7 +385,9 @@ impl RuntimeResourceManager {
             .get(target)
             .ok_or_else(|| format!("runtime manifest has no artifact for {target}"))?;
         let installed = installed_resource(&version_dir, &manifest, target, artifact);
-        if !verify_installed(&installed, artifact).await {
+        if !verify_installed(&installed, artifact).await
+            || !verify_helpers(&version_dir, &manifest, target).await?
+        {
             return Err("installed Runtime resource failed verification".to_string());
         }
         Ok(installed)
@@ -378,58 +401,25 @@ impl RuntimeResourceManager {
         on_progress: &mut F,
     ) -> Result<(), String>
     where
-        F: FnMut(RuntimeResourceProgress),
+        F: FnMut(RuntimeResourceProgress) + Send,
     {
-        let mut response = self
-            .client
-            .get(url)
-            .send()
+        let cached = crate::resource_download::artifact(
+            &self.client,
+            url,
+            &self.resources_dir.join("downloads"),
+            artifact.size,
+            &artifact.sha256,
+            |downloaded_bytes, total_bytes| {
+                on_progress(RuntimeResourceProgress {
+                    downloaded_bytes,
+                    total_bytes,
+                })
+            },
+        )
+        .await?;
+        tokio::fs::copy(cached, destination)
             .await
-            .map_err(|error| format!("failed to download runtime binary: {error}"))?
-            .error_for_status()
-            .map_err(|error| format!("failed to download runtime binary: {error}"))?;
-        if response
-            .content_length()
-            .is_some_and(|length| length != artifact.size)
-        {
-            return Err("runtime binary size does not match its manifest".to_string());
-        }
-        let mut output = tokio::fs::File::create(destination)
-            .await
-            .map_err(|error| format!("failed to create runtime binary: {error}"))?;
-        let mut digest = Sha256::new();
-        let mut downloaded = 0_u64;
-        while let Some(chunk) = response
-            .chunk()
-            .await
-            .map_err(|error| format!("failed to download runtime binary: {error}"))?
-        {
-            downloaded = downloaded
-                .checked_add(chunk.len() as u64)
-                .ok_or_else(|| "runtime binary size overflowed".to_string())?;
-            if downloaded > artifact.size {
-                return Err("runtime binary exceeds its declared size".to_string());
-            }
-            digest.update(&chunk);
-            output
-                .write_all(&chunk)
-                .await
-                .map_err(|error| format!("failed to write runtime binary: {error}"))?;
-            on_progress(RuntimeResourceProgress {
-                downloaded_bytes: downloaded,
-                total_bytes: artifact.size,
-            });
-        }
-        output
-            .flush()
-            .await
-            .map_err(|error| format!("failed to flush runtime binary: {error}"))?;
-        if downloaded != artifact.size {
-            return Err("runtime binary size does not match its manifest".to_string());
-        }
-        if format!("{:x}", digest.finalize()) != artifact.sha256 {
-            return Err("runtime binary checksum does not match its manifest".to_string());
-        }
+            .map_err(|error| error.to_string())?;
         set_executable(destination).await?;
         Ok(())
     }
@@ -580,7 +570,48 @@ fn validate_manifest(
     for artifact in manifest.artifacts.values() {
         validate_artifact(artifact)?;
     }
+    for (target, helpers) in &manifest.helpers {
+        let expected = match target.as_str() {
+            "windows-x64" => vec![
+                "codex-command-runner.exe",
+                "codex-windows-sandbox-setup.exe",
+            ],
+            "linux-x64" => vec!["codex-bwrap-linux-x64"],
+            _ => return Err("Unexpected Runtime helper platform".into()),
+        };
+        if helpers.keys().map(String::as_str).collect::<Vec<_>>() != expected {
+            return Err("Runtime helper set is incomplete".into());
+        }
+        for (name, artifact) in helpers {
+            validate_artifact(artifact)?;
+            if artifact.file != *name {
+                return Err("Runtime helper filename mismatch".into());
+            }
+        }
+    }
     Ok(())
+}
+
+async fn verify_helpers(
+    directory: &Path,
+    manifest: &RuntimeResourceManifest,
+    target: &str,
+) -> Result<bool, String> {
+    if let Some(helpers) = manifest.helpers.get(target) {
+        for (name, artifact) in helpers {
+            let path = directory
+                .join("codex-resources")
+                .join(if name == "codex-bwrap-linux-x64" {
+                    "bwrap"
+                } else {
+                    name
+                });
+            if !crate::resource_download::matches(&path, artifact.size, &artifact.sha256).await? {
+                return Ok(false);
+            }
+        }
+    }
+    Ok(true)
 }
 
 fn validate_artifact(artifact: &RuntimeResourceArtifact) -> Result<(), String> {
@@ -793,6 +824,44 @@ mod tests {
         .is_err());
     }
 
+    #[tokio::test]
+    async fn runtime_helpers_are_part_of_verified_activation() {
+        let fixture = tempfile::tempdir().unwrap();
+        let bytes = b"pinned helper";
+        let artifact = RuntimeResourceArtifact {
+            file: "codex-bwrap-linux-x64".into(),
+            size: bytes.len() as u64,
+            sha256: format!("{:x}", Sha256::digest(bytes)),
+        };
+        let mut manifest: RuntimeResourceManifest =
+            serde_json::from_slice(&STANDARD.decode(TAURI_RUNTIME_MANIFEST_BASE64).unwrap())
+                .unwrap();
+        manifest.helpers.insert(
+            "linux-x64".into(),
+            BTreeMap::from([("codex-bwrap-linux-x64".into(), artifact)]),
+        );
+        validate_manifest(&manifest, 2).unwrap();
+        assert!(!verify_helpers(fixture.path(), &manifest, "linux-x64")
+            .await
+            .unwrap());
+        tokio::fs::create_dir(fixture.path().join("codex-resources"))
+            .await
+            .unwrap();
+        let installed = fixture.path().join("codex-resources/bwrap");
+        tokio::fs::write(&installed, bytes).await.unwrap();
+        assert!(verify_helpers(fixture.path(), &manifest, "linux-x64")
+            .await
+            .unwrap());
+        tokio::fs::write(installed, b"changed helper")
+            .await
+            .unwrap();
+        assert!(!verify_helpers(fixture.path(), &manifest, "linux-x64")
+            .await
+            .unwrap());
+        manifest.helpers.get_mut("linux-x64").unwrap().clear();
+        assert!(validate_manifest(&manifest, 2).is_err());
+    }
+
     fn serve_signed_runtime_fixture(artifact: Vec<u8>) -> (String, std::thread::JoinHandle<()>) {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let address = listener.local_addr().unwrap();
@@ -905,6 +974,7 @@ y/rUw2y8/hOUYjZU71eHp/Wo1KZ40fGy2VJEDl34XMJM+TX48Ss/17u3IvIfbVR1FkZZSNCisQbuQY+b
             schema_version: 1,
             version: "1.2.3".to_string(),
             release_version: None,
+            helpers: BTreeMap::new(),
             protocol: RuntimeResourceProtocolRange { min: 2, max: 2 },
             artifacts: BTreeMap::from([(
                 "windows-x64".to_string(),
@@ -953,6 +1023,7 @@ y/rUw2y8/hOUYjZU71eHp/Wo1KZ40fGy2VJEDl34XMJM+TX48Ss/17u3IvIfbVR1FkZZSNCisQbuQY+b
             schema_version: 1,
             version: "1.2.3".to_string(),
             release_version: None,
+            helpers: BTreeMap::new(),
             protocol: RuntimeResourceProtocolRange { min: 2, max: 2 },
             artifacts: BTreeMap::from([("windows-x64".to_string(), artifact.clone())]),
         };

@@ -11,7 +11,7 @@ const hostResources = readFileSync("src-tauri/src/frontend_resource.rs", "utf8")
 test("production update checks stage and activate a verified frontend resource", () => {
   expect(updater).toContain('invoke<PreparedFrontendResource>("prepare_frontend_resource")');
   expect(updater).toContain('invoke<void>("activate_frontend_resource"');
-  expect(updater).toContain("navigate: !updates.shell");
+  expect(updater).toContain("if (updates.frontend && !updates.shell)");
   expect(updater).toContain('translate("updateComponentFrontend")');
   expect(updater).toContain("current_version: string");
   expect(updater).toContain('translate("frontendUpdateInProgressDescription")');
@@ -83,6 +83,7 @@ test("a pending frontend activation survives the process that armed it", () => {
 test("components activate in the documented order within one barrier", () => {
   const order = [
     'invoke<ComponentUpdateGate>("begin_component_update")',
+    'invoke("prepare_shell_handoff"',
     'invoke("activate_runtime_resource"',
     'invoke<void>("activate_frontend_resource"',
     'invoke<boolean>("begin_shell_install")',
@@ -94,6 +95,10 @@ test("components activate in the documented order within one barrier", () => {
     return at;
   });
   expect(order).toEqual([...order].sort((left, right) => left - right));
+  expect(updater).toContain("if (updates.runtime && !updates.shell)");
+  expect(updater).toContain("if (updates.frontend && !updates.shell)");
+  expect(updater).toContain("await Promise.all([");
+  expect(host).toContain("verify_prepared_release");
 });
 
 test("the shell installer runs after the host has prepared the exit", () => {

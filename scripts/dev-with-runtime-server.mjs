@@ -3,9 +3,11 @@ import { mkdir } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import path from "node:path";
 import process from "node:process";
+import { access } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import { prepareRuntimeServer } from "./prepare-runtime-server.mjs";
+import { verifyPreparedDevKit } from "./prepare-dev-kit.mjs";
 import {
   runtimeServerPendingStampPath,
   writeRuntimeServerPendingStamp,
@@ -80,10 +82,30 @@ export function startRuntimeServerDevWatcher({
   };
 }
 
+/** Prebuilt development never watches absent private sources.
+ * @param {NodeJS.ProcessEnv} [environment]
+ */
+export function usesSourceRuntime(environment = process.env) {
+  return environment.OPENAGENT_DEV_RUNTIME_SOURCE === "1";
+}
+
 async function main() {
-  await prepareRuntimeServer({ profile: "dev" });
+  const sourceRuntime = usesSourceRuntime();
+  if (sourceRuntime) {
+    await prepareRuntimeServer({ profile: "dev" });
+  } else {
+    const lockPath = path.join(root, ".cache", "openagent-dev-kit", "lock.json");
+    await access(lockPath).catch(() => {
+      throw new Error(
+        "Prepare a pinned public development kit with bun run dev:prepare before starting Tauri, or select bun run dev:desktop:source for private-source development.",
+      );
+    });
+    await verifyPreparedDevKit();
+    process.env.OPENAGENT_RUNTIME_SERVER_PREBUILT = "1";
+    await prepareRuntimeServer({ profile: "dev" });
+  }
   await mkdir(path.dirname(runtimeServerPendingStampPath(root)), { recursive: true });
-  const runtimeWatcher = startRuntimeServerDevWatcher();
+  const runtimeWatcher = sourceRuntime ? startRuntimeServerDevWatcher() : null;
   const vite = spawn(process.execPath, ["run", "dev"], {
     cwd: root,
     env: process.env,
@@ -91,7 +113,7 @@ async function main() {
   });
 
   const stop = (signal) => {
-    runtimeWatcher.close();
+    runtimeWatcher?.close();
     if (!vite.killed) vite.kill(signal);
   };
   process.once("SIGINT", () => stop("SIGINT"));
@@ -101,7 +123,7 @@ async function main() {
     vite.once("error", reject);
     vite.once("exit", (code) => resolve(code ?? 1));
   });
-  runtimeWatcher.close();
+  runtimeWatcher?.close();
   process.exit(exitCode);
 }
 

@@ -35,16 +35,9 @@ if (!cargoManifest.includes('path = "src/lib.rs"')) {
   throw new Error("The host Cargo library target must compile from the Tauri adapter");
 }
 for (const crate of ["openagent-app", "openagent-protocol", "openagent-runtime"]) {
-  if (!cargoManifest.includes(`${crate} = { path = "../sdk/rust/${crate}", optional = true }`)) {
-    throw new Error(`${crate} must be optional and reserved for embedded Runtime diagnostics`);
+  if (cargoManifest.includes(`${crate} = {`)) {
+    throw new Error(`${crate} must resolve only in the SDK-owned diagnostic workspace`);
   }
-}
-if (
-  !cargoManifest.includes(
-    'embedded-runtime = ["dep:openagent-app", "dep:openagent-protocol", "dep:openagent-runtime"]',
-  )
-) {
-  throw new Error("The embedded Runtime feature must explicitly own every private SDK dependency");
 }
 
 const cargoTree = spawnSync(

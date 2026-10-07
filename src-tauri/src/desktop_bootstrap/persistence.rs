@@ -39,9 +39,28 @@ fn confirm_persistence_transition(plan: &PersistenceTransitionPlan) -> bool {
 }
 
 fn run_desktop_bootstrap_command(command: &str) -> anyhow::Result<DesktopBootstrapStatus> {
-    let binary = packaged_runtime_binary().map_err(anyhow::Error::msg)?;
-    let mut process = std::process::Command::new(&binary);
-    process.arg("--desktop-bootstrap").arg(command);
+    let home = selected_home()?;
+    let manager = crate::component_updates::runtime_resource_manager(home.clone());
+    let binary = if let Some(active) =
+        tauri::async_runtime::block_on(manager.active_resource()).map_err(anyhow::Error::msg)?
+    {
+        active.binary_path
+    } else {
+        packaged_runtime_binary().map_err(anyhow::Error::msg)?
+    };
+    run_desktop_bootstrap_with_binary(command, &binary, &home)
+}
+
+fn run_desktop_bootstrap_with_binary(
+    command: &str,
+    binary: &std::path::Path,
+    home: &std::path::Path,
+) -> anyhow::Result<DesktopBootstrapStatus> {
+    let mut process = std::process::Command::new(binary);
+    process
+        .arg("--desktop-bootstrap")
+        .arg(command)
+        .env("OPENAGENT_HOME", home);
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
@@ -65,6 +84,19 @@ fn run_desktop_bootstrap_command(command: &str) -> anyhow::Result<DesktopBootstr
         );
     }
     parse_desktop_bootstrap_response(&output.stdout)
+}
+
+pub(crate) fn selected_home() -> anyhow::Result<std::path::PathBuf> {
+    if let Some(home) = std::env::var_os("OPENAGENT_HOME").filter(|home| !home.is_empty()) {
+        return Ok(std::path::PathBuf::from(home));
+    }
+    let home = dirs::home_dir()
+        .ok_or_else(|| anyhow::anyhow!("Cannot resolve application data directory"))?;
+    Ok(home.join(if cfg!(debug_assertions) {
+        ".openagent-dev"
+    } else {
+        ".openagent"
+    }))
 }
 
 pub(crate) fn parse_desktop_bootstrap_response(
@@ -97,7 +129,20 @@ pub(crate) fn parse_desktop_bootstrap_response(
 }
 
 pub(crate) fn prepare_interactive_persistence() -> anyhow::Result<Option<ExternalRuntimeLaunch>> {
-    let plan = match run_desktop_bootstrap_command("inspect")? {
+    prepare_persistence_with(run_desktop_bootstrap_command)
+}
+
+pub(crate) fn prepare_interactive_persistence_with_binary(
+    binary: &std::path::Path,
+) -> anyhow::Result<Option<ExternalRuntimeLaunch>> {
+    let home = selected_home()?;
+    prepare_persistence_with(|command| run_desktop_bootstrap_with_binary(command, binary, &home))
+}
+
+fn prepare_persistence_with(
+    command: impl Fn(&str) -> anyhow::Result<DesktopBootstrapStatus>,
+) -> anyhow::Result<Option<ExternalRuntimeLaunch>> {
+    let plan = match command("inspect")? {
         DesktopBootstrapStatus::Ready(launch) => return Ok(Some(launch)),
         DesktopBootstrapStatus::TransitionRequired(plan) => plan,
         DesktopBootstrapStatus::TransitionApplied(_) | DesktopBootstrapStatus::NoTransition => {
@@ -107,7 +152,7 @@ pub(crate) fn prepare_interactive_persistence() -> anyhow::Result<Option<Externa
     if !confirm_persistence_transition(&plan) {
         return Ok(None);
     }
-    let backup_dir = match run_desktop_bootstrap_command("apply-transition")? {
+    let backup_dir = match command("apply-transition")? {
         DesktopBootstrapStatus::TransitionApplied(path) => Some(path),
         DesktopBootstrapStatus::NoTransition => None,
         DesktopBootstrapStatus::Ready(_) | DesktopBootstrapStatus::TransitionRequired(_) => {
@@ -126,7 +171,7 @@ pub(crate) fn prepare_interactive_persistence() -> anyhow::Result<Option<Externa
             .set_buttons(rfd::MessageButtons::Ok)
             .show();
     }
-    match run_desktop_bootstrap_command("inspect")? {
+    match command("inspect")? {
         DesktopBootstrapStatus::Ready(launch) => Ok(Some(launch)),
         _ => anyhow::bail!("Runtime bootstrap did not become ready after data transition"),
     }

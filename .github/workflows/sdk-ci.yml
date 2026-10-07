@@ -533,7 +533,7 @@ jobs:
           persist-credentials: false
       - name: Materialize frontendDist for Tauri macros
         run: |
-          node -e "require('fs').mkdirSync('host/build', { recursive: true })"
+          node -e "for(const p of ['host/build','host/.cache/bootstrap-dist'])require('fs').mkdirSync(p,{recursive:true})"
       - name: Install Linux dependencies
         run: |
           sudo apt-get update >/dev/null
@@ -719,6 +719,7 @@ jobs:
     runs-on: ${{ fromJSON(matrix.runner) }}
     timeout-minutes: 60
     steps:
+      - uses: actions/checkout@v7
       - name: Create SDK reporter token
         id: app-token
         uses: actions/create-github-app-token@v2
@@ -747,6 +748,14 @@ jobs:
       - name: Build release Runtime server
         working-directory: sdk
         run: cargo build --release -p openagent-server
+      - name: Prepare pinned Windows development helpers
+        if: matrix.runner_os == 'Windows'
+        shell: pwsh
+        run: |
+          node scripts/prepare-windows-sandbox-helpers.mjs --profile release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Force sdk/release-artifacts | Out-Null
+          Copy-Item src-tauri/resources/codex-resources/*.exe sdk/release-artifacts/ -Force
       - name: Package development Runtime server
         working-directory: sdk
         run: node scripts/package-server.mjs "${{ matrix.source }}" "${{ matrix.artifact }}"
@@ -841,7 +850,6 @@ jobs:
             echo "publish=true" >> "$GITHUB_OUTPUT"
           fi
       - name: Create and sign development manifests
-        if: steps.current.outputs.publish == 'true'
         env:
           SDK_SHA: ${{ inputs.sdk_sha }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -855,6 +863,7 @@ jobs:
             --version "$version" \
             --protocol "$protocol" \
             --sdk-sha "$SDK_SHA"
+          node scripts/bind-runtime-helpers.mjs sdk-development-components sdk-development-components
           node scripts/sdk-dev-artifacts.mjs \
             --artifacts sdk-development-components \
             --output sdk-development-components/sdk-dev-manifest.json \
@@ -869,6 +878,12 @@ jobs:
             --password "" \
             sdk-development-components/sdk-dev-manifest.json
           rm sdk-development-components/version.txt
+      - name: Publish immutable exact-SHA development kit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SDK_SHA: ${{ inputs.sdk_sha }}
+        run: node scripts/publish-dev-kit.mjs --artifacts sdk-development-components --sdk-sha "$SDK_SHA"
       - name: Refresh public development channel
         if: steps.current.outputs.publish == 'true'
         env:
