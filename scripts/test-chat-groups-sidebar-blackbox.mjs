@@ -267,6 +267,7 @@ try {
       pilot(["snapshot", "-i"]);
       pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-owner.toml")]);
       pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-messages.toml")]);
+      pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-stop.toml")]);
       pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-style.toml")]);
       pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-markdown.toml")]);
       pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-mentions.toml")]);

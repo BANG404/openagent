@@ -72,6 +72,12 @@ const model = createServer(async (request, response) => {
     return;
   }
   providerPrompts.push(prompt);
+  if (prompt.includes("GROUP_STOP_HOLD") && !prompt.includes("Resume after Stop")) {
+    // Keep actual member turns running until the native sidebar cancels them.
+    response.writeHead(200, { "content-type": "application/x-ndjson" });
+    response.flushHeaders();
+    return;
+  }
   const hidden = prompt.includes("[chat_group:");
   await new Promise((done) => setTimeout(done, 300));
   response.writeHead(200, { "content-type": "application/x-ndjson" });
@@ -81,7 +87,7 @@ const model = createServer(async (request, response) => {
       created_at: new Date().toISOString(),
       message: {
         role: "assistant",
-        content: `${hidden ? "GROUP_WOKE" : "GROUP_MANUAL_REPLY"}_${marker}`,
+        content: `${prompt.includes("Resume after Stop") ? "GROUP_RESUMED" : hidden ? "GROUP_WOKE" : "GROUP_MANUAL_REPLY"}_${marker}`,
       },
       done: true,
       done_reason: "stop",
@@ -297,6 +303,62 @@ try {
         );
         assert.equal(capture.status, 0, capture.stderr || String(capture.error));
       }
+      const stopMembers = [...childIds, id];
+      await call("chat_group_send_message", {
+        group_id: group.id,
+        content: `GROUP_STOP_HOLD ${probe.marker}`,
+        mentions: ["all"],
+      });
+      const holdDeadline = Date.now() + 30000;
+      while (
+        providerPrompts.filter(
+          (prompt) => prompt.includes("GROUP_STOP_HOLD") && prompt.includes(id),
+        ).length < stopMembers.length &&
+        Date.now() < holdDeadline
+      )
+        await new Promise((done) => setTimeout(done, 100));
+      assert.equal(
+        providerPrompts.filter(
+          (prompt) => prompt.includes("GROUP_STOP_HOLD") && prompt.includes(id),
+        ).length,
+        stopMembers.length,
+        "member turns did not reach the held provider requests",
+      );
+      await evaluate(
+        `window.__groupStopProbe=${JSON.stringify({ groupTitle: group.title, stopMembers })}; true`,
+      );
+      await pilot(["snapshot", "-i"]);
+      await pilot(["run", join(repo, "tests/blackbox/chat-groups-wake-stop.toml")]);
+      await until(`(async()=>{
+        const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
+        for(const convId of ${JSON.stringify(stopMembers)}){
+          const checkpoints=await c.invokeProduct('get_renderable_checkpoints',{convId});
+          if(checkpoints.at(-1)?.data.phase!=='final_cancelled')return false;
+        }
+        return true;
+      })()`);
+      const stoppedGroups = await call("chat_group_list", { conversation_id: id });
+      assert.equal(
+        stoppedGroups.find((/** @type {any} */ item) => item.id === group.id).discussion_stopped,
+        true,
+      );
+      await call("chat_group_send_message", {
+        group_id: group.id,
+        content: `Resume after Stop ${probe.marker}`,
+        mentions: [member.id],
+      });
+      await until(`(async()=>{
+        const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
+        const checkpoints=await c.invokeProduct('get_renderable_checkpoints',{convId:${JSON.stringify(id)}});
+        const last=checkpoints.at(-1);
+        return last?.data.phase==='final_completed' && last.data.messages.some(m=>m.role==='assistant'&&JSON.stringify(m.content).includes(${JSON.stringify(`GROUP_RESUMED_${id}`)}));
+      })()`);
+      const resumedGroups = await call("chat_group_list", { conversation_id: id });
+      assert.equal(
+        resumedGroups.find((/** @type {any} */ item) => item.id === group.id).discussion_stopped,
+        false,
+      );
+      console.log(`Stop and resume running members passed: ${theme}/${language}`);
     }
   writeFileSync(
     join(artifacts, "wake-report.json"),
@@ -314,6 +376,7 @@ try {
   );
   console.log(`Chat Groups hidden wake passed: ${artifacts}`);
 } finally {
+  writeFileSync(join(artifacts, "provider-prompts.json"), JSON.stringify(providerPrompts, null, 2));
   for (const id of conversations) await invoke("delete_conversation", { convId: id });
   for (const role of discussionRoles) await invoke("delete_agent_role", { id: role.id });
   if (installed) await invoke("uninstall_agent_plugin", { id: "chat-groups" });

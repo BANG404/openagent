@@ -189,6 +189,7 @@ const en: Record<TranslationKeys, string> = {
   deleteRole: "Delete role",
   deleteRoleConfirm: "Delete “{name}”? Reusing it later will require its role description again.",
   chatGroupStartTool: "Start chat group",
+  chatGroupStopTool: "Stop chat group",
   createRoleTool: "Create role",
   searchRolesTool: "Search roles",
   toolCreateGoal: "Create goal",
