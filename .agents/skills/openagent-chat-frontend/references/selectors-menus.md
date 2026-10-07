@@ -237,6 +237,26 @@ preview query routing and book-open actions load the same checked components.
   and `Ctrl`/`Cmd+Shift+Z` (native undo cannot survive re-projection). Paste
   takes `text/plain` only, so rich clipboard HTML cannot desynchronize the
   model.
+- Editing operations live in `composerEditing.ts`: delete visible graphemes
+  (including complete emoji sequences), skip hidden delimiters, and delete chips
+  atomically. Range replacement prunes only formatting emptied or crossed by
+  that edit; never run global empty-marker cleanup on typed or pasted source.
+  Copy/cut produce self-contained Markdown fragments. Shift+Enter replaces the
+  selected text, balances split inline spans, and continues indented lists/tasks
+  or nested quotes. Fenced code stays literal, including apparent list markers.
+- DOM bookmarks preserve exact source positions that share a hidden-marker
+  boundary. Nested spans map beside their own element. Toolbar pointer actions
+  preserve the editor selection, and keyboard actions reuse its saved range.
+  History stores both selection endpoints and resets on externally replaced
+  drafts. IME captures the initial value and full replacement range, commits
+  once, and restores the projection even when canceled; an external draft
+  replacement wins over an old composition. Disabled controls accept no edits.
+  Extend `tests/blackbox/composer-editor.toml` for these edit invariants and run
+  its native runner in all light/dark and English/Chinese combinations.
+  Formatting toggles recognize both visible-content selections and select-all
+  ranges that include the complete source delimiters of one inline span.
+  Multiline formatting wraps each nonempty line independently while preserving
+  block markers, surrounding whitespace, blank lines, and literal fenced code.
 - Support only closed, non-empty markup pairs. A half-typed marker such as
   `**bo` stays literal until its closing delimiter is typed, so the text does
   not jitter mid-keystroke.

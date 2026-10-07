@@ -19,6 +19,13 @@ export interface Point {
   offset: number;
 }
 
+// Several hidden source positions share one DOM boundary. Retain the precise
+// source selection until the user actually moves the DOM selection.
+const bookmarks = new WeakMap<
+  HTMLElement,
+  { start: number; end: number; from: Point; to: Point }
+>();
+
 interface Leaf {
   el: HTMLElement;
   chip: boolean;
@@ -172,14 +179,14 @@ export function markdownOffset(root: HTMLElement, node: Node, offset: number): n
     const element = node as HTMLElement;
     const children = Array.from(element.childNodes);
     const next = children[offset] as HTMLElement | undefined;
-    const previous = children[children.length - 1] as HTMLElement | undefined;
+    const previous = children[offset - 1] as HTMLElement | undefined;
     const scope = next ?? previous;
     if (scope instanceof HTMLElement) {
       const edge = sourceEdge(scope, Boolean(next));
       if (edge !== null) return edge;
     }
     if (element.dataset[SRC_CONTENT_START] !== undefined) {
-      return Number(element.dataset[SRC_CONTENT_START]);
+      return Number(element.dataset[offset === 0 ? SRC_CONTENT_START : SRC_CONTENT_END]);
     }
     const block = element.closest<HTMLElement>("[data-block-start]");
     // Nothing mapped in reach: an empty line projects only a `<br>`, so its one
@@ -195,22 +202,15 @@ function blockStartFor(element: HTMLElement | null): number {
   return block ? Number(block.dataset.blockStart) : 0;
 }
 
-/** Direct child of the enclosing block, which carries the full source range. */
-function outerOf(element: HTMLElement): HTMLElement {
-  const block = element.closest<HTMLElement>("[data-block-start]");
-  if (!block) return element;
-  let node = element;
-  while (node.parentElement && node.parentElement !== block) node = node.parentElement;
-  return node;
-}
-
 /**
  * Source offset of a mapped edge at or below `element`. Leading edges take the
  * node's own source start and trailing edges its own source end, not the inner
- * text range, so the caret can rest *after* a closing marker (`**bold|**`) as
+ * text range, so the caret can rest *after* a closing marker (`**bold**|`) as
  * well as inside its content.
  */
 function sourceEdge(element: HTMLElement, leading: boolean): number | null {
+  const blockEdge = element.dataset[leading ? "blockStart" : "blockEnd"];
+  if (blockEdge !== undefined) return Number(blockEdge);
   const own = element.dataset[leading ? SRC_START : SRC_END];
   if (own !== undefined) return Number(own);
   const leaves = collectLeaves(element);
@@ -222,8 +222,8 @@ function sourceEdge(element: HTMLElement, leading: boolean): number | null {
 /**
  * DOM point for a markdown offset. Offsets inside a leaf's rendered text map to
  * a caret in that text node; offsets in the hidden marker margins around it map
- * to a boundary beside the outermost element, so `markdownOffset` reads them
- * back unchanged.
+ * to a boundary beside the matching element; a source bookmark retains the
+ * precise position when several hidden offsets share that DOM boundary.
  */
 export function domPoint(root: HTMLElement, markdownOffsetValue: number): Point {
   const blocks = Array.from(root.querySelectorAll<HTMLElement>("[data-block-start]"));
@@ -239,15 +239,28 @@ export function domPoint(root: HTMLElement, markdownOffsetValue: number): Point 
   }
   const leaves = collectLeaves(block).map(toLeaf);
   if (leaves.length === 0) return { node: block, offset: block.childNodes.length };
+  // Resolve nested marker margins beside their own element, not the entire
+  // outer span; otherwise a caret in nested bold/italic jumps to the start.
+  const formatted = Array.from(block.querySelectorAll<HTMLElement>("[data-inline-kind]"));
+  for (const element of formatted.reverse()) {
+    const start = Number(element.dataset[SRC_START]);
+    const end = Number(element.dataset[SRC_END]);
+    const contentStart = Number(element.dataset[SRC_CONTENT_START]);
+    const contentEnd = Number(element.dataset[SRC_CONTENT_END]);
+    if (markdownOffsetValue >= start && markdownOffsetValue < contentStart)
+      return boundary(element, false);
+    if (markdownOffsetValue > contentEnd && markdownOffsetValue <= end)
+      return boundary(element, true);
+  }
   for (const leaf of leaves) {
     if (markdownOffsetValue > leaf.contentEnd) continue;
-    if (markdownOffsetValue < leaf.contentStart) return boundary(outerOf(leaf.el), false);
-    if (leaf.chip) return boundary(outerOf(leaf.el), markdownOffsetValue > leaf.start);
+    if (markdownOffsetValue < leaf.contentStart) return boundary(leaf.el, false);
+    if (leaf.chip) return boundary(leaf.el, markdownOffsetValue > leaf.start);
     const text = leaf.el.firstChild;
-    if (!text || text.nodeType !== Node.TEXT_NODE) return boundary(outerOf(leaf.el), false);
+    if (!text || text.nodeType !== Node.TEXT_NODE) return boundary(leaf.el, false);
     return { node: text, offset: markdownOffsetValue - leaf.contentStart };
   }
-  return boundary(outerOf(leaves[leaves.length - 1].el), true);
+  return boundary(leaves[leaves.length - 1].el, true);
 }
 
 /** Current markdown selection, or `null` when the selection is outside `root`. */
@@ -256,6 +269,17 @@ export function getMarkdownSelection(root: HTMLElement): { start: number; end: n
   if (!selection || selection.rangeCount === 0) return null;
   const range = selection.getRangeAt(0);
   if (!root.contains(range.startContainer) || !root.contains(range.endContainer)) return null;
+  const bookmark = bookmarks.get(root);
+  if (
+    bookmark &&
+    range.startContainer === bookmark.from.node &&
+    range.startOffset === bookmark.from.offset &&
+    range.endContainer === bookmark.to.node &&
+    range.endOffset === bookmark.to.offset
+  ) {
+    return { start: bookmark.start, end: bookmark.end };
+  }
+  bookmarks.delete(root);
   const from = markdownOffset(root, range.startContainer, range.startOffset);
   const to = markdownOffset(root, range.endContainer, range.endOffset);
   return from <= to ? { start: from, end: to } : { start: to, end: from };
@@ -275,4 +299,5 @@ export function setMarkdownSelection(root: HTMLElement, start: number, end = sta
   if (!selection) return;
   selection.removeAllRanges();
   selection.addRange(range);
+  bookmarks.set(root, { start: Math.min(start, end), end: Math.max(start, end), from, to });
 }

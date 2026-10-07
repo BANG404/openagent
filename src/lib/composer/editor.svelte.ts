@@ -2,13 +2,12 @@ import { onMount, tick } from "svelte";
 import {
   insertSoftLineBreak,
   parseBlocks,
-  removeEmptyFormatting,
   removeLineMarker,
-  splice,
   wordBoundaryAfter,
   wordBoundaryBefore,
   type ComposerEdit,
 } from "$lib/composerMarkdown";
+import { replaceMarkdownRange, selectedMarkdown, visibleDeletionRange } from "$lib/composerEditing";
 import {
   clearBlocks,
   getMarkdownSelection,
@@ -34,8 +33,21 @@ export function createEditorController(options: EditorOptions) {
   // The markdown string is canonical; `lastProjected` is what the editor DOM shows.
   let lastProjected = "";
   let composing = $state(false);
-  const undoStack: Array<{ value: string; caret: number }> = [];
-  let redoStack: Array<{ value: string; caret: number }> = [];
+  type HistoryEntry = { value: string; start: number; end: number };
+  const undoStack: HistoryEntry[] = [];
+  let redoStack: HistoryEntry[] = [];
+  let savedSelection: { start: number; end: number } | null = null;
+
+  function selection() {
+    return (
+      (editorEl ? getMarkdownSelection(editorEl) : null) ??
+      savedSelection ?? { start: options.value.length, end: options.value.length }
+    );
+  }
+
+  function replace(start: number, end: number, text: string) {
+    return replaceMarkdownRange(options.value, start, end, text, attachmentReferencePaths);
+  }
   let wasDisabled = $state(false);
   const attachmentReferencePaths = $derived.by(() => {
     const references = new Map<string, string>();
@@ -50,10 +62,8 @@ export function createEditorController(options: EditorOptions) {
     const text = event.clipboardData?.getData("text/plain");
     if (!text) return;
     event.preventDefault();
-    const selection = editorEl ? getMarkdownSelection(editorEl) : null;
-    const start = selection?.start ?? options.value.length;
-    const end = selection?.end ?? start;
-    commitEdit(splice(options.value, start, end, text.replace(/\r\n?/g, "\n")));
+    const { start, end } = selection();
+    commitEdit(replace(start, end, text.replace(/\r\n?/g, "\n")));
   }
 
   function refocusEditor() {
@@ -69,13 +79,18 @@ export function createEditorController(options: EditorOptions) {
     if (nextValue.length === 0) clearBlocks(editorEl);
     else renderBlocks(editorEl, parseBlocks(nextValue, attachmentReferencePaths));
     setMarkdownSelection(editorEl, start, end);
+    savedSelection = { start, end };
     options.palette.syncPaletteFromCaret();
   }
 
   /** Apply an editor-originated edit: record history, then re-project. */
-  function commit(nextValue: string, start: number, end = start) {
-    const selection = editorEl ? getMarkdownSelection(editorEl) : null;
-    undoStack.push({ value: options.value, caret: selection?.start ?? options.value.length });
+  function commit(nextValue: string, start: number, end = start, before = selection()) {
+    if (options.disabled || composing) return;
+    if (nextValue === options.value) {
+      project(nextValue, start, end);
+      return;
+    }
+    undoStack.push({ value: options.value, ...before });
     if (undoStack.length > historyLimit) undoStack.shift();
     redoStack = [];
     options.value = nextValue;
@@ -84,35 +99,36 @@ export function createEditorController(options: EditorOptions) {
 
   function commitEdit(edit: ComposerEdit | null) {
     if (edit) {
-      const normalized = removeEmptyFormatting(edit.value, edit.caret);
-      commit(normalized.value, normalized.caret);
+      commit(edit.value, edit.caret);
     }
   }
 
-  function restore(entry: { value: string; caret: number }) {
+  function restore(entry: HistoryEntry) {
     options.value = entry.value;
-    project(entry.value, Math.min(entry.caret, entry.value.length));
+    project(entry.value, entry.start, entry.end);
   }
 
   function undo() {
     const entry = undoStack.pop();
     if (!entry) return;
-    const selection = editorEl ? getMarkdownSelection(editorEl) : null;
-    redoStack.push({ value: options.value, caret: selection?.start ?? options.value.length });
+    redoStack.push({ value: options.value, ...selection() });
     restore(entry);
   }
 
   function redo() {
     const entry = redoStack.pop();
     if (!entry) return;
-    const selection = editorEl ? getMarkdownSelection(editorEl) : null;
-    undoStack.push({ value: options.value, caret: selection?.start ?? options.value.length });
+    undoStack.push({ value: options.value, ...selection() });
     restore(entry);
   }
 
   $effect(() => {
     const nextValue = options.value;
     if (!editorEl || composing || nextValue === lastProjected) return;
+    // Sending, draft switching and external restores start a new history scope.
+    undoStack.length = 0;
+    redoStack = [];
+    savedSelection = null;
     const selection = getMarkdownSelection(editorEl);
     const limit = nextValue.length;
     const start = Math.min(selection?.start ?? limit, limit);
@@ -150,7 +166,7 @@ export function createEditorController(options: EditorOptions) {
 
   function handleKeydown(e: KeyboardEvent) {
     // IME owns Enter/Escape/arrows while composing; never intercept those.
-    if (composing || e.isComposing) return;
+    if (options.disabled || composing || e.isComposing || e.keyCode === 229) return;
 
     if (options.palette.paletteMode) {
       if (e.key === "ArrowDown") {
@@ -224,8 +240,21 @@ export function createEditorController(options: EditorOptions) {
     const selection = editorEl ? getMarkdownSelection(editorEl) : null;
     if (!selection || selection.start === selection.end) return;
     event.preventDefault();
-    event.clipboardData?.setData("text/plain", options.value.slice(selection.start, selection.end));
-    commitEdit(splice(options.value, selection.start, selection.end, ""));
+    event.clipboardData?.setData(
+      "text/plain",
+      selectedMarkdown(options.value, selection.start, selection.end, attachmentReferencePaths),
+    );
+    commitEdit(replace(selection.start, selection.end, ""));
+  }
+
+  function handleCopy(event: ClipboardEvent) {
+    const current = editorEl ? getMarkdownSelection(editorEl) : null;
+    if (!current || current.start === current.end || !event.clipboardData) return;
+    event.preventDefault();
+    event.clipboardData.setData(
+      "text/plain",
+      selectedMarkdown(options.value, current.start, current.end, attachmentReferencePaths),
+    );
   }
 
   /**
@@ -234,21 +263,25 @@ export function createEditorController(options: EditorOptions) {
    * have their own listeners and are deliberately not handled here.
    */
   function handleBeforeInput(event: InputEvent) {
-    if (composing) return;
-    const selection = editorEl ? getMarkdownSelection(editorEl) : null;
-    const start = selection?.start ?? options.value.length;
-    const end = selection?.end ?? start;
-
-    const replace = (from: number, to: number, insertion: string) => {
+    if (options.disabled) {
       event.preventDefault();
-      commitEdit(splice(options.value, from, to, insertion));
+      return;
+    }
+    if (composing || event.isComposing) return;
+    const { start, end } = selection();
+
+    const replay = (from: number, to: number, insertion: string) => {
+      event.preventDefault();
+      commitEdit(
+        replaceMarkdownRange(options.value, from, to, insertion, attachmentReferencePaths),
+      );
     };
 
     switch (event.inputType) {
       case "insertText":
       case "insertReplacementText": {
         const text = event.data ?? event.dataTransfer?.getData("text/plain") ?? "";
-        if (text) replace(start, end, text);
+        if (text) replay(start, end, text);
         return;
       }
       case "insertLineBreak":
@@ -261,55 +294,109 @@ export function createEditorController(options: EditorOptions) {
         return;
       case "deleteContentBackward":
         if (start !== end) {
-          replace(start, end, "");
+          replay(start, end, "");
         } else {
           event.preventDefault();
-          commitEdit(
-            removeLineMarker(options.value, start) ??
-              splice(options.value, Math.max(0, start - 1), start, ""),
-          );
+          const markerEdit = removeLineMarker(options.value, start);
+          const range = visibleDeletionRange(options.value, start, true, attachmentReferencePaths);
+          commitEdit(markerEdit ?? replace(range.start, range.end, ""));
         }
         return;
       case "deleteContentForward":
-        replace(start, end === start ? Math.min(options.value.length, start + 1) : end, "");
+        if (start !== end) replay(start, end, "");
+        else {
+          const range = visibleDeletionRange(options.value, start, false, attachmentReferencePaths);
+          replay(range.start, range.end, "");
+        }
         return;
       case "deleteWordBackward":
-        replace(wordBoundaryBefore(options.value, start), end, "");
+        replay(start !== end ? start : wordBoundaryBefore(options.value, start), end, "");
         return;
       case "deleteWordForward":
-        replace(start, wordBoundaryAfter(options.value, end), "");
+        replay(start, start !== end ? end : wordBoundaryAfter(options.value, end), "");
+        return;
+      case "historyUndo":
+        event.preventDefault();
+        undo();
+        return;
+      case "historyRedo":
+        event.preventDefault();
+        redo();
+        return;
+      case "formatBold":
+        event.preventDefault();
+        applyFormat({ prefix: "**" });
+        return;
+      case "formatItalic":
+        event.preventDefault();
+        applyFormat({ prefix: "*" });
+        return;
+      case "deleteByCut":
+      case "insertFromPaste":
+      case "insertFromDrop":
+        event.preventDefault();
         return;
       default:
+        // Unsupported native mutations must not corrupt the projection.
+        event.preventDefault();
         return;
     }
   }
 
   function applyFormat(format: ComposerFormat) {
-    const selection = editorEl ? getMarkdownSelection(editorEl) : null;
-    const start = selection?.start ?? options.value.length;
-    const end = selection?.end ?? start;
+    if (options.disabled || composing) return;
+    const { start, end } = selection();
     const next = applyComposerFormat(options.value, start, end, format);
     // Leave the wrapped content selected so the next keystroke replaces it.
     commit(next.value, next.start, next.end);
     refocusEditor();
   }
 
-  let compositionAnchor = 0;
+  let compositionSelection = { start: 0, end: 0 };
+  let compositionValue = "";
 
   // While an IME owns the editor the DOM is left alone; `handleBeforeInput` and
   // the projection effect both stand down until the composition commits.
   function handleCompositionStart() {
+    if (options.disabled) return;
+    compositionSelection = selection();
+    compositionValue = options.value;
     composing = true;
-    compositionAnchor = editorEl
-      ? (getMarkdownSelection(editorEl)?.start ?? options.value.length)
-      : options.value.length;
   }
 
   function handleCompositionEnd(event: CompositionEvent) {
     composing = false;
     const text = event.data ?? "";
-    if (text) commitEdit(splice(options.value, compositionAnchor, compositionAnchor, text));
-    else if (options.value !== lastProjected) project(options.value, compositionAnchor);
+    const { start, end } = compositionSelection;
+    // A draft replacement during composition wins over the old IME session.
+    if (options.value !== compositionValue) {
+      undoStack.length = 0;
+      redoStack = [];
+      project(options.value, options.value.length);
+      return;
+    }
+    if (options.disabled) {
+      project(options.value, start, end);
+      return;
+    }
+    savedSelection = { start, end };
+    // The native IME DOM is already mutated; history must use its original range.
+    if (text) {
+      const edit = replace(start, end, text);
+      commit(edit.value, edit.caret, edit.caret, compositionSelection);
+    } else project(options.value, start, end);
+  }
+
+  function rememberSelection() {
+    if (editorEl && !composing) savedSelection = getMarkdownSelection(editorEl) ?? savedSelection;
+  }
+
+  function handleInput() {
+    // Non-cancelable browser edits (e.g. spellcheck) must not leave a stale DOM.
+    if (!composing && editorEl) {
+      const current = savedSelection ?? selection();
+      project(options.value, current.start, current.end);
+    }
   }
 
   function handleDragOver(event: DragEvent) {
@@ -325,7 +412,7 @@ export function createEditorController(options: EditorOptions) {
     const selection = editorEl ? getMarkdownSelection(editorEl) : null;
     const start = selection?.start ?? options.value.length;
     const end = selection?.end ?? start;
-    commitEdit(splice(options.value, start, end, text.replace(/\r\n?/g, "\n")));
+    commitEdit(replace(start, end, text.replace(/\r\n?/g, "\n")));
   }
 
   onMount(() => {
@@ -346,6 +433,9 @@ export function createEditorController(options: EditorOptions) {
     refocusEditor,
     handleKeydown,
     handleCut,
+    handleCopy,
+    rememberSelection,
+    handleInput,
     handleBeforeInput,
     applyFormat,
     handleCompositionStart,
