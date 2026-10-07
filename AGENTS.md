@@ -42,8 +42,7 @@ the affected behavior or invariant and its primary owner before editing; do not
 duplicate the same detailed rule across this file, a skill, and README files.
 
 ## Commands and verification
-Use Bun for JavaScript dependencies and scripts. Prefix shell commands with
-`rtk` as required by the global instructions.
+Use Bun for JavaScript dependencies and scripts.
 
 ```bash
 bun run dev                              # Vite on an available port

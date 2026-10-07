@@ -7,5 +7,5 @@ metadata:
 
 # Wait for PR CI
 
-Run the bundled waiter through rtk after a PR update. Read
+Run the bundled waiter after a PR update. Read
 [wait.md](references/wait.md) for invocation, attached waits, and results.
