@@ -6,7 +6,10 @@ global_timeout_ms = 60000
 [[step]]
 name = "conversation switches filter groups, restore drafts and ignore late replies"
 action = "eval"
-script = '''(async()=>{
+script = '''(()=>{
+  window.__chatGroupsConversationScenario={state:'running'};
+  document.body.dataset.chatGroupsConversationFinished='false';
+  (async()=>{
   const frame=document.querySelector('#checkpoint-flow-panel iframe'), d=frame.contentDocument;
   const delay=ms=>new Promise(r=>setTimeout(r,ms));
   const until=async fn=>{const end=Date.now()+10000;while(Date.now()<end){if(fn())return;await delay(50);}throw new Error('conversation group projection did not settle');};
@@ -48,6 +51,7 @@ script = '''(async()=>{
     window.dispatchEvent(new MessageEvent('message',{source:frame.contentWindow,data:{type:'openagent:sidebar-ready',version:1}}));
   });
   frame.contentWindow.postMessage({...context,branch_id:'reviewer-second-branch'},'*');
+  await delay(0);
   await until(()=>d.querySelector('#group-title').textContent==='Saved group'&&!draft.disabled);
   if(d.querySelector('#group-title').textContent!=='Saved group'||!draft.value.startsWith('Saved conversation draft'))throw new Error('branch switch changed conversation association');
   frame.contentWindow.postMessage(context,'*');
@@ -65,5 +69,22 @@ script = '''(async()=>{
   await until(()=>d.querySelector('#group-title').textContent==='Saved group'&&!draft.disabled);
   draft.value='';draft.dispatchEvent(new Event('input',{bubbles:true}));
   frame.contentWindow.removeEventListener('message',onContext);
+  return true;
+  })().then(()=>{window.__chatGroupsConversationScenario={state:'passed'};},error=>{window.__chatGroupsConversationScenario={state:'failed',error:String(error)};}).finally(()=>{document.body.dataset.chatGroupsConversationFinished='true';});
+  return true;
+})()'''
+
+[[step]]
+name = "wait for conversation switches to finish"
+action = "wait"
+selector = "body[data-chat-groups-conversation-finished=true]"
+timeout_ms = 50000
+
+[[step]]
+name = "assert conversation associations and drafts survived"
+action = "eval"
+script = '''(()=>{
+  const result=window.__chatGroupsConversationScenario;
+  if(result?.state!=='passed')throw new Error(result?.error||'conversation scenario did not finish');
   return true;
 })()'''
