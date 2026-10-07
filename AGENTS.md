@@ -17,13 +17,13 @@ Read every applicable owner before changing files:
 | Change prompt assembly, skill routing, or agent documentation validation | `.agents/skills/agent-prompt-infrastructure/SKILL.md` |
 | Implement product behavior or subsystem changes | The matching `openagent-*` owner below |
 | Verify browser-visible behavior | `.agents/skills/playwright/SKILL.md` |
-| Deliver repository changes | `.agents/skills/deliver-via-pr/SKILL.md` |
+| Deliver repository changes | `.agents/skills/deliver-via-owt/SKILL.md` |
 
 The `openagent-*` skills own implementation; starting skills route verification and delivery.
 
 | Scope | Source of truth |
 | --- | --- |
-| Repository delivery, documentation ownership, commits, worktrees, PRs, CI handoff | `.agents/skills/deliver-via-pr/SKILL.md` |
+| Local OWT delivery, documentation ownership, commits, worktrees, integration, cleanup | `.agents/skills/deliver-via-owt/SKILL.md` |
 | Chat transcript, composer, streaming/final reconciliation, restore, attachments, chat events, streamed rendering | `.agents/skills/openagent-chat-frontend/SKILL.md` |
 | Tauri host, native windows, single instance, IPC adapters, desktop verification | `.agents/skills/openagent-desktop-host/SKILL.md` |
 | Configuration, databases, memory, migrations, destructive data transitions | `.agents/skills/openagent-configuration/SKILL.md` |
@@ -142,7 +142,7 @@ layout-stable skeleton.
   `tauri-pilot` black-box scenario, including light/dark themes and Chinese/English where applicable. See `.agents/skills/openagent-desktop-host/references/native-verification.md`.
 
 ## Delivery
-Every repository-changing task uses `deliver-via-pr` and the same OWT workflow.
+Every repository-changing task uses `deliver-via-owt` and the same OWT workflow.
 No prefix or mode selection is required. Implement in isolated task worktrees;
 keep the default directory on local `master` for developer debugging and
 fast-forward verified results into it. Batches coordinate concurrent OWT tasks.

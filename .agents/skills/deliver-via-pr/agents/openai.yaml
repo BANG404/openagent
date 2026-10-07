@@ -1,4 +1,0 @@
-interface:
-  display_name: "Deliver repository changes"
-  short_description: "Deliver verified changes through OWT"
-  default_prompt: "Use $deliver-via-pr to apply the OWT workflow for every task, keep the default worktree on master, and integrate verified results while preserving unrelated repository state."

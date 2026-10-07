@@ -5,6 +5,12 @@ No prompt prefix selects a mode. Keep the default worktree on local `master`
 for developer debugging; implement and validate in isolated sibling worktrees.
 Never switch the default worktree to a task or integration branch.
 
+The delivery skill is `deliver-via-owt`: its directory, discovery metadata,
+invocation prompts, and helper commands use that name. Completion means verified
+local integration and cleanup. Publishing and PR checks are separate from local
+OWT completion; use `wait-for-pr-ci` when the user's task explicitly includes
+waiting for actual GitHub PR checks.
+
 Resolve the repository root from the current checkout, for example with
 `git rev-parse --show-toplevel`. Choose temporary sibling worktrees relative to
 that root or use an explicitly supplied worktree location; never hard-code a

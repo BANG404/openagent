@@ -8,4 +8,4 @@ metadata:
 # OpenAgent release engineering
 
 Read the matching reference for qualification, artifacts, CI routing, SDK
-checks, publishing, versioning, or local commands. Use deliver-via-pr.
+checks, publishing, versioning, or local commands. Use deliver-via-owt.

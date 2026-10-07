@@ -11,7 +11,7 @@ Create the manifest from the default worktree at its committed local default
 HEAD before starting task agents:
 
 ```bash
-bun .agents/skills/deliver-via-pr/scripts/coordinate-owt-batch.mjs create \
+bun .agents/skills/deliver-via-owt/scripts/coordinate-owt-batch.mjs create \
   --repo . --batch <batch-id> --default master --base HEAD
 ```
 
@@ -19,7 +19,7 @@ Create every task branch and sibling worktree from that recorded HEAD by the
 normal OWT rules, then register its exact identity:
 
 ```bash
-bun .agents/skills/deliver-via-pr/scripts/coordinate-owt-batch.mjs register \
+bun .agents/skills/deliver-via-owt/scripts/coordinate-owt-batch.mjs register \
   --repo . --batch <batch-id> --task <task-id> \
   --branch agent/<task-slug> --worktree <absolute-worktree-path>
 ```
@@ -29,7 +29,7 @@ that prevents a temporarily empty pending set from triggering integration while
 more tasks are still being created:
 
 ```bash
-bun .agents/skills/deliver-via-pr/scripts/coordinate-owt-batch.mjs seal \
+bun .agents/skills/deliver-via-owt/scripts/coordinate-owt-batch.mjs seal \
   --repo . --batch <batch-id>
 ```
 
@@ -37,7 +37,7 @@ Before running task-local preflight or UI tooling, read its isolated environment
 contract:
 
 ```bash
-bun .agents/skills/deliver-via-pr/scripts/coordinate-owt-batch.mjs env \
+bun .agents/skills/deliver-via-owt/scripts/coordinate-owt-batch.mjs env \
   --repo . --batch <batch-id> --task <task-id>
 ```
 
@@ -53,7 +53,7 @@ requires a clean task worktree, and calls `ready` with the exact preflighted
 commit:
 
 ```bash
-bun .agents/skills/deliver-via-pr/scripts/coordinate-owt-batch.mjs ready \
+bun .agents/skills/deliver-via-owt/scripts/coordinate-owt-batch.mjs ready \
   --repo . --batch <batch-id> --task <task-id> --verified-head HEAD
 ```
 
@@ -79,7 +79,7 @@ The elected integration agent must send a heartbeat while it is merging and
 running combined checks. Refresh its lease with:
 
 ```bash
-bun .agents/skills/deliver-via-pr/scripts/coordinate-owt-batch.mjs heartbeat \
+bun .agents/skills/deliver-via-owt/scripts/coordinate-owt-batch.mjs heartbeat \
   --repo . --batch <batch-id> --lease <lease-id>
 ```
 
@@ -88,7 +88,7 @@ is clean, discards that abandoned integration worktree, and elects a fresh
 lease from the same immutable task heads:
 
 ```bash
-bun .agents/skills/deliver-via-pr/scripts/coordinate-owt-batch.mjs recover \
+bun .agents/skills/deliver-via-owt/scripts/coordinate-owt-batch.mjs recover \
   --repo . --batch <batch-id> --reason "integrator exited"
 ```
 
@@ -111,7 +111,7 @@ rewrite a task branch, or silently choose one conflicting side. Stop and mark a
 real conflict when preserving both changes requires user direction:
 
 ```bash
-bun .agents/skills/deliver-via-pr/scripts/coordinate-owt-batch.mjs block \
+bun .agents/skills/deliver-via-owt/scripts/coordinate-owt-batch.mjs block \
   --repo . --batch <batch-id> --lease <lease-id> --reason <reason>
 ```
 
@@ -119,7 +119,7 @@ After every task head is present, run `bun run preflight --base
 <batch-base-sha>` in the integration worktree and finalize that exact clean HEAD:
 
 ```bash
-bun .agents/skills/deliver-via-pr/scripts/coordinate-owt-batch.mjs finalize \
+bun .agents/skills/deliver-via-owt/scripts/coordinate-owt-batch.mjs finalize \
   --repo . --batch <batch-id> --lease <lease-id> --verified-head HEAD
 ```
 
@@ -143,7 +143,7 @@ After `integrated`, move to the default worktree and clean the exact registered,
 clean, fully merged task and integration worktrees:
 
 ```bash
-bun .agents/skills/deliver-via-pr/scripts/coordinate-owt-batch.mjs cleanup \
+bun .agents/skills/deliver-via-owt/scripts/coordinate-owt-batch.mjs cleanup \
   --repo . --batch <batch-id> --lease <lease-id>
 ```
 
@@ -152,7 +152,7 @@ worktree, and deletes branches only after their fixed heads are ancestors of
 the current default HEAD. Inspect a batch without mutation at any time:
 
 ```bash
-bun .agents/skills/deliver-via-pr/scripts/coordinate-owt-batch.mjs status \
+bun .agents/skills/deliver-via-owt/scripts/coordinate-owt-batch.mjs status \
   --repo . --batch <batch-id>
 ```
 

@@ -19,11 +19,11 @@ import {
   registerTask,
   sealBatch,
   taskEnvironment,
-} from "../.agents/skills/deliver-via-pr/scripts/coordinate-owt-batch.mjs";
+} from "../.agents/skills/deliver-via-owt/scripts/coordinate-owt-batch.mjs";
 
 const temporaryRoots = [];
 const coordinator = fileURLToPath(
-  new URL("../.agents/skills/deliver-via-pr/scripts/coordinate-owt-batch.mjs", import.meta.url),
+  new URL("../.agents/skills/deliver-via-owt/scripts/coordinate-owt-batch.mjs", import.meta.url),
 );
 
 afterEach(() => {

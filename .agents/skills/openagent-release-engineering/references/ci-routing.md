@@ -52,6 +52,8 @@ two verification routes:
 - Documentation-only changes skip expensive modules. Local preflight's
   automation test selection includes OWT batch and Codex launcher contracts;
   keep this list aligned when removing or replacing delivery tooling.
+  Delivery helpers under `.agents/skills/deliver-via-owt/` follow the shared
+  `.agents/skills/` automation route, including after skill directory renames.
   Whenever frontend checks are selected, local preflight builds fresh production
   assets and enforces bundle budgets after tests, including with `--all`.
   Bundle measurement and manifest-resolution changes select frontend checks

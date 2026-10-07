@@ -104,7 +104,6 @@ export function classifyChangedModules(files, forceAll = false) {
     pluginSourcesChanged ||
     normalized.some((file) =>
       matchesPath(file, [
-        ".agents/skills/deliver-via-pr/",
         ".agents/skills/",
         ".github/",
         "scripts/",

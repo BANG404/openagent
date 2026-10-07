@@ -2,7 +2,7 @@
   "version": 1,
   "owners": [
     { "skill": "agent-prompt-infrastructure", "paths": [".agents/skills/"] },
-    { "skill": "deliver-via-pr", "paths": [".agents/skills/deliver-via-pr/"] },
+    { "skill": "deliver-via-owt", "paths": [".agents/skills/deliver-via-owt/"] },
     { "skill": "openagent-chat-frontend", "paths": ["src/lib/", "src/routes/"] },
     { "skill": "openagent-desktop-host", "paths": ["src-tauri/"] },
     { "skill": "openagent-design-system", "paths": ["DESIGN.md"] },

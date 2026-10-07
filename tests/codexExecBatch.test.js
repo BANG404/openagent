@@ -7,7 +7,7 @@ import { join } from "node:path";
 import {
   buildExecPlan,
   parseArguments,
-} from "../.agents/skills/deliver-via-pr/scripts/run-codex-exec-batch.mjs";
+} from "../.agents/skills/deliver-via-owt/scripts/run-codex-exec-batch.mjs";
 
 describe("Codex exec OWT batch launcher", () => {
   let repo = "";
@@ -45,7 +45,7 @@ describe("Codex exec OWT batch launcher", () => {
       plan.tasks[0].prompt,
     ]);
     for (const task of plan.tasks) {
-      expect(task.prompt).toContain("Use $deliver-via-pr and the OWT workflow");
+      expect(task.prompt).toContain("Use $deliver-via-owt and the OWT workflow");
       expect(task.prompt).toContain("keep the default directory on master");
     }
     expect(plan.tasks[0].prompt).toEndWith("add the first independent feature");

@@ -2,7 +2,7 @@
 
 Run all branch-changing release examples below in an isolated OWT worktree.
 Keep the default directory on `master` for developer debugging; never switch
-its branch for release preparation. See the `deliver-via-pr` OWT procedure.
+its branch for release preparation. See the `deliver-via-owt` OWT procedure.
 
 Release automation changes must pass both `bun run lint:frontend` and
 `bun run lint:actions`. These checks reject warnings as well as errors, including

@@ -117,7 +117,7 @@ export function buildExecPlan(options) {
     codexBin,
     maxConcurrency: Math.min(options.maxConcurrency, options.tasks.length),
     tasks: options.tasks.map((taskPrompt, index) => {
-      const prompt = `Use $deliver-via-pr and the OWT workflow: implement in an isolated sibling worktree, keep the default directory on master, verify and fast-forward the result, then clean up.\n\n${taskPrompt}`;
+      const prompt = `Use $deliver-via-owt and the OWT workflow: implement in an isolated sibling worktree, keep the default directory on master, verify and fast-forward the result, then clean up.\n\n${taskPrompt}`;
       return {
         id: `task-${index + 1}`,
         prompt,

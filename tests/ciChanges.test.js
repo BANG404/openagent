@@ -189,10 +189,17 @@ describe("CI module classification", () => {
   });
 
   test("routes skill and frontend contract tests to their owning modules", () => {
-    expect(classifyChangedModules([".agents/skills/openagent-chat-frontend/SKILL.md"])).toEqual({
-      ...nothing,
-      automation: true,
-    });
+    for (const path of [
+      ".agents/skills/openagent-chat-frontend/SKILL.md",
+      ".agents/skills/deliver-via-owt/SKILL.md",
+      ".agents/skills/deliver-via-owt/scripts/coordinate-owt-batch.mjs",
+      ".agents/skills/deliver-via-owt/scripts/run-codex-exec-batch.mjs",
+    ]) {
+      expect(classifyChangedModules([path])).toEqual({
+        ...nothing,
+        automation: true,
+      });
+    }
     expect(classifyChangedModules(["tests/componentUsage.test.js"])).toEqual({
       ...nothing,
       automation: true,
