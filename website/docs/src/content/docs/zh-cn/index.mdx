@@ -1,0 +1,35 @@
+---
+title: 开发你的 OpenAgent 插件
+description: 从第一个 Skill 到校验、安装和发布，逐步构建可使用的 Agent Plugin。
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+通过可复用技能、MCP 工具、命令或带作用域的侧栏扩展桌面工作区。OpenAgent 安装 **Agent Plugins 1.0** 格式的包，平台专属能力放在 `extensions.openagent` 中。
+
+<CardGrid>
+  <LinkCard title="01 · 第一个插件" description="创建 Skill，校验插件，然后安装本地包。" href={`${import.meta.env.BASE_URL}zh-cn/plugins/first-plugin/`} />
+  <LinkCard title="02 · 插件包约定" description="理解插件身份、协议兼容性、数据目录和可选组件。" href={`${import.meta.env.BASE_URL}zh-cn/plugins/package/`} />
+  <LinkCard title="03 · MCP 工具" description="接入 stdio 服务，选择 Direct 或 Relay 挂载方式。" href={`${import.meta.env.BASE_URL}zh-cn/plugins/mcp/`} />
+  <LinkCard title="04 · 侧栏与国际化" description="构建跟随宿主上下文、语言和主题的侧栏。" href={`${import.meta.env.BASE_URL}zh-cn/plugins/sidebar/`} />
+  <LinkCard title="05 · 发布与更新" description="打包稳定版，核验摘要，并测试插件替换。" href={`${import.meta.env.BASE_URL}zh-cn/plugins/publishing/`} />
+</CardGrid>
+
+## 选择起点
+
+| 想扩展什么 | Plugin Kit 模板 |
+| --- | --- |
+| 可复用指令 | `minimal` 或 `skill-pack` |
+| MCP 服务提供的工具 | `mcp-tools` |
+| 斜杠命令 | `slash-commands` |
+| 带作用域的侧栏 | `sidebar-panel` |
+| 生命周期钩子 | `automation-hooks` |
+| 工具租约或受监管的进程 | `mcp-lifecycle` 或 `daemon` |
+
+## 参考当前的独立插件
+
+[插件开发助手](https://github.com/BANG404/openagent-plugin-kit) 既是公开工具链，也是可安装的开发助手。[Chat Groups](https://github.com/BANG404/openagent-chat-groups)、[Goal](https://github.com/BANG404/openagent-goal)、[Graph](https://github.com/BANG404/openagent-graph)、[Cua Driver](https://github.com/BANG404/openagent-cua-driver) 和 [Message Board](https://github.com/BANG404/message-board) 分别独立安装。Multi-Agent V2 属于 Runtime 能力；Goal 和 Graph 通过共享 Host Bridge 实现插件自己的工作流。
+
+本教程依据当前公开 Plugin Kit 的模板与校验器编写。旧版 Runtime 即使接受插件协议 1，也可能缺少可选的桥接操作，调用前应检测支持情况。逐字段规范以 [Plugin Kit 文档](https://github.com/BANG404/openagent-plugin-kit/tree/main/docs) 为准。
+
+<a href={`${import.meta.env.BASE_URL}../`}>← 返回 OpenAgent 主页</a>

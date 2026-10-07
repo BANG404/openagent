@@ -1,6 +1,23 @@
 name: Deploy GitHub Pages
 
 on:
+  push:
+    branches: [master]
+    paths:
+      - "website/**"
+      - "assets/**"
+      - "scripts/build-pages.mjs"
+      - "scripts/check-pages.mjs"
+      - "scripts/check-pages.test.mjs"
+      - ".github/workflows/pages.yml"
+  pull_request:
+    paths:
+      - "website/**"
+      - "assets/**"
+      - "scripts/build-pages.mjs"
+      - "scripts/check-pages.mjs"
+      - "scripts/check-pages.test.mjs"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
     inputs:
       release_tag:
@@ -16,27 +33,29 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'deploy' }}
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: master
+          ref: ${{ github.event_name == 'pull_request' && github.sha || 'master' }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22.16.0"
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.2.21
+      - name: Install documentation dependencies
+        working-directory: website/docs
+        run: bun install --frozen-lockfile
       - name: Fetch Stable, RC, and Beta download manifests
+        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.release_tag }}
@@ -56,15 +75,28 @@ jobs:
               cp published-release.json stable-release.json
             fi
           fi
-      - name: Build the landing page
+      - name: Build and verify the landing page and Starlight tutorials
         env:
-          OPENAGENT_STABLE_RELEASE_MANIFEST: stable-release.json
-          OPENAGENT_RC_RELEASE_MANIFEST: rc-release.json
-          OPENAGENT_BETA_RELEASE_MANIFEST: beta-release.json
-        run: bun scripts/build-pages.mjs
-      - uses: actions/configure-pages@v5
+          OPENAGENT_STABLE_RELEASE_MANIFEST: ${{ github.event_name != 'pull_request' && 'stable-release.json' || '' }}
+          OPENAGENT_RC_RELEASE_MANIFEST: ${{ github.event_name != 'pull_request' && 'rc-release.json' || '' }}
+          OPENAGENT_BETA_RELEASE_MANIFEST: ${{ github.event_name != 'pull_request' && 'beta-release.json' || '' }}
+        run: |
+          bun test scripts/check-pages.test.mjs
+          bun scripts/build-pages.mjs
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist-pages
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/configure-pages@v5
       - id: deployment
         uses: actions/deploy-pages@v4

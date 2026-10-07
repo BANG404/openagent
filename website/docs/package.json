@@ -1,0 +1,14 @@
+{
+  "name": "openagent-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "0.37.7",
+    "astro": "5.18.2"
+  }
+}

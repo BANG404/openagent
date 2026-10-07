@@ -4,6 +4,12 @@ The standard package templates, validator, and authoring/release Skills live
 in the public [openagent-plugin-kit](https://github.com/BANG404/openagent-plugin-kit)
 repository. The product-owned standard packages are published separately:
 
+Public plugin authoring tutorials live in the Astro Starlight content under
+`website/docs/src/content/docs/`, with matching `zh-cn/` translations. Keep
+examples aligned with the public kit validator and templates. The release
+engineering [Pages owner](../../openagent-release-engineering/references/github-pages.md)
+owns site builds and deployment; these tutorials expose public package APIs only.
+
 - [Plugin Developer / 插件开发助手](https://github.com/BANG404/openagent-plugin-kit)
   (`openagent-plugin-kit`): development, testing and qualification of other plugins.
 
