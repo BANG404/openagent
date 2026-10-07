@@ -2,6 +2,16 @@
 
 ## Single instance and focus routing
 
+- Debug hosts resolve the current worktree's prepared Runtime under
+  `src-tauri/binaries/` before an executable-directory sidecar. Cargo host output
+  can retain an older copied sidecar after the worktree Runtime is rebuilt;
+  that copy must not hide new plugin descriptors or desktop operations. Both
+  persistence bootstrap and supervised startup use this same resolver. If the
+  prepared artifact is absent, the packaged copy remains the fallback; release
+  hosts use only the executable-directory packaged fallback. Qualify with an
+  older sidecar beside the debug host and a current prepared artifact, then run
+  the plugin sidebar activation native scenario in all themes and languages.
+
 - Development launches from `bun tauri dev` inherit a launcher-owned stdin
   lifetime pipe. The debug host watches that pipe and enters the normal bounded
   quit path on EOF, so closing the Windows terminal also closes the GUI host

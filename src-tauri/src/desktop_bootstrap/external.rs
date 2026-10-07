@@ -19,7 +19,7 @@ pub(crate) fn packaged_runtime_binary() -> Result<std::path::PathBuf, String> {
     let name = "openagent-server";
     let binary = directory.join(name);
     #[cfg(debug_assertions)]
-    if !binary.is_file() {
+    let prepared = {
         let target = match crate::runtime_resource::current_runtime_resource_target()? {
             "windows-x64" => "x86_64-pc-windows-msvc",
             "linux-x64" => "x86_64-unknown-linux-gnu",
@@ -31,17 +31,27 @@ pub(crate) fn packaged_runtime_binary() -> Result<std::path::PathBuf, String> {
         let staged = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("binaries")
             .join(format!("openagent-server-{target}{extension}"));
-        if staged.is_file() {
-            return Ok(staged);
-        }
+        Some(staged)
+    };
+    #[cfg(not(debug_assertions))]
+    let prepared: Option<std::path::PathBuf> = None;
+    select_packaged_runtime_binary(binary, prepared.as_deref())
+}
+
+fn select_packaged_runtime_binary(
+    packaged: std::path::PathBuf,
+    prepared: Option<&std::path::Path>,
+) -> Result<std::path::PathBuf, String> {
+    if let Some(prepared) = prepared.filter(|path| path.is_file()) {
+        return Ok(prepared.to_path_buf());
     }
-    if !binary.is_file() {
+    if !packaged.is_file() {
         return Err(format!(
             "Packaged Runtime fallback is missing: {}",
-            binary.display()
+            packaged.display()
         ));
     }
-    Ok(binary)
+    Ok(packaged)
 }
 
 async fn start_runtime_spec(
@@ -112,4 +122,41 @@ pub(crate) async fn start_external_desktop_runtime(
         .start(app.clone(), supervisor)
         .await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::select_packaged_runtime_binary;
+
+    #[test]
+    fn prepared_development_runtime_wins_over_an_existing_packaged_copy() {
+        let directory = tempfile::tempdir().unwrap();
+        let packaged = directory.path().join("packaged-server");
+        let prepared = directory.path().join("prepared-server");
+        std::fs::write(&packaged, "older Runtime").unwrap();
+        std::fs::write(&prepared, "current Runtime").unwrap();
+
+        assert_eq!(
+            select_packaged_runtime_binary(packaged.clone(), Some(&prepared)).unwrap(),
+            prepared
+        );
+        assert_eq!(
+            select_packaged_runtime_binary(packaged.clone(), None).unwrap(),
+            packaged
+        );
+    }
+
+    #[test]
+    fn missing_prepared_runtime_uses_the_packaged_copy_or_reports_its_absence() {
+        let directory = tempfile::tempdir().unwrap();
+        let packaged = directory.path().join("packaged-server");
+        let prepared = directory.path().join("missing-prepared-server");
+        std::fs::write(&packaged, "packaged Runtime").unwrap();
+        assert_eq!(
+            select_packaged_runtime_binary(packaged.clone(), Some(&prepared)).unwrap(),
+            packaged
+        );
+        std::fs::remove_file(&packaged).unwrap();
+        assert!(select_packaged_runtime_binary(packaged, Some(&prepared)).is_err());
+    }
 }
