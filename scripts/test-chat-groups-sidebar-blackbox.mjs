@@ -58,9 +58,12 @@ writeFileSync(
       id: `saved-${index}`,
       group_id: group.id,
       seq: index + 1,
-      sender_type: "user",
-      sender_id: null,
-      content: `Saved message ${index + 1}`,
+      sender_type: index === 202 || index === 203 ? "agent" : "user",
+      sender_id: index === 202 || index === 203 ? "reviewer" : null,
+      content:
+        index === 204
+          ? `Long message ${"preserved content ".repeat(30)}\nSecond line <script>visible text only</script>`
+          : `Saved message ${index + 1}`,
       mentions: [],
       created_at: index + 1,
     })),
@@ -147,19 +150,40 @@ try {
       );
       evaluate(`window.__chatGroupsSidebarPass=${JSON.stringify({ theme, language })}; true`);
       pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-messages.toml")]);
+      pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-style.toml")]);
+      // Native captures need the WebView to paint after the DOM assertions.
+      evaluate(
+        "(async()=>{await new Promise(done=>requestAnimationFrame(()=>requestAnimationFrame(done)));return true;})()",
+      );
+      await new Promise((done) => setTimeout(done, 500));
       const screenshot = join(artifacts, `${theme}-${language}.png`);
       if (process.env.BLACKBOX_NATIVE_WINDOW_HANDLE) {
-        const capture = spawnSync(
-          process.env.PYTHON_BIN || "python",
-          [
-            join(repo, "scripts/capture-windows-window.py"),
-            "--hwnd",
-            process.env.BLACKBOX_NATIVE_WINDOW_HANDLE,
-            "--output",
-            screenshot,
-          ],
-          { encoding: "utf8", windowsHide: true },
-        );
+        // Resize and restore the fixture to invalidate WebView2's native
+        // backing buffer before PrintWindow captures the current appearance.
+        evaluate(`(async()=>{
+          const {getCurrentWindow}=await import('/node_modules/@tauri-apps/api/window.js');
+          const {PhysicalSize}=await import('/node_modules/@tauri-apps/api/dpi.js');
+          const current=getCurrentWindow(), size=await current.innerSize();
+          try {
+            await current.setSize(new PhysicalSize(size.width+1,size.height));
+            await new Promise(done=>setTimeout(done,200));
+          } finally {
+            await current.setSize(new PhysicalSize(size.width,size.height));
+          }
+          await new Promise(done=>setTimeout(done,200));
+          return true;
+        })()`);
+        const captureArguments = [
+          join(repo, "scripts/capture-windows-window.py"),
+          "--hwnd",
+          process.env.BLACKBOX_NATIVE_WINDOW_HANDLE,
+          "--output",
+          screenshot,
+        ];
+        const capture = spawnSync(process.env.PYTHON_BIN || "python", captureArguments, {
+          encoding: "utf8",
+          windowsHide: true,
+        });
         assert.equal(capture.status, 0, capture.stderr || String(capture.error));
       } else captureBlackboxScreenshot(pilot, screenshot);
     }

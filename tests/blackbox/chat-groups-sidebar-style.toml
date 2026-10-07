@@ -1,0 +1,48 @@
+[scenario]
+name = "Chat Groups desktop panel layout"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "speaker runs, title count and safe multiline content"
+action = "eval"
+script = '''(()=>{
+  const d=document.querySelector('#checkpoint-flow-panel iframe').contentDocument;
+  const headings=[...d.querySelectorAll('.speaker-divider strong')].map(n=>n.textContent);
+  const you=window.__chatGroupsSidebarPass.language==='zh'?'你':'You';
+  if(JSON.stringify(headings)!==JSON.stringify([you,'Reviewer',you]))throw new Error('consecutive speakers are not grouped');
+  if(!d.querySelector('#message-count').textContent.startsWith(String(d.querySelectorAll('article').length)))throw new Error('message count missing');
+  if(d.querySelectorAll('.speaker-divider time[datetime]').length!==3)throw new Error('speaker times missing');
+  const long=d.querySelector('[data-message-id="saved-204"] p');
+  if(!long.textContent.includes('\nSecond line <script>visible text only</script>')||long.querySelector('script'))throw new Error('message text changed');
+  if(!d.querySelector('#send').disabled)throw new Error('empty input can send');
+  const members=d.querySelector('#members');members.open=true;
+  d.querySelector('#member-list button').click();
+  const draft=d.querySelector('#draft');
+  if(draft.value!=='@Reviewer '||d.querySelector('#send').disabled)throw new Error('member mention failed');
+  draft.value='';draft.dispatchEvent(new Event('input',{bubbles:true}));
+  return true;
+})()'''
+
+[[step]]
+name = "narrow panel keeps the last message above its composer"
+action = "eval"
+script = '''(async()=>{
+  const frame=document.querySelector('#checkpoint-flow-panel iframe');
+  const previous=frame.style.width;
+  try{
+    frame.style.width='240px';
+    await new Promise(r=>setTimeout(r,100));
+    const d=frame.contentDocument,box=d.querySelector('#messages');
+    box.scrollTop=box.scrollHeight;
+    await new Promise(r=>setTimeout(r,100));
+    const last=[...box.querySelectorAll('article')].at(-1).getBoundingClientRect();
+    const composer=d.querySelector('#composer').getBoundingClientRect();
+    if(last.bottom>composer.top)throw new Error('composer hides the final message');
+    if(d.documentElement.scrollWidth>d.documentElement.clientWidth||box.scrollWidth>box.clientWidth)throw new Error('narrow panel overflows horizontally');
+    const send=d.querySelector('#send').getBoundingClientRect();
+    if(send.right>composer.right||send.bottom>composer.bottom)throw new Error('send control escaped input');
+    if(d.defaultView.getComputedStyle(d.querySelector('.speaker-divider')).position!=='sticky')throw new Error('speaker header does not stay visible');
+  }finally{frame.style.width=previous;}
+  return true;
+})()'''

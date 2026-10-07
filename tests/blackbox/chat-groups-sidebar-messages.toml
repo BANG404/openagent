@@ -31,8 +31,7 @@ script = '''(async()=>{
   d.querySelector('#send').click();
   const deadline=Date.now()+20000;
   while(Date.now()<deadline){
-    if([...d.querySelectorAll('article p')].some(p=>p.textContent===text)&&!draft.value){
-      if(d.querySelector('#send').textContent!==(pass.language==='zh'?'发送':'Send'))throw new Error('send copy is not localized');
+    if([...d.querySelectorAll('article p')].some(p=>p.textContent===text)&&!draft.value&&d.querySelector('#send').getAttribute('aria-label')===(pass.language==='zh'?'发送':'Send')){
       return true;
     }
     await new Promise(r=>setTimeout(r,100));

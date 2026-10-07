@@ -62,6 +62,11 @@ group state or transcript tool results to create a built-in group panel. Native
 qualification is `test:blackbox:chat-groups-sidebar` with a fresh isolated home
 and explicit pilot socket, covering existing data, send/reload, workspace
 isolation, enablement and live locale/theme changes.
+The package's Chat Groups view retains the desktop group-panel visual grammar:
+compact title/count, collapsible member pills, sticky headings for consecutive
+messages from one sender, and a floating Mica composer. Its inline theme tokens
+match `app.css`; keep the trailing message reachable above the composer and
+verify long messages, narrow widths, and sender transitions in the native runner.
 
 A panel document is still a single declared entry: package sub-resources are
 outside the current asset boundary, so a plugin page must inline its own styles
