@@ -1,8 +1,7 @@
 {
   "bundle": {
-    "targets": ["nsis"],
-    "resources": {
-      "resources/codex-resources/": "codex-resources/"
-    }
+    "targets": [
+      "nsis"
+    ]
   }
 }

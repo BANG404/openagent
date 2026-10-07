@@ -1,6 +1,23 @@
 import type { TranslationKeys } from "./i18n.zh";
 
 const en: Record<TranslationKeys, string> = {
+  shellPreparing: "Preparing OpenAgent",
+  shellFailed: "Resource preparation incomplete",
+  shellDescription:
+    "First use prepares the runtime, interface and local memory model. Resources download together.",
+  shellDownloading: "Downloading resources",
+  shellInstalling: "Installing verified resources",
+  shellStarting: "Starting OpenAgent",
+  shellRetry: "Retry",
+  shellImport: "Import offline resources",
+  shellResume:
+    "Interrupted downloads keep their progress. The offline installer includes these resources.",
+  shellErrorHelp:
+    "Check your connection and retry, or select the offline resource directory for this version.",
+  shellLight: "Light",
+  shellDark: "Dark",
+  shellClose: "Close",
+
   loadingContent: "Loading content…",
   newBtn: "+ New",
   newChat: "New chat",

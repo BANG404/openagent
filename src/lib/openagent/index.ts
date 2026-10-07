@@ -1,4 +1,4 @@
-export * from "../../../sdk/typescript/src/index";
+export * from "@openagent/client/index";
 export {
   provideOpenAgentUiCapabilities,
   useOpenAgentUiCapabilities,

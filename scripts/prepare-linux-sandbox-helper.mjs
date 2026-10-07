@@ -157,13 +157,6 @@ export async function prepareLinuxSandboxHelper({
   if (((await stat(sidecar)).mode & 0o111) === 0) {
     throw new Error("The copied Codex Bubblewrap sidecar is not executable.");
   }
-  const linuxTauriConfig = JSON.parse(
-    await readFile(path.join(root, "src-tauri", "tauri.linux.conf.json"), "utf8"),
-  );
-  if (!linuxTauriConfig.bundle?.externalBin?.includes("binaries/bwrap")) {
-    throw new Error("The Linux Tauri config does not package the Codex Bubblewrap sidecar.");
-  }
-
   if (exportToGitHubEnvironment) {
     const githubEnvironment = process.env.GITHUB_ENV;
     if (!githubEnvironment) {

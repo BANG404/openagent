@@ -3,7 +3,13 @@
   "bundle": {
     "createUpdaterArtifacts": false,
     "resources": {
-      "resources/models/all-MiniLM-L6-v2-q/": "models/all-MiniLM-L6-v2-q/"
+      "resources/bootstrap-release/": "bootstrap-release/"
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "type": "offlineInstaller",
+        "silent": true
+      }
     }
   }
 }

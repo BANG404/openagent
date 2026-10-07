@@ -57,8 +57,8 @@ own debug-only adapter. Arm frontend confirmation after those surfaces exist.
 - Ordinary host builds must not link private SDK Rust crates. Compile and stage
   `openagent-server` first, then use its versioned desktop-bootstrap JSON command
   for compatibility inspection, confirmed persistence transitions, locale, and
-  launch inputs. Private Rust dependencies are allowed only behind the explicit
-  `embedded-runtime` diagnostic feature.
+  launch inputs. Private Rust dependencies resolve only in the generated SDK-owned embedded
+  diagnostic manifest, never as optional dependencies of the public host.
 - The supervised desktop server exposes the typed product `/api/desktop/*`
   router through `--desktop-api`. The server remains the one Runtime process;
   do not introduce an embedded or parallel agent Runtime in the desktop host.
@@ -253,3 +253,10 @@ endpoint>`. Pass the same values again through
   deadline. Discarding it on sight left the frontend behind the Runtime and
   shell that had already updated and re-offered the same update on every
   launch.
+
+
+The normal release shell creates its window before Runtime persistence inspection.
+The independent bootstrap and `desktop_bootstrap/provisioning.rs` recover missing
+or failed resource installation without SDK frontend or Runtime availability.
+Native managers still verify signatures and their own compatibility boundaries;
+Runtime still owns persistence consent and semantic embedding validation.

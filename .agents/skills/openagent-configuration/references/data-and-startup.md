@@ -90,9 +90,18 @@ The root contains these user-maintained or durable files:
 | `plugin-data/<name>/`                    | Persistent writable `PLUGIN_DATA`, retained when a plugin is uninstalled                                                                                                                                                   |
 | `resources/embedding/<model>/<version>/` | Verified, versioned local semantic-memory model resources shared by full and lightweight application updates                                                                                                               |
 | `resources/runtime/<version>/<target>/`  | Signed standalone Runtime candidates; installation is immutable and activation remains host-supervised                                                                                                                     |
+| `resources/updates/shell-handoff.json` | Versioned shell-first component continuation; contains only the verified target shell version, never executable paths or product data |
 | `resources/frontend/<version>/`          | Signed static frontend versions served by the desktop's private protocol                                                                                                                                                   |
 | `resources/frontend/active.json`         | Atomically replaced active/previous frontend selection and pending-confirmation marker; a pending marker outlives the process that wrote it, so the next process serves that candidate under a fresh confirmation deadline |
 
 Workspace-scoped memory, skills, and drafts live under the workspace's `.agents/`
 directory. Workspace design context lives at `<workspace>/DESIGN.md`, outside
 `.agents/`. These paths are separate from the user-scoped application root.
+
+
+Shell resource cache lives under `<OPENAGENT_HOME>/resources/distributions/<release>/`.
+It contains signed immutable manifests, staged bytes and content-addressed partial
+HTTP transfers; it never contains provider credentials. Initial release startup
+opens the shell before resource download. Runtime's existing inspected backup and
+transition flow runs only after verified installation. Missing resources do not
+force deletion or normalization of persisted configuration or conversations.

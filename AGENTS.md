@@ -45,6 +45,7 @@ duplicate the same detailed rule across this file, a skill, and README files.
 Use Bun for JavaScript dependencies and scripts.
 
 ```bash
+bun run dev:prepare                      # Exact public kit; then dev:desktop
 bun run dev                              # Vite on an available port
 bun run build
 bun run check                            # Svelte + TypeScript

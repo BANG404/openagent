@@ -2,6 +2,7 @@ use std::sync::Arc;
 use tauri::Manager;
 
 mod embedding_adapter;
+mod resource_download;
 #[cfg(feature = "embedded-runtime")]
 use embedding_adapter::EmbeddedRuntimeState;
 mod desktop_bootstrap;
@@ -80,7 +81,10 @@ pub fn run_agent_server() {
 #[allow(clippy::too_many_lines)]
 fn run_with_mode(agent_server: bool) {
     // NOSONAR: this protocol or state boundary is intentionally kept together for auditability.
-    let external_launch = if !agent_server {
+    let shell_provisioning = !agent_server
+        && (!cfg!(debug_assertions)
+            || std::env::var("OPENAGENT_BOOTSTRAP_TEST").is_ok_and(|value| value == "1"));
+    let external_launch = if !agent_server && !shell_provisioning {
         match prepare_interactive_persistence() {
             Ok(Some(launch)) => Some(launch),
             Ok(None) => return,
@@ -175,6 +179,18 @@ fn run_with_mode(agent_server: bool) {
         let instance_name = std::env::var("OPENAGENT_DEV_INSTANCE").ok();
         context.config_mut().identifier = development_instance_identifier(instance_name.as_deref());
     }
+    #[cfg(debug_assertions)]
+    if shell_provisioning {
+        if let Some(window) = context
+            .config_mut()
+            .app
+            .windows
+            .iter_mut()
+            .find(|window| window.label == "main")
+        {
+            window.url = tauri::WebviewUrl::App("bootstrap".into());
+        }
+    }
     if agent_server {
         context.config_mut().app.windows.clear();
     }
@@ -207,6 +223,7 @@ fn run_with_mode(agent_server: bool) {
     let builder = builder
         .manage(runtime_supervisor)
         .manage(RuntimeEventProxy::default())
+        .manage(desktop_bootstrap::provisioning::ProvisioningState::default())
         .manage(RuntimeUpdateState::default())
         .manage(DesktopWindowState::default())
         .manage(runtime_manager)
@@ -251,28 +268,47 @@ fn run_with_mode(agent_server: bool) {
                 install_desktop_tray(app)?;
             }
 
-            desktop_windows::startup::initialize(
-                app,
-                &startup_frontend_manager,
-                agent_server,
-                is_workspace_window,
-                development_multi_instance,
-            )?;
+            if !shell_provisioning {
+                desktop_windows::startup::initialize(
+                    app.handle(),
+                    &startup_frontend_manager,
+                    agent_server,
+                    is_workspace_window,
+                    development_multi_instance,
+                )?;
+            } else if let Some(window) = app.get_webview_window("main") {
+                desktop_windows::apply_native_window_material(&window);
+                window.show()?;
+                window.set_focus()?;
+                app.state::<DesktopWindowState>()
+                    .startup_window_revealed
+                    .store(true, std::sync::atomic::Ordering::Release);
+                let provisioning_app = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    if let Err(error) =
+                        desktop_bootstrap::provisioning::provision(provisioning_app, None).await
+                    {
+                        tracing::warn!(%error, "shell resource preparation needs retry");
+                    }
+                });
+            }
             #[cfg(debug_assertions)]
-            desktop_windows::inspector::initialize(
-                app,
-                agent_server,
-                is_workspace_window,
-                #[cfg(feature = "embedded-runtime")]
-                runtime.as_ref(),
-            )?;
+            if !shell_provisioning {
+                desktop_windows::inspector::initialize(
+                    app,
+                    agent_server,
+                    is_workspace_window,
+                    #[cfg(feature = "embedded-runtime")]
+                    runtime.as_ref(),
+                )?;
+            }
 
             // A previous process that ended with a frontend activation pending —
             // the shell installer replacing it is the ordinary case — did not
             // disprove that candidate, so this process serves it. Give it the
             // same deadline an in-process activation gets, now that the windows
             // that will confirm it exist.
-            if !cfg!(debug_assertions) {
+            if !cfg!(debug_assertions) && !shell_provisioning {
                 if let Some(pending) = startup_frontend_manager.pending_confirmation_version() {
                     arm_frontend_confirmation_deadline(
                         app.handle().clone(),

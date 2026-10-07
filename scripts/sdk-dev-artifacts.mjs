@@ -20,17 +20,39 @@ async function describeFile(directory, file) {
 
 export async function createSdkDevelopmentManifest({ directory, sdkSha, version }) {
   if (!/^[0-9a-f]{40}$/.test(sdkSha)) throw new Error("Invalid immutable SDK SHA");
-  if (!/^\d+\.\d+\.\d+-dev\.[0-9a-f]{7,40}$/.test(version)) {
+  if (!/^\d+\.\d+\.\d+(?:-(?:dev\.[0-9a-f]{7,40}|(?:beta|rc)\.\d+))?$/.test(version)) {
     throw new Error("Invalid SDK development version");
   }
+  const runtime = JSON.parse(
+    await readFile(join(directory, "openagent-sdk-manifest.json"), "utf8"),
+  );
+  if (runtime.schema_version !== 1 || !/^[0-9a-f]{40}$/.test(runtime.sdk_sha ?? "")) {
+    throw new Error("Development kit Runtime manifest has no immutable source identity");
+  }
+  const helpers = {};
+  for (const [target, names] of Object.entries({
+    "windows-x64": ["codex-windows-sandbox-setup.exe", "codex-command-runner.exe"],
+    "linux-x64": ["codex-bwrap-linux-x64"],
+  })) {
+    helpers[target] = Object.fromEntries(
+      await Promise.all(names.map(async (name) => [name, await describeFile(directory, name)])),
+    );
+  }
   return {
-    schema_version: 1,
+    schema_version: 2,
     sdk_sha: sdkSha,
     version,
     runtime_manifest: {
       file: "openagent-sdk-manifest.json",
       signature: "openagent-sdk-manifest.json.sig",
     },
+    runtime: {
+      sdk_sha: runtime.sdk_sha,
+      version: runtime.version,
+      protocol: runtime.protocol,
+      artifacts: runtime.artifacts,
+    },
+    helpers,
     clients: Object.fromEntries(
       await Promise.all(
         Object.entries(CLIENTS).map(async ([key, client]) => [

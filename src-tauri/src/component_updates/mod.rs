@@ -3,8 +3,9 @@
 
 pub(crate) mod barrier;
 pub(crate) mod frontend;
+pub(crate) mod handoff;
 pub(crate) mod runtime;
-mod sources;
+pub(crate) mod sources;
 pub(crate) mod versions;
 
 use crate::runtime_resource::InstalledRuntimeResource;

@@ -1,1 +1,1 @@
-export { TauriTransport } from "../../../sdk/typescript/src/tauriTransport";
+export { TauriTransport } from "@openagent/client/tauriTransport";

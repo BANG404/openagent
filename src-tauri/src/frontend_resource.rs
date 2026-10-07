@@ -19,7 +19,7 @@ const INSTALLED_SIGNATURE_FILE: &str = ".openagent-frontend-manifest.json.sig";
 
 pub type FrontendAssetRoot = Arc<RwLock<Option<PathBuf>>>;
 pub const FRONTEND_SCHEME: &str = "openagent-ui";
-pub const FRONTEND_HOST_PROTOCOL_VERSION: u32 = 1;
+pub const FRONTEND_HOST_PROTOCOL_VERSION: u32 = 2;
 
 #[derive(Clone, Debug)]
 pub struct FrontendResourceSource {
@@ -105,6 +105,13 @@ impl FrontendResourceManager {
         Ok(manager)
     }
 
+    pub(crate) fn with_manifest_url(&self, manifest_url: String) -> Self {
+        let mut manager = self.clone();
+        manager.source.signature_url = format!("{manifest_url}.sig");
+        manager.source.manifest_url = manifest_url;
+        manager
+    }
+
     pub fn asset_root(&self) -> FrontendAssetRoot {
         self.root.clone()
     }
@@ -184,9 +191,18 @@ impl FrontendResourceManager {
             .map_err(|error| format!("frontend manifest URL is invalid: {error}"))?
             .join(&manifest.artifact.file)
             .map_err(|error| format!("frontend artifact URL is invalid: {error}"))?;
-        let archive = self
-            .download_bounded(archive_url.as_str(), MAX_ARCHIVE_BYTES, "frontend artifact")
-            .await?;
+        let cached = crate::resource_download::artifact(
+            &self.client,
+            archive_url,
+            &self.resources_dir.join("downloads"),
+            manifest.artifact.size,
+            &manifest.artifact.sha256,
+            |_, _| {},
+        )
+        .await?;
+        let archive = tokio::fs::read(cached)
+            .await
+            .map_err(|error| error.to_string())?;
         verify_archive(&archive, &manifest.artifact)?;
 
         tokio::fs::create_dir_all(&self.resources_dir)
@@ -395,37 +411,9 @@ impl FrontendResourceManager {
         maximum: usize,
         label: &str,
     ) -> Result<Vec<u8>, String> {
-        let mut response = self
-            .client
-            .get(url)
-            .send()
+        crate::resource_download::bounded(&self.client, url, maximum)
             .await
-            .map_err(|error| format!("failed to download {label}: {error}"))?
-            .error_for_status()
-            .map_err(|error| format!("failed to download {label}: {error}"))?;
-        if response
-            .content_length()
-            .is_some_and(|length| length > maximum as u64)
-        {
-            return Err(format!("{label} exceeds the maximum allowed size"));
-        }
-        let mut bytes = Vec::with_capacity(
-            response
-                .content_length()
-                .map(|length| length as usize)
-                .unwrap_or_default(),
-        );
-        while let Some(chunk) = response
-            .chunk()
-            .await
-            .map_err(|error| format!("failed to read {label}: {error}"))?
-        {
-            if bytes.len().saturating_add(chunk.len()) > maximum {
-                return Err(format!("{label} exceeds the maximum allowed size"));
-            }
-            bytes.extend_from_slice(&chunk);
-        }
-        Ok(bytes)
+            .map_err(|error| format!("failed to read {label}: {error}"))
     }
 }
 

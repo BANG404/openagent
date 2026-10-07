@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { fetchSignedManifest } from "./signed-artifacts.mjs";
+import { immutableDevKitUrl } from "./prepare-dev-kit.mjs";
 
 export const DEFAULT_SDK_DEV_MANIFEST =
   "https://github.com/BANG404/openagent/releases/download/runtime-dev/sdk-dev-manifest.json";
@@ -24,18 +26,13 @@ function requireSafeArtifact(value) {
 export async function fetchPublicTypescriptSdk({
   expectedSdkSha,
   output,
-  manifestUrl = DEFAULT_SDK_DEV_MANIFEST,
+  manifestUrl = immutableDevKitUrl(expectedSdkSha),
   fetchRequest = globalThis.fetch.bind(globalThis),
+  publicKey,
 }) {
   if (!/^[0-9a-f]{40}$/.test(expectedSdkSha)) throw new Error("Invalid expected SDK SHA");
-  const manifestResponse = await fetchRequest(manifestUrl);
-  if (!manifestResponse.ok) {
-    throw new Error(
-      `Failed to download public SDK development manifest: ${manifestResponse.status}`,
-    );
-  }
-  const manifest = await manifestResponse.json();
-  if (manifest?.schema_version !== 1 || manifest.sdk_sha !== expectedSdkSha) {
+  const { manifest } = await fetchSignedManifest(manifestUrl, { fetchRequest, publicKey });
+  if (![1, 2].includes(manifest?.schema_version) || manifest.sdk_sha !== expectedSdkSha) {
     throw new Error(
       `Public SDK development channel is ${manifest?.sdk_sha ?? "unknown"}; expected ${expectedSdkSha}`,
     );
@@ -61,7 +58,7 @@ async function main() {
   };
   const expectedSdkSha = value("--sdk-sha");
   const output = value("--output");
-  const manifestUrl = value("--manifest-url") ?? DEFAULT_SDK_DEV_MANIFEST;
+  const manifestUrl = value("--manifest-url") ?? immutableDevKitUrl(expectedSdkSha);
   if (!expectedSdkSha || !output) {
     throw new Error(
       "Usage: fetch-public-typescript-sdk.mjs --sdk-sha <sha> --output <archive> [--manifest-url <url>]",

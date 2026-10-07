@@ -21,16 +21,16 @@ OpenAgent 将流式聊天界面与能够阅读项目、编辑文件、执行命�
 
 ## 可以做什么
 
-| 能力 | 当前行为 |
-| --- | --- |
-| 处理项目文件 | 读取和修改文件、查看图片、执行终端命令，并跟踪交互式或后台终端会话。 |
-| 持续完成复杂任务 | 委派子 Agent、复用专业角色、排队发送后续消息，并保留会话分支与压缩后的上下文。 |
-| 安排后续执行 | 让 Agent 设置定时唤醒或支持的完成条件唤醒，并通过工具列出或取消待执行的 Hook。 |
-| 审阅与恢复 | 查看工具调用和文件变更、回答结构化问题、按配置审批调用，并回滚文件或会话检查点。 |
-| 阅读丰富输出 | 流式显示 Markdown、代码高亮、经过校验的 Mermaid 图、ECharts 图表、文件与链接胶囊、图片和视频；长回复可切换到书本阅读模式。 |
-| 保留有用上下文 | 使用全局与工作区记忆、本地语义检索、可复用技能，以及用于标题、记忆和建议的后台 Flash 任务。 |
-| 扩展 Agent | 连接 MCP 服务，安装提供命令、工具、技能、自动化、侧边栏或会话 UI 的 Agent 插件。 |
-| 远程使用 | 接入支持的消息平台，或通过远程网关配对浏览器。 |
+| 能力             | 当前行为                                                                                                                   |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| 处理项目文件     | 读取和修改文件、查看图片、执行终端命令，并跟踪交互式或后台终端会话。                                                       |
+| 持续完成复杂任务 | 委派子 Agent、复用专业角色、排队发送后续消息，并保留会话分支与压缩后的上下文。                                             |
+| 安排后续执行     | 让 Agent 设置定时唤醒或支持的完成条件唤醒，并通过工具列出或取消待执行的 Hook。                                             |
+| 审阅与恢复       | 查看工具调用和文件变更、回答结构化问题、按配置审批调用，并回滚文件或会话检查点。                                           |
+| 阅读丰富输出     | 流式显示 Markdown、代码高亮、经过校验的 Mermaid 图、ECharts 图表、文件与链接胶囊、图片和视频；长回复可切换到书本阅读模式。 |
+| 保留有用上下文   | 使用全局与工作区记忆、本地语义检索、可复用技能，以及用于标题、记忆和建议的后台 Flash 任务。                                |
+| 扩展 Agent       | 连接 MCP 服务，安装提供命令、工具、技能、自动化、侧边栏或会话 UI 的 Agent 插件。                                           |
+| 远程使用         | 接入支持的消息平台，或通过远程网关配对浏览器。                                                                             |
 
 图片、PDF 和文本附件支持拖放、粘贴、预览、检查点恢复与分支编辑。实际模型及附件能力取决于所选服务与模型。
 
@@ -38,8 +38,8 @@ OpenAgent 将流式聊天界面与能够阅读项目、编辑文件、执行命�
 
 从 [GitHub Releases](https://github.com/BANG404/openagent/releases) 下载对应平台的安装包。请选择包含桌面安装包的发行版；仅组件发行版用于更新已有安装。
 
-- **完整版（full）**：携带本地嵌入模型种子，适合首次安装。
-- **轻量版**：在首次设置时下载并校验相同模型。桌面自动更新使用轻量产物，并保留已安装模型。
+- **离线版（full）**：包含 Runtime、前端、embedding 和平台辅助程序，Windows 另包含 WebView2。
+- **在线版**：先启动桌面壳，再下载并校验应用资源。更新并行下载所需资源，优先替换壳，重启后继续安装模块。
 
 首次启动时，设置窗口会引导你完成偏好、模型服务、默认模型与资源准备。选择工作区文件夹，填写服务凭据和接口地址，验证连接，然后选择 Chat 与 Flash 模型。Chat 负责主对话，Flash 负责较小的后台任务。在配置可用聊天模型前，发送按钮保持禁用。
 
@@ -49,11 +49,11 @@ OpenAgent 将流式聊天界面与能够阅读项目、编辑文件、执行命�
 
 输入区提供审批模式选择器。顶部的**运行 → 执行与权限**分别配置工具审批和沙箱策略。
 
-| 审批模式 | 行为 |
-| --- | --- |
-| 手动 | 工具调用需要审核，明确豁免的生命周期控制除外。 |
-| 自动 | Flash 任务逐项评估调用；有重大影响或无法可靠判断的调用交由用户审核。 |
-| 关闭 | 跳过审批流程执行调用。这是默认审批模式。 |
+| 审批模式 | 行为                                                                 |
+| -------- | -------------------------------------------------------------------- |
+| 手动     | 工具调用需要审核，明确豁免的生命周期控制除外。                       |
+| 自动     | Flash 任务逐项评估调用；有重大影响或无法可靠判断的调用交由用户审核。 |
+| 关闭     | 跳过审批流程执行调用。这是默认审批模式。                             |
 
 批准调用不会扩大文件系统或网络权限。默认的托管权限允许读取宿主文件系统、写入当前工作区，限制网络访问，并使宽泛可写目录下的 `.git`、`.agents` 与 `.codex` 保持只读。还可以选择只读预设或明确的路径规则。禁用隔离后，工具使用应用进程本身的访问权限。
 
@@ -85,15 +85,15 @@ Goal、Graph 和聊天组在各自包内管理工作流；子 Agent 协作属于
 
 应用配置与持久化数据使用统一根目录：
 
-| 范围 | 位置 |
-| --- | --- |
-| 已安装应用 | 所有支持平台均为 `~/.openagent/` |
-| 调试桌面 | `~/.openagent-dev/` |
-| 显式应用根目录 | `OPENAGENT_HOME` 指定的目录 |
-| 全局用户记忆 | `<OPENAGENT_HOME>/memory.md` |
-| 工作区记忆 | `<工作区>/.agents/memory.md` |
-| 全局／项目技能 | `~/.agents/skills/`／`<工作区>/.agents/skills/` |
-| 工作区设计上下文 | `<工作区>/DESIGN.md` |
+| 范围             | 位置                                            |
+| ---------------- | ----------------------------------------------- |
+| 已安装应用       | 所有支持平台均为 `~/.openagent/`                |
+| 调试桌面         | `~/.openagent-dev/`                             |
+| 显式应用根目录   | `OPENAGENT_HOME` 指定的目录                     |
+| 全局用户记忆     | `<OPENAGENT_HOME>/memory.md`                    |
+| 工作区记忆       | `<工作区>/.agents/memory.md`                    |
+| 全局／项目技能   | `~/.agents/skills/`／`<工作区>/.agents/skills/` |
+| 工作区设计上下文 | `<工作区>/DESIGN.md`                            |
 
 应用根目录保存 `config.toml`、会话 SQLite 数据库、附件、日志、已安装插件、插件数据与版本化资源。合法的外部配置修改会自动重新加载。持久化、备份与迁移由 Runtime 管理，详见[配置与应用数据](.agents/skills/openagent-configuration/references/data-and-startup.md)。
 
@@ -115,34 +115,45 @@ OpenAgent 提供 Beta、RC 与 Stable 更新频道。前端、受监督的 Runti
 
 ## 从源码开发
 
-### 环境要求
+### 公开前端开发（无需私有 SDK 权限）
 
-- Git，以及私有 `BANG404/openagent-sdk` 仓库的访问权限。SDK 子模块使用 SSH 地址，需要配置获得授权的 SSH 密钥。
-- Bun **1.2.21**，与 `package.json` 及 CI 一致；还需 Node.js，以运行明确调用 `node` 的脚本。
-- 当前稳定版 Rust 工具链及对应平台的 Tauri 2 原生构建依赖。Windows 需要 MSVC 构建工具和 WebView2；Linux 沙箱辅助程序构建还需要 `libcap` 开发头文件、`pkg-config` 与 GNU `strip`。
-
-依赖版本由锁文件固定，Rust 使用与原生 CI 一致的稳定版工具链。开发准备见[本地命令说明](.agents/skills/openagent-release-engineering/references/local-commands.md)，Windows 另见[环境配置说明](.agents/skills/openagent-windows-development/references/setup-and-sync.md)。
+需要 Bun **1.2.21** 与 Node.js；原生调试另需 Rust 和对应平台的 Tauri 构建依赖。
+选择已有公开开发包的源码标签，不要递归克隆私有子模块：
 
 ```bash
-git clone --recurse-submodules https://github.com/BANG404/openagent.git
+git clone https://github.com/BANG404/openagent.git
 cd openagent
-bun run prepare:worktree:dev
-bun tauri dev
+git checkout <已发布的版本标签>
+bun install --frozen-lockfile
+bun run dev:prepare
+bun run dev:desktop
 ```
 
-准备命令会初始化固定版本的子模块、安装冻结依赖，并构建开发用沙箱辅助程序与 Runtime sidecar。已有检出目录使用相同命令准备。源码构建需要私有 SDK；没有权限的用户可安装已发布的桌面应用。
+准备命令验证签名并下载与源码固定 SDK SHA 匹配的 TypeScript 快照、Runtime
+和辅助程序，不初始化私有 SDK。指定产品版本使用
+`bun run dev:prepare --release vX.Y.Z`，客户端 SHA 仍须与源码一致。
+网络中断可续传，原生启动再次校验缓存；仅浏览器开发使用 `bun run dev:frontend`。
+详见[公开开发包说明](.agents/skills/openagent-release-engineering/references/public-development.md)。
 
-| 命令 | 用途 |
-| --- | --- |
-| `bun tauri dev` | 启动桌面、Vite 和受监督的外部 Runtime。 |
-| `bun run dev` | 在可用回环端口启动纯前端开发，不提供桌面 Runtime。 |
-| `bun run tauri:dev:embedded` | 显式启用嵌入式 Runtime 诊断模式。 |
-| `bun run preflight` | 按实际变更文件选择并执行检查。 |
-| `bun run preflight --dry-run` | 查看检查计划。 |
-| `bun run tauri:build` | 构建轻量桌面安装包和更新产物。 |
-| `bun run tauri:build:full` | 构建携带嵌入模型种子的首次安装包。 |
+### SDK 源码与交付
 
-开发模式自动选择可用的 Vite 端口，并使用独立应用数据。启动器为不同工作树与数据夹具分配独立的原生开发构建目录，Runtime 与辅助程序产物仍在 `sdk/target`。SDK 源码修改会先重新构建 sidecar，再重启宿主。详见[开发 Runtime 刷新](.agents/skills/openagent-release-engineering/references/development-runtime.md)。
+有私有 SDK 权限时使用 `bun run prepare:worktree:dev`，然后
+`bun run dev:desktop:source` 启动 SDK 监视和 Runtime 重编译。
+主目录继续保留在 `master` 方便调试，改动在独立 OWT 工作树中完成并集成；
+发布标签代表可复现的版本，无需改变 `master` 的用途。
+
+在线安装包包含壳和独立引导界面，首次运行同时下载 Runtime、前端、辅助程序和
+embedding 模型。离线安装包包含相同的完整平台资源及 Windows 离线 WebView2。
+更新同时下载壳与资源，先替换壳，再安装资源；引导界面提供重试及离线导入。
+
+| 命令                         | 用途                                 |
+| ---------------------------- | ------------------------------------ |
+| `bun run dev:prepare`        | 下载固定版本的公开开发包。           |
+| `bun run dev:desktop`        | 使用预编译 Runtime 调试原生前端。    |
+| `bun run dev:desktop:source` | 明确启动 SDK 源码调试。              |
+| `bun run preflight`          | 按实际改动选择验证。                 |
+| `bun run tauri:build`        | 构建在线壳安装包与更新产物。         |
+| `bun run tauri:build:full`   | 使用已校验的资源种子打包离线安装包。 |
 
 ### 架构与目录
 
@@ -155,14 +166,14 @@ flowchart LR
   Runtime --> Tools["模型服务、工具、MCP、插件"]
 ```
 
-| 路径 | 职责 |
-| --- | --- |
-| `src/` | Svelte 路由、功能控制器、组件、本地化与流式内容渲染。 |
-| `src-tauri/` | 原生宿主适配、资源协议、进程监督与打包。 |
-| `sdk/` | 固定版本的私有 Runtime 与类型化传输／客户端源码。 |
-| `plugins/` | 固定版本的独立插件仓库与本地开发索引。 |
-| `scripts/`、`tests/` | 环境准备、检查、发布自动化与确定性验证。 |
-| `.agents/skills/` | 按领域组织的架构约定与贡献流程。 |
+| 路径                 | 职责                                                  |
+| -------------------- | ----------------------------------------------------- |
+| `src/`               | Svelte 路由、功能控制器、组件、本地化与流式内容渲染。 |
+| `src-tauri/`         | 原生宿主适配、资源协议、进程监督与打包。              |
+| `sdk/`               | 固定版本的私有 Runtime 与类型化传输／客户端源码。     |
+| `plugins/`           | 固定版本的独立插件仓库与本地开发索引。                |
+| `scripts/`、`tests/` | 环境准备、检查、发布自动化与确定性验证。              |
+| `.agents/skills/`    | 按领域组织的架构约定与贡献流程。                      |
 
 宿主保持轻量，运行时状态机和持久数据由 SDK 管理。公开前端与宿主可独立贡献，完整源码构建仍需要固定的私有依赖。
 

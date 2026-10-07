@@ -2,6 +2,7 @@ import { access } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import path from "node:path";
 import process from "node:process";
+import os from "node:os";
 import { fileURLToPath } from "node:url";
 
 import { addDevUrlConfigArgument, findAvailableLoopbackPort } from "./tauri-dev-port.mjs";
@@ -38,8 +39,17 @@ if (embeddedRuntime) {
     throw new Error("--embedded-runtime is available only with tauri dev");
   }
   arguments_ = arguments_.filter((argument) => argument !== "--embedded-runtime");
-  arguments_.push("--features", "embedded-runtime");
+  arguments_.push(
+    "--runner",
+    path.join(
+      root,
+      "scripts",
+      process.platform === "win32" ? "embedded-cargo.cmd" : "embedded-cargo.sh",
+    ),
+  );
   environment.OPENAGENT_RUNTIME_MODE = "embedded";
+  environment.OPENAGENT_DEV_RUNTIME_SOURCE = "1";
+  environment.CARGO_TARGET_DIR ??= path.join(root, "sdk", "target", "desktop-host", "target");
   console.log("Using the explicit embedded development Runtime");
 }
 if (developmentParentLifetime) {
@@ -65,6 +75,7 @@ if (developmentParentLifetime) {
 }
 
 if (developmentParentLifetime) {
+  environment.OPENAGENT_HOME ??= path.join(os.homedir(), ".openagent-dev");
   // Keep the development desktop tied to this launcher. On Windows, closing
   // the terminal does not reliably deliver a console signal to the GUI host,
   // but it does close this pipe when the launcher exits.

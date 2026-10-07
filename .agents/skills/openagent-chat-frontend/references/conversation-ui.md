@@ -37,3 +37,10 @@ custom frame isolation, state save/reload, unavailable fallback and light/dark,
 Chinese/English combinations. Unit coverage lives in `conversationUi.test.ts`.
 Standalone developer previews load on demand so fixture code stays outside the
 production route's initial import graph.
+# Client source selection
+
+Frontend imports use `@openagent/client` through the public client facade;
+SvelteKit resolves this to a prepared development snapshot or the explicitly
+selected source client. Do not import `sdk/typescript` paths in product code.
+The release-engineering public-development reference owns kit preparation and
+source/version admission.

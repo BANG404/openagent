@@ -1,1 +1,1 @@
-export * from "../../../sdk/typescript/src/contracts";
+export * from "@openagent/client/contracts";
