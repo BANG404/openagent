@@ -14,7 +14,7 @@ script = '''(()=>{
   if(!d.querySelector('#message-count').textContent.startsWith(String(d.querySelectorAll('article').length)))throw new Error('message count missing');
   if(d.querySelectorAll('.speaker-divider time[datetime]').length!==3)throw new Error('speaker times missing');
   const long=d.querySelector('[data-message-id="saved-204"] p');
-  if(!long.textContent.includes('\nSecond line <script>visible text only</script>')||long.querySelector('script'))throw new Error('message text changed');
+  if(!long.querySelector('br')||!long.textContent.includes('Second line <script>visible text only</script>')||long.querySelector('script'))throw new Error('message text changed');
   if(!d.querySelector('#send').disabled)throw new Error('empty input can send');
   const members=d.querySelector('#members');members.open=true;
   d.querySelector('#member-list button').click();

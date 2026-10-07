@@ -1,14 +1,25 @@
 ## Iteration Guide
 
-1. Focus on ONE component at a time. Reference its YAML key directly (`{component.product-tile-dark}`, `{component.search-input}`).
-2. Variants of an existing component (`-active`, `-focus`, `-2`, `-3`) live as separate entries in `components:`.
-3. Use `{token.refs}` everywhere — never inline hex.
-4. Never document hover. Default and Active/Pressed states only.
-5. Display headlines stay SF Pro Display 600 with negative letter-spacing. Body stays SF Pro Text 400 at 17px. The boundary is unbreakable.
-6. The single drop-shadow (`rgba(0, 0, 0, 0.22) 3px 5px 30px`) is reserved for product photography only.
-7. When in doubt about emphasis: alternate surface (light → dark tile) before adding chrome.
+1. Work on one component or coherent interaction at a time. Read its subsystem
+   owner and the matching design reference before changing it.
+2. Reuse `src/lib/components/ui/`, Bits UI primitives, and the tokens in
+   `src/app.css`. Keep component-specific CSS focused on layout and variants.
+3. In workspace `DESIGN.md` files, use named tokens and `{path.to.token}`
+   references. Existing application UI uses its established CSS variables.
+4. Cover default, hover, focus, active, disabled, loading, and error states where
+   the interaction needs them. Keyboard focus must remain visible.
+5. Match the application's existing typography and density; the photographic
+   website examples in the typography references do not impose a 17px body size
+   or a proprietary font on every desktop control.
+6. Keep Settings cards shadowless and use theme-neutral conversation surfaces.
+   Apply elevation and native material through their existing shared owners.
+7. Verify changed behavior through the module's real-window black-box scenario
+   in light/dark and Chinese/English. Record actual evidence in the handoff.
 
-## Known Gaps
+## Reference website coverage
+
+The following gaps describe the analyzed website samples. They do not waive
+desktop interaction, error-state, or dark-theme requirements.
 
 - Form validation and error states were not surfaced on the analyzed pages; only the neutral search input is documented.
 - The homepage's embedded video/player frame uses `{colors.surface-black}`; interior player controls are not documented (they're a platform widget, not a web-design token).

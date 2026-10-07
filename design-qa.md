@@ -1,32 +1,54 @@
-# Design QA: Windows 11-inspired onboarding
+# Onboarding design QA
 
-## Evidence
+Use this checklist for the current first-run and embedding-resource repair
+surfaces. Visual ownership lives in the
+[design-system overview](.agents/skills/openagent-design-system/references/overview.md);
+window and verification requirements live in
+[startup windows](.agents/skills/openagent-desktop-host/references/startup-windows.md)
+and [native verification](.agents/skills/openagent-desktop-host/references/native-verification.md).
 
-- Source truth: `C:\Users\wyh13\AppData\Local\Raycast\caches\clipboard\file-2ae46695ba2f369ae41ec9781285e656.png`
-- Source dimensions: 612 × 344 px; the setup-window crop is 429 × 270 px and was normalized to 960 × 640 for composition comparison.
-- Implementation viewport: 960 × 640 CSS px at DPR 1.
-- Light / Chinese capture: `C:\Users\wyh13\AppData\Local\Temp\openagent-onboarding-qa\implementation-light-zh-960x640.png`
-- Dark / English capture: `C:\Users\wyh13\AppData\Local\Temp\openagent-onboarding-qa\implementation-dark-en-960x640.png`
-- Source / implementation comparison: `C:\Users\wyh13\AppData\Local\Temp\openagent-onboarding-qa\comparison-source-vs-implementation.png`
-- Native light / Chinese capture: `C:\Users\wyh13\AppData\Local\Temp\openagent-onboarding-qa\native-onboarding-window.png`
-- Native dark / English capture: `C:\Users\wyh13\AppData\Local\Temp\openagent-onboarding-qa\native-onboarding-dark-en.png`
+## Current acceptance target
 
-The full 960 × 640 window was compared because the reference's defining qualities are its overall OOBE composition: a quiet illustration field on the left, a compact setup task on the right, and persistent actions at the lower edge.
+- The dedicated `OpenAgent Setup` window is a centered, frameless, fixed
+  **840 × 560 logical pixels**, with resizing and maximizing disabled.
+- The body uses a **34% brand/progress rail and 66% setup canvas**. The rail is
+  image-free and shows numbered progress. Keep headings, form alignment, and
+  footer actions within that compact canvas.
+- The flow contains Welcome, Preferences, Model service, Default models, and
+  Ready steps. The selected locale and theme apply throughout the flow.
+- Full installers prepare the bundled embedding seed; lightweight installers
+  download and verify it. A missing or corrupt resource reopens the final repair
+  step even when onboarding was previously completed.
+- The main application is revealed only after setup completes and the embedding
+  resource is verified and loaded. A failed preparation remains actionable in
+  the setup surface.
 
-## Verification
+The implementation owners are `src/lib/components/OnboardingFlow.svelte` and
+`src-tauri/src/desktop_windows/startup.rs`; resource lifecycle belongs to the SDK.
+Use these committed sources and owner contracts as the comparison baseline.
 
-- Compared typography hierarchy, 46 / 54 column balance, illustration scale and placement, form alignment, footer position, borders, shadows, radii, and blue accent treatment.
-- Exercised Continue, Back, completed-step navigation, language and theme selectors, Add Service, and the internally scrolling provider step.
-- Verified light / dark and Chinese / English combinations at the fixed viewport.
-- Verified the native Win32 window through DesktopDriver: title `OpenAgent Setup`, 960 × 640 client area at 96 DPI, `CanResize=False`, and `CanMaximize=False`.
-- Confirmed the generated illustration loads and that the browser console has no errors in the verified flow.
+## Verification procedure
 
-## Comparison history
+1. Start a real debug desktop with a dedicated temporary `OPENAGENT_HOME`.
+   Keep screenshots and logs in a task-specific system temporary directory.
+2. Select the exact process, setup window, and Pilot socket. Verify title,
+   logical client size, non-resizable state, and non-maximizable state; account
+   for the display's DPI when comparing physical screenshot dimensions.
+3. Exercise Continue, Back, completed-step navigation, locale/theme selection,
+   workspace selection, provider connection and model loading, default-model
+   selection, and internally scrolling content. Check footer visibility.
+4. Capture all four light/dark and Chinese/English combinations. Check text
+   clipping, rail proportions, focus states, shared control styling, and window
+   material. Inspect the window error log.
+5. Exercise resource readiness, download failure/retry, repair-only startup,
+   and successful main-window handoff with isolated fixtures. Follow the owning
+   resource contract for deterministic failure injection.
+6. Record the commit, fixture, command, selected window, artifact paths, and
+   assertions in the task handoff. State only results actually observed for that
+   revision; a checklist is not a passing verification record.
 
-The first implementation used a 38 / 62 split. Comparison against the reference showed a P2 composition mismatch: the illustration sat too high and the form column began too far left. The final pass changed the split to 46 / 54, increased the illustration to a 320 px maximum width, lowered it with a 72 px top offset, and aligned the right-side content with 32 px top padding.
-
-Post-fix review found no actionable P0, P1, or P2 differences. The generated illustration is intentionally a little more dimensional than the flat Windows reference; this is an accepted P3 difference because it remains within OpenAgent's blue, pearl, and ink visual language.
-
-## Final result
-
-Passed.
+Browser previews can supplement layout inspection through the workspace
+[Playwright skill](.agents/skills/playwright/SKILL.md). They do not establish
+native geometry, window behavior, or resource handoff. Keep historical captures
+outside the repository and do not use another developer's absolute cache paths
+as reusable evidence.

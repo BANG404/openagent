@@ -1,513 +1,179 @@
 <p align="center">
-  <img src="assets/openagent_logo.png" alt="OpenAgent logo" width="240" />
+  <img src="assets/openagent_logo.png" alt="OpenAgent logo" width="200" />
 </p>
 
-<div align="center">
+<h1 align="center">OpenAgent</h1>
 
-**A modern desktop AI agent client — built with Tauri, SvelteKit, and Rust.**
+<p align="center">
+  A desktop AI agent for working with files, tools, and long-running tasks in your workspace.
+</p>
 
-  <p>
-    <img alt="Tauri" src="https://img.shields.io/badge/Tauri-2.0-FFC131?style=flat-square&logo=tauri&logoColor=white">
-    <img alt="SvelteKit" src="https://img.shields.io/badge/SvelteKit-5-FF3E00?style=flat-square&logo=svelte&logoColor=white">
-    <img alt="Rust" src="https://img.shields.io/badge/Rust-2021-000000?style=flat-square&logo=rust&logoColor=white">
-    <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.6-3178C6?style=flat-square&logo=typescript&logoColor=white">
-    <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white">
-    <img alt="Bun" src="https://img.shields.io/badge/Bun-1.x-000000?style=flat-square&logo=bun&logoColor=white">
-    <img alt="Platforms" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square">
-  </p>
+<p align="center">
+  English · <a href="README.zh-CN.md">简体中文</a><br />
+  <a href="https://github.com/BANG404/openagent/releases">Downloads</a> ·
+  <a href="CHANGELOG.md">Changelog</a> ·
+  <a href="AGENTS.md">Contributor guide</a>
+</p>
 
-  <p>
-    English · <a href="README.zh-CN.md">简体中文</a>
-  </p>
-</div>
+OpenAgent combines a streaming chat interface with an agent that can inspect projects, edit files, run commands, and use external tools. Choose your model service and workspace, keep conversation history and application data on your device, and extend the agent with skills, roles, MCP servers, and plugins.
 
+The desktop application targets Windows, macOS, and Linux. It uses Svelte 5 with SvelteKit 2 for the interface, Tauri 2 for the native shell, and a Rust Runtime maintained in the pinned private SDK. The project is under active development; source access to the public host does not include access to the private SDK.
+
+## What you can do
+
+| Capability | Current behavior |
+| --- | --- |
+| Work in a project | Read and patch files, inspect images, run terminal commands, and follow interactive or background terminal sessions. |
+| Continue complex work | Delegate to child agents, reuse specialized roles, queue follow-up messages, and retain conversation branches and compacted context. |
+| Schedule a continuation | Ask the agent to arrange a timed wake or a supported completion-condition wake, then list or cancel pending hooks through its tools. |
+| Review and recover | Inspect tool calls and file changes, answer structured questions, approve calls when configured, and roll back files or conversation checkpoints. |
+| Read rich results | Stream Markdown, highlighted code, validated Mermaid diagrams, ECharts charts, file/link capsules, and image/video output; open long replies in book mode. |
+| Keep useful context | Use global and workspace memory, local semantic retrieval, reusable skills, and background Flash tasks for titles, memory, and suggestions. |
+| Extend the agent | Connect MCP services, install Agent Plugins, and use package-provided commands, tools, skills, automation, and sidebar or conversation UI. |
+| Reach it remotely | Connect supported messaging platforms or pair a browser with the remote gateway. |
+
+Image, PDF, and text attachments support drag/paste, previews, checkpoint restoration, and branch editing. Actual model and attachment capabilities depend on the selected provider and model.
+
+## Install and start
+
+Download an installer or application bundle for your platform from [GitHub Releases](https://github.com/BANG404/openagent/releases). Choose a release that includes desktop installers; component-only releases update an existing installation.
+
+- **Full bundle:** includes the local embedding model seed and is suitable for a first installation.
+- **Lightweight bundle:** downloads and verifies that model during setup. Automatic desktop updates use lightweight artifacts and preserve the installed model.
+
+On first launch, the setup window guides you through preferences, a model service, default models, and resource readiness. Select a workspace folder, enter your service credentials and endpoint, verify the connection, and choose the Chat and Flash models. Chat handles the main conversation; Flash handles smaller background tasks. Sending remains disabled until an available chat model is configured.
+
+You can change services and defaults later from the **Models** menu. OpenAgent supports Anthropic, OpenAI, and compatible services, including custom endpoints. For an OpenAI-compatible service, the endpoint may be a host, a `/v1` root, or a full `/chat/completions` URL; the application normalizes it to the API root.
+
+## Approvals and execution permissions
+
+The composer offers an approval selector. The **Agent → Execution & Permissions** surface configures approval and sandbox policy separately.
+
+| Approval mode | Behavior |
+| --- | --- |
+| Manual | Requests review for tool calls, except explicitly exempt lifecycle controls. |
+| Automatic | A Flash task assesses each proposed call; consequential or uncertain calls require review. |
+| Off | Runs calls without the approval flow. This is the default approval mode. |
+
+Approval never expands filesystem or network access. The default managed profile permits host-wide reads and workspace-scoped writes, keeps `.git`, `.agents`, and `.codex` read-only beneath broad writable roots, and restricts networking. Read-only presets and explicit path rules are also available. Disabled isolation uses the application's ambient process access.
+
+Managed terminals use Bubblewrap on Linux, Seatbelt on macOS, and the pinned Codex sandbox on Windows. Built-in file tools enforce the same filesystem policy. Missing helpers or failed sandbox setup stop execution. See the [permissions contract](.agents/skills/openagent-configuration/references/permissions.md) for the exact rules.
+
+## Skills, roles, and plugins
+
+A **skill** is a reusable instruction file. Place `SKILL.md` in either `~/.agents/skills/<name>/` for global use or `<workspace>/.agents/skills/<name>/` for project use:
+
+```markdown
+---
+name: python-review
+description: Review Python changes for error handling, type hints, and maintainability.
+metadata:
+  category: code-review
 ---
 
-## Table of contents
+Read the changed code and report actionable findings with file locations.
+Prioritize incorrect behavior, silent failures, and missing error handling.
+```
 
-- [Table of contents](#table-of-contents)
-- [Changelog](#changelog)
-- [Highlights](#highlights)
-  - [Agent runtime](#agent-runtime)
-  - [Interactive output](#interactive-output)
-  - [Tools and integrations](#tools-and-integrations)
-  - [Desktop experience](#desktop-experience)
-- [Quick Start](#quick-start)
-  - [Install a release build](#install-a-release-build)
-  - [Prerequisites](#prerequisites)
-  - [Clone \& install](#clone--install)
-  - [Run in dev mode](#run-in-dev-mode)
-  - [Build a distributable](#build-a-distributable)
-- [Configure your first provider](#configure-your-first-provider)
-  - [Choose a tool approval mode](#choose-a-tool-approval-mode)
-- [Example: write a Skill](#example-write-a-skill)
-- [Reusable roles and progressive Skill discovery](#reusable-roles-and-progressive-skill-discovery)
-  - [Reusable delegated roles](#reusable-delegated-roles)
-  - [Progressive Skill discovery](#progressive-skill-discovery)
-- [Interactive prompts with `ask_user`](#interactive-prompts-with-ask_user)
-- [AGUI — Inline Interactive Components](#agui--inline-interactive-components)
-- [Current product boundaries](#current-product-boundaries)
-- [Memory file format](#memory-file-format)
-- [Agent memory controls](#agent-memory-controls)
-- [Architecture at a glance](#architecture-at-a-glance)
-- [Project structure](#project-structure)
-- [Repository activity](#repository-activity)
-- [Contributors](#contributors)
-- [Contributing](#contributing)
-- [Observability (optional)](#observability-optional)
-- [Agent runtime real-model tests](#agent-runtime-real-model-tests)
-- [Further reading](#further-reading)
-- [License](#license)
+Skills are discovered progressively and their full instructions are loaded when relevant. **Roles** store reusable agent workflows and can be selected for conversations or delegated work.
 
----
+Open **Integrations → Extensions** to manage external MCP services and **Integrations → Plugins** to browse or manage Agent Plugins. The official catalog includes Goal, Graph, Chat Groups, Cua Driver, Message Board, and Plugin Developer. Plugins can provide commands, MCP tools, skills, lifecycle automation, and embedded UI. Cua Driver provides desktop automation and requires an explicit host-access grant.
 
-## Changelog
+Goal, Graph, and Chat Groups own their workflows inside their packages. Child-agent coordination is a Runtime capability. Plugin versions and updates are independent of the desktop version. For package authoring and local source setup, start with the [plugin development skill](.agents/skills/openagent-plugin-development/SKILL.md).
 
-See [`CHANGELOG.md`](CHANGELOG.md) for release history and fixes.
+## Memory and local data
 
----
+Application configuration and durable data use one root:
 
-## Highlights
+| Scope | Location |
+| --- | --- |
+| Installed application | `~/.openagent/` on every supported platform |
+| Debug desktop | `~/.openagent-dev/` |
+| Explicit application root | The directory selected by `OPENAGENT_HOME` |
+| Global user memory | `<OPENAGENT_HOME>/memory.md` |
+| Workspace memory | `<workspace>/.agents/memory.md` |
+| Global / project skills | `~/.agents/skills/` / `<workspace>/.agents/skills/` |
+| Workspace design context | `<workspace>/DESIGN.md` |
 
-### Agent runtime
+The application root contains `config.toml`, the conversation SQLite database, attachments, logs, installed plugins, plugin data, and versioned resources. Valid external configuration edits reload automatically. The Runtime owns persistence, backup, and migration behavior; see [configuration and application data](.agents/skills/openagent-configuration/references/data-and-startup.md).
 
-- **Multi-Agent & Flash Agents Architecture** — A primary streaming **Chat Agent** for main conversations, and a suite of dedicated async **Flash Agents** (including **Memory Agent** for long-term memory synthesis, **Title Agent** for dynamic conversation renaming, and **Hook Agent** for background scheduled tasks).
-- **Sub-Agent Delegation** — The Chat Agent can call `spawn_agent` to delegate tasks to nested sub-agents; progress streams in real-time into a sub-conversation shown nested under the parent in the sidebar.
-- **Runtime-Owned Multi-Agent Coordination** — Multi-Agent V2, including its child-conversation registry and six coordination tools, is an Agent Runtime capability controlled by Runtime configuration. It is not an installable or user-manageable Agent Plugin.
-- **Reusable Agent Roles** — Create global role workflows, discover them with hybrid search, and dispatch them as specialized child agents. Roles can be created automatically on first use or managed from the **Roles** panel; delegated roles inherit the parent conversation's selected resources.
-- **Plugin-Owned Orchestration** — Goal, Graph, Chat Group, and other long-running workflows are ordinary Agent Plugins. Each package owns its state, reducer, prompts, completion rules, and wake scheduling, while the Runtime provides the same conversation, branch, flow, event, and Agent wake bridge to every package.
-- **Hybrid Long-Term Memory** — SQLite + FTS5 + bundled, offline 384-dim embeddings (fastembed `AllMiniLML6V2Q`) blended with time decay for cross-session recall. Before retrieval, an optional Flash task rewrites the latest message into a focused semantic query, so stored memories are matched to intent rather than just wording.
-- **Interactive User Prompts (`ask_user`)** — The agent can pause mid-task and surface a structured form to the user — `text`, `select`, `checkbox_group`, `confirm`, `date`, and more. The agent blocks until the user responds, then continues with the collected values. No more one-shot guessing on ambiguous instructions.
+User memory supplies standing context. Structured agent memory is stored separately and supports local hybrid text/vector retrieval. Manage the background memory task and retrieval controls under **Agent → Flash Tasks**; automatic retrieval is disabled by default. The **Memory** surface manages user and agent memory.
 
-### Interactive output
+Local storage does not make model requests offline: prompts, selected context, and attachments are sent to the configured model service. MCP services and plugins may also contact their configured services.
 
-- **AGUI — Inline Interactive Components** — The agent can embed file and URL capsules, ECharts visualisations, source-line previews, and image/video media directly in its prose — all rendered live by the streamdown engine.
-- **Validated Mermaid Rendering** — A dedicated render tool validates Mermaid source before presenting the diagram, while keeping the source available and supporting fullscreen inspection.
+## Messaging and browser access
 
-### Tools and integrations
+**Integrations → Channels** supports Feishu/Lark, Telegram, QQ, WeChat, Discord, and Slack. Each peer keeps a durable conversation and its own workspace, model, and role selection. Current channel messaging supports text; setup, allowlists, and commands are documented in [messaging channels](.agents/skills/openagent-channel-integrations/references/messaging-channels.md).
 
-- **MCP-Native** — Connect external MCP servers over HTTP or stdio; the Agent uses `load_tool` to find relevant capabilities and mounts matching tools into the next request, with per-tool controls.
-- **First-class Dev Tools** — Built-in patch, image-inspection, and terminal tools. Managed terminal sessions support interactive or long-running background processes.
-- **Desktop Automation** — The host-supervised Cua Driver is installed from the upstream GitHub release channel and runs with product-owned permissions and per-tool controls in the **top-bar Integrations → Plugins** panel. OpenAgent checks for newer driver releases with the other component updates.
-- **Plugin Controls** — The top-bar **Integrations → Plugins** entry opens the dedicated Plugins settings window. Installed packages use one lifecycle boundary for commands, MCP servers, skills, automation hooks, and sidebar views; each package receives the same host capability bridge.
-- **Plugin Languages** — Marketplace and installed plugin cards show each package's declared UI languages. Official plugin metadata, command labels, and package notices follow the current application language.
-- **Lifecycle Automation** — Run a sandboxed command or inject bounded Agent context around session, prompt, compaction, model, and tool events.
-- **Independent Approval & Runtime Permissions** — Choose when tool calls pause for review separately from the managed filesystem and network sandbox.
-- **Skills System** — Drop a `SKILL.md` into `~/.agents/skills/` or `<workspace>/.agents/skills/`. Category-based progressive discovery keeps large global and project catalogs compact, with optional Flash classification for uncategorized Skills.
-- **Messaging Channels** — Connect Feishu/Lark, Telegram, QQ, WeChat, Discord, or Slack from **Settings → Channels**. Each peer keeps its own workspace, model, role, and durable conversation, with commands for switching scope and replying to questions or approvals. See the [channel integration skill](.agents/skills/openagent-channel-integrations/SKILL.md).
-- **Checkpoints & File-Change Rollback** — Every turn is a checkpoint with reverse diffs; undo a single file or rewind the whole agent.
-- **Pluggable LLMs & Multimodal** — Support multi-model selection and durable image, PDF, and text attachments with drag/paste, rich previews, checkpoint restoration, and branch editing across Anthropic, OpenAI, and compatible providers.
+The same surface offers the **Gateway** for paired browser access. Enable it, explicitly allow a workspace, and pair using the displayed one-time code. Remote users can work with conversations, attachments, approvals, questions, and branches while the desktop remains running. Remote access and direct LAN access are disabled by default; provider administration and unrestricted desktop operations stay local. See the [remote gateway guide](.agents/skills/openagent-channel-integrations/references/remote-gateway.md) for connection and security details.
 
-### Desktop experience
+## Updates and diagnostics
 
-- **Context Compaction & Tree Conversations** — Automatically or manually compact long conversations into tree structures to save tokens, preserving history lineage via search-based message recall.
-- **Responsive Conversation History** — Search and paginate the sidebar, queue follow-up messages during a run, and navigate virtualized transcripts without loading the entire history into the DOM.
-- **Live Context & Follow-up Guidance** — Track context-window usage while a response streams and receive durable Flash-generated follow-up suggestions for the latest turn.
-- **In-window Management** — Settings, roles, automation, memory, skills, and other management surfaces open fullscreen inside the active window without replacing the chat shell.
-- **Background Terminal Inspection** — Follow conversation-scoped terminal sessions in an accordion beside Goal/Graph status and file changes.
-- **Scheduled Chat Hooks** — Define recurring or one-off tasks triggered in the background. Hooks are fully persistent, auto-restored on startup, and supported by system tray notifications.
-- **Project Drafts & Global/Local Scopes** — Keep drafts, memory, and skills scoped globally (in `~/.openagent`) or locally to your active workspace (in `.agents/`).
-- **DESIGN.md & MDX Editor** — Dedicated edit panel for `DESIGN.md` in your workspace, plus a rich markdown editor (MdxMarkdownEditor) integrated into memory and skill management.
-- **Multi-Workspace Desktop Integration** — Repeated app launches restore and focus the existing primary window instead of starting another primary instance. Open each workspace in a dedicated window, focus existing workspace windows instead of duplicating them, launch on startup, minimize to the system tray, and reveal workspace locations in the native file manager.
-- **Observability** — Optional Langfuse tracing via OpenTelemetry (`gen_ai.*` attributes).
+OpenAgent has Beta, RC, and Stable update channels. The frontend, supervised Runtime, native shell, and installed plugins have separate delivery boundaries. Component updates are verified before activation; frontend and Runtime activation support rollback. Updates wait for active agent work to finish, and a native-shell update requires an application restart. See the [component update contract](.agents/skills/openagent-update-delivery/references/component-updates.md).
 
----
+Local host and Runtime logs live in `<OPENAGENT_HOME>/logs`, with up to 15 files retained per rolling log family. Privacy-filtered remote error collection is enabled by default and can be turned off in **General → Privacy & diagnostics**. It excludes conversation content, prompts, model output, tool arguments, credentials, and raw frontend errors. Optional Langfuse model tracing is separate and may contain model context; its environment variables are listed in [`.env.example`](.env.example). See the [diagnostics contract](.agents/skills/openagent-configuration/references/diagnostics.md).
 
-## Quick Start
+## Develop from source
 
-### Install a release build
+### Requirements
 
-Download the latest installer or app bundle from [GitHub Releases](https://github.com/BANG404/openagent/releases). New users should choose the `full` bundle, which carries the local embedding seed; lightweight bundles download and verify it in the welcome window. Later automatic updates always use the lightweight application artifact and preserve the installed model. OpenAgent publishes separate **beta**, **RC**, and **stable** update channels; you can also check for updates manually from Settings.
+- Git and access to the private `BANG404/openagent-sdk` repository. Its submodule URL uses SSH, so configure an authorized SSH key.
+- Bun **1.2.21**, matching `package.json` and CI, plus Node.js for scripts that explicitly invoke `node`.
+- A current stable Rust toolchain and the native build dependencies for Tauri 2 on your platform. Windows requires MSVC build tools and WebView2; Linux sandbox-helper builds additionally need `libcap` development headers, `pkg-config`, and GNU `strip`.
 
-To build from source instead, continue below.
-
-### Prerequisites
-
-| Tool | Version | Notes                                        |
-| ---- | ------- | -------------------------------------------- |
-| Bun  | latest  | Package manager — used instead of npm / yarn |
-| Rust | 1.70+   | Required for the Tauri backend               |
-| Node | 18+     | Used by the SvelteKit toolchain              |
-
-> On Windows the Tauri prerequisites also include WebView2 and the MSVC build tools. See the [official Tauri prerequisites](https://tauri.app/start/prerequisites/) for platform-specific setup.
-
-### Clone & install
+Dependency versions are pinned by the lockfiles; use the stable Rust toolchain used by native CI. Read the [local development guidance](.agents/skills/openagent-release-engineering/references/local-commands.md) and, on Windows, the [setup guide](.agents/skills/openagent-windows-development/references/setup-and-sync.md).
 
 ```bash
 git clone --recurse-submodules https://github.com/BANG404/openagent.git
 cd openagent
-bun install
-```
-
-The runtime SDK is a private submodule. Source builds require access to
-`BANG404/openagent-sdk` and an SSH key accepted by GitHub. For an existing
-checkout, initialize it with `git submodule update --init --recursive` before
-installing or building.
-
-The desktop Cargo workspace also pins the proxy-capable WebSocket forks
-required by the audited Codex Windows sandbox revision used by the SDK. Keep
-those root-level patches and the compatible `blake3` lock aligned when
-advancing the SDK gitlink; Cargo does not inherit patches from a transitive
-workspace, and the sandbox policy parser requires its exact hashing version.
-
-### Run in dev mode
-
-```bash
-# Full Tauri desktop app (frontend + Rust backend)
+bun run prepare:worktree:dev
 bun tauri dev
-
-# OR — frontend only (selects an available port, no Rust)
-bun run dev
 ```
 
-Development commands select an available loopback port. `bun tauri dev` passes that port to Vite so the desktop host and frontend always agree.
+Preparation initializes the pinned submodules, installs frozen dependencies, and builds the development sandbox helpers and Runtime sidecar. Existing checkouts use the same preparation command. Source builds require the private SDK; users without access can install published desktop builds.
 
-Debug desktop builds use `~/.openagent-dev` by default, keeping development
-configuration and data separate from an installed release. Set
-`OPENAGENT_HOME` explicitly to use another development root.
+| Command | Purpose |
+| --- | --- |
+| `bun tauri dev` | Start the desktop with Vite and a supervised external Runtime. |
+| `bun run dev` | Frontend-only development on an available loopback port; provides no desktop Runtime. |
+| `bun run tauri:dev:embedded` | Explicit embedded-Runtime diagnostic mode. |
+| `bun run preflight` | Select and run checks for the actual changed files. |
+| `bun run preflight --dry-run` | Inspect the check plan. |
+| `bun run tauri:build` | Build the lightweight desktop installer and updater artifact. |
+| `bun run tauri:build:full` | Build a first-install bundle with the embedding seed. |
 
-### Run tests with SonarQube
+Development uses an available Vite port and isolated application data. The launcher gives each worktree/data fixture a separate native development target directory; Runtime and helper output remain under `sdk/target`. SDK source changes rebuild the sidecar before the host restarts. See [development Runtime refresh](.agents/skills/openagent-release-engineering/references/development-runtime.md).
 
-Install the SonarScanner CLI and create a project token in the SonarQube
-instance configured in `sonar-project.properties`. Set the token in the local
-environment, then run:
+### Architecture and repository layout
 
-```bash
-# PowerShell
-$env:SONAR_TOKEN = "<project-token>"
-bun run test:sonar
+```mermaid
+flowchart LR
+  UI["SvelteKit interface"] -->|"Typed SDK client"| Host["Thin Tauri host"]
+  Host -->|"Authenticated loopback HTTP / SSE"| Runtime["Supervised SDK Runtime"]
+  Host --> Native["Native windows, tray, dialogs, updater"]
+  Runtime --> Data["Configuration, conversations, memory"]
+  Runtime --> Tools["Providers, tools, MCP, plugins"]
 ```
 
-The command runs the host tests with LCOV coverage, installs and tests both
-TypeScript SDK packages with their own LCOV reports, then runs the SDK Rust
-workspace tests. SonarQube receives the host and TypeScript SDK coverage only;
-the Rust tests remain an upload gate because Rust coverage tooling is not part
-of the repository toolchain. Analysis is uploaded only when every test passes.
+| Path | Ownership |
+| --- | --- |
+| `src/` | Svelte routes, feature controllers, components, localization, and streamed rendering. |
+| `src-tauri/` | Native host adapters, resource protocols, process supervision, and packaging. |
+| `sdk/` | Pinned private Runtime and typed transport/client source. |
+| `plugins/` | Pinned independent plugin repositories and the local development index. |
+| `scripts/`, `tests/` | Preparation, checks, release automation, and deterministic verification. |
+| `.agents/skills/` | Focused architecture contracts and contributor workflows. |
 
-### Build a distributable
+The host remains thin; runtime state machines and durable data belong to the SDK. The public frontend and host can be contributed to separately, but complete source builds need the pinned private dependencies.
 
-```bash
-bun run tauri:build       # lightweight installer and updater artifact
-bun run tauri:build:full  # first-install bundle with embedding seed
-```
+### Contribute
 
-The built installers / app bundle land in `src-tauri/target/release/bundle/`.
-Windows builds produce the NSIS installer only; Linux and macOS retain their
-native bundle targets. The release workflow signs and publishes the lightweight
-build as the sole automatic updater input and uploads the full build under a
-`-full` filename for manual first installation.
-On Linux this command builds the pinned Codex Bubblewrap sidecar, strips it,
-embeds its SHA-256 in the release binary, and packages the same bytes. Linux
-source builds therefore also require `libcap` development headers, `pkg-config`,
-and GNU `strip` (usually provided by `binutils`).
+Read [`AGENTS.md`](AGENTS.md) and the applicable subsystem skill before editing. Repository changes use [isolated OWT worktrees](.agents/skills/deliver-via-owt/SKILL.md): preserve the default checkout on local `master`, implement and verify in a task worktree, then fast-forward the verified result back. Inspect the complete diff, stage intended files, and run `bun run preflight` before a Conventional Commit.
 
----
+Update the primary owner documentation when behavior changes. Visible desktop changes also require the matching real-window [native black-box scenario](.agents/skills/openagent-desktop-host/references/native-verification.md). SDK and plugin changes follow their own repository instructions before the parent gitlink is advanced.
 
-## Configure your first provider
-
-On first launch OpenAgent creates `config.toml` in its cross-platform user data root (`~/.openagent` on Linux, macOS, and Windows). Set `OPENAGENT_HOME` to override the complete root. Open **Settings → Providers** and add a provider, or edit the file directly; valid external edits hot-reload. See the [configuration skill](.agents/skills/openagent-configuration/SKILL.md) for atomic-save, backup, migration, and conflict behavior. Until an available model is configured, the composer keeps sending disabled and provides a **Configure models** shortcut to Settings.
-
-```toml
-config_version = 1
-
-[[providers]]
-id = "anthropic-main"
-name = "Anthropic"
-provider = "anthropic"
-api_key = "sk-ant-..."
-base_url = "https://api.anthropic.com"
-enabled = true
-
-[defaults]
-chat_model   = { provider_id = "anthropic-main", model = "claude-sonnet-4-6" }
-flash_model  = { provider_id = "anthropic-main", model = "claude-haiku-4-5" }
-```
-
-OpenAI-compatible endpoints (DeepSeek, OpenRouter, local Ollama, etc.) work the same — just point `base_url` at the right host and set `provider = "openai"`. You may enter a host, a `/v1` API root, or a full `/chat/completions` URL; OpenAgent normalizes it to the API root.
-
-### Choose a tool approval mode
-
-Use the approval selector in the conversation composer, or open **Settings → General → Approval Mode**, to control when agent tool calls pause for review. Approval defaults to **Off** and is independent from runtime permissions: approving a call never expands its filesystem or network capabilities.
-
-| Mode          | Behavior                                                                                     |
-| ------------- | -------------------------------------------------------------------------------------------- |
-| **Manual**    | Ask you to approve every tool call.                                                          |
-| **Automatic** | A Flash task assesses the impact; important or uncertain calls still come to you for review. |
-| **Off**       | Run all tool calls without the approval flow.                                                |
-
-Use **Settings → General → Execution Permissions & Sandbox** for the actual confinement policy. The recommended managed profile offers workspace-writable, read-only, and advanced path-rule presets plus restricted or enabled networking. The default grants host-wide reads and workspace-scoped writes, keeps `.git`, `.agents`, and `.codex` read-only beneath broad writable roots, and restricts network access. External mode delegates isolation to the embedding host; disabled mode explicitly uses ambient process access and displays a warning. Managed terminal processes are isolated with Bubblewrap on Linux, Seatbelt on macOS, and the pinned Codex sandbox on Windows. Missing helpers or failed setup abort the command without falling back to ambient access, and built-in file tools enforce the same canonical filesystem policy independently of the terminal backend.
-
----
-
-## Example: write a Skill
-
-Create `~/.agents/skills/python-review/SKILL.md`:
-
-```markdown
----
-name: python-review
-description: Review Python diffs for type-hint coverage, error handling, and PEP 8 compliance.
----
-
-When asked to review Python code:
-
-1. Check that public functions have type hints.
-2. Flag bare `except:` clauses and silent failures.
-3. Suggest more idiomatic stdlib alternatives where appropriate.
-```
-
-That's it — OpenAgent picks it up on the next message and lists it in the agent's system prompt. The agent reads the full body on demand via `exec_command` after selecting the skill.
-OpenAgent also installs the bundled `find-skills` Skill into this global directory when it is missing.
-When that Skill is available, the agent receives an explicit reminder to use it proactively for material capability gaps in specialized, complex, or deep work. It reuses installed Skills first, reviews third-party candidates before installation, defaults repository-specific additions to `<workspace>/.agents/skills/`, and reserves `~/.agents/skills/` for capabilities intended to work across unrelated projects.
-
----
-
-## Reusable roles and progressive Skill discovery
-
-### Reusable delegated roles
-
-Open **Roles** in the sidebar to create and manage specialized workflows such as a code reviewer, release manager, or research assistant. A role contains a stable name plus the responsibilities, boundaries, workflow, and delivery standards appended to the delegated agent's system prompt.
-
-- Roles are global and reusable in every workspace.
-- Role-specific Skill and MCP associations are exhaustive: a role runs with the global Skills and MCP servers you select for it, and with none of them until you select any. Project Skills and plugin capabilities such as Cua Driver stay available to every role. Each resource column selects or clears all of its listed rows at once.
-- The main agent can create a role on first dispatch, find saved roles by name or responsibility, and reuse them in child conversations. The Roles panel shows usage count and last-used time.
-
-### Progressive Skill discovery
-
-For a large Skill catalog, add a category under the frontmatter `metadata` map:
-
-```yaml
----
-name: python-review
-description: Review Python diffs for correctness and maintainability.
-metadata:
-  category: code-quality
----
-```
-
-OpenAgent initially exposes compact category summaries and loads the matching Skill descriptions on demand. When the optional **Settings → Flash Tasks → Skill Category Task** is enabled, the app categorizes ungrouped Skills in the background after startup or a workspace switch and persists the result to `metadata.category` in each `SKILL.md`.
-
----
-
-<a id="interactive-prompts-with-ask_user"></a>
-
-## Interactive prompts with `ask_user`
-
-When the agent needs a decision before continuing — ambiguous instruction, technology choice, destructive operation, missing parameter — it calls `ask_user` to surface a structured form in the chat panel. The agent blocks until you respond; everything in the form is typed, so you can select from dropdowns, tick checkboxes, confirm a boolean, or pick a date without typing a sentence.
-
-Supported field types:
-
-| Type             | Use case                     |
-| ---------------- | ---------------------------- |
-| `text`           | Short free-form input        |
-| `textarea`       | Multi-line text              |
-| `select`         | Single choice from a list    |
-| `checkbox`       | Single on/off toggle         |
-| `checkbox_group` | Multiple choices from a list |
-| `date`           | Date picker                  |
-| `confirm`        | Yes / No decision            |
-
-The agent is guided to ask once, ask clearly, and prefer structured fields over open text boxes.
-
----
-
-<a id="agui--inline-interactive-components"></a>
-
-## AGUI — Inline Interactive Components
-
-Beyond markdown, the agent can embed interactive components directly in its responses. The frontend's streamdown renderer picks them up and renders them as rich, clickable elements — no copy-pasting paths or URLs needed.
-
-Syntax: `ComponentName(prop: value, prop2: "string")`
-
-| Component | Example                                                | Renders as                                                |
-| --------- | ------------------------------------------------------ | --------------------------------------------------------- |
-| `File`    | `File(path: "src/tools.rs", lines: "120-140")`         | Clickable chip that opens the file at the given lines     |
-| `Url`     | `Url(href: "https://docs.rs/rig", title: "rig docs")`  | Capsule that opens the link in the browser                |
-| `Chart`   | `Chart(type: "bar", labels: ["A","B"], data: [10,20])` | ECharts bar / line / pie chart                            |
-| `Image`   | `Image(src: "assets/result.png", caption: "Result")`   | Workspace path, `file://`, `data:image`, or HTTP(S) image |
-| `Video`   | `Video(src: "assets/demo.mp4", controls: true)`        | Workspace-local or HTTP(S) video with playback controls   |
-
-Multi-series charts use `series: [{name, data}, ...]`.
-
----
-
-## Current product boundaries
-
-- OpenAgent does not provide built-in webpage search/fetching, `render_web`, AGUI `Html(...)`, an embedded browser sidebar, or HTML-preview settings. Agents share websites with `Url(...)`; users open those links in their browser. Browser automation belongs to Cua Driver or another explicitly configured MCP service.
-- The right conversation panel is contextual: it appears for a package flow projection, file changes, or conversation-owned background terminals.
-- Goal, Graph, Chat Group, and Cua integrations use the ordinary installed-plugin boundary. The Runtime does not register their domain state, reducers, tools, or schedulers. Multi-Agent V2 is the separate Runtime-owned coordination capability and does not use that plugin boundary.
-
----
-
-## Memory file format
-
-Memory files have **two zones**. The Memory Agent only writes below the marker comment:
-
-```markdown
-## [User] Personal habits
-
-<!-- You edit freely here; the agent never touches this section -->
-
-## [Agent] Recent context summary
-
-<!-- Memory Agent only operates below this comment -->
-```
-
-- Global memory → `~/.openagent/memory.md` (injected into the system prompt of every conversation)
-- Local memory → `<workspace>/.agents/memory.md` (injected only while that workspace is active)
-
-The user-written content of each file reaches the chat agent as its own system-prompt section, so what you write there is standing context in every affected turn. A missing or blank file adds no section, and an oversized one is capped.
-
-## Agent memory controls
-
-Open **Settings → Flash Tasks → Memory Task** to configure the long-term-memory workflow:
-
-- **Automatic agent memory retrieval** is disabled by default, leaving the chat agent to decide when a turn needs the `search_agent_memory` tool. Enabling it adds a preflight to every turn that uses the Flash model to turn the current message into a focused query, retrieves relevant structured memory, and carries the results on the triggering user message as explicitly untrusted context rather than in the system prompt.
-
-Disabling the Memory Agent stops its post-conversation extraction task; automatic retrieval remains independently configurable. New conversations use fixed localized greeting copy and never generate it from memory.
-
-The independent **Follow-up Suggestions** Flash task generates three actionable messages after each completed Agent turn. It also refreshes three new-conversation suggestions from up to the five most recently updated conversation titles after a title task completes. Selecting a suggestion sends it immediately as the next user message.
-
----
-
-## Architecture at a glance
-
-```
-┌──────────────────────────────┐    typed client/events    ┌──────────────────────────────┐
-│   SvelteKit Webview (src/)   │  ◄────────────────────►  │  Private SDK submodule       │
-│   components · interaction   │                          │  runtime · backend · transport│
-└──────────────────────────────┘                          └──────────────────────────────┘
-                 │                                                     │
-                 └──────────── thin Tauri host (src-tauri/) ───────────┘
-```
-
-See [`AGENTS.md`](AGENTS.md) for the public host/frontend contributor guide.
-SDK internals and their contributor documentation are maintained in the
-private submodule.
-
----
-
-## Project structure
-
-```
-.
-├── src/                      # SvelteKit frontend (Svelte 5 · TypeScript)
-│   ├── routes/               # Page components
-│   └── lib/                  # Components, stores, streamdown, types
-├── src-tauri/                # Tauri adapters, build config, and packaging
-├── sdk/                      # Pinned private SDK Git submodule
-└── .agents/skills/           # Focused architecture and contributor guidance
-```
-
----
-
-## Repository activity
-
-![Alt](https://repobeats.axiom.co/api/embed/6192dc6d5dec9295a44312fb2bba5b0d362280e2.svg "Repobeats analytics image")
-
----
-
-## Contributors
-
-Thanks goes to these wonderful people:
-
-<a href="https://github.com/BANG404/openagent/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=BANG404/openagent" alt="Contributors" />
-</a>
-
----
-
-## Contributing
-
-Contributions are very welcome — feature ideas, bug fixes, and docs improvements alike.
-
-1. Fork the repo and create a branch from `master`.
-2. Follow the [Conventional Commits](https://www.conventionalcommits.org/) style — see existing log for the scopes we use (`feat(toast):`, `fix(mermaid):`, `refactor(ui):`, etc.).
-3. Run `bun run check`, `bun run lint:actions`, and `cargo check --manifest-path src-tauri/Cargo.toml` before opening a PR.
-4. Open a PR — describe **why**, not just **what**.
-
-Project conventions live in [`AGENTS.md`](AGENTS.md); the UI/UX spec is routed by the [design-system skill](.agents/skills/openagent-design-system/SKILL.md).
-
----
-
-## Observability
-
-OpenAgent writes daily structured application logs under
-`<OPENAGENT_HOME>/logs` and retains the latest 15 files. Privacy-filtered error
-diagnostics are sent to the OpenAgent OTLP endpoint by default and can be
-disabled immediately in **Settings → General → Privacy & diagnostics**. Remote
-logs never include conversations, model output, tool arguments, configuration
-values, secrets, raw frontend error messages, or stack traces.
-
-![Privacy and diagnostics setting](.agents/skills/openagent-configuration/assets/diagnostic-log-collection-en.png)
-
-Langfuse model tracing remains optional and separate from application logs.
-
-Drop a `.env` in the project root to enable Langfuse tracing:
-
-```env
-LANGFUSE_PUBLIC_KEY=pk-...
-LANGFUSE_SECRET_KEY=sk-...
-LANGFUSE_HOST=https://cloud.langfuse.com
-```
-
-When keys are present, Chat & Memory agent calls are instrumented with `gen_ai.*` OpenTelemetry attributes and exported via batch processor.
-
-### Agent runtime real-model tests
-
-The SDK software test suite includes ignored real-provider tests for both the canonical Chat agent runtime and Flash structured-output tasks. Put the local test-model settings in the repository root `.env`:
-
-```env
-OPENAGENT_TEST_MODEL=your-model
-OPENAGENT_TEST_API_KEY=your-api-key
-OPENAGENT_TEST_BASE_URL=https://your-provider.example/v1
-# OPENAGENT_TEST_PROVIDER=openai
-
-# Optional Langfuse tracing
-LANGFUSE_PUBLIC_KEY=pk-...
-LANGFUSE_SECRET_KEY=sk-...
-LANGFUSE_HOST=https://cloud.langfuse.com
-```
-
-Then run:
-
-```bash
-cd sdk
-bun scripts/test-agent-runtime-model.mjs --base origin/main
-```
-
-See [`.env.example`](.env.example) for a copyable template. The script checks the diff first: when no file under `rust/openagent-runtime/` changed, it prints a skip and makes no model calls. When the runtime changed, it runs the Chat runtime smoke plus Flash structured-output coverage with the same local model. The test defaults to the OpenAI-compatible provider.
-
-For Anthropic, set `OPENAGENT_TEST_PROVIDER=anthropic` and provide `OPENAGENT_TEST_API_KEY` or `ANTHROPIC_API_KEY`.
-
----
-
-## Further reading
-
-- [`AGENTS.md`](AGENTS.md) — Public host and frontend contributor guide
-- [`CHANGELOG.md`](CHANGELOG.md) — Full release history
-- [Agent Plugin skill](.agents/skills/openagent-plugin-development/SKILL.md) — installation, validation, components, and data boundaries
-- [Channel integration skill](.agents/skills/openagent-channel-integrations/SKILL.md) — platform setup, scoped commands, remote gateway, persistence, and security
-- [Release engineering skill](.agents/skills/openagent-release-engineering/SKILL.md) — versioning, beta/RC/stable channels, CI, and publishing
-- [Embedding resource skill](.agents/skills/openagent-embedding-resources/SKILL.md) — bundled model provenance, size, verification, and activation
-- [Update delivery skill](.agents/skills/openagent-update-delivery/SKILL.md) — frontend HMR, independent Runtime binaries, reloads, and desktop boundaries
-- [Design-system skill](.agents/skills/openagent-design-system/SKILL.md) — visual language, components, responsiveness, and `DESIGN.md`
-- [Tauri docs](https://tauri.app/) · [SvelteKit docs](https://kit.svelte.dev/) · [rig (Rust LLM)](https://github.com/0xPlaygrounds/rig)
-
----
+For runtime model checks, use the SDK-owned instructions and [`.env.example`](.env.example). `bun run test:sonar` runs the host and SDK test gates before submitting analysis to the locally configured SonarQube instance.
 
 ## License
 
-OpenAgent is dual-licensed:
-
-- **Open-source option:** [GNU GPL v3.0 or later](LICENSE) (`GPL-3.0-or-later`).
-  If you distribute OpenAgent or a derivative work under this option, the GPL
-  requires the corresponding source and GPL freedoms to be provided under its
-  terms; it does not allow a derivative work to be distributed as proprietary.
-- **Commercial option:** a separate [commercial license](COMMERCIAL_LICENSE.md)
-  is available for organizations that need to distribute a proprietary
-  derivative work or otherwise need rights outside the GPL.
-
-Commercial licensing is provided only through a separate written agreement.
-The OpenAgent name and branding remain subject to
-[TRADEMARKS.md](TRADEMARKS.md).
+OpenAgent is available under [GPL-3.0-or-later](LICENSE), with a separate [commercial licensing option](COMMERCIAL_LICENSE.md). Commercial rights require a written agreement. The project name and branding are covered by [TRADEMARKS.md](TRADEMARKS.md).

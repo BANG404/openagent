@@ -454,6 +454,13 @@ affected view and leave the main conversation surface usable.
 
 Workspace-capable sidebar frames can use the optional version-1 package tool
 bridge documented in the [sidebar owner](../../openagent-chat-frontend/references/plugin-sidebar.md#package-tool-requests).
+Panels can detect `open_links: true` in context and send
+`openagent:sidebar-open-link` version 1 with their current `scope` and an
+absolute HTTP(S) `url` of at most 4096 characters. The host verifies frame/scope
+and opens the URL through its shared UI capability. This optional action does
+not navigate the iframe or permit file, data, or script URLs. Without the flag,
+keep links inert and preserve their readable text.
+
 Detect `tool_calls` in context before using it. This uses the existing typed
 plugin tool operation and preserves Runtime permissions and package ownership;
 it grants no direct network, token, transcript, or filesystem access.

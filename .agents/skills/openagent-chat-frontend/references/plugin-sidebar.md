@@ -67,6 +67,17 @@ compact title/count, collapsible member pills, sticky headings for consecutive
 messages from one sender, and a floating Mica composer. Its inline theme tokens
 match `app.css`; keep the trailing message reachable above the composer and
 verify long messages, narrow widths, and sender transitions in the native runner.
+Chat Groups renders sanitized GFM inside its package document, preserving raw
+HTML as text and keeping wide code/table scrolling inside the message. Its `@`
+palette filters current members, supports keyboard and pointer selection and
+IME, and replaces only the caret's current mention. Native qualification covers
+Markdown, unsafe URLs/HTML, palette filtering, quoted names, keyboard selection,
+workspace/group reset, and live theme/locale changes.
+
+Panels may detect `open_links: true` and request `openagent:sidebar-open-link`
+version 1 with the current `scope` and bounded absolute HTTP(S) `url`. The host
+checks the owning frame and scope and uses the shared UI URL opener. Plugins
+prevent iframe navigation; older hosts simply leave the rendered link inert.
 
 A panel document is still a single declared entry: package sub-resources are
 outside the current asset boundary, so a plugin page must inline its own styles

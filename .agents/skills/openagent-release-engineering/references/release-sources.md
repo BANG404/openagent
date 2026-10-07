@@ -9,7 +9,7 @@ A promotion requires its selected prerelease tag to be published.
 `release/rc/X.Y.Z` starts from its Beta tag and `release/stable/X.Y.Z` starts
 from its RC tag; each contains one
 automation-refresh commit that cannot touch product paths, and receives one
-Stable metadata commit directly. A pre-existing Stable source branch is
+channel-specific metadata commit directly. A pre-existing promotion branch is
 reusable only while the selected tag remains its ancestor and its product tree
 still matches that tag; product drift stops preparation.
 
@@ -23,10 +23,11 @@ changes only:
 - `src-tauri/Cargo.lock`
 - `CHANGELOG.md`
 
-RC and Stable preparation accept any published source tag, not only the newest.
+RC accepts a published Beta tag; Stable accepts a published RC tag. Neither
+promotion silently selects the newest tag.
 Because the target branch starts at that exact tag, the release commit changes
 only the version, updater channel, manifest, and changelog. Verification compares
-the resulting product source with the selected Beta tag and allows differences
+the resulting product source with the selected promotion tag and allows differences
 only in generated release files.
 
 Preparation uses a temporary local `prepare/v*` branch only because the release
@@ -38,12 +39,13 @@ target branch directly.
 
 The release metadata verifier checks that:
 
-- all four runtime version fields match the requested tag;
+- all four product version fields match the requested tag;
 - Beta/RC/Stable updater endpoints match the selected channel;
 - JSON manifests contain no unrelated edits;
 - Cargo files change only the OpenAgent package version;
-- the release commit contains every expected file and no unexpected file.
+- the release commit contains every expected file and no unexpected file;
 - `sourceSha` identifies the direct Beta source parent or the selected immutable
-  Beta tag, and `previousTag` exists;
-- a Stable promotion declares a Beta source whose `X.Y.Z` matches the Stable
-  target, and its product source matches that tag outside generated files.
+  promotion tag, and a nonempty `previousTag` exists;
+- an RC promotion declares a Beta source and a Stable promotion declares an RC
+  source with the same `X.Y.Z` as the target; product source matches that selected
+  tag outside generated release files.

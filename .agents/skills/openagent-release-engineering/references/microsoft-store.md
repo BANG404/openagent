@@ -5,7 +5,7 @@ Center. Beta releases do not submit a Store package. The Store layout must
 mirror the Windows desktop bundle's runtime inputs: the main executable, the
 agent-server executable, release-root DLLs, and the bundled embedding model.
 The packaging step fails before submission when a required staged resource is
-missing. Store package versions are independent from the WiX installer version:
+missing. Store package versions are independent from the NSIS installer version:
 Stable SemVer `X.Y.Z` maps to `(X+1).Y.Z.0`. This keeps the required fourth
 component at zero, avoids a forbidden zero first component during `0.x`
 development, and remains monotonic across later Stable releases.

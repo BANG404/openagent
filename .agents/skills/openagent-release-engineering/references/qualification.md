@@ -38,8 +38,9 @@
 - Route trusted Linux, Windows, and macOS native, Public SDK, release
   preparation, and release jobs exclusively to standard GitHub-hosted runners.
   Fork pull-request code must not receive private SDK credentials. Keep Rust
-  target output out of GitHub caches on every public-repository workflow;
-  dependency-only caching is the permitted shared cache boundary.
+  private SDK, Runtime, embedded-diagnostic, and sandbox-helper target output
+  out of GitHub caches. Ordinary Tauri target caching is permitted only after
+  the private-SDK boundary check; release candidates use cold target output.
 - Keep embedded ShellCheck directives parser-compatible: put only supported
   directive syntax on the `# shellcheck` line and place any rationale in a
   separate comment. CI may use a newer `github-actionlint` and ShellCheck than

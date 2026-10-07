@@ -14,5 +14,12 @@ newly added desktop operation. A failed server build leaves the currently
 running development process intact and the next source change retries. The
 explicit embedded diagnostic command does not use this sidecar path. Runtime,
 embedded diagnostic, and sandbox-helper compilation stays under `sdk/target`;
-the ordinary Tauri host uses `src-tauri/target` so its public compiler output can
-be cached independently.
+the ordinary `bun tauri dev` launcher selects a separate external host target
+directory derived from the worktree and `OPENAGENT_HOME`. Windows defaults to
+`%LOCALAPPDATA%/OpenAgent/dev-targets/`; macOS uses
+`~/Library/Caches/OpenAgent/dev-targets/`; Linux uses
+`${XDG_CACHE_HOME:-~/.cache}/openagent/dev-targets/`.
+`OPENAGENT_DEV_TARGET_ROOT` overrides that cache root; an explicit
+`CARGO_TARGET_DIR` or custom runner remains authoritative. Direct host Cargo
+checks and ordinary release builds retain `src-tauri/target` unless overridden.
+Do not share private Runtime/compiler output with the public host cache.

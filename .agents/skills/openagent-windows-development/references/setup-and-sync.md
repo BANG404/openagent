@@ -21,6 +21,12 @@ whether `rust-lld` is available. The exclusions are intentionally limited to:
 - `%USERPROFILE%\.cargo\git\`
 
 These paths contain generated build artifacts or downloaded dependency sources.
+The script's fixed list does not cover the ordinary desktop launcher's external
+host output under `%LOCALAPPDATA%\OpenAgent\dev-targets\`, nor direct Cargo
+output under `src-tauri\target\`. Runtime and helpers use `sdk\target\`.
+See the [development Runtime owner](../../openagent-release-engineering/references/development-runtime.md)
+for actual target selection and overrides. Preview the script's output before
+assuming that it changes scanning for the build directory being used.
 Excluding a whole drive or the complete user profile is broader than needed and
 reduces protection. To undo the change, run `Remove-MpPreference
 -ExclusionPath <path>` for each path shown by the script.
