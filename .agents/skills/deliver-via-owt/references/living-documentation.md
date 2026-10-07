@@ -12,7 +12,7 @@ each behavior or invariant in one primary source of truth.
 | Product behavior, architecture, integration contract, configuration, release, or design system | The matching workspace skill and its focused references; update README only for public overview changes |
 | Chat transcript, composer, tool rendering, streaming, reconciliation, restore, attachments, chat events, or streamed content | `.agents/skills/openagent-chat-frontend/` |
 | Tauri host, native windows, single-instance behavior, IPC adapters, or native verification | `.agents/skills/openagent-desktop-host/`, plus `openagent-design-system` for visible behavior |
-| Configuration, databases, memory, schemas, migrations, backups, or data-transition UX | `.agents/skills/openagent-persistence/` and `openagent-configuration` |
+| Configuration, databases, memory, schemas, migrations, backups, or data-transition UX | `.agents/skills/openagent-configuration/` |
 | CI classification, release workflows, Tauri bundles, sidecars, or pinned helper artifacts | `.agents/skills/openagent-release-engineering/` |
 | A repeatable agent procedure or fragile subsystem invariant | The workspace skill that must trigger for future work |
 | Repository-wide ownership, commands, safety, verification, or contribution policy | `AGENTS.md` |

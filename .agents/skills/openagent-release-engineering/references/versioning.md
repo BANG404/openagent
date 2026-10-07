@@ -44,8 +44,8 @@ selects the latest Beta. The workflow creates `release/rc/X.Y.Z` from that
 immutable Beta commit. Stable in turn requires an explicit published
 `vX.Y.Z-rc.N` tag and creates `release/stable/X.Y.Z` from that immutable RC
 commit. Each promotion adds one commit that refreshes only release automation
-and its tests/docs, and pushes the Stable metadata commit directly to that
-branch. Product source remains byte-for-byte aligned with the selected Beta
+and its tests/docs, and pushes the channel-specific metadata commit directly to that
+branch. Product source remains byte-for-byte aligned with the selected source tag
 without restoring old application code into a newer `master`. The Stable branch
 is also the durable source snapshot for that version.
 

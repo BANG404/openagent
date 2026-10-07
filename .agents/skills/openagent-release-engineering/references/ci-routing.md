@@ -12,7 +12,7 @@ large Runtime crate, which can otherwise surface as misleading missing-crate
 errors.
 
 `ci.yml` classifies changed paths before calling reusable workflows and applies
-two verification routes:
+three verification routes:
 
 - Pull requests from contributors without administrator permission and merge
   candidates run fast checks only for modules

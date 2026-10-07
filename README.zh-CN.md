@@ -1,467 +1,179 @@
 <p align="center">
-  <img src="assets/openagent_logo.png" alt="OpenAgent logo" width="240" />
+  <img src="assets/openagent_logo.png" alt="OpenAgent 标志" width="200" />
 </p>
 
-<div align="center">
+<h1 align="center">OpenAgent</h1>
 
-**现代化桌面 AI Agent 客户端 — 基于 Tauri、SvelteKit 与 Rust 构建。**
+<p align="center">
+  在你的工作区中处理文件、调用工具并持续执行任务的桌面 AI Agent。
+</p>
 
-  <p>
-    <img alt="Tauri" src="https://img.shields.io/badge/Tauri-2.0-FFC131?style=flat-square&logo=tauri&logoColor=white">
-    <img alt="SvelteKit" src="https://img.shields.io/badge/SvelteKit-5-FF3E00?style=flat-square&logo=svelte&logoColor=white">
-    <img alt="Rust" src="https://img.shields.io/badge/Rust-2021-000000?style=flat-square&logo=rust&logoColor=white">
-    <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.6-3178C6?style=flat-square&logo=typescript&logoColor=white">
-    <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white">
-    <img alt="Bun" src="https://img.shields.io/badge/Bun-1.x-000000?style=flat-square&logo=bun&logoColor=white">
-    <img alt="Platforms" src="https://img.shields.io/badge/平台-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square">
-  </p>
+<p align="center">
+  <a href="README.md">English</a> · 简体中文<br />
+  <a href="https://github.com/BANG404/openagent/releases">下载安装</a> ·
+  <a href="CHANGELOG.md">更新日志</a> ·
+  <a href="AGENTS.md">贡献指南</a>
+</p>
 
-  <p>
-    <a href="README.md">English</a> · 简体中文
-  </p>
-</div>
+OpenAgent 将流式聊天界面与能够阅读项目、编辑文件、执行命令和调用外部工具的 Agent 结合起来。你可以选择模型服务与工作区，在本机保存会话和应用数据，并通过技能、角色、MCP 服务及插件扩展能力。
 
+桌面应用面向 Windows、macOS 和 Linux，界面采用 Svelte 5 与 SvelteKit 2，原生外壳采用 Tauri 2，Rust Runtime 由固定版本的私有 SDK 提供。项目仍在持续开发；公开的宿主仓库访问权限不包含私有 SDK 的访问权限。
+
+## 可以做什么
+
+| 能力 | 当前行为 |
+| --- | --- |
+| 处理项目文件 | 读取和修改文件、查看图片、执行终端命令，并跟踪交互式或后台终端会话。 |
+| 持续完成复杂任务 | 委派子 Agent、复用专业角色、排队发送后续消息，并保留会话分支与压缩后的上下文。 |
+| 安排后续执行 | 让 Agent 设置定时唤醒或支持的完成条件唤醒，并通过工具列出或取消待执行的 Hook。 |
+| 审阅与恢复 | 查看工具调用和文件变更、回答结构化问题、按配置审批调用，并回滚文件或会话检查点。 |
+| 阅读丰富输出 | 流式显示 Markdown、代码高亮、经过校验的 Mermaid 图、ECharts 图表、文件与链接胶囊、图片和视频；长回复可切换到书本阅读模式。 |
+| 保留有用上下文 | 使用全局与工作区记忆、本地语义检索、可复用技能，以及用于标题、记忆和建议的后台 Flash 任务。 |
+| 扩展 Agent | 连接 MCP 服务，安装提供命令、工具、技能、自动化、侧边栏或会话 UI 的 Agent 插件。 |
+| 远程使用 | 接入支持的消息平台，或通过远程网关配对浏览器。 |
+
+图片、PDF 和文本附件支持拖放、粘贴、预览、检查点恢复与分支编辑。实际模型及附件能力取决于所选服务与模型。
+
+## 安装与开始使用
+
+从 [GitHub Releases](https://github.com/BANG404/openagent/releases) 下载对应平台的安装包。请选择包含桌面安装包的发行版；仅组件发行版用于更新已有安装。
+
+- **完整版（full）**：携带本地嵌入模型种子，适合首次安装。
+- **轻量版**：在首次设置时下载并校验相同模型。桌面自动更新使用轻量产物，并保留已安装模型。
+
+首次启动时，设置窗口会引导你完成偏好、模型服务、默认模型与资源准备。选择工作区文件夹，填写服务凭据和接口地址，验证连接，然后选择 Chat 与 Flash 模型。Chat 负责主对话，Flash 负责较小的后台任务。在配置可用聊天模型前，发送按钮保持禁用。
+
+之后可通过顶部的**模型**菜单管理服务与默认模型。OpenAgent 支持 Anthropic、OpenAI 及兼容服务，也可填写自定义接口。OpenAI 兼容接口可以填写主机地址、`/v1` 根地址或完整的 `/chat/completions` 地址，应用会将其规范化为 API 根地址。
+
+## 审批与执行权限
+
+输入区提供审批模式选择器。顶部的**运行 → 执行与权限**分别配置工具审批和沙箱策略。
+
+| 审批模式 | 行为 |
+| --- | --- |
+| 手动 | 工具调用需要审核，明确豁免的生命周期控制除外。 |
+| 自动 | Flash 任务逐项评估调用；有重大影响或无法可靠判断的调用交由用户审核。 |
+| 关闭 | 跳过审批流程执行调用。这是默认审批模式。 |
+
+批准调用不会扩大文件系统或网络权限。默认的托管权限允许读取宿主文件系统、写入当前工作区，限制网络访问，并使宽泛可写目录下的 `.git`、`.agents` 与 `.codex` 保持只读。还可以选择只读预设或明确的路径规则。禁用隔离后，工具使用应用进程本身的访问权限。
+
+托管终端在 Linux 上使用 Bubblewrap、macOS 上使用 Seatbelt、Windows 上使用固定版本的 Codex 沙箱；内置文件工具执行相同的文件权限策略。辅助程序缺失或沙箱准备失败时，执行会停止。完整规则见[权限说明](.agents/skills/openagent-configuration/references/permissions.md)。
+
+## 技能、角色与插件
+
+**技能（Skill）**是可复用的说明文件。全局技能放在 `~/.agents/skills/<名称>/SKILL.md`，项目技能放在 `<工作区>/.agents/skills/<名称>/SKILL.md`：
+
+```markdown
+---
+name: python-review
+description: 检查 Python 变更中的错误处理、类型注解和可维护性问题。
+metadata:
+  category: code-review
 ---
 
-## 目录
+阅读变更代码，提供带文件位置的可执行建议。
+优先关注错误行为、静默失败和缺失的错误处理。
+```
 
-- [目录](#目录)
-- [更新日志](#更新日志)
-- [核心特性](#核心特性)
-  - [Agent 运行时](#agent-运行时)
-  - [交互式输出](#交互式输出)
-  - [工具与集成](#工具与集成)
-  - [桌面体验](#桌面体验)
-- [快速开始](#快速开始)
-  - [安装发行版](#安装发行版)
-  - [前置依赖](#前置依赖)
-  - [克隆与安装](#克隆与安装)
-  - [开发模式启动](#开发模式启动)
-  - [构建发行版](#构建发行版)
-- [配置第一个 Provider](#配置第一个-provider)
-  - [选择工具审批模式](#选择工具审批模式)
-- [示例：编写一个技能](#示例编写一个技能)
-- [可复用角色与技能渐进发现](#可复用角色与技能渐进发现)
-  - [可复用委派角色](#可复用委派角色)
-  - [技能渐进发现](#技能渐进发现)
-- [与用户交互：`ask_user` 工具](#与用户交互ask_user-工具)
-- [AGUI — 行内交互式 UI 组件](#agui--行内交互式-ui-组件)
-- [当前产品边界](#当前产品边界)
-- [记忆文件格式](#记忆文件格式)
-- [Agent 记忆控制](#agent-记忆控制)
-- [架构概览](#架构概览)
-- [项目结构](#项目结构)
-- [仓库活跃度](#仓库活跃度)
-  - [Star 历史](#star-历史)
-- [贡献者](#贡献者)
-- [路线图](#路线图)
-- [贡献指南](#贡献指南)
-- [可观测性（可选）](#可观测性可选)
-- [延伸阅读](#延伸阅读)
-- [许可证](#许可证)
+技能采用渐进发现，相关时再加载完整说明。**角色（Role）**保存可复用的 Agent 工作流，可供会话选择或委派任务使用。
 
----
+通过**集成 → 扩展**管理外部 MCP 服务，通过**集成 → 插件**浏览和管理 Agent 插件。官方目录包括 Goal、Graph、聊天组、Cua Driver、留言板和插件开发助手。插件可提供命令、MCP 工具、技能、生命周期自动化与嵌入式 UI；Cua Driver 提供桌面自动化，需要单独授予宿主访问权限。
 
-## 更新日志
+Goal、Graph 和聊天组在各自包内管理工作流；子 Agent 协作属于 Runtime 能力。插件版本与更新独立于桌面版本。插件开发与本地源码配置见[插件开发技能](.agents/skills/openagent-plugin-development/SKILL.md)。
 
-完整版本历史与修复列表见 [`CHANGELOG.md`](CHANGELOG.md)。
+## 记忆与本地数据
 
----
+应用配置与持久化数据使用统一根目录：
 
-## 核心特性
+| 范围 | 位置 |
+| --- | --- |
+| 已安装应用 | 所有支持平台均为 `~/.openagent/` |
+| 调试桌面 | `~/.openagent-dev/` |
+| 显式应用根目录 | `OPENAGENT_HOME` 指定的目录 |
+| 全局用户记忆 | `<OPENAGENT_HOME>/memory.md` |
+| 工作区记忆 | `<工作区>/.agents/memory.md` |
+| 全局／项目技能 | `~/.agents/skills/`／`<工作区>/.agents/skills/` |
+| 工作区设计上下文 | `<工作区>/DESIGN.md` |
 
-### Agent 运行时
+应用根目录保存 `config.toml`、会话 SQLite 数据库、附件、日志、已安装插件、插件数据与版本化资源。合法的外部配置修改会自动重新加载。持久化、备份与迁移由 Runtime 管理，详见[配置与应用数据](.agents/skills/openagent-configuration/references/data-and-startup.md)。
 
-- **多 Agent 与 Flash Agent 架构** — 负责主对话流的流式 **Chat Agent**，以及一套专门的异步任务 **Flash Agents**（包含用于长期记忆提炼的 **Memory Agent**、用于对话标题自动生成的 **Title Agent**、以及用于执行后台定时任务的 **Hook Agent**）。
-- **子 Agent 委派** — Chat Agent 可通过 `spawn_agent` 工具将子任务委派给嵌套子 Agent；进度实时流式输出，并以层级方式显示在侧边栏父对话下方。
-- **Runtime 自有的多 Agent 协作** — Multi-Agent V2 及其子会话注册表和六个协作工具属于 Agent Runtime 机制，由 Runtime 配置控制；它不是可安装或由用户管理的 Agent 插件。
-- **可复用 Agent 角色** — 创建全局角色工作流，通过混合搜索发现角色，并派发为专业子 Agent。角色既可在首次使用时由主 Agent 自动创建，也可在**角色**面板中管理；委派的角色会继承父对话选定的资源。
-- **插件自有编排** — Goal、Graph、聊天组以及其他长流程都是普通 Agent 插件。每个插件自行拥有状态、Reducer、提示词、完成规则和唤醒调度；Runtime 为所有插件提供相同的会话、分支、流程投影、事件和 Agent 唤醒桥接能力。
-- **混合长期记忆** — SQLite + FTS5 + 本地持久化、可离线运行的 384 维量化向量嵌入（fastembed `AllMiniLML6V2Q`），结合时间衰减权重实现跨会话精准召回。完整版携带模型种子，轻量版在欢迎窗口下载并校验；日常软件更新不会重复下载模型。
-- **交互式用户提问（`ask_user`）** — Agent 在任务中途可暂停并向用户弹出结构化表单——支持 `text`、`select`、`checkbox_group`、`confirm`、`date` 等多种字段类型。Agent 阻塞等待用户提交后继续执行，彻底告别单次猜测模糊指令的窘境。
+用户记忆提供持续有效的上下文；结构化 Agent 记忆独立保存，支持本地文本与向量混合检索。在**运行 → Flash 任务**中管理后台记忆任务与检索选项，自动检索默认关闭。**记忆**页面用于管理用户记忆和 Agent 记忆。
 
-### 交互式输出
+本地保存数据不代表模型请求离线执行：提示词、选中的上下文和附件会发送到配置的模型服务。MCP 服务与插件也可能访问各自配置的服务。
 
-- **AGUI — 行内交互式 UI 组件** — Agent 可以在回复中直接嵌入文件与链接胶囊、ECharts 图表、源代码行预览以及图片/视频媒体，均由 streamdown 引擎实时渲染。
-- **Mermaid 校验渲染** — 专用渲染工具会在展示前校验 Mermaid 源码，同时保留原始源码并支持全屏查看。
+## 消息平台与浏览器访问
 
-### 工具与集成
+**集成 → 频道**支持飞书／Lark、Telegram、QQ、微信、Discord 和 Slack。每个联系人或频道会保留独立的持久会话，以及各自选择的工作区、模型和角色。目前消息频道支持文本，配置、允许列表和命令见[消息频道说明](.agents/skills/openagent-channel-integrations/references/messaging-channels.md)。
 
-- **原生 MCP 集成** — 通过 HTTP 或 stdio 连接外部 MCP 服务器，Agent 使用 `load_tool` 查找相关能力并将匹配工具挂载到后续请求中，同时支持逐工具开关。
-- **开箱即用的开发工具** — 内置补丁、图片检查与终端工具。受管终端会话支持交互式或长时间运行的后台进程。
-- **桌面自动化** — Cua Driver 由桌面宿主从上游 GitHub 发布源安装并监管运行，在顶栏**集成 → 插件**面板中提供产品固定的权限策略与逐工具开关；应用会和其他组件更新一起检查新版驱动。
-- **插件控制** — 顶栏**集成 → 插件**入口会打开独立的插件设置窗口。已安装插件通过统一生命周期边界提供命令、MCP 服务、技能、自动化钩子和侧边栏视图，并获得相同的宿主能力桥接。
-- **插件语言** — 插件市场和已安装插件卡片会显示各插件声明的界面语言。官方插件的元数据、命令标签和插件提示会跟随应用当前语言。
-- **生命周期自动化** — 可在会话、提示词、压缩、模型与工具事件前后运行受沙盒约束的命令，或注入有界的 Agent 上下文。
-- **工具审批与工作区沙盒** — 可选择逐次人工审批、模型辅助审批、关闭审批，或仅针对文件与终端工具的工作区沙盒策略。
-- **技能系统（Skills）** — 将 `SKILL.md` 放入 `~/.agents/skills/` 或 `<workspace>/.agents/skills/`。基于分类的渐进发现让大型全局/项目技能目录保持紧凑，也可用 Flash 任务为未分类技能自动分组。
-- **消息渠道** — 在**设置 → 渠道**中接入飞书/Lark、Telegram、QQ、微信、Discord 或 Slack。每个联系人都保有独立的工作区、模型、角色与持久对话，并可通过命令切换范围、回答问题或处理审批。详见[渠道集成 Skill](.agents/skills/openagent-channel-integrations/SKILL.md)。
-- **检查点与文件回滚** — 每轮对话自动创建检查点并记录反向 diff，支持单文件还原或整轮回滚。
-- **多 LLM 与多模态支持** — 支持多模型选择，以及可持久恢复的图片、PDF 和文本附件；提供拖拽/粘贴、丰富预览、检查点恢复与分支编辑，适配 Anthropic、OpenAI 及各类兼容端点。
+同一页面中的**网关（Gateway）**提供浏览器配对访问。启用后明确允许工作区，并使用页面显示的一次性配对码连接。在桌面保持运行时，远程用户可操作会话、附件、审批、提问与分支。远程访问和直接局域网访问默认关闭；模型服务管理及不受限制的桌面操作保留在本机。连接与安全边界见[远程网关说明](.agents/skills/openagent-channel-integrations/references/remote-gateway.md)。
 
-### 桌面体验
+## 更新与诊断
 
-- **上下文压缩与树状对话** — 支持自动或手动对话压缩以节省 Token 消耗，并在 UI 中渲染为树状分支，结合基于谱系的消息检索，确保历史记忆不丢失。
-- **高响应对话历史** — 可搜索和分页浏览侧边栏，在运行期间排队发送后续消息，并通过虚拟化消息列表流畅导航长对话。
-- **实时上下文与后续建议** — 在回复流式生成期间查看上下文窗口用量，并获得针对最新一轮对话持久化的 Flash 后续建议。
-- **窗口内管理界面** — 设置、角色、自动化、记忆、技能等管理界面在当前窗口中全屏打开，不替换底层对话壳层。
-- **后台终端检查** — 在 Goal/Graph 状态与文件变更旁，以手风琴列表查看当前对话分支拥有的终端会话。
-- **定时聊天钩子（Scheduled Hooks）** — 支持配置定时或单次后台触发的聊天任务，支持持久化、开机自动恢复以及系统托盘通知。
-- **项目草稿与全局/本地作用域** — 支持草稿（Drafts）、记忆（Memory）与技能（Skills）的全局作用域（`~/.openagent`）和本地工作区作用域（`.agents/`）隔离。
-- **DESIGN.md 面板与 MDX 编辑器** — 提供工作区 `DESIGN.md` 专属可视化编辑面板，并在记忆和技能管理中集成富文本 Markdown 编辑器（MdxMarkdownEditor）。
-- **多工作区桌面集成** — 重复启动应用时会恢复并聚焦已有主窗口，而不会再创建一个主实例。每个工作区使用独立窗口，已有工作区窗口会被聚焦而非重复打开；同时支持开机自启、最小化到系统托盘及在文件管理器中定位工作区。
-- **可观测性** — 通过 OpenTelemetry 接入 Langfuse 追踪（含 `gen_ai.*` 属性）。
+OpenAgent 提供 Beta、RC 与 Stable 更新频道。前端、受监督的 Runtime、原生外壳和已安装插件分别交付。组件在激活前完成校验，前端与 Runtime 激活支持回滚。更新会等待正在执行的 Agent 任务结束，原生外壳更新需要重启应用。详见[组件更新说明](.agents/skills/openagent-update-delivery/references/component-updates.md)。
 
----
+宿主和 Runtime 的本地日志保存在 `<OPENAGENT_HOME>/logs`，每类滚动日志最多保留 15 个文件。经过隐私过滤的远程错误收集默认开启，可在**通用 → 隐私与诊断**中关闭；其中不包含会话内容、提示词、模型输出、工具参数、凭据或原始前端错误。可选的 Langfuse 模型追踪是独立通道，可能包含模型上下文，其环境变量见 [`.env.example`](.env.example)。详见[诊断说明](.agents/skills/openagent-configuration/references/diagnostics.md)。
 
-## 快速开始
+## 从源码开发
 
-### 安装发行版
+### 环境要求
 
-从 [GitHub Releases](https://github.com/BANG404/openagent/releases) 下载最新安装包或应用包。首次安装推荐选择文件名含 `full` 的完整版，它携带本地 Embedding 模型种子；轻量版会在欢迎窗口后台下载并校验模型。后续自动更新始终使用轻量软件包，并保留已经安装的模型。OpenAgent 分别提供 **beta**、**RC** 与 **stable** 更新渠道，也可在设置中手动检查更新。
+- Git，以及私有 `BANG404/openagent-sdk` 仓库的访问权限。SDK 子模块使用 SSH 地址，需要配置获得授权的 SSH 密钥。
+- Bun **1.2.21**，与 `package.json` 及 CI 一致；还需 Node.js，以运行明确调用 `node` 的脚本。
+- 当前稳定版 Rust 工具链及对应平台的 Tauri 2 原生构建依赖。Windows 需要 MSVC 构建工具和 WebView2；Linux 沙箱辅助程序构建还需要 `libcap` 开发头文件、`pkg-config` 与 GNU `strip`。
 
-如需从源码构建，请继续执行以下步骤。
-
-### 前置依赖
-
-| 工具                          | 版本  | 说明                        |
-| ----------------------------- | ----- | --------------------------- |
-| [Bun](https://bun.sh)         | 最新  | 包管理器（代替 npm / yarn） |
-| [Rust](https://rustup.rs)     | 1.70+ | Tauri 后端编译所需          |
-| [Node.js](https://nodejs.org) | 18+   | SvelteKit 工具链依赖        |
-
-> **Windows** 还需要 WebView2 和 MSVC 构建工具；**macOS** 需要 Xcode Command Line Tools；**Linux** 需要 `webkit2gtk`、`libgtk-3`。详见 [Tauri 官方先决条件](https://tauri.app/start/prerequisites/)。
-
-### 克隆与安装
+依赖版本由锁文件固定，Rust 使用与原生 CI 一致的稳定版工具链。开发准备见[本地命令说明](.agents/skills/openagent-release-engineering/references/local-commands.md)，Windows 另见[环境配置说明](.agents/skills/openagent-windows-development/references/setup-and-sync.md)。
 
 ```bash
 git clone --recurse-submodules https://github.com/BANG404/openagent.git
 cd openagent
-bun install
-```
-
-运行时 SDK 是私有子模块。从源码构建需要拥有 `BANG404/openagent-sdk` 的访问权限，
-并配置 GitHub 可接受的 SSH 密钥。已有工作区请先运行
-`git submodule update --init --recursive`，再安装依赖或构建。
-
-### 开发模式启动
-
-```bash
-# 完整 Tauri 桌面应用（前端 + Rust 后端）
+bun run prepare:worktree:dev
 bun tauri dev
-
-# 或仅启动前端（自动选择可用端口，不含 Rust）
-bun run dev
 ```
 
-开发命令会自动选择可用的回环网卡端口。`bun tauri dev` 会将此端口传给 Vite，使桌面宿主与前端始终使用同一端口。
+准备命令会初始化固定版本的子模块、安装冻结依赖，并构建开发用沙箱辅助程序与 Runtime sidecar。已有检出目录使用相同命令准备。源码构建需要私有 SDK；没有权限的用户可安装已发布的桌面应用。
 
-调试版桌面应用默认使用 `~/.openagent-dev`，与安装版的数据和配置隔离。需要使用
-其他开发数据目录时，请显式设置 `OPENAGENT_HOME`。
+| 命令 | 用途 |
+| --- | --- |
+| `bun tauri dev` | 启动桌面、Vite 和受监督的外部 Runtime。 |
+| `bun run dev` | 在可用回环端口启动纯前端开发，不提供桌面 Runtime。 |
+| `bun run tauri:dev:embedded` | 显式启用嵌入式 Runtime 诊断模式。 |
+| `bun run preflight` | 按实际变更文件选择并执行检查。 |
+| `bun run preflight --dry-run` | 查看检查计划。 |
+| `bun run tauri:build` | 构建轻量桌面安装包和更新产物。 |
+| `bun run tauri:build:full` | 构建携带嵌入模型种子的首次安装包。 |
 
-### 构建发行版
+开发模式自动选择可用的 Vite 端口，并使用独立应用数据。启动器为不同工作树与数据夹具分配独立的原生开发构建目录，Runtime 与辅助程序产物仍在 `sdk/target`。SDK 源码修改会先重新构建 sidecar，再重启宿主。详见[开发 Runtime 刷新](.agents/skills/openagent-release-engineering/references/development-runtime.md)。
 
-```bash
-bun run tauri:build       # 轻量安装包与 updater 制品
-bun run tauri:build:full  # 携带 Embedding 种子的首次安装完整版
+### 架构与目录
+
+```mermaid
+flowchart LR
+  UI["SvelteKit 界面"] -->|"类型化 SDK 客户端"| Host["薄 Tauri 宿主"]
+  Host -->|"认证回环 HTTP / SSE"| Runtime["受监督的 SDK Runtime"]
+  Host --> Native["窗口、托盘、对话框、更新器"]
+  Runtime --> Data["配置、会话、记忆"]
+  Runtime --> Tools["模型服务、工具、MCP、插件"]
 ```
 
-Linux 构建会从 SDK 固定的 Codex 提交编译并打包 Bubblewrap sidecar；发布构建会先
-剥离二进制，再把同一文件的 SHA-256 嵌入应用。Linux 源码构建还需要 `libcap`
-开发头文件、`pkg-config` 和 GNU `strip`（通常由 `binutils` 提供）。
+| 路径 | 职责 |
+| --- | --- |
+| `src/` | Svelte 路由、功能控制器、组件、本地化与流式内容渲染。 |
+| `src-tauri/` | 原生宿主适配、资源协议、进程监督与打包。 |
+| `sdk/` | 固定版本的私有 Runtime 与类型化传输／客户端源码。 |
+| `plugins/` | 固定版本的独立插件仓库与本地开发索引。 |
+| `scripts/`、`tests/` | 环境准备、检查、发布自动化与确定性验证。 |
+| `.agents/skills/` | 按领域组织的架构约定与贡献流程。 |
 
-构建产物位于 `src-tauri/target/release/bundle/`。发布流水线只将轻量构建写入
-自动更新元数据，并把完整版以带 `-full` 的文件名作为手动首次安装包上传。
+宿主保持轻量，运行时状态机和持久数据由 SDK 管理。公开前端与宿主可独立贡献，完整源码构建仍需要固定的私有依赖。
 
----
+### 参与贡献
 
-## 配置第一个 Provider
+编辑前阅读 [`AGENTS.md`](AGENTS.md) 和适用领域的技能。仓库变更使用[隔离 OWT 工作树](.agents/skills/deliver-via-owt/SKILL.md)：默认目录留在本地 `master`，在任务工作树实现和验证，再将验证结果快进合入。提交前检查完整差异、暂存目标文件，并执行 `bun run preflight`；提交采用 Conventional Commits。
 
-首次启动时，OpenAgent 会在所有平台统一使用的 `~/.openagent/config.toml` 创建配置文件；可通过 `OPENAGENT_HOME` 覆盖整个应用状态根目录。
-打开 **设置 → Providers** 添加提供商，或直接编辑该文件。尚未配置可用模型时，输入框会禁用发送，并提供跳转到设置的“配置模型”入口：
+行为变化需要同步更新主要归属文档。可见桌面变化还需执行对应的真实窗口[原生黑盒场景](.agents/skills/openagent-desktop-host/references/native-verification.md)。修改 SDK 或插件时，先遵循各自仓库说明，再推进父仓库 gitlink。
 
-```toml
-[[providers]]
-id = "anthropic-main"
-name = "Anthropic"
-provider = "anthropic"
-api_key = "sk-ant-..."
-base_url = "https://api.anthropic.com"
-enabled = true
-
-[defaults]
-chat_model  = { provider_id = "anthropic-main", model = "claude-sonnet-4-6" }
-flash_model = { provider_id = "anthropic-main", model = "claude-haiku-4-5" }
-```
-
-兼容 OpenAI API 的端点（DeepSeek、OpenRouter、本地 Ollama 等）同样适用——只需将 `base_url` 指向对应地址，并设置 `provider = "openai"`。`base_url` 可填写主机地址、`/v1` API 根路径或完整的 `/chat/completions` 地址；OpenAgent 会自动规范化为 API 根路径。
-
-### 选择工具审批模式
-
-打开 **设置 → 常规设置 → 审批模式**，控制 Agent 如何执行工具调用。当调用需要你确认时，OpenAgent 会暂停对话、展示准确的工具名称和参数，并在你批准或拒绝后继续执行。
-
-| 模式                 | 行为                                                                                                                          |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| **人工审批**         | 每次工具调用都需要你确认。                                                                                                    |
-| **自动审批**         | Flash 任务会评估调用影响；重要或不确定的调用仍会交由你审批。                                                                  |
-| **关闭审批**         | 所有工具调用直接执行，不进入审批流程。                                                                                        |
-| **沙盒模式**（默认） | 仅对文件管理和终端工具应用工作区策略：工作区内操作放行，试图越出工作区的操作会被拒绝。其他内置工具和 MCP 工具保持其正常行为。 |
-
----
-
-## 示例：编写一个技能
-
-创建文件 `~/.agents/skills/python-review/SKILL.md`：
-
-```markdown
----
-name: python-review
-description: 检查 Python 代码改动中的类型注解覆盖率、错误处理和 PEP 8 规范。
----
-
-当被要求 Review Python 代码时：
-
-1. 检查公开函数是否有类型注解。
-2. 标记裸 `except:` 子句和静默失败。
-3. 在合适时建议使用更地道的标准库替代方案。
-```
-
-完成！OpenAgent 在下次对话时自动识别该技能，并在系统提示中列出其名称与描述；Agent 会在需要时通过 `exec_command` 检查完整内容。
-如果全局目录中尚不存在，OpenAgent 还会自动安装内置的 `find-skills` 技能。
-只要该技能可用，Agent 就会收到明确提示：面对专业、复杂或需要深入处理的任务，如果存在实质性的能力缺口，应主动使用它寻找合适技能。Agent 会先复用已安装技能，安装前审查第三方候选；仓库专用技能默认放入 `<workspace>/.agents/skills/`，只有希望跨无关项目复用的能力才放入 `~/.agents/skills/`。
-
----
-
-## 可复用角色与技能渐进发现
-
-### 可复用委派角色
-
-在侧边栏打开**角色**，即可创建和管理代码审查员、发布经理或研究助手等专业工作流。角色由稳定名称与职责、边界、执行方式和交付标准组成，这些内容会追加到被委派 Agent 的系统提示词中。
-
-- 角色统一为全局范围，可在所有工作区复用。
-- 角色专属技能与 MCP 关联为完全枚举：角色只使用你为它勾选的全局技能与 MCP 服务，未勾选时不使用任何全局技能与 MCP 服务；项目技能与 Cua Driver 等插件能力对所有角色始终可用。每个资源列都支持一键全选或清空当前列出的条目。
-- 主 Agent 可在首次派发时创建角色，按名称或职责搜索已保存角色，并在子对话中复用。角色面板还会显示调用次数与最近调用时间。
-
-### 技能渐进发现
-
-当技能目录较大时，可在 frontmatter 的 `metadata` 中声明分类：
-
-```yaml
----
-name: python-review
-description: 检查 Python 代码改动的正确性与可维护性。
-metadata:
-  category: code-quality
----
-```
-
-OpenAgent 会先向 Agent 提供紧凑的分类摘要，再按需加载匹配分类中的技能说明。启用可选的**设置 → Flash 任务 → 技能分类任务**后，应用会在启动或切换工作区时于后台为未声明分类的技能自动分组，并将结果写入 `SKILL.md` 的 `metadata.category`。
-
----
-
-<a id="与用户交互ask_user-工具"></a>
-
-## 与用户交互：`ask_user` 工具
-
-Agent 在任务中途遇到需要用户决策的情况时——指令存在歧义、关键技术选型、即将进行不可逆操作、缺少必要参数——会调用 `ask_user` 在对话面板中弹出一个结构化表单。Agent 阻塞等待，用户填写提交后任务继续执行。
-
-支持的字段类型：
-
-| 类型             | 适用场景               |
-| ---------------- | ---------------------- |
-| `text`           | 简短的自由文本输入     |
-| `textarea`       | 多行文本               |
-| `select`         | 从列表中单选           |
-| `checkbox`       | 单个开关（是/否）      |
-| `checkbox_group` | 从列表中多选           |
-| `date`           | 日期选择               |
-| `confirm`        | 二选一确认（Yes / No） |
-
-Agent 被要求**一次性问清楚**所有相关问题，并优先使用结构化字段（勾选、下拉）而非让用户手敲文字，减少来回打扰。
-
----
-
-<a id="agui--行内交互式-ui-组件"></a>
-
-## AGUI — 行内交互式 UI 组件
-
-除了普通 Markdown，Agent 可以在回复中直接嵌入交互式 UI 组件。前端的 streamdown 渲染引擎负责将其渲染为可点击、可视化的富文本元素。
-
-语法：`ComponentName(prop: value, prop2: "字符串")`
-
-| 组件    | 示例                                                   | 渲染效果                                  |
-| ------- | ------------------------------------------------------ | ----------------------------------------- |
-| `File`  | `File(path: "src/tools.rs", lines: "120-140")`         | 可点击的文件胶囊，直接跳转到对应行        |
-| `Url`   | `Url(href: "https://docs.rs/rig", title: "rig 文档")`  | 外链胶囊，点击在浏览器打开                |
-| `Chart` | `Chart(type: "bar", labels: ["A","B"], data: [10,20])` | ECharts 柱状图 / 折线图 / 饼图            |
-| `Image` | `Image(src: "assets/result.png", caption: "结果")`     | 工作区本地或 HTTP(S) 图片，可附带说明     |
-| `Video` | `Video(src: "assets/demo.mp4", controls: true)`        | 工作区本地或 HTTP(S) 视频，可显示播放控件 |
-
-多系列图表使用 `series: [{name, data}, ...]`。
-
----
-
-## 当前产品边界
-
-- OpenAgent 不再提供内置网页搜索/抓取、`render_web`、AGUI `Html(...)`、内嵌浏览器侧栏或 HTML 预览设置。Agent 通过 `Url(...)` 分享网站，由用户在浏览器中打开；浏览器自动化由 Cua Driver 或显式配置的 MCP 服务承担。
-- 右侧对话面板只在存在插件流程投影、文件变更或当前对话拥有的后台终端时出现。
-- Goal、Graph、聊天组和 Cua 集成都使用普通已安装插件边界。Runtime 不注册它们的领域状态、Reducer、工具或调度器。Multi-Agent V2 是独立的 Runtime 自有协作机制，不使用这个插件边界。
-
----
-
-## 记忆文件格式
-
-记忆文件分为**两个区域**，Memory Agent 只在标记注释以下进行写入：
-
-```markdown
-## [用户手写] 个人习惯
-
-<!-- 此区域由用户自由编辑；Agent 永远不会修改此部分 -->
-
-## [Agent 维护] 近期上下文摘要
-
-<!-- Memory Agent 仅在此注释以下进行操作 -->
-```
-
-- **全局记忆** → `~/.openagent/memory.md`（注入每次对话的系统提示词）
-- **工作区记忆** → `<workspace>/.agents/memory.md`（仅在该工作区激活时注入）
-
-两个文件中由用户手写的内容都会作为独立的系统提示词段落提供给 Chat Agent，因此所写内容会成为相应对话的长期背景。文件缺失或为空时不产生该段落，内容过长时会截断。
-
-## Agent 记忆控制
-
-打开 **设置 → Flash 任务 → 记忆任务** 可配置长期记忆流程：
-
-- **自动 Agent 记忆检索**：默认关闭，由 Chat Agent 判断当前对话是否需要调用 `search_agent_memory` 检索相关记忆。开启后，每次对话都会先使用 Flash 模型将当前消息改写为聚焦查询，检索相关的结构化记忆，并将结果作为明确不可信的上下文附在触发本次检索的用户消息上，而不是写入系统提示词。
-
-关闭 Memory Agent 会停止对话结束后的记忆提取任务；自动检索仍可独立配置。新对话使用固定的本地化问候文案，不再根据记忆生成。
-
-独立的 **后续建议** Flash 任务会在每次 Agent 回复完成后生成三条可直接发送的请求；标题任务完成后，还会根据最近更新的最多五个对话标题刷新三条新对话建议。点击任一建议会立即将其作为下一条用户消息发送。
-
----
-
-## 架构概览
-
-```
-┌──────────────────────────────┐     类型化客户端/事件     ┌──────────────────────────────┐
-│   SvelteKit Webview (src/)   │  ◄────────────────────►  │  私有 SDK 子模块             │
-│   组件与交互状态             │                          │  运行时、后端与传输层         │
-└──────────────────────────────┘                          └──────────────────────────────┘
-                 │                                                     │
-                 └──────────── Tauri 薄宿主（src-tauri/）──────────────┘
-```
-
-公开宿主与前端的贡献说明参见 [`AGENTS.md`](AGENTS.md)。SDK 内部架构及其贡献
-文档统一维护在私有子模块中。
-
----
-
-## 项目结构
-
-```
-.
-├── src/                      # SvelteKit 前端（Svelte 5 · TypeScript）
-│   ├── routes/               # 页面组件
-│   └── lib/                  # 组件、状态、streamdown 渲染器、类型定义
-├── src-tauri/                # Tauri 薄宿主、构建配置与打包元数据
-├── sdk/                      # 固定版本的私有 SDK Git 子模块
-└── .agents/skills/           # 细粒度架构与贡献指南
-```
-
----
-
-## 仓库活跃度
-
-![Alt](https://repobeats.axiom.co/api/embed/6192dc6d5dec9295a44312fb2bba5b0d362280e2.svg "Repobeats analytics image")
-
-### Star 历史
-
-<a href="https://star-history.com/#BANG404/openagent&Date">
-  <img alt="Star History" src="https://api.star-history.com/svg?repos=BANG404/openagent&type=Date" width="600" />
-</a>
-
----
-
-## 贡献者
-
-感谢所有参与贡献的人：
-
-<a href="https://github.com/BANG404/openagent/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=BANG404/openagent" alt="Contributors" />
-</a>
-
----
-
-## 路线图
-
-- [ ] 在 README 中补充截图与演示 GIF
-- [x] 通过 GitHub Releases 提供预构建安装包（beta / RC / stable 渠道）
-- [ ] 应用内技能市场
-- [x] 多工作区独立窗口
-
-欢迎在 [Issues](https://github.com/BANG404/openagent/issues) 查看完整待办事项，也欢迎提交新需求。
-
----
-
-## 贡献指南
-
-欢迎各种形式的贡献——功能建议、Bug 修复或文档改进。
-
-1. Fork 本仓库并从 `master` 创建分支。
-2. 遵循 [Conventional Commits](https://www.conventionalcommits.org/) 风格——参考现有提交日志了解使用的 scope（`feat(toast):`、`fix(mermaid):`、`refactor(ui):` 等）。
-3. 提交 PR 前运行 `bun run check`、`bun run lint:actions` 和 `cargo check --manifest-path src-tauri/Cargo.toml`。
-4. 在 PR 描述中说明**为什么**，而不仅是做了什么。
-
-项目约定详见 [`AGENTS.md`](AGENTS.md)；UI/UX 规范由[设计系统 Skill](.agents/skills/openagent-design-system/SKILL.md)路由。
-
----
-
-## 可观测性
-
-OpenAgent 会在 `<OPENAGENT_HOME>/logs` 下按天写入结构化应用日志，并保留最近
-15 个文件。经过隐私筛选的错误诊断默认发送到 OpenAgent OTLP 端点，可在
-**设置 → 通用 → 隐私与诊断**中即时关闭。远程日志不会包含对话、模型输出、工具参数、
-配置值、密钥、前端原始错误消息或堆栈。
-
-![隐私与诊断设置](.agents/skills/openagent-configuration/assets/diagnostic-log-collection-zh.png)
-
-Langfuse 模型追踪与应用日志相互隔离，并保持可选：
-
-在项目根目录创建 `.env` 文件以启用 Langfuse 追踪：
-
-```env
-LANGFUSE_PUBLIC_KEY=pk-...
-LANGFUSE_SECRET_KEY=sk-...
-LANGFUSE_HOST=https://cloud.langfuse.com
-```
-
-配置后，Chat Agent 和 Memory Agent 的每次调用都会生成带有 `gen_ai.*` OpenTelemetry 属性的 span，并通过批量处理器导出。
-
----
-
-## 延伸阅读
-
-- [`AGENTS.md`](AGENTS.md) — 公开宿主与前端贡献指南
-- [`CHANGELOG.md`](CHANGELOG.md) — 完整版本历史
-- [Agent Plugin Skill](.agents/skills/openagent-plugin-development/SKILL.md) — 安装、校验、组件与数据边界
-- [渠道集成 Skill](.agents/skills/openagent-channel-integrations/SKILL.md) — 平台配置、范围命令、远程网关、持久化与安全
-- [发布工程 Skill](.agents/skills/openagent-release-engineering/SKILL.md) — 版本规则、beta/RC/stable 渠道、CI 与发布
-- [Embedding 资源 Skill](.agents/skills/openagent-embedding-resources/SKILL.md) — 随包模型来源、大小、校验与激活
-- [更新交付 Skill](.agents/skills/openagent-update-delivery/SKILL.md) — 前端热更新、独立 Runtime 二进制、进程重载与桌面边界
-- [设计系统 Skill](.agents/skills/openagent-design-system/SKILL.md) — 视觉语言、组件、响应式行为与 `DESIGN.md`
-- [Tauri 文档](https://tauri.app/) · [SvelteKit 文档](https://kit.svelte.dev/) · [rig（Rust LLM 框架）](https://github.com/0xPlaygrounds/rig)
-
----
+Runtime 真模型检查遵循 SDK 内部说明，环境变量模板见 [`.env.example`](.env.example)。`bun run test:sonar` 在向本地配置的 SonarQube 提交分析前，执行宿主与 SDK 测试门禁。
 
 ## 许可证
 
-OpenAgent 采用双许可证：
-
-- **开源选项：**[GNU GPL v3.0 或更高版本](LICENSE)（`GPL-3.0-or-later`）。
-  以该选项分发 OpenAgent 或其衍生作品时，GPL 要求按照其条款提供相应源代码
-  和 GPL 所赋予的自由；不得将衍生作品以专有软件形式分发。
-- **商业选项：**对于需要闭源分发衍生作品，或需要 GPL 之外权利的组织，可申请
-  单独的[商业许可证](COMMERCIAL_LICENSE.md)。
-
-商业许可证仅通过单独的书面协议授予。OpenAgent 名称和品牌仍受
-[TRADEMARKS.md](TRADEMARKS.md)约束。
+OpenAgent 提供 [GPL-3.0-or-later](LICENSE) 许可和单独的[商业许可选项](COMMERCIAL_LICENSE.md)。商业权利需通过书面协议获得。项目名称与品牌遵循 [TRADEMARKS.md](TRADEMARKS.md)。

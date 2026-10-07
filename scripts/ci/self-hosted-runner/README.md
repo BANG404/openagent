@@ -1,4 +1,14 @@
-# OpenAgent private CI host
+# Optional private runner deployment
+
+The active OpenAgent host, SDK qualification, and release workflows use standard
+GitHub-hosted runners. They do not reference this deployment or require PassNat
+or its persistent compiler cache. See the
+[SDK CI contract](../../../.agents/skills/openagent-release-engineering/references/sdk-ci.md)
+for current workflow ownership and cache boundaries.
+
+The files here retain an optional private-host deployment recipe. Follow the
+bootstrap steps only when deliberately administering that separate host; do not
+redirect public or release jobs to it as routine project setup.
 
 This directory deploys the repository-scoped private SDK runner, its persistent
 local compiler cache, and a PassNat SSH maintenance client. Run it only on a
