@@ -62,6 +62,20 @@ group state or transcript tool results to create a built-in group panel. Native
 qualification is `test:blackbox:chat-groups-sidebar` with a fresh isolated home
 and explicit pilot socket, covering existing data, send/reload, workspace
 isolation, enablement and live locale/theme changes.
+Workspace scope keeps the panel available without an open conversation;
+requested `conversation`/`branch` capabilities still receive live IDs. Chat
+Groups filters its own list with `chat_group_list.conversation_id` when an ID is
+present, using creator, membership and persisted Agent sender associations.
+Without an ID it lists the workspace. A conversation change immediately clears
+the previous messages, members and mention palette, invalidates pending reads,
+and restores the remembered group selection and that group's draft. Branch
+changes retain conversation associations. Group switches expose a loading state
+and disable sending until members and messages load. Do not pass the displayed
+conversation as an Agent sender: sidebar sends still use the host's empty sender
+context.
+The sidebar native runner covers actual conversation switching, branch-context
+updates, unrelated empty states, rapid scope changes, draft restoration and late
+tool replies.
 The package's Chat Groups view retains the desktop group-panel visual grammar:
 compact title/count, collapsible member pills, sticky headings for consecutive
 messages from one sender, and a floating Mica composer. Its inline theme tokens

@@ -213,6 +213,9 @@ try {
         return JSON.parse(result.content[0].text);
       }
       const group = await call("chat_group_create", { title: `Wake ${id}` });
+      assert.equal(group.created_by_conversation_id, id);
+      const related = await call("chat_group_list", { conversation_id: id });
+      assert(related.some((/** @type {any} */ item) => item.id === group.id));
       const member = await call("chat_group_add_member", {
         group_id: group.id,
         conversation_id: id,

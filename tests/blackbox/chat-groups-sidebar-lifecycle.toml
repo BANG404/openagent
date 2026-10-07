@@ -43,7 +43,7 @@ script = '''(async()=>{
   while(Date.now()<deadline){
     const expand=[...document.querySelectorAll('button')].find(b=>/^(Expand right sidebar|展开右侧栏)$/.test(b.getAttribute('aria-label')||''));expand?.click();
     const tab=[...document.querySelectorAll('.panel-navigation button')].find(b=>/Chat Groups|聊天群组/.test(b.textContent));tab?.click();
-    if(document.querySelector('#checkpoint-flow-panel iframe')?.contentDocument?.querySelectorAll('article').length===209)return true;
+    if(document.querySelector('#checkpoint-flow-panel iframe')?.contentDocument?.querySelectorAll('article').length===213)return true;
     await new Promise(r=>setTimeout(r,100));
   }
   throw new Error('re-enabled group sidebar did not recover');
