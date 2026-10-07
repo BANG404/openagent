@@ -1,0 +1,35 @@
+---
+title: Build your own OpenAgent plugin
+description: A practical path from your first Skill to a validated, published Agent Plugin.
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+Extend your desktop workspace with reusable Skills, MCP tools, commands, or a scoped sidebar. OpenAgent installs **Agent Plugins 1.0** packages; its additional capabilities live under `extensions.openagent`.
+
+<CardGrid>
+  <LinkCard title="01 · Your first plugin" description="Scaffold a Skill, validate it, and install the local package." href={`${import.meta.env.BASE_URL}plugins/first-plugin/`} />
+  <LinkCard title="02 · Package contract" description="Understand identity, compatibility, data, and optional components." href={`${import.meta.env.BASE_URL}plugins/package/`} />
+  <LinkCard title="03 · MCP tools" description="Connect a stdio server and choose Direct or Relay mounting." href={`${import.meta.env.BASE_URL}plugins/mcp/`} />
+  <LinkCard title="04 · Sidebar & languages" description="Build a scoped view that follows host context, locale, and theme." href={`${import.meta.env.BASE_URL}plugins/sidebar/`} />
+  <LinkCard title="05 · Publish & update" description="Package a stable release, verify its digest, and test replacement." href={`${import.meta.env.BASE_URL}plugins/publishing/`} />
+</CardGrid>
+
+## Choose a starting point
+
+| What you want to add | Plugin Kit template |
+| --- | --- |
+| Reusable instructions | `minimal` or `skill-pack` |
+| Tools from an MCP server | `mcp-tools` |
+| A slash command | `slash-commands` |
+| A scoped side panel | `sidebar-panel` |
+| Lifecycle hooks | `automation-hooks` |
+| Tool leases or a supervised process | `mcp-lifecycle` or `daemon` |
+
+## Learn from current packages
+
+[Plugin Developer](https://github.com/BANG404/openagent-plugin-kit) is both the public toolchain and an installable development assistant. [Chat Groups](https://github.com/BANG404/openagent-chat-groups), [Goal](https://github.com/BANG404/openagent-goal), [Graph](https://github.com/BANG404/openagent-graph), [Cua Driver](https://github.com/BANG404/openagent-cua-driver), and [Message Board](https://github.com/BANG404/message-board) are independently installed packages. Multi-Agent V2 is a Runtime capability; Goal and Graph add package-owned workflows through the shared Host Bridge.
+
+These tutorials follow the current public Plugin Kit templates and validator. An installed older Runtime may lack optional bridge operations even if it admits plugin protocol 1; detect support before using them. Public field-by-field references stay in the [Plugin Kit documentation](https://github.com/BANG404/openagent-plugin-kit/tree/main/docs).
+
+<a href={`${import.meta.env.BASE_URL}../`}>← Back to OpenAgent</a>

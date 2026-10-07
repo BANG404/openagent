@@ -1,4 +1,8 @@
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { resolve } from "node:path";
+
+import { checkPages } from "./check-pages.mjs";
 
 const output = "dist-pages";
 const releaseManifestPaths = {
@@ -27,7 +31,7 @@ async function buildDownloadChannel(channel, releaseManifestPath) {
   const assets = Array.isArray(release.assets) ? release.assets : [];
   const downloadAssets = Object.fromEntries(
     Object.entries(assetSuffixes).flatMap(([key, suffix]) => {
-      const asset = assets.find(({ name }) => name.endsWith(suffix));
+      const asset = assets.find(({ name }) => name.endsWith(suffix) && !name.includes("_full_"));
       return asset ? [[key, asset.browser_download_url]] : [];
     }),
   );
@@ -54,9 +58,20 @@ async function buildDownloadManifest() {
   );
 }
 
+const docsBuild = spawnSync(process.execPath, ["run", "build"], {
+  cwd: resolve("website/docs"),
+  stdio: "inherit",
+});
+if (docsBuild.error) throw docsBuild.error;
+if (docsBuild.status !== 0) throw new Error("Starlight documentation build failed.");
+
 await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });
-await cp("website", output, { recursive: true });
+await cp("website", output, {
+  recursive: true,
+  filter: (source) => resolve(source) !== resolve("website/docs"),
+});
+await cp("website/docs/dist", `${output}/docs`, { recursive: true });
 await cp("assets", `${output}/assets`, { recursive: true });
 const indexPath = `${output}/index.html`;
 const index = await readFile(indexPath, "utf8");
@@ -65,3 +80,5 @@ await writeFile(
   `${output}/downloads.json`,
   `${JSON.stringify(await buildDownloadManifest(), null, 2)}\n`,
 );
+await writeFile(`${output}/.nojekyll`, "");
+await checkPages(output);

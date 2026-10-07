@@ -7,5 +7,6 @@ metadata:
 
 # OpenAgent release engineering
 
-Read the matching reference for qualification, artifacts, CI routing, SDK
-checks, publishing, versioning, or local commands. Use deliver-via-owt.
+Read matching references for CI, SDK, artifacts, releases, or local commands.
+Use [GitHub Pages](references/github-pages.md) for the website and Starlight tutorials.
+Deliver via OWT.
