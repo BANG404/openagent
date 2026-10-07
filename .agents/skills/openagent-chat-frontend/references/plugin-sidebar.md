@@ -88,6 +88,9 @@ Workspace scope supplies its package data boundary; Chat Groups uses
 `activation_tools` to keep its panel hidden until the selected branch uses a
 group tool. The package-content runner installs an unconditional fixture copy
 to test iframe behavior separately from branch activation.
+Late-response fixtures must bind the injected response to the first outgoing
+request and its old scope; never overwrite it with a request from the incoming
+conversation, which would corrupt current data instead of testing stale replies.
 Requested `conversation`/`branch` capabilities still receive live IDs. Chat
 Groups filters its own list with `chat_group_list.conversation_id` when an ID is
 present, using creator, membership and persisted Agent sender associations.

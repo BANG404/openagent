@@ -37,7 +37,8 @@
             "notice.partialGroup": "Group '{group_id}' was saved; retry with group_id to finish adding roles",
             "notice.memberOwner": "Group owner",
             "notice.memberAgent": "Agent",
-            "notice.backupFailed": "Chat Groups backup could not be saved"
+            "notice.backupFailed": "Chat Groups backup could not be saved",
+            "notice.stopFailed": "Could not stop {count} group member conversations; retry Stop"
           },
           "zh": {
             "display_name": "聊天群组",
@@ -62,7 +63,8 @@
             "notice.partialGroup": "群组“{group_id}”已保存；请传入 group_id 重试以完成添加角色",
             "notice.memberOwner": "群主",
             "notice.memberAgent": "智能体",
-            "notice.backupFailed": "无法保存群组数据备份，原文件已保留"
+            "notice.backupFailed": "无法保存群组数据备份，原文件已保留",
+            "notice.stopFailed": "无法终止 {count} 个群组成员会话，请重试终止"
           }
         }
       }
