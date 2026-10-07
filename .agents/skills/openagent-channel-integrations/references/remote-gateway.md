@@ -108,6 +108,17 @@ the frontend contract; gateway authentication and confinement still require
 their SDK integration tests. The runner restores the original page and stops
 its fixture server in `finally`.
 
+Conversation components use the shared SDK's conversation-scoped UI asset and
+state operations. Validate the paired session, same-origin CSRF and allowed
+workspace. Read only a declared component present in the selected snapshot and
+send state writes to the workspace's owning Runtime. Desktop product endpoints
+remain restricted to their private bearer credentials.
+Serve component documents on authenticated conversation frame routes with their
+own restrictive CSP and same-origin framing header. The page's bootstrap script
+hash policy must remain intact; a sandboxed srcdoc inherits it and cannot run a
+plugin's inline script. The response CSP sandbox also isolates direct document
+navigation. The frame receives only props through postMessage.
+
 - The desktop application must remain running.
 - The gateway intentionally exposes the product conversation surface and the
   workspace presentation capabilities required by the shared chat components.

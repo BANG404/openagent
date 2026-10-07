@@ -1,0 +1,77 @@
+[scenario]
+name = "checkpoint conversation UI"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "persisted builtins and unsupported plugin fallbacks render"
+action = "eval"
+script = '''(() => {
+  const text=document.querySelector('.conversation-ui-preview')?.textContent || '';
+  if(!text.includes('Saved notice') || !text.includes('Unavailable plugin fallback') || !text.includes('Unknown version fallback')) throw new Error('durable UI/fallback missing');
+  const divider=document.querySelector('#message-ui-preview-0');
+  if(!divider || !/Context compaction complete|上下文压缩完成/.test(divider.textContent)) throw new Error('localized divider missing: '+divider?.textContent);
+  const frame=document.querySelector('iframe');
+  if(!frame || frame.sandbox.value!=='allow-scripts' || frame.contentDocument!==null) throw new Error('plugin frame is not isolated');
+  if(!frame.srcdoc.includes("connect-src 'none'"))throw new Error('plugin CSP missing');
+  return true;
+})()'''
+
+[[step]]
+name = "component receives checkpoint context"
+action = "eval"
+script = '''(async () => {
+  for(let i=0;i<100;i++){
+    const probe=JSON.parse(document.querySelector('main').dataset.probe || '{}');
+    if(probe.type==='fixture:context' && probe.count===0 && probe.theme===window.__uiTheme && probe.locale===window.__uiLocale)return true;
+    await new Promise(resolve=>setTimeout(resolve,50));
+  }
+  throw new Error('versioned context missing');
+})()'''
+
+[[step]]
+name = "other windows cannot save the component record"
+action = "eval"
+script = '''(async () => {
+  window.dispatchEvent(new MessageEvent('message',{source:window,data:{type:'openagent:conversation-ui-state',version:1,message_id:'ui-preview-2',request_id:'spoof',props:{count:9}}}));
+  await new Promise(resolve=>setTimeout(resolve,50));
+  if(document.querySelector('main').dataset.saveCount!=='0')throw new Error('foreign frame state accepted');
+  return true;
+})()'''
+
+[[step]]
+name = "component click saves props without remounting iframe"
+action = "eval"
+script = '''(async () => {
+  const frame=document.querySelector('iframe');window.__uiFrame=frame;
+  frame.contentWindow.postMessage({type:'fixture:click'},'*');
+  for(let i=0;i<100;i++){
+    const probe=JSON.parse(document.querySelector('main').dataset.probe || '{}');
+    const saved=JSON.parse(document.querySelector('main').dataset.result || '{}');
+    if(saved.type==='fixture:result' && saved.ok===true && saved.count===1){
+      if(frame!==document.querySelector('iframe'))throw new Error('state update remounted component');
+      if(!sessionStorage.getItem('openagent-conversation-ui-preview').includes('"count":1'))throw new Error('checkpoint state not saved');
+      return true;
+    }
+    await new Promise(resolve=>setTimeout(resolve,50));
+  }
+  throw new Error('component state save failed');
+})()'''
+
+[[step]]
+name = "save failure keeps component draft and previous checkpoint"
+action = "eval"
+script = '''(async () => {
+  document.querySelector('#ui-preview-fail').click();await new Promise(resolve=>setTimeout(resolve,0));
+  document.querySelector('iframe').contentWindow.postMessage({type:'fixture:click'},'*');
+  for(let i=0;i<100;i++){
+    const probe=JSON.parse(document.querySelector('main').dataset.probe || '{}');
+    const saved=JSON.parse(document.querySelector('main').dataset.result || '{}');
+    if(saved.type==='fixture:result' && saved.ok===false && saved.count===2){
+      if(!sessionStorage.getItem('openagent-conversation-ui-preview').includes('"count":1'))throw new Error('failed save changed checkpoint');
+      return true;
+    }
+    await new Promise(resolve=>setTimeout(resolve,50));
+  }
+  throw new Error('failed save discarded draft or was acknowledged');
+})()'''

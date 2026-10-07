@@ -255,6 +255,11 @@
   grouped tool-call rendering. Its `-theme` and `-locale` query parameters must
   keep two-column flow, multi-page navigation, process collapse, and light/dark
   Chinese/English checks addressable without onboarding or native state.
+  Run `bun run test:blackbox:book-reader` with an explicit isolated
+  `TAURI_PILOT_SOCKET` after changing transcript rows or reader loading. It
+  opens, closes, and reopens the production reader from `quote-context-preview`,
+  checks that the transcript stays unchanged, and verifies the long book
+  fixture's forward/backward pagination in all four theme/locale combinations.
 - Keep the development-only `permission-settings-preview` query as the direct,
   interactive surface for execution permissions. Its `-theme` and `-locale`
   parameters must keep managed, disabled, preset, custom-rule, network, warning,
@@ -284,34 +289,33 @@
   surface for Settings → Extensions → MCP. Its `-theme` and `-locale` query
   parameters must keep enabled and disabled tool switches, long wrapping tool
   names, light/dark themes, and Chinese/English copy addressable without a
-  native MCP server. The list contains only user-configured MCP services;
-  built-in providers such as Cua Driver are managed from their owning plugin
-  surface and must not appear here. The same exclusion applies to the MCP
-  association column in the Agent Role editor.
+  native MCP server. Every configured MCP server, including plugin-owned
+  connections such as Cua Driver, uses this common surface. Plugin-owned MCP
+  capabilities remain available to every role and do not appear in the role
+  association column.
 - The Plugins settings surface renders product capabilities and installed
   packages from the Runtime Agent Plugin registry. Every package uses the same
   enablement and command catalog projection; a package-owned slash command is
   supplied by its descriptor rather than hardcoded in the frontend. Checkpoint
   message policies describe which tagged prompts are user-visible and which are
-  model-only. The Cua Driver entry still seeds an enabled stdio
-  MCP entry on first configuration load and exposes only switch controls: the
-  plugin enable switch plus Cua connection testing and per-tool scope switches.
-  Permission mode, socket, grants, and manifest are fixed product policy rather
-  than user settings, so never render them as editable fields again. The
+  model-only. Every package, including Cua Driver, uses the common plugin
+  enablement and capability controls. MCP connection testing and per-tool
+  enablement live in the common MCP settings surface. The Cua Driver entry is
+  still seeded because its transport endpoint and launcher are owned by the
+  desktop host; permission mode, socket, grants, and manifest remain fixed
+  product policy rather than user settings. The
   Runtime-owned Multi-Agent V2 capability is intentionally absent from this
   surface; its `multi_agent_v2.enabled` switch belongs to Runtime configuration
   and must not be presented as plugin enablement.
   reserved `cua-driver` command is resolved from the installed package when MCP
   servers are mounted, and the package's launcher provisions the driver it runs
   into that package's own data directory, so no build ships a Cua executable for
-  this entry to find. Connection testing and the plugin switch start the
-  plugin-owned daemon before probing, because the reserved client only attaches
-  to an endpoint; without that call the tool list stays empty with the
-  `pluginToolsEmpty` hint. Ordinary plugin cards use their manifest components;
-  the reserved Cua package id keeps its own settings controls because that is
-  the key its discovered tools and connection test live under. Show a localized warning for the fixed unrestricted
-  mode, and keep the tool switches usable down to a single column on narrow
-  windows.
+  this entry to find. The common MCP connection test starts the plugin-owned
+  daemon before probing, because the reserved client only attaches to an
+  endpoint; without that call discovery fails in the common MCP view. Ordinary
+  plugin cards use their manifest components;
+  do not add plugin-ID-specific MCP tests or tool toggles. Keep common MCP tool
+  switches usable down to a single column on narrow windows.
 - Settings action controls use one compact, shadowless semantic hierarchy:
   primary blue pills for creation, divider-bordered filled controls for ordinary
   file, test, and navigation actions, blue controls for inline row construction,

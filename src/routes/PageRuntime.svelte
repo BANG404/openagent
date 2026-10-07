@@ -924,6 +924,7 @@
   });
 
   const checkpoints = createCheckpointController({
+    findConversationLocation,
     get tauriAvailable() {
       return tauriAvailable;
     },

@@ -104,6 +104,7 @@ pub(crate) fn register(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<ta
         embedded_commands::plugins::install_official_agent_plugin,
         embedded_commands::plugins::uninstall_agent_plugin,
         embedded_commands::plugins::read_agent_plugin_asset,
+        set_conversation_ui_props,
         embedded_commands::plugins::get_skill_content,
         embedded_commands::plugins::save_skill_content,
         embedded_commands::plugins::create_skill,

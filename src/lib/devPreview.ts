@@ -6,6 +6,7 @@ export type StandaloneDevPreview =
   | "cache-usage"
   | "checkpoint-flow"
   | "compaction-status"
+  | "conversation-ui"
   | "command-palette"
   | "desktop-shell"
   | "follow-up-suggestions"
@@ -33,6 +34,7 @@ const PREVIEW_QUERIES: ReadonlyArray<[string, StandaloneDevPreview]> = [
   ["workspace-switcher-preview", "workspace-switcher"],
   ["checkpoint-flow-preview", "checkpoint-flow"],
   ["compaction-status-preview", "compaction-status"],
+  ["conversation-ui-preview", "conversation-ui"],
   ["pause-control-preview", "pause-control"],
   ["quote-context-preview", "quote-context"],
   ["command-palette-preview", "command-palette"],

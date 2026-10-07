@@ -383,10 +383,6 @@ export const zh = {
   pluginMessageAriaLabel: "插件消息",
   pluginMessageFrom: "来自插件",
   pluginMessageSourceUnknown: "未知插件",
-  pluginDesktopControlDescription:
-    "将 Cua Driver 作为 MCP 服务接入，让 Agent 可以操作桌面应用与浏览器。",
-  pluginDesktopControl: "桌面控制",
-  pluginCuaDriverHint: "该插件请求使用真实电脑环境。只有你在下方明确授权后才会获得访问。",
   pluginHostAccess: "允许访问真实电脑",
   pluginHostAccessTitle: "授权插件访问真实电脑",
   pluginHostAccessInstallDescription:
@@ -401,10 +397,6 @@ export const zh = {
   pluginEnable: "启用插件",
   pluginInstallSuccess: "已安装 {name}",
   pluginHostAccessHint: "授权后，插件可访问真实电脑，其进程将不受沙箱限制。请仅向可信插件授权。",
-  pluginTools: "可用工具",
-  pluginToolsHint: "选择 Cua Driver 可以暴露给 Agent 的桌面操作。",
-  pluginToolsEmpty: "点击测试连接以发现 Cua Driver 工具。",
-  pluginUnrestrictedWarning: "只有在你授予真实电脑访问权限后，该插件才能控制鼠标、键盘和桌面应用。",
   about: "关于我们",
   // General settings
   appearance: "外观",
@@ -1015,6 +1007,8 @@ export const zh = {
   compactionCreating: "正在写入压缩上下文",
   compactionFailed: "上下文压缩失败",
   compactionCompleted: "上下文压缩完成",
+  conversationUiLabel: "对话组件",
+  conversationUiUnavailable: "组件暂不可用，已显示保存的内容。",
   retryAttempt: "请求失败，正在重试",
   checkpointLoadFailed: "无法显示此分支：加载 checkpoint 失败。",
   // ask_user form

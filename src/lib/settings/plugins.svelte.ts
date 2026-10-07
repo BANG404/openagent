@@ -110,21 +110,6 @@ export function createPluginSettings(
     return draft.draftConfig.mcp.servers.find((server) => server.id === CUA_DRIVER_ID);
   }
 
-  function setCuaDriverEnabled(enabled: boolean) {
-    draft.draftConfig.agent_plugins_enabled = {
-      ...(draft.draftConfig.agent_plugins_enabled ?? {}),
-      [CUA_DRIVER_ID]: enabled,
-    };
-    const existing = findCuaDriverServer();
-    if (existing) {
-      existing.enabled = enabled;
-      return;
-    }
-    const created = createCuaDriverServer(cuaDriverEndpoint());
-    created.enabled = enabled;
-    draft.draftConfig.mcp.servers = [created, ...draft.draftConfig.mcp.servers];
-  }
-
   function agentPluginEnabled(pluginId: string): boolean {
     return draft.draftConfig.agent_plugins_enabled?.[pluginId] ?? true;
   }
@@ -134,6 +119,8 @@ export function createPluginSettings(
       ...(draft.draftConfig.agent_plugins_enabled ?? {}),
       [pluginId]: enabled,
     };
+    const pluginMcpServer = draft.draftConfig.mcp.servers.find((server) => server.id === pluginId);
+    if (pluginMcpServer?.plugin_owned) pluginMcpServer.enabled = enabled;
   }
 
   function agentPluginHostAccess(pluginId: string): boolean {
@@ -198,8 +185,6 @@ export function createPluginSettings(
   ): PluginSidebarLifecycle {
     return pluginSidebarLifecycle(view, plugin, options.pluginSidebarContext);
   }
-
-  const cuaDriver = $derived(findCuaDriverServer() ?? createCuaDriverServer(cuaDriverEndpoint()));
 
   $effect(() => {
     if (!draft.initializedFromConfig || cuaDefaultApplied) return;
@@ -639,11 +624,7 @@ export function createPluginSettings(
     refreshAgentPlugins,
     reloadAgentPlugins,
     runAgentPluginUpdateCheck,
-    get cuaDriver() {
-      return cuaDriver;
-    },
     pluginSidebarLifecycleFor,
-    setCuaDriverEnabled,
     set agentPluginStatus(value: string) {
       agentPluginStatus = value;
     },

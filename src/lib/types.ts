@@ -1,4 +1,6 @@
 import type { AgentMessageTag as SdkAgentMessageTag } from "../../sdk/typescript/src/types";
+export type { ConversationUi, ConversationUiComponent } from "../../sdk/typescript/src/types";
+import type { ConversationUi } from "../../sdk/typescript/src/types";
 
 export interface ToolCallRecord {
   name: string;
@@ -62,6 +64,13 @@ export type ContextCompactionStage =
 export type UserInputState = "pending" | "answered" | "cancelled" | "unanswered";
 
 export type StreamItem =
+  | {
+      type: "ui";
+      ui: ConversationUi;
+      messageId: string;
+      conversationId?: string | null;
+      branchId?: string | null;
+    }
   | { type: "text"; content: string }
   | { type: "thinking"; content: string }
   | {
@@ -113,7 +122,8 @@ export type StreamItem =
 
 export interface ChatMessage {
   id: string;
-  role: "user" | "assistant" | "system";
+  role: "user" | "assistant" | "system" | "ui";
+  ui?: ConversationUi;
   content: string;
   timestamp: number;
   toolCalls?: ToolCallRecord[];
@@ -326,7 +336,7 @@ export interface CheckpointMetadataFields {
 
 export interface CheckpointMessage {
   id: string;
-  role: "user" | "assistant" | "system";
+  role: "user" | "assistant" | "system" | "ui";
   content: Array<Record<string, unknown>>;
   /** JSON-serialized UI-only StreamItem[] metadata. */
   items?: string | null;
@@ -343,6 +353,7 @@ export interface CheckpointMessage {
 }
 
 export interface CheckpointData {
+  format_version?: number;
   messages: CheckpointMessage[];
   file_change_ids: string[];
   phase:
@@ -722,6 +733,7 @@ export interface AgentPluginAuthorSummary {
 export type { AgentPluginInstallProgress } from "../../sdk/typescript/src/types";
 
 export interface AgentPluginSummary {
+  ui_components?: import("../../sdk/typescript/src/types").ConversationUiComponent[];
   mcp_tool_mode?: "direct" | "relay";
   i18n?: import("../../sdk/typescript/src/types").AgentPluginI18n | null;
   id: string;

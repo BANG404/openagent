@@ -37,6 +37,7 @@
     messages: ChatMessage[];
     currentStreamItems: StreamItem[];
     activeConvId: string | null;
+    activeBranchId: string | null;
     activeTree: ConvTree | undefined;
     debugMode: boolean;
     pendingCheckpointId: string | null;
@@ -65,6 +66,7 @@
     messages,
     currentStreamItems,
     activeConvId,
+    activeBranchId,
     activeTree,
     debugMode,
     pendingCheckpointId,
@@ -114,7 +116,12 @@
       : entry.kind === "message"
         ? entry.index
         : -1}
-  {@const renderedAssistantItems = assistantItems(entry, currentStreamItems)}
+  {@const renderedAssistantItems = assistantItems(
+    entry,
+    currentStreamItems,
+    activeConvId,
+    activeBranchId,
+  )}
   {@const assistantIsStreaming = entry.kind === "live_stream"}
   {@const turnMetadata = latestTurnMetadata(turnMessages)}
   {@const turnStatus = assistantTurnStatus(turnMessages, assistantIsStreaming)}

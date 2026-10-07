@@ -569,6 +569,7 @@
     if (!conversation) return;
     const convId = state.conv_id;
     const previousPhase = conversation.phase;
+    const previousCheckpointId = conversation.checkpoint_id;
     conversation = state;
     remoteCatalog.updateTitle(convId, state.title);
     const stillPending = Object.fromEntries(
@@ -591,14 +592,18 @@
     if (remoteExecution.pendingAssistantMessageId && state.phase !== "before_completion") {
       remoteExecution.pendingAssistantMessageId = null;
     }
-    if (previousPhase === "before_completion" && state.phase !== "before_completion") {
+    if (
+      state.phase !== "before_completion" &&
+      (previousPhase === "before_completion" || previousCheckpointId !== state.checkpoint_id)
+    ) {
       remoteExecution.streamPaused = false;
       void refreshConversations();
       void loadConversationHistory(convId);
       if (
-        state.phase === "final_completed" ||
-        state.phase === "final_cancelled" ||
-        state.phase === "final_failed"
+        previousPhase === "before_completion" &&
+        (state.phase === "final_completed" ||
+          state.phase === "final_cancelled" ||
+          state.phase === "final_failed")
       ) {
         queueMicrotask(() => void sendNextQueuedMessage(convId));
       }

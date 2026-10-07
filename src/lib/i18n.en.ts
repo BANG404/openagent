@@ -389,11 +389,6 @@ const en: Record<TranslationKeys, string> = {
   pluginMessageAriaLabel: "Plugin message",
   pluginMessageFrom: "From plugin",
   pluginMessageSourceUnknown: "Unknown plugin",
-  pluginDesktopControlDescription:
-    "Connect Cua Driver as an MCP service so the Agent can operate desktop apps and browsers.",
-  pluginDesktopControl: "Desktop control",
-  pluginCuaDriverHint:
-    "Requests access to the real computer environment. Grant it explicitly below when you trust this plugin.",
   pluginHostAccess: "Allow real computer access",
   pluginHostAccessTitle: "Authorize real computer access",
   pluginHostAccessInstallDescription:
@@ -410,11 +405,6 @@ const en: Record<TranslationKeys, string> = {
   pluginInstallSuccess: "Installed {name}",
   pluginHostAccessHint:
     "Grants access to the real computer and allows plugin processes to run outside the sandbox. Only grant access to plugins you trust.",
-  pluginTools: "Available tools",
-  pluginToolsHint: "Choose which desktop actions Cua Driver exposes to the Agent.",
-  pluginToolsEmpty: "Test the connection to discover Cua Driver tools.",
-  pluginUnrestrictedWarning:
-    "This plugin can control the mouse, keyboard, and desktop apps only after you grant real computer access.",
   about: "About",
   appearance: "Appearance",
   theme: "Theme",
@@ -1047,6 +1037,8 @@ const en: Record<TranslationKeys, string> = {
   compactionCreating: "Saving compacted context",
   compactionFailed: "Context compaction failed",
   compactionCompleted: "Context compaction complete",
+  conversationUiLabel: "Conversation component",
+  conversationUiUnavailable: "Component unavailable. Saved content is shown.",
   retryAttempt: "Request failed; retrying",
   checkpointLoadFailed: "Cannot display this branch: failed to load its checkpoint.",
   askUserDefaultTitle: "Agent needs your input",

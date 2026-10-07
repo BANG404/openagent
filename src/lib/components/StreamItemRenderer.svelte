@@ -7,7 +7,7 @@
   import UserInputForm from "./UserInputForm.svelte";
   import UserInputSummary from "./UserInputSummary.svelte";
   import RetryAttempt from "./RetryAttempt.svelte";
-  import MessageDivider from "./MessageDivider.svelte";
+  import ConversationUiRecord from "./ConversationUiRecord.svelte";
   import CompactionStatus from "./CompactionStatus.svelte";
   import { t } from "$lib/i18n";
   import type { FileChange, StreamItem } from "$lib/types";
@@ -88,7 +88,14 @@
   }
 </script>
 
-{#if item.type === "text"}
+{#if item.type === "ui"}
+  <ConversationUiRecord
+    ui={item.ui}
+    messageId={item.messageId}
+    conversationId={item.conversationId ?? null}
+    branchId={item.branchId ?? null}
+  />
+{:else if item.type === "text"}
   <div
     class="assistant-msg stream-item message-record"
     id={messageId ? `message-${messageId}` : undefined}
@@ -165,17 +172,36 @@
 {:else if item.type === "compaction"}
   <CompactionStatus {item} {itemKey} {messageId} />
 {:else if item.type === "compaction_boundary"}
-  <MessageDivider title={$t("compactionCompleted")} streamItemKey={itemKey} {messageId} />
+  <ConversationUiRecord
+    ui={{
+      version: 1,
+      component: "builtin.divider",
+      props: { label_key: "compactionCompleted" },
+      fallback: $t("compactionCompleted"),
+    }}
+    messageId={messageId ?? itemKey}
+    conversationId={null}
+    branchId={null}
+  />
 {:else if item.type === "runtime_notice"}
-  <MessageDivider
-    title={item.kind === "error" ? $t("agentRunFailed") : $t("agentRunInterrupted")}
-    detail={runtimeNoticeDetail(
-      item,
-      item.kind === "error" ? $t("agentRunFailed") : $t("agentRunInterrupted"),
-    )}
-    tone={item.kind === "error" ? "danger" : "neutral"}
+  <ConversationUiRecord
+    ui={{
+      version: 1,
+      component: "builtin.divider",
+      props: {
+        title: item.kind === "error" ? $t("agentRunFailed") : $t("agentRunInterrupted"),
+        detail: runtimeNoticeDetail(
+          item,
+          item.kind === "error" ? $t("agentRunFailed") : $t("agentRunInterrupted"),
+        ),
+        tone: item.kind === "error" ? "danger" : "neutral",
+      },
+      fallback: item.kind === "error" ? $t("agentRunFailed") : $t("agentRunInterrupted"),
+    }}
     streamItemKey={itemKey}
-    {messageId}
+    messageId={messageId ?? itemKey}
+    conversationId={null}
+    branchId={null}
   />
 {:else if item.type === "retry"}
   <div

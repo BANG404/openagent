@@ -17,6 +17,8 @@ export function entryAssistantMessages(entry: MessageRenderEntry): ChatMessage[]
 export function assistantItems(
   entry: MessageRenderEntry,
   currentStreamItems: StreamItem[],
+  activeConvId: string | null,
+  activeBranchId: string | null,
 ): StreamItem[] {
   if (entry.kind === "live_stream") return currentStreamItems;
   if (entry.kind === "assistant_turn") {
@@ -24,6 +26,16 @@ export function assistantItems(
       // A durable turn is grouped with the replay that opens it, so its
       // boundary belongs to a finished reply and stays mounted.
       if (isCompactionReplayUser(message)) return [{ type: "compaction_boundary" as const }];
+      if (message.role === "ui" && message.ui)
+        return [
+          {
+            type: "ui" as const,
+            ui: message.ui,
+            messageId: message.id,
+            conversationId: activeConvId,
+            branchId: activeBranchId,
+          },
+        ];
       if (message.role !== "assistant") return [];
       return message.items?.length
         ? message.items

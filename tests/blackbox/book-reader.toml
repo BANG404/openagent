@@ -1,0 +1,26 @@
+[scenario]
+name = "book reader pagination in the native WebView"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "long content keeps forward and backward pagination"
+action = "eval"
+script = '''(async () => {
+  const assert = (condition, message) => { if (!condition) throw new Error(message); };
+  const settle = () => new Promise(resolve => setTimeout(resolve, 350));
+  const indicator = () => document.querySelector('.page-indicator').textContent.trim();
+  for (let i = 0; i < 50 && document.querySelector('.page-turn-next').disabled; i++) await settle();
+  const first = indicator();
+  const pages = first.split('/').map(value => Number(value.trim()));
+  assert(pages[0] === 1 && pages[1] > 1, 'long fixture did not paginate: ' + first);
+  assert(document.querySelector('.page-turn-previous').disabled, 'first page can move backwards');
+  document.querySelector('.page-turn-next').click(); await settle();
+  assert(indicator().startsWith('2 /'), 'next page did not advance');
+  assert(document.querySelector('.agent-book-page').scrollLeft > 0, 'page content did not move');
+  document.querySelector('.page-turn-previous').click(); await settle();
+  assert(indicator() === first, 'previous page did not restore page one');
+  assert(document.querySelector('.agent-book-page').scrollLeft < 1, 'page one did not restore its offset');
+  assert(document.querySelector('.agent-book-page .book-record'), 'book lost its rendered records');
+  return 'pagination and rendered records preserved';
+})()'''

@@ -1,6 +1,5 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
-  import MessageDivider from "./MessageDivider.svelte";
   import ToolCallGroup from "./ToolCallGroup.svelte";
   import type { AgentBookTurn } from "./AgentBookReader.svelte";
   import Tooltip from "./Tooltip.svelte";
@@ -29,6 +28,7 @@
     UserMessageContext,
   } from "$lib/types";
   import PluginMessage from "./PluginMessage.svelte";
+  import ConversationUiRecord from "./ConversationUiRecord.svelte";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { isPluginMessage } from "$lib/types";
   import { createTranscriptSelection } from "$lib/transcript/selection.svelte";
@@ -188,7 +188,7 @@
         ? [
             {
               key: entry.key,
-              items: assistantItems(entry, currentStreamItems),
+              items: assistantItems(entry, currentStreamItems, activeConvId, activeBranchId),
               status: assistantTurnStatus(entryAssistantMessages(entry), false),
             },
           ]
@@ -371,6 +371,7 @@
           {messages}
           {currentStreamItems}
           {activeConvId}
+          {activeBranchId}
           {activeTree}
           {debugMode}
           {pendingCheckpointId}
@@ -411,11 +412,27 @@
       {:else if entry.kind === "message"}
         {@const msg = entry.msg}
         {@const msgIdx = entry.index}
-        {#if isCompactionReplayUser(msg) && !liveCompactionDivider}
-          <MessageDivider
-            title={$t("compactionCompleted")}
+        {#if msg.role === "ui" && msg.ui}
+          {#if !(liveCompactionDivider && msg.ui.component === "builtin.divider" && msg.ui.props.label_key === "compactionCompleted")}
+            <ConversationUiRecord
+              ui={msg.ui}
+              messageId={msg.id}
+              conversationId={activeConvId}
+              branchId={activeBranchId}
+            />
+          {/if}
+        {:else if isCompactionReplayUser(msg) && !liveCompactionDivider}
+          <ConversationUiRecord
+            ui={{
+              version: 1,
+              component: "builtin.divider",
+              props: { label_key: "compactionCompleted" },
+              fallback: $t("compactionCompleted"),
+            }}
             streamItemKey={`compaction-boundary-${msg.id}`}
             messageId={msg.id}
+            conversationId={null}
+            branchId={null}
           />
         {:else if msg.role === "user" && isPluginMessage(msg)}
           <PluginMessage message={msg} />

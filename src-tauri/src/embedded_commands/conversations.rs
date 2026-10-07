@@ -233,3 +233,17 @@ pub(crate) async fn apply_file_change_forward(
 ) -> Result<String, String> {
     openagent_runtime::commands::apply_file_change_forward(runtime.state(), change_id).await
 }
+
+#[tauri::command]
+pub(crate) async fn set_conversation_ui_props(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    conv_id: String,
+    branch_id: String,
+    message_id: String,
+    props: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    openagent_runtime::commands::set_conversation_ui_props(
+        &runtime, conv_id, branch_id, message_id, props,
+    )
+    .await
+}

@@ -1,3 +1,4 @@
+import { mergeConversationUiMessages, mergeConversationUiStream } from "$lib/conversationUi";
 import { tick } from "svelte";
 import { desktopOpenAgent as openAgent } from "$lib/openagent/tauriClient";
 import { tr } from "$lib/i18n";
@@ -63,6 +64,10 @@ interface CheckpointOptions {
     checkpoint: StartupConversationBundle["checkpoints"][number],
   ) => void;
   refreshTaskUsagesForConversation: (convId: string) => Promise<void>;
+  findConversationLocation: (convId: string) => {
+    conversations: Conversation[];
+    index: number;
+  } | null;
 }
 
 /** Owns durable hydration and branch-scoped checkpoint reconciliation. */
@@ -159,6 +164,29 @@ export function createCheckpointController(options: CheckpointOptions) {
         ...options.convTrees,
         [convId]: reconcileLiveCheckpointTip(checkpoints, options.convTrees[convId], checkpointId),
       };
+      const location = options.findConversationLocation(convId);
+      if (location) {
+        const visible = location.conversations[location.index];
+        let durable = computeActivePath(options.convTrees[convId]);
+        if (options.chatStreams.streamingConversationIds[convId]) {
+          options.chatStreams.itemsByConversation = {
+            ...options.chatStreams.itemsByConversation,
+            [convId]: mergeConversationUiStream(
+              visible.messages,
+              durable,
+              options.chatStreams.itemsByConversation[convId] ?? [],
+              convId,
+              branchId,
+            ),
+          };
+          const visibleIds = new Set(visible.messages.map((message) => message.id));
+          durable = durable.filter(
+            (message) => message.role !== "ui" || visibleIds.has(message.id),
+          );
+        }
+        const projectedUi = mergeConversationUiMessages(visible.messages, durable);
+        location.conversations[location.index] = { ...visible, messages: projectedUi };
+      }
       const liveChanges = options.liveFileChangesPerConv[convId] ?? [];
       reconcileLiveFileChanges(
         convId,

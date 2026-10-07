@@ -41,6 +41,7 @@
   import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
   import CheckpointFlowToggleButton from "$lib/components/CheckpointFlowToggleButton.svelte";
   import CompactionStatus from "$lib/components/CompactionStatus.svelte";
+  import ConversationUiPreview from "$lib/components/ConversationUiPreview.svelte";
   import DesktopShellPreview from "$lib/components/DesktopShellPreview.svelte";
   import FollowUpSuggestions from "$lib/components/FollowUpSuggestions.svelte";
   import MessageInput from "$lib/components/MessageInput.svelte";
@@ -1514,6 +1515,8 @@
       />
     </section>
   </main>
+{:else if preview === "conversation-ui"}
+  <ConversationUiPreview />
 {:else if preview === "compaction-status"}
   <main class="compaction-status-preview-stage">
     <section class="compaction-status-preview-list" aria-label={$t("contextCompaction")}>

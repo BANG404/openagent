@@ -11,6 +11,8 @@ interface AttachmentOptions {
     | "resolveWorkspaceMedia"
     | "repairAttachmentBlob"
     | "uploadRemoteAttachment"
+    | "readConversationUiAsset"
+    | "setConversationUiProps"
   >;
   activeConversationId: () => string;
 }
@@ -54,6 +56,13 @@ export function createRemoteAttachmentController(options: AttachmentOptions) {
   const previewUrls = new Set<string>();
   let disposed = false;
   const capabilities: OpenAgentUiCapabilities = {
+    readPluginUiAsset: (pluginId, entry) => {
+      const convId = options.activeConversationId();
+      if (!convId) return Promise.reject(new Error("Conversation unavailable"));
+      return options.client.readConversationUiAsset(convId, pluginId, entry);
+    },
+    setConversationUiProps: (convId, branchId, messageId, props) =>
+      options.client.setConversationUiProps({ convId, branchId, messageId, props }),
     async openUrl(url) {
       const parsed = new URL(url);
       if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {

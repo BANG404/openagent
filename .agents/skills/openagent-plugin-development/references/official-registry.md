@@ -19,6 +19,9 @@ an archive that the existing Runtime marketplace installer understands. Optional
 fragments, duplicate ids, unsupported schema versions, and oversized catalogs
 are rejected before a source is passed to the installer.
 
+Advance a package gitlink, its bundled catalog version and the explicit catalog
+test expectations together. Source-manifest parity remains a required check.
+
 Optional `i18n` entries use the validated `AgentPluginI18n` presentation shape.
 Uninstalled cards use catalog declarations; installed cards refresh from the
 authoritative installed summary and show unknown support when it has no

@@ -112,7 +112,9 @@ export function partitionAssistantSegments(
   const processSegments: StreamItemSegment[] = [];
   const finalSegments: StreamItemSegment[] = [];
   for (const segment of segments) {
-    if (firstRenderIndex !== undefined && segment.startIndex >= firstRenderIndex) {
+    if (segment.kind === "item" && segment.item.type === "ui") {
+      finalSegments.push(segment);
+    } else if (firstRenderIndex !== undefined && segment.startIndex >= firstRenderIndex) {
       finalSegments.push(segment);
     } else if (
       segment.kind === "item" &&
@@ -191,8 +193,8 @@ function assistantMessages(entry: StoredMessageRenderEntry): ChatMessage[] | nul
 function isCompactionContinuation(entry: StoredMessageRenderEntry): boolean {
   return (
     entry.kind === "message" &&
-    entry.msg.role === "user" &&
-    entry.msg.tags?.includes("context_compaction") === true
+    (entry.msg.role === "ui" ||
+      (entry.msg.role === "user" && entry.msg.tags?.includes("context_compaction") === true))
   );
 }
 

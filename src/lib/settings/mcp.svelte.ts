@@ -45,9 +45,7 @@ export function createMcpSettings(draft: SettingsDraft) {
   const mcpConnectionFingerprints = new Map<string, string>();
 
   const cuaDriverId = CUA_DRIVER_ID;
-  const userMcpServers = $derived(
-    draft.draftConfig.mcp.servers.filter((server) => server.id !== cuaDriverId),
-  );
+  const userMcpServers = $derived(draft.draftConfig.mcp.servers);
 
   function ensureSelectedMcpServer() {
     if (userMcpServers.some((server) => server.id === selectedMcpId)) return;
@@ -217,6 +215,11 @@ export function createMcpSettings(draft: SettingsDraft) {
     if (!server) return;
     if (!enabled) {
       server.enabled = false;
+      if (server.plugin_owned)
+        draft.draftConfig.agent_plugins_enabled = {
+          ...draft.draftConfig.agent_plugins_enabled,
+          [server.id]: false,
+        };
       return;
     }
 
@@ -256,6 +259,11 @@ export function createMcpSettings(draft: SettingsDraft) {
         [id]: [...new Set(probe.tools)].sort((left, right) => left.localeCompare(right)),
       };
       server.enabled = true;
+      if (server.plugin_owned)
+        draft.draftConfig.agent_plugins_enabled = {
+          ...draft.draftConfig.agent_plugins_enabled,
+          [server.id]: true,
+        };
       mcpTestStatus = {
         ...mcpTestStatus,
         [id]: {

@@ -27,6 +27,13 @@ reduces protection. To undo the change, run `Remove-MpPreference
 
 ## Linker and filesystem rules
 
+Run native process confinement checks from the signed-in user's interactive
+Windows session. The pinned Windows sandbox targets `Winsta0`; a Session 0
+service process can launch a child that fails before `main` with
+`0xC0000142`. Reproduce the same check in the interactive session before changing
+the sandbox policy or interpreting a service-session launch failure as a
+Runtime regression.
+
 `.cargo\config.toml` selects Rust's bundled `rust-lld` for the
 `x86_64-pc-windows-msvc` target. No separate LLVM installation is required.
 Verify it with:
