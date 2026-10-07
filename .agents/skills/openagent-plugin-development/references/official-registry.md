@@ -44,7 +44,13 @@ projections. The marketplace starts with search and availability filters, follow
 by plugin cards; omit the introductory heading, description, and catalog count.
 Place the Marketplace/Installed switch at the right of the
 Plugins page heading; let the heading row wrap on narrow surfaces while keeping
-the switch aligned to the right. Installation crosses the typed
+the switch aligned to the right. The plugin content uses up to 1440px of the
+surface width. Marketplace cards automatically fill that available width with
+300px minimum columns (one column below that width); toolbar stacking follows
+the management container, including when manually resized in a wide native
+window. Verify resize, expansion, restore, and native viewport changes through
+`bun run test:blackbox:plugin-layout` in all light/dark and English/Chinese
+combinations. Installation crosses the typed
 `install_official_agent_plugin` Runtime product command. The Runtime writes a
 one-entry temporary marketplace under the supported personal marketplace root,
 delegates to the normal marketplace installer, and removes the temporary

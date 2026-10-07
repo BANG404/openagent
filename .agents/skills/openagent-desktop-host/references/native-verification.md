@@ -132,6 +132,16 @@ live process is sitting in.
 
 ## Agent plugin update coverage
 
+Plugin marketplace layout uses `tests/blackbox/plugin-layout.toml`. Start
+`bun tauri dev --multi-instance plugin-layout`, select its explicit
+`TAURI_PILOT_SOCKET`, and run `bun run test:blackbox:plugin-layout`.
+The process-free, network-free runner checks manual resize dimensions, expansion,
+native resize/maximize, centered restore, container-based toolbar stacking, and
+one through four card columns in every light/dark and English/Chinese combination.
+It restores appearance and native size in `finally`. Set
+`BLACKBOX_NATIVE_WINDOW_HANDLE` to the verified main HWND for native captures;
+artifacts default to the system temporary directory.
+
 Plugin control clarity and installation-result dismissal use the process-free
 `tests/fixtures/agent-plugin-settings` package and the committed
 `tests/blackbox/plugin-settings.toml` scenario. Start

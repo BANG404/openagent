@@ -291,7 +291,7 @@ describe("desktop navigation chrome", () => {
       /\.fullscreen-surface\)\s*{[^}]*width: min\(max\(640px, 75vw\), 1100px, calc\(100vw - 32px\)\);[^}]*height: min\(max\(400px, 80vh\), 800px, calc\(100vh - 48px\)\);[^}]*resize: both;/s,
     );
     expect(fullscreenSurface).toMatch(
-      /\.fullscreen-surface\.expanded\)\s*{[^}]*top: 16px;[^}]*left: 16px;[^}]*width: calc\(100vw - 32px\);[^}]*height: calc\(100vh - 32px\);/s,
+      /\.fullscreen-surface\.expanded\)\s*{[^}]*top: 16px;[^}]*left: 16px;[^}]*width: calc\(100vw - 32px\) !important;[^}]*height: calc\(100vh - 32px\) !important;/s,
     );
     expect(fullscreenSurface).toContain(
       'aria-label={expanded ? $t("restoreWindow") : $t("maximizeWindow")}',

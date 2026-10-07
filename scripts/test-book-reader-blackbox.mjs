@@ -45,7 +45,7 @@ try {
         pilot(["snapshot", "-i"]);
         pilot([
           "eval",
-          "if(!document.querySelector('.agent-book-page .book-record'))throw new Error('transcript content missing');true",
+          "if(!document.querySelector('.agent-book-page .assistant-msg'))throw new Error('transcript content missing');true",
         ]);
         pilot(["click", ".book-close"]);
         pilot([

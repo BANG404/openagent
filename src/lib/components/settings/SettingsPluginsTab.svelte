@@ -18,7 +18,11 @@
 </script>
 
 <Tabs.Content value="plugins" class="settings-tab-panel">
-  <ScrollArea height="100%" class="settings-content-col" scrollHideDelay={350}>
+  <ScrollArea
+    height="100%"
+    class="settings-content-col plugin-management-content"
+    scrollHideDelay={350}
+  >
     <header class="agents-settings-intro plugin-management-header">
       <h3>{$t("plugins")}</h3>
       <SegmentedControl
