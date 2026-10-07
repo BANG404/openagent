@@ -1,9 +1,9 @@
 # Waiting for PR CI
 
-Run the bundled waiter from the task worktree through `rtk`:
+Run the bundled waiter from the task worktree:
 
 ```powershell
-rtk python .agents/skills/wait-for-pr-ci/scripts/wait_for_pr_ci.py <PR>
+python .agents/skills/wait-for-pr-ci/scripts/wait_for_pr_ci.py <PR>
 ```
 
 Omit the PR to resolve the current branch, or pass `--repo OWNER/REPO` outside

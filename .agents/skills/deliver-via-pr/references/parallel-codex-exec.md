@@ -14,7 +14,7 @@ run preflight, commit, integrate into local `master`, and clean up. The launcher
 requires its repository directory to remain on `master` before starting children:
 
 ```bash
-rtk bun .agents/skills/deliver-via-pr/scripts/run-codex-exec-batch.mjs \
+bun .agents/skills/deliver-via-pr/scripts/run-codex-exec-batch.mjs \
   --repo . \
   --max-concurrency 3 \
   --task "implement the first independent scope and its documentation" \
