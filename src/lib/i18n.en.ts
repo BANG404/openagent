@@ -194,7 +194,7 @@ const en: Record<TranslationKeys, string> = {
   toolSaveAgentMemory: "Save Agent memory",
   toolSearchAgentMemory: "Search Agent memory",
   toolUpdateAgentMemory: "Update Agent memory",
-  toolScheduleChatHook: "Schedule task",
+  toolScheduleChatHook: "Schedule wake",
   toolRenderMermaid: "Render Mermaid diagram",
   toolAskUser: "Ask user",
   toolTerminalExec: "Execute terminal command",

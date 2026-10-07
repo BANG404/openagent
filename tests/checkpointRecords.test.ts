@@ -34,6 +34,22 @@ describe("checkpoint record projection", () => {
     expect(messages.map((message) => message.content)).toEqual(["Build finished."]);
     expect(messages[0].id).toBe("terminal-reply");
   });
+  test("hides generic hook wake input and retains its reply after reload", () => {
+    const messages = checkpointRecordsToMessages(
+      [
+        record({
+          role: "user",
+          tags: ["hook_wake"],
+          content: [{ type: "text", text: "PRIVATE_HOOK_WAKE" }],
+        }),
+        record({ id: "hook-reply", content: [{ type: "text", text: "Child task finished." }] }),
+      ],
+      "checkpoint-hook",
+      "conversation-hook",
+    );
+    expect(messages.map((message) => message.content)).toEqual(["Child task finished."]);
+    expect(messages[0].id).toBe("hook-reply");
+  });
   test("restores a durable model retry with its failed attempt output", () => {
     const [message] = checkpointRecordsToMessages(
       [

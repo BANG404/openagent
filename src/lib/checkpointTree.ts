@@ -166,7 +166,8 @@ function isHiddenCheckpointRecord(record: CheckpointMessage): boolean {
     record.role === "system" ||
     ((record.plugin_tags?.length ?? 0) > 0 && record.plugin_user_visible === false) ||
     record.tags.includes("terminal_poll") ||
-    record.tags.includes("terminal_wake")
+    record.tags.includes("terminal_wake") ||
+    record.tags.includes("hook_wake")
   );
 }
 

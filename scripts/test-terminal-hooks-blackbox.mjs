@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { resolveBlackboxHome } from "./tauri-test-environment.mjs";
@@ -36,6 +36,33 @@ async function pilot(args) {
   });
   assert.equal(code, 0, error || output);
   return output.trim();
+}
+/** @param {string} name */
+async function captureNative(name) {
+  const handle = process.env.BLACKBOX_NATIVE_WINDOW_HANDLE;
+  if (handle) {
+    const result = spawnSync(
+      "python",
+      [
+        resolve("scripts/capture-windows-window.py"),
+        "--hwnd",
+        handle,
+        "--output",
+        join(artifacts, `${name}-native.png`),
+      ],
+      { encoding: "utf8", windowsHide: true },
+    );
+    assert.equal(result.status, 0, result.stderr || result.error?.message);
+    return;
+  }
+  const session = process.env.BLACKBOX_APPIUM_SESSION;
+  if (!session) return;
+  const response = await fetch(
+    `${process.env.BLACKBOX_APPIUM_URL || "http://127.0.0.1:4723"}/session/${encodeURIComponent(session)}/screenshot`,
+  );
+  assert(response.ok, `Appium screenshot failed: ${response.status}`);
+  const body = await response.json();
+  writeFileSync(join(artifacts, `${name}-native.png`), Buffer.from(body.value, "base64"));
 }
 /** @param {() => Promise<boolean>} predicate */
 async function until(predicate) {
@@ -73,7 +100,7 @@ const model = createServer(async (request, response) => {
   );
   const prompt = JSON.stringify(messages[lastUserIndex]?.content || "");
   const marker = JSON.stringify(messages).match(
-    /TERMINAL_FIXTURE:(exit|output|mismatch|cancel):([a-f0-9-]+)/,
+    /TERMINAL_FIXTURE:(exit|output|mismatch|cancel|child):([a-f0-9-]+)/,
   );
   assert(marker, "Fixture model received unrelated input");
   const [, mode, id] = marker;
@@ -81,34 +108,69 @@ const model = createServer(async (request, response) => {
     `Fixture model: ${mode} ${prompt.includes("PRIVATE_TERMINAL_WAKE") ? "wake" : "ordinary"}`,
   );
   /** @type {any} */ let message = { role: "assistant", content: `TERMINAL_ARMED_${id}` };
-  if (prompt.includes("PRIVATE_TERMINAL_WAKE")) {
-    assert(prompt.includes("TERMINAL_READY"), "provider wake omitted actual terminal output");
+  const toolResults = messages
+    .slice(lastUserIndex + 1)
+    .filter((/** @type {any} */ item) => item.role === "tool");
+  if (prompt.includes("CHILD_TASK")) {
+    await new Promise((done) => setTimeout(done, 2000));
+    message.content = `CHILD_COMPLETED_${id}`;
+  } else if (prompt.includes("PRIVATE_TERMINAL_WAKE")) {
+    if (mode !== "child")
+      assert(prompt.includes("TERMINAL_READY"), "provider wake omitted actual terminal output");
+    else assert(prompt.includes("completed"), "provider wake omitted child lifecycle condition");
     wakes.set(id, (wakes.get(id) || 0) + 1);
     message.content = `TERMINAL_RESUMED_${id}`;
-  } else if (
-    !messages.slice(lastUserIndex + 1).some((/** @type {any} */ item) => item.role === "tool")
-  ) {
+  } else if (toolResults.length === 0) {
     const command =
       process.platform === "win32"
         ? "Start-Sleep -Seconds 2; Write-Output TERMINAL_READY; Start-Sleep -Milliseconds 200"
         : "sleep 2; printf 'TERMINAL_READY\\n'; sleep 0.2";
-    const hook = {
-      message: `PRIVATE_TERMINAL_WAKE ${id}`,
-      event: mode === "output" ? "output" : "exit",
-      ...(mode === "output"
-        ? { pattern: "TERMINAL_READY" }
-        : mode === "mismatch"
-          ? { pattern: "NEVER_MATCH" }
-          : {}),
-    };
     message = {
       role: "assistant",
       content: "",
       tool_calls: [
         {
           function: {
-            name: "exec_command",
-            arguments: { cmd: command, yield_time_ms: 0, hooks: [hook] },
+            name: mode === "child" ? "spawn_agent" : "exec_command",
+            arguments:
+              mode === "child"
+                ? {
+                    task_name: "hook_worker",
+                    fork_turns: "none",
+                    message: `CHILD_TASK TERMINAL_FIXTURE:child:${id}`,
+                  }
+                : { cmd: command, yield_time_ms: 0 },
+          },
+        },
+      ],
+    };
+  } else if (toolResults.length === 1) {
+    const source = JSON.parse(toolResults[0].content);
+    const condition =
+      mode === "child"
+        ? {
+            kind: "subagent",
+            target: source.agent_id,
+            event: "completed",
+          }
+        : {
+            kind: "terminal",
+            session_id: source.session_id ?? source.metadata.session_id,
+            event: mode === "output" ? "output" : "exit",
+            ...(mode === "output"
+              ? { pattern: "TERMINAL_READY" }
+              : mode === "mismatch"
+                ? { pattern: "NEVER_MATCH" }
+                : {}),
+          };
+    message = {
+      role: "assistant",
+      content: "",
+      tool_calls: [
+        {
+          function: {
+            name: "schedule_chat_hook",
+            arguments: { message: `PRIVATE_TERMINAL_WAKE ${id}`, condition },
           },
         },
       ],
@@ -172,6 +234,7 @@ try {
   config.memory_retrieval_enabled = false;
   config.context_compaction_enabled = false;
   config.permission_profile = { enforcement: "disabled" };
+  config.multi_agent_v2 = { ...config.multi_agent_v2, enabled: true };
   for (const agent of Object.values(config.flash_agents)) {
     if (agent && typeof agent === "object" && "enabled" in agent) agent.enabled = false;
   }
@@ -180,6 +243,8 @@ try {
     ["dark", "zh", "output"],
     ["light", "zh", "mismatch"],
     ["dark", "en", "cancel"],
+    ["light", "en", "child"],
+    ["dark", "zh", "child"],
   ]) {
     console.log(`Checking ${theme}/${language}/${mode}`);
     await invoke("save_settings", { config: { ...config, theme, language } });
@@ -228,18 +293,19 @@ try {
     const probe = { id, mode, theme, language, marker: `TERMINAL_FIXTURE:${mode}:${id}` };
     await pilot(["eval", `window.__terminalHookProbe=${JSON.stringify(probe)}; true`]);
     await pilot(["snapshot", "-i"]);
+    await captureNative(`${theme}-${language}-${mode}-before`);
     try {
       await pilot(["run", resolve("tests/blackbox/terminal-hooks.toml")]);
     } catch (error) {
       console.error(await pilot(["eval", "document.body.innerText"]));
       throw error;
     }
-    if (mode === "exit" || mode === "output") {
+    if (mode === "exit" || mode === "output" || mode === "child") {
       assert.equal(wakes.get(id), 1, "Each hook must wake exactly once");
       const checkpoints = await invoke("get_renderable_checkpoints", { convId: id });
       const records = checkpoints.at(-1).data.messages;
       const hidden = records.filter((/** @type {any} */ record) =>
-        record.tags.includes("terminal_wake"),
+        record.tags.includes("hook_wake"),
       );
       assert.equal(hidden.length, 1);
       assert.equal(hidden[0].role, "user");
@@ -289,6 +355,7 @@ try {
       assert.equal(wakes.get(id) || 0, 0, "Nonmatching and cancelled hooks must not wake");
     }
     await pilot(["screenshot", join(artifacts, `${theme}-${language}-${mode}.png`)]);
+    await captureNative(`${theme}-${language}-${mode}-after`);
   }
 } finally {
   await invoke("save_settings", { config: original });

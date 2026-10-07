@@ -196,7 +196,7 @@ export const zh = {
   toolSaveAgentMemory: "保存 Agent 记忆",
   toolSearchAgentMemory: "搜索 Agent 记忆",
   toolUpdateAgentMemory: "更新 Agent 记忆",
-  toolScheduleChatHook: "安排定时任务",
+  toolScheduleChatHook: "设置唤醒",
   toolRenderMermaid: "渲染 Mermaid 图表",
   toolAskUser: "询问用户",
   toolTerminalExec: "执行终端命令",

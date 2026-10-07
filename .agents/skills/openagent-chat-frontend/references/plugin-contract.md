@@ -14,6 +14,18 @@ projection code continues to receive the same shapes.
 Keep checkpoint tags assignable across desktop and remote transports when the
 Runtime gitlink advances; transcript visibility remains a separate projection rule.
 
+Generic condition hooks persist model-only `hook_wake` input. Hide that input
+on checkpoint restoration while retaining the ordinary Agent reply, and keep
+historical `terminal_wake` input hidden too. Live hook start events declare
+`user_visible: false`; neither path may create an authored-user message or
+change composer drafts. The terminal-hooks black-box runner exercises generic
+tool registration and hidden input in live and reloaded transcripts.
+On Windows, attach DesktopDriver to that fixture's verified native handle.
+Run the wrapper in the interactive session with `BLACKBOX_NATIVE_WINDOW_HANDLE`
+for PrintWindow captures, or `BLACKBOX_APPIUM_SESSION` plus
+`BLACKBOX_APPIUM_URL` for Appium captures, before and after each light/dark,
+English/Chinese scenario.
+
 Those plugin update contracts now include the `AgentPluginUpdateReport`
 envelope with its per-plugin error kinds and overall check status. They are additive: chat
 projection still reads only the transcript, checkpoint, and streaming fields

@@ -1,5 +1,5 @@
 [scenario]
-name = "terminal rules wake the Agent with hidden provider input"
+name = "generic terminal and child conditions wake the Agent with hidden provider input"
 fail_fast = true
 global_timeout_ms = 30000
 
@@ -24,15 +24,20 @@ action = "eval"
 script = '''(async () => {
   const probe = window.__terminalHookProbe;
   const deadline = Date.now() + 8000;
+  let stopped = false;
   while (Date.now() < deadline) {
-    if (probe.mode === 'cancel' && document.querySelector('.tool-done') && document.querySelector('.stop-btn')) {
+    const completedTools = Array.from(document.querySelectorAll('.tool-call-group .status.success span:last-child'))
+      .reduce((count, item) => count + Number(item.textContent), 0) + document.querySelectorAll('.tool-done').length;
+    if (probe.mode === 'cancel' && completedTools >= 2 && document.querySelector('.stop-btn')) {
       document.querySelector('.stop-btn').click();
+      stopped = true;
       break;
     }
     const expected = probe.mode === 'mismatch' ? `TERMINAL_ARMED_${probe.id}` : `TERMINAL_RESUMED_${probe.id}`;
     if (document.body.textContent.includes(expected) && !document.querySelector('.stop-btn')) break;
     await new Promise(resolve => setTimeout(resolve, 100));
   }
+  if (probe.mode === 'cancel' && !stopped) throw new Error('registered condition was not cancelled through Stop');
   if (probe.mode !== 'cancel') {
     const expected = probe.mode === 'mismatch' ? `TERMINAL_ARMED_${probe.id}` : `TERMINAL_RESUMED_${probe.id}`;
     if (!document.body.textContent.includes(expected)) throw new Error('expected Agent reply missing');
