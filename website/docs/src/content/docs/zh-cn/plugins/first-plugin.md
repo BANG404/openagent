@@ -44,7 +44,7 @@ bun tools/openagent-plugin-kit/scripts/validate-plugin.mjs plugins/project-notes
 
 ## 4. 安装并试用
 
-打开 **设置 → 插件 → 安装**，选择 `plugins/project-notes/`。启用插件，打开项目对话，让 Agent 使用 `project-notes` 总结一项具体决策。
+打开 **集成 → 插件 → 安装**，选择 `plugins/project-notes/`。启用插件，打开项目对话，让 Agent 使用 `project-notes` 总结一项具体决策。
 
 OpenAgent 会把源码复制到托管插件目录。**修改源码后需要重新安装**，修改开发目录不会自动改变已安装副本。隔离验收时使用独立测试安装或任务专属的 `OPENAGENT_HOME`，保留日常数据。
 

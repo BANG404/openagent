@@ -44,7 +44,7 @@ Fix errors and inspect warnings before installing. The validator checks the pack
 
 ## 4. Install and try it
 
-Open **Settings → Plugins → Install** and select `plugins/project-notes/`. Enable the installed package, open a project conversation, and ask the Agent to use `project-notes` to summarize a concrete decision.
+Open **Integrations → Plugins → Install** and select `plugins/project-notes/`. Enable the installed package, open a project conversation, and ask the Agent to use `project-notes` to summarize a concrete decision.
 
 OpenAgent copies the source into its managed plugin directory. **Reinstall after editing the source**; modifying your development folder does not change the installed copy. For isolated acceptance, use a separate test installation or a task-specific `OPENAGENT_HOME`, preserving your usual data.
 

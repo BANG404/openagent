@@ -13,6 +13,8 @@ the initial English HTML aligned. Product copy distinguishes Runtime Multi-Agent
 V2 from independently installed Goal, Graph, Chat Groups, Cua Driver, Message Board,
 and Plugin Developer packages. Check public Plugin Kit templates and references
 before changing tutorial examples; do not publish private SDK implementation.
+Installation tutorials use the current Integrations -> Plugins menu. Scheduling
+copy describes continuations arranged and managed through the Agent's hook tools.
 
 ## Build and preview
 
@@ -40,6 +42,8 @@ write and OIDC permissions. The Pages job also runs the artifact guard regressio
 tests. Retain release-manifest inputs and channel fallback; direct platform
 buttons select lightweight assets, excluding full bundles.
 First-install copy points users to full release assets or model download at setup.
+Component-only releases show an explicit no-installer explanation rather than
+presenting their version as a new desktop installer.
 
 Verify English/Chinese landing-page links, every tutorial route, theme and locale
 switching, mobile menu/layout, Pagefind search in a production preview, and the
