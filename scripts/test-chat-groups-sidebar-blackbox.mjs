@@ -35,7 +35,13 @@ writeFileSync(
   JSON.stringify({
     groups: [
       group,
-      { ...group, id: "second-group", title: "Second group", updated_at: 1 },
+      {
+        ...group,
+        id: "second-group",
+        title: "Second group",
+        updated_at: 1,
+        created_by_conversation_id: "other-chat",
+      },
       {
         ...group,
         id: "foreign-group",
@@ -142,12 +148,37 @@ async function until(expression, message) {
 }
 const original = invoke("get_settings", {});
 let installed = false;
+const conversations = ["reviewer", "other-chat", "unrelated-chat"];
 try {
   invoke("set_workspace", { path: workspace });
+  for (const id of conversations) {
+    invoke("create_conversation", { id, title: `Sidebar ${id}`, workspace });
+    invoke("create_branch", { id: crypto.randomUUID(), convId: id });
+  }
   const config = {
     ...original,
     workspace,
     onboarding_completed: true,
+    providers: [
+      {
+        id: "sidebar-fixture",
+        name: "Sidebar fixture",
+        provider: "ollama",
+        api_key: "",
+        base_url: "http://127.0.0.1:1",
+        enabled: true,
+        models: ["test-model"],
+        model_context_compaction_thresholds: {},
+        model_reasoning_efforts: {},
+        model_reasoning_effort_enabled: {},
+        model_vision_enabled: {},
+      },
+    ],
+    defaults: {
+      ...original.defaults,
+      chat_model: { provider_id: "sidebar-fixture", model: "test-model" },
+      flash_model: { provider_id: "sidebar-fixture", model: "test-model" },
+    },
     agent_plugins_enabled: {
       ...original.agent_plugins_enabled,
       "chat-groups": true,
@@ -171,8 +202,11 @@ try {
   assert.deepEqual(summary.warnings, []);
   evaluate("window.location.reload(); true");
   await until(
-    "!!document.querySelector('#application-integrations-menu')",
+    "!!document.querySelector('[contenteditable=true][role=textbox]') && !!document.querySelector('.conversation-stage')?.textContent.includes('test-model')",
     "fixture startup failed",
+  );
+  evaluate(
+    "(()=>{const b=[...document.querySelectorAll('button')].find(b=>/^(New chat|新聊天)$/.test((b.textContent||'').trim()));b.click();return true;})()",
   );
   // The scenario uses the real shell's navigation and the package document.
   pilot(["snapshot", "-i"]);
@@ -192,7 +226,17 @@ try {
       pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-style.toml")]);
       pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-markdown.toml")]);
       pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-mentions.toml")]);
-      for (const surface of ["markdown", "mentions", "scrollbar"]) {
+      pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-conversation.toml")]);
+      for (const surface of ["markdown", "mentions", "scrollbar", "conversation"]) {
+        if (surface === "conversation") {
+          evaluate(
+            "(async()=>{const {emitTo}=await import('/node_modules/@tauri-apps/api/event.js');await emitTo('main','settings-open-conversation',{conversationId:'reviewer'});return true;})()",
+          );
+          await until(
+            "(()=>{const d=document.querySelector('#checkpoint-flow-panel iframe')?.contentDocument;return d?.querySelector('#choices').children.length===1&&d.querySelector('#group-title').textContent==='Saved group'&&!d.querySelector('#draft').disabled;})()",
+            "conversation screenshot did not follow selection",
+          );
+        }
         evaluate(`(()=>{
         const d=document.querySelector('#checkpoint-flow-panel iframe').contentDocument;
         const box=d.querySelector('#messages'), message=d.querySelector('[data-message-id="saved-203"]');
@@ -246,10 +290,17 @@ try {
           assert.equal(capture.status, 0, capture.stderr || String(capture.error));
         } else captureBlackboxScreenshot(pilot, screenshot);
       }
+      evaluate(
+        "(()=>{const b=[...document.querySelectorAll('button')].find(b=>/^(New chat|新聊天)$/.test((b.textContent||'').trim()));b.click();return true;})()",
+      );
+      await until(
+        "document.querySelector('#checkpoint-flow-panel iframe')?.contentDocument?.querySelector('#choices').children.length===2",
+        "workspace group list did not return",
+      );
     }
   }
   const stored = JSON.parse(readFileSync(join(dataRoot, "chat-groups.json"), "utf8"));
-  assert.equal(stored.messages.length, 209);
+  assert.equal(stored.messages.length, 213);
   assert(
     stored.messages
       .slice(205)
@@ -260,7 +311,7 @@ try {
   pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-recovery.toml")]);
   evaluate("window.location.reload(); true");
   await until(
-    "document.querySelector('#checkpoint-flow-panel iframe')?.contentDocument?.querySelectorAll('article').length===209",
+    "document.querySelector('#checkpoint-flow-panel iframe')?.contentDocument?.querySelectorAll('article').length===213",
     "sent messages did not survive reload",
   );
   pilot(["snapshot", "-i"]);
@@ -289,5 +340,6 @@ try {
   throw error;
 } finally {
   if (installed) invoke("uninstall_agent_plugin", { id: "chat-groups" });
+  for (const convId of conversations) invoke("delete_conversation", { convId });
   invoke("save_settings", { config: original });
 }

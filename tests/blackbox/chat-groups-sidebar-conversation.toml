@@ -1,0 +1,68 @@
+[scenario]
+name = "Chat Groups follows the current conversation"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "conversation switches filter groups, restore drafts and ignore late replies"
+action = "eval"
+script = '''(async()=>{
+  const frame=document.querySelector('#checkpoint-flow-panel iframe'), d=frame.contentDocument;
+  const delay=ms=>new Promise(r=>setTimeout(r,ms));
+  const until=async fn=>{const end=Date.now()+10000;while(Date.now()<end){if(fn())return;await delay(50);}throw new Error('conversation group projection did not settle');};
+  const {emitTo}=await import('/node_modules/@tauri-apps/api/event.js');
+  let latest;
+  const onContext=e=>{if(e.source===parent&&e.data?.type==='openagent:sidebar-context')latest=e.data;};
+  frame.contentWindow.addEventListener('message',onContext);
+  const open=async id=>{await emitTo('main','settings-open-conversation',{conversationId:id});};
+  const draft=d.querySelector('#draft');
+  draft.value='Saved conversation draft';draft.dispatchEvent(new Event('input',{bubbles:true}));
+  await open('reviewer');
+  await until(()=>latest?.conversation_id==='reviewer'&&d.querySelector('#group-title').textContent==='Saved group'&&d.querySelector('#choices').children.length===1&&!draft.disabled);
+  if(draft.value!=='Saved conversation draft')throw new Error('shared group draft was lost');
+  if(d.querySelector('#choices').textContent.includes('Second group'))throw new Error('unrelated group exposed');
+  d.querySelector('#member-list button').click();
+  let late;
+  const record=e=>{if(e.source===frame.contentWindow&&e.data?.type==='openagent:sidebar-tool-call')late=e.data;};
+  window.addEventListener('message',record);
+  d.querySelector('#refresh').click();await delay(10);
+  await open('other-chat');
+  await until(()=>latest?.conversation_id==='other-chat'&&d.querySelector('#group-title').textContent==='Second group'&&d.querySelector('#choices').children.length===1&&!draft.disabled);
+  window.removeEventListener('message',record);
+  if(!late)throw new Error('late-response fixture did not capture a request');
+  if(d.querySelectorAll('article').length||d.querySelector('#member-list').children.length||draft.value)throw new Error('previous group state leaked');
+  if(!d.querySelector('#mention-palette').hidden)throw new Error('previous mention palette leaked');
+  if(late)frame.contentWindow.postMessage({type:'openagent:sidebar-tool-result',version:1,request_id:late.request_id,scope:late.scope,ok:true,result:{content:[{type:'text',text:JSON.stringify([{id:'late-group',title:'Late stale group'}])}]}},'*');
+  draft.value='Second conversation draft';draft.dispatchEvent(new Event('input',{bubbles:true}));
+  await open('unrelated-chat');
+  await until(()=>latest?.conversation_id==='unrelated-chat'&&d.querySelector('#skeleton').hidden&&draft.disabled&&d.querySelector('#choices').children.length===0);
+  const empty=window.__chatGroupsSidebarPass.language==='zh'?'当前对话暂无相关群组':'No chat groups for this conversation';
+  if(!d.querySelector('#empty').textContent.includes(empty)||d.querySelectorAll('article').length||!d.querySelector('#send').disabled)throw new Error('unrelated conversation did not show an empty state');
+  await open('reviewer');await delay(10);await open('other-chat');await delay(10);await open('reviewer');
+  await until(()=>latest?.conversation_id==='reviewer'&&d.querySelector('#group-title').textContent==='Saved group'&&!draft.disabled);
+  if(!draft.value.startsWith('Saved conversation draft'))throw new Error('conversation return lost the draft');
+  if(d.querySelector('#choices').children.length!==1||d.querySelector('#choices').textContent.includes('Late stale group'))throw new Error('stale response changed current groups');
+  const context=await new Promise(resolve=>{
+    const receive=e=>{if(e.source===parent&&e.data?.type==='openagent:sidebar-context'){frame.contentWindow.removeEventListener('message',receive);resolve(e.data);}};
+    frame.contentWindow.addEventListener('message',receive);
+    window.dispatchEvent(new MessageEvent('message',{source:frame.contentWindow,data:{type:'openagent:sidebar-ready',version:1}}));
+  });
+  frame.contentWindow.postMessage({...context,branch_id:'reviewer-second-branch'},'*');await delay(100);
+  if(d.querySelector('#group-title').textContent!=='Saved group'||!draft.value.startsWith('Saved conversation draft'))throw new Error('branch switch changed conversation association');
+  frame.contentWindow.postMessage(context,'*');
+  const text=`Conversation user ${window.__chatGroupsSidebarPass.theme} ${window.__chatGroupsSidebarPass.language}`;
+  draft.value=text;draft.dispatchEvent(new Event('input',{bubbles:true}));d.querySelector('#send').click();
+  await until(()=>!draft.value&&[...d.querySelectorAll('article p')].some(p=>p.textContent===text));
+  const newChat=[...document.querySelectorAll('button')].find(b=>/^(New chat|新聊天)$/.test((b.textContent||'').trim()));
+  if(!newChat)throw new Error('New chat missing');newChat.click();
+  await until(()=>!latest?.conversation_id&&d.querySelector('#choices').children.length===2&&!draft.disabled);
+  d.querySelector('#picker').open=true;[...d.querySelectorAll('#choices button')].find(b=>b.textContent==='Second group').click();
+  await until(()=>d.querySelector('#group-title').textContent==='Second group'&&!draft.disabled);
+  if(draft.value!=='Second conversation draft')throw new Error('group draft did not survive the conversation switch');
+  draft.value='';draft.dispatchEvent(new Event('input',{bubbles:true}));
+  d.querySelector('#picker').open=true;[...d.querySelectorAll('#choices button')].find(b=>b.textContent==='Saved group').click();
+  await until(()=>d.querySelector('#group-title').textContent==='Saved group'&&!draft.disabled);
+  draft.value='';draft.dispatchEvent(new Event('input',{bubbles:true}));
+  frame.contentWindow.removeEventListener('message',onContext);
+  return true;
+})()'''
