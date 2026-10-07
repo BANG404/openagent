@@ -1,4 +1,18 @@
 export const zh = {
+  shellPreparing: "准备 OpenAgent",
+  shellFailed: "资源准备未完成",
+  shellDescription: "首次使用需要准备运行组件、前端和本地记忆模型。各项资源会同时下载。",
+  shellDownloading: "正在下载资源",
+  shellInstalling: "正在安装已校验的资源",
+  shellStarting: "正在启动 OpenAgent",
+  shellRetry: "重试",
+  shellImport: "导入离线资源包",
+  shellResume: "下载中断后会保留进度。离线安装包可直接完成准备。",
+  shellErrorHelp: "请检查网络连接后重试，或选择与此版本配套的离线资源目录。",
+  shellLight: "浅色",
+  shellDark: "深色",
+  shellClose: "关闭",
+
   pluginSupportedLanguages: "支持语言",
   pluginLanguagesUnknown: "未知",
   pluginLanguageFallback: "不支持当前应用语言，正在显示{language}",

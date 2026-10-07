@@ -1,0 +1,33 @@
+[scenario]
+name = "shell survives missing Runtime and retries resource preparation"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "independent shell shows recovery controls"
+action = "eval"
+script = '''(() => {
+  const root = document.querySelector('[data-module="shell-resources"]');
+  if (!root || !root.querySelector('[role="alert"]')) throw new Error('resource failure recovery is missing');
+  const buttons = [...root.querySelectorAll('button')];
+  const retry = buttons.find(button => ['Retry', '重试'].includes(button.textContent.trim()));
+  const offline = buttons.find(button => ['Import offline resources', '导入离线资源包'].includes(button.textContent.trim()));
+  if (!retry || retry.disabled || !offline || offline.disabled) throw new Error('recovery actions are unavailable');
+  if (root.scrollWidth > root.clientWidth + 1) throw new Error('shell recovery overflows');
+  return true;
+})()'''
+
+[[step]]
+name = "retry returns to an actionable failure after a refused connection"
+action = "eval"
+script = '''(async () => {
+  const root = document.querySelector('[data-module="shell-resources"]');
+  const retry = [...root.querySelectorAll('button')].find(button => ['Retry', '重试'].includes(button.textContent.trim()));
+  retry.click();
+  const deadline = Date.now() + 10000;
+  while (Date.now() < deadline) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    if (root.querySelector('[role="alert"]') && !retry.disabled) return true;
+  }
+  throw new Error('retry left recovery controls unavailable');
+})()'''

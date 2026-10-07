@@ -4,6 +4,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fetchPublicTypescriptSdk } from "./fetch-public-typescript-sdk.mjs";
+import { signingFixture } from "../tests/fixtures/minisign.mjs";
 
 test("downloads only the exact checksummed SDK snapshot", async () => {
   const directory = await mkdtemp(join(tmpdir(), "openagent-public-sdk-"));
@@ -21,16 +22,21 @@ test("downloads only the exact checksummed SDK snapshot", async () => {
         },
       },
     };
+    const fixture = signingFixture();
+    const manifestBytes = Buffer.from(JSON.stringify(manifest));
     const fetchRequest = async (url) =>
       String(url).endsWith("sdk-dev-manifest.json")
-        ? new Response(JSON.stringify(manifest))
-        : new Response(bytes);
+        ? new Response(manifestBytes)
+        : String(url).endsWith(".sig")
+          ? new Response(fixture.sign(manifestBytes))
+          : new Response(bytes);
     const output = join(directory, "sdk.tar.gz");
     await fetchPublicTypescriptSdk({
       expectedSdkSha: sdkSha,
       output,
       manifestUrl: "https://example.test/sdk-dev-manifest.json",
       fetchRequest,
+      publicKey: fixture.publicKey,
     });
     expect(await readFile(output, "utf8")).toBe("public-sdk");
   } finally {
@@ -39,19 +45,22 @@ test("downloads only the exact checksummed SDK snapshot", async () => {
 });
 
 test("rejects a development channel for a different SDK commit", async () => {
-  const fetchRequest = async () =>
-    new Response(
-      JSON.stringify({
-        schema_version: 1,
-        sdk_sha: "fedcba9876543210fedcba9876543210fedcba98",
-      }),
-    );
+  const fixture = signingFixture();
+  const bytes = Buffer.from(
+    JSON.stringify({
+      schema_version: 1,
+      sdk_sha: "fedcba9876543210fedcba9876543210fedcba98",
+    }),
+  );
+  const fetchRequest = async (url) =>
+    new Response(String(url).endsWith(".sig") ? fixture.sign(bytes) : bytes);
   expect(
     fetchPublicTypescriptSdk({
       expectedSdkSha: "0123456789abcdef0123456789abcdef01234567",
       output: "unused.tar.gz",
       manifestUrl: "https://example.test/sdk-dev-manifest.json",
       fetchRequest,
+      publicKey: fixture.publicKey,
     }),
   ).rejects.toThrow("expected 0123456789abcdef0123456789abcdef01234567");
 });

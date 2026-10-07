@@ -389,6 +389,7 @@ jobs:
     needs:
       - detect
       - sdk-release
+      - distribution-resources
     if: >-
       needs.detect.outputs.published != 'true'
       && needs.detect.outputs.native_shell == 'true'
@@ -515,6 +516,20 @@ jobs:
             exit 1
           fi
 
+      - name: Download complete signed resource distribution
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-distribution-resources
+          path: ${{ runner.temp }}/distribution-resources
+
+      - name: Stage offline resource seed
+        shell: bash
+        run: >-
+          node scripts/stage-distribution.mjs
+          --source "$RUNNER_TEMP/distribution-resources"
+          --output src-tauri/resources/bootstrap-release
+          --target "${{ matrix.runtime_target }}"
+
       # This is the authoritative full product compilation for the immutable
       # release SHA. Pull-request and master CI validate source-level modules.
       - name: Build lightweight release candidate
@@ -555,8 +570,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           OPENAGENT_RUNTIME_TARGET: ${{ matrix.sidecar_target }}
           OPENAGENT_LOGS_INGEST_TOKEN: ${{ secrets.OPENAGENT_LOGS_INGEST_TOKEN }}
-        # The lightweight build already compiled the app, frontend, runtime,
-        # and sidecars. Bundle the full installer from those existing outputs;
+        # The online build compiled the shell and its independent bootstrap UI. Bundle the full installer from those existing outputs;
         # running `tauri build` here would repeat beforeBuildCommand.
         run: bun run tauri:bundle -- --config src-tauri/tauri.full.conf.json ${{ matrix.args }}
 
@@ -679,17 +693,17 @@ jobs:
           if ($null -eq $savedVcLibs -or $savedVcLibs.MinVersion -ne "14.0.27323.0") {
             throw "Microsoft Store manifest is missing the required VC++ runtime dependency."
           }
-          $modelPath = Join-Path $stage "models\all-MiniLM-L6-v2-q\model_quantized.onnx"
+          $modelPath = Join-Path $stage "bootstrap-release\embedding-model_quantized.onnx"
           if (-not (Test-Path -LiteralPath $modelPath)) {
             throw "Microsoft Store package staging is missing the bundled embedding model."
           }
           foreach ($helper in @("codex-windows-sandbox-setup.exe", "codex-command-runner.exe")) {
-            $helperPath = Join-Path $stage "codex-resources\$helper"
+            $helperPath = Join-Path $stage "bootstrap-release\$helper"
             if (-not (Test-Path -LiteralPath $helperPath)) {
               throw "Microsoft Store package staging is missing Windows sandbox helper $helper."
             }
           }
-          $runtimeFallback = Join-Path $stage "openagent-server.exe"
+          $runtimeFallback = Join-Path $stage "bootstrap-release\openagent-server-windows-x64.exe"
           if (-not (Test-Path -LiteralPath $runtimeFallback)) {
             throw "Microsoft Store package staging is missing the fallback runtime server."
           }
@@ -714,14 +728,136 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  distribution-helpers:
+    name: Qualify distribution helpers (${{ matrix.os }})
+    needs: [detect, sdk-release]
+    if: needs.detect.outputs.published != 'true' && (needs.detect.outputs.runtime == 'true' || needs.detect.outputs.native_shell == 'true')
+    strategy:
+      matrix:
+        include:
+          - os: windows
+            runner: windows-2025
+          - os: linux
+            runner: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.detect.outputs.sha }}
+      - name: Create private SDK read token
+        id: sdk-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
+          owner: BANG404
+          repositories: openagent-sdk
+          permission-contents: read
+      - uses: actions/checkout@v7
+        with:
+          repository: BANG404/openagent-sdk
+          ref: ${{ needs.sdk-release.outputs.sdk_release_sha }}
+          path: sdk
+          token: ${{ steps.sdk-token.outputs.token }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Prepare Linux helper dependencies
+        if: matrix.os == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y binutils libcap-dev pkg-config
+      - name: Build and stage distribution helpers
+        shell: bash
+        run: |
+          mkdir -p distribution-helpers
+          if [[ "${{ matrix.os }}" == windows ]]; then
+            node scripts/prepare-windows-sandbox-helpers.mjs --profile release
+            cp src-tauri/resources/codex-resources/*.exe distribution-helpers/
+          else
+            node scripts/prepare-linux-sandbox-helper.mjs --profile release
+            cp src-tauri/binaries/bwrap-x86_64-unknown-linux-gnu distribution-helpers/codex-bwrap-linux-x64
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: distribution-helpers-${{ matrix.os }}
+          path: distribution-helpers/*
+          if-no-files-found: error
+
+  distribution-resources:
+    name: Bind complete signed resource distribution
+    needs: [detect, sdk-release, runtime-components, frontend-components, distribution-helpers]
+    if: needs.detect.outputs.published != 'true' && needs.detect.outputs.native_shell == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.detect.outputs.sha }}
+      - name: Create private SDK read token
+        id: sdk-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
+          owner: BANG404
+          repositories: openagent-sdk
+          permission-contents: read
+      - name: Resolve client source revision
+        id: sdk-source
+        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v7
+        with:
+          repository: BANG404/openagent-sdk
+          ref: ${{ steps.sdk-source.outputs.sha }}
+          path: sdk
+          token: ${{ steps.sdk-token.outputs.token }}
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: signed-runtime-components
+          path: runtime-components
+      - uses: actions/download-artifact@v4
+        with:
+          name: signed-frontend-components
+          path: frontend-components
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: distribution-helpers-*
+          path: distribution-helpers
+          merge-multiple: true
+      - name: Create and sign full resource set and development kit
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          bun install --frozen-lockfile
+          bun run check:embedding-model
+          node scripts/distribution-artifacts.mjs \
+            --output distribution-resources --runtime runtime-components --frontend frontend-components \
+            --model src-tauri/resources/models/all-MiniLM-L6-v2-q --helpers distribution-helpers \
+            --version "${{ needs.detect.outputs.version }}" --sdk-sha "${{ steps.sdk-source.outputs.sha }}"
+          tar --format=ustar -C sdk/typescript -czf distribution-resources/openagent-typescript-sdk.tar.gz src package.json
+          node scripts/sdk-dev-artifacts.mjs --artifacts distribution-resources \
+            --output distribution-resources/sdk-dev-manifest.json \
+            --sdk-sha "${{ steps.sdk-source.outputs.sha }}" --version "${{ needs.detect.outputs.version }}"
+          for name in openagent-distribution.json sdk-dev-manifest.json; do
+            bun scripts/tauri.mjs signer sign --private-key "$TAURI_SIGNING_PRIVATE_KEY" --password "" "distribution-resources/$name"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: signed-distribution-resources
+          path: distribution-resources/*
+          if-no-files-found: error
+
   runtime-components:
     name: Prepare signed runtime candidate
     needs:
       - detect
       - sdk-release
+      - distribution-helpers
     if: >-
       needs.detect.outputs.published != 'true'
-      && needs.detect.outputs.runtime == 'true'
+      && (needs.detect.outputs.runtime == 'true' || needs.detect.outputs.native_shell == 'true')
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -750,11 +886,19 @@ jobs:
           --release-version "${{ needs.detect.outputs.version }}"
           --output runtime-components
 
+      - name: Download exact Runtime helpers
+        uses: actions/download-artifact@v4
+        with:
+          pattern: distribution-helpers-*
+          path: distribution-helpers
+          merge-multiple: true
+
       - name: Sign runtime manifest
         shell: bash
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         run: |
+          node scripts/bind-runtime-helpers.mjs runtime-components distribution-helpers
           bun scripts/tauri.mjs signer sign --private-key "$TAURI_SIGNING_PRIVATE_KEY" --password "" \
             runtime-components/openagent-sdk-manifest.json
           test -s runtime-components/openagent-sdk-manifest.json.sig
@@ -772,7 +916,7 @@ jobs:
     needs: detect
     if: >-
       needs.detect.outputs.published != 'true'
-      && needs.detect.outputs.frontend == 'true'
+      && (needs.detect.outputs.frontend == 'true' || needs.detect.outputs.native_shell == 'true')
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -894,6 +1038,23 @@ jobs:
           RELEASE_TAG: ${{ needs.detect.outputs.tag }}
         shell: bash
         run: gh release upload "$RELEASE_TAG" native-publication/* --clobber
+
+  publish-distribution-resources:
+    name: Publish complete resource distribution
+    needs: [detect, create-draft, distribution-resources]
+    if: needs.detect.outputs.published != 'true' && needs.detect.outputs.native_shell == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: signed-distribution-resources
+          path: distribution-resources
+      - name: Upload signed online and offline resources
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.detect.outputs.tag }}
+        run: gh release upload "$RELEASE_TAG" distribution-resources/* --clobber
 
   publish-runtime-components:
     name: Publish signed runtime components
@@ -1033,6 +1194,7 @@ jobs:
       - publish-runtime-components
       - publish-frontend-components
       - publish-store
+      - publish-distribution-resources
       - sdk-release
       - publish-plugins
     if: >-
@@ -1042,6 +1204,7 @@ jobs:
       && needs.sdk-release.result == 'success'
       && (needs.detect.outputs.runtime != 'true' || needs.publish-plugins.result == 'success')
       && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.native_shell != 'true' || needs.publish-native-assets.result == 'success')
+      && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.native_shell != 'true' || needs.publish-distribution-resources.result == 'success')
       && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.runtime != 'true' || needs.publish-runtime-components.result == 'success')
       && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.frontend != 'true' || needs.publish-frontend-components.result == 'success')
       && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.native_shell != 'true' || needs.detect.outputs.prerelease == 'true' || needs.publish-store.result == 'success')
@@ -1093,6 +1256,7 @@ jobs:
       - publish-runtime-components
       - publish-frontend-components
       - publish-store
+      - publish-distribution-resources
       - publish-sdk-release
       - sdk-release
     if: >-
@@ -1100,6 +1264,7 @@ jobs:
       && needs.detect.result == 'success'
       && needs.create-draft.result == 'success'
       && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.native_shell != 'true' || needs.publish-native-assets.result == 'success')
+      && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.native_shell != 'true' || needs.publish-distribution-resources.result == 'success')
       && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.runtime != 'true' || needs.publish-runtime-components.result == 'success')
       && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.frontend != 'true' || needs.publish-frontend-components.result == 'success')
       && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.native_shell != 'true' || needs.detect.outputs.prerelease == 'true' || needs.publish-store.result == 'success')

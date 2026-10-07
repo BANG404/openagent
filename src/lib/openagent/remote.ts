@@ -1,1 +1,1 @@
-export { interruptRequest } from "../../../sdk/typescript/src/remote";
+export { interruptRequest } from "@openagent/client/remote";

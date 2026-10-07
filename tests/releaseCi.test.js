@@ -82,15 +82,10 @@ describe("release CI verification", () => {
       "shared-key: public-host-release-${{ matrix.runtime_target }}",
     );
     expect(prepareReleaseWorkflow).toContain("runs-on: ubuntu-24.04");
-    expect(nativeCargoManifest).toContain(
-      'openagent-app = { path = "../sdk/rust/openagent-app", optional = true }',
-    );
-    expect(nativeCargoManifest).toContain(
-      'openagent-runtime = { path = "../sdk/rust/openagent-runtime", optional = true }',
-    );
+    expect(nativeCargoManifest).not.toContain('path = "../sdk/');
     expect(nativeWorkflow).toContain("shared-key: public-host-linux");
     expect(nativeWorkflow).toContain("cache-targets: true");
-    expect(nativeWorkflow).toContain("CARGO_TARGET_DIR: sdk/target/embedded-host");
+    expect(nativeWorkflow).toContain("CARGO_TARGET_DIR: sdk/target/desktop-host/target");
     expect(sdkWorkflow).toContain("shared-key: public-sdk-host-dependencies");
     expect(releaseWorkflow).toContain(
       "shared-key: public-host-release-${{ matrix.runtime_target }}",
@@ -139,7 +134,7 @@ describe("release CI verification", () => {
 
     expect(hostCompatibilityJob).toContain("Materialize frontendDist for Tauri macros");
     expect(hostCompatibilityJob).toContain(
-      `node -e "require('fs').mkdirSync('host/build', { recursive: true })"`,
+      `node -e "for(const p of ['host/build','host/.cache/bootstrap-dist'])require('fs').mkdirSync(p,{recursive:true})"`,
     );
     expect(hostCompatibilityJob).toContain("Materialize Runtime sidecar for Tauri macros");
     expect(hostCompatibilityJob).toContain("node scripts/prepare-runtime-server.mjs --placeholder");
@@ -165,7 +160,7 @@ describe("release CI verification", () => {
     expect(nativeCargoManifest).toContain('opt-level = "s"');
     expect(nativeCargoManifest).toContain('panic = "abort"');
     expect(nativeCargoManifest).toContain("strip = true");
-    expect(tauriConfig.build.removeUnusedCommands).toBe(true);
+    expect(tauriConfig.build.removeUnusedCommands).toBe(false);
   });
 
   test("delivers public-host Windows sandbox failures only to the private SDK commit", () => {
@@ -308,7 +303,7 @@ describe("release CI verification", () => {
     expect(tauriConfig.bundle.resources).toBeUndefined();
     expect(fullTauriConfig.bundle.createUpdaterArtifacts).toBe(false);
     expect(fullTauriConfig.bundle.resources).toEqual({
-      "resources/models/all-MiniLM-L6-v2-q/": "models/all-MiniLM-L6-v2-q/",
+      "resources/bootstrap-release/": "bootstrap-release/",
     });
     expect(releaseWorkflow).toContain("Build full first-install bundle");
     expect(releaseWorkflow).toContain(
@@ -319,7 +314,8 @@ describe("release CI verification", () => {
   });
 
   test("publishes signed runtime and frontend component channels", () => {
-    expect(tauriConfig.bundle.externalBin).toContain("binaries/openagent-server");
+    expect(tauriConfig.bundle.externalBin).toEqual([]);
+    expect(tauriConfig.build.frontendDist).toBe("../.cache/bootstrap-dist");
     expect(releaseWorkflow).toContain("runtime-components:");
     expect(releaseWorkflow).toContain('component_channel="runtime-$RELEASE_CHANNEL"');
     expect(releaseWorkflow).toContain("openagent-sdk-manifest.json.sig");
@@ -329,7 +325,7 @@ describe("release CI verification", () => {
       releaseWorkflow.match(
         /signer sign --private-key "\$TAURI_SIGNING_PRIVATE_KEY" --password ""/g,
       ),
-    ).toHaveLength(2);
+    ).toHaveLength(3);
     expect(releaseWorkflow).toContain('component_channel="frontend-$RELEASE_CHANNEL"');
     expect(releaseWorkflow).toContain("openagent-frontend-manifest.json.sig");
   });

@@ -321,3 +321,20 @@ The credential-free shape is deliberately absent: an endpoint that needs no
 authorization is proven by an anonymous handshake that _succeeds_, which needs a
 real MCP server rather than an HTTP fixture. That mapping is covered by the
 runtime's own `McpOAuthCapability::NotRequired` test, not here.
+
+
+## Independent shell resources
+
+`bun run test:blackbox:shell-resources` starts its own Windows Tauri fixture with
+an empty temporary home and an explicit pilot socket. It drives Retry after a
+refused loopback resource connection, asserts offline import availability, and
+covers light/dark and English/Chinese. It then builds an ephemeral signed offline
+fixture using the exact prepared Runtime and production frontend and verifies
+native import, startup and frontend navigation. It then removes the offline source,
+restarts against the refused endpoint, and verifies cache-only startup and removal
+of a durable shell continuation after frontend confirmation. The picker uses the shared native
+dialog plugin; fixture import directly invokes its native command after the visible
+control coverage. Test signing-key and loopback-source overrides are compiled only
+in debug builds and require `OPENAGENT_BOOTSTRAP_TEST=1`. Installed release data
+and the developer's running app are never used. Run preflight first to materialize
+the production frontend and bootstrap assets.

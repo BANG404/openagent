@@ -26,6 +26,7 @@ export function worktreePreparationPlan({ platform = process.platform, profile =
     commands.push([bun, ["run", `prepare:windows-sandbox:${profile}`]]);
   }
   commands.push([bun, ["run", `prepare:runtime-server:${profile}`]]);
+  commands.push([bun, ["scripts/prepare-source-dev.mjs", "--client-only"]]);
   return commands;
 }
 

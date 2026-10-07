@@ -76,3 +76,10 @@ When replacing the model, keep its license beside the weights, pin an immutable
 source revision and hashes, and update the platform inference test. A change of
 embedding dimension or semantic model family also requires an explicit stored
 vector migration; swapping files alone is not safe.
+
+
+Online shell provisioning downloads the exact model files alongside other signed
+release resources and passes their verified seed directory into the external
+Runtime. Offline distributions carry the same model files. The host does not
+load models or mark the SDK's persistent resource ready; Runtime retains provenance,
+checksums, installation and semantic load verification.

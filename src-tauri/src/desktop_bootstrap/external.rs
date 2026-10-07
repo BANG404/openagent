@@ -18,6 +18,23 @@ pub(crate) fn packaged_runtime_binary() -> Result<std::path::PathBuf, String> {
     #[cfg(not(windows))]
     let name = "openagent-server";
     let binary = directory.join(name);
+    #[cfg(debug_assertions)]
+    if !binary.is_file() {
+        let target = match crate::runtime_resource::current_runtime_resource_target()? {
+            "windows-x64" => "x86_64-pc-windows-msvc",
+            "linux-x64" => "x86_64-unknown-linux-gnu",
+            "macos-x64" => "x86_64-apple-darwin",
+            "macos-arm64" => "aarch64-apple-darwin",
+            _ => return Err("Unsupported development Runtime platform".into()),
+        };
+        let extension = if cfg!(windows) { ".exe" } else { "" };
+        let staged = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("binaries")
+            .join(format!("openagent-server-{target}{extension}"));
+        if staged.is_file() {
+            return Ok(staged);
+        }
+    }
     if !binary.is_file() {
         return Err(format!(
             "Packaged Runtime fallback is missing: {}",

@@ -63,6 +63,20 @@ fn navigate_frontend_windows(app: &tauri::AppHandle, version: Option<&str>) -> R
             Some(version) => external_frontend_url(query, version)?,
             None => embedded_frontend_url(query)?,
         };
+        #[cfg(debug_assertions)]
+        let url = if version.is_none()
+            && std::env::var("OPENAGENT_BOOTSTRAP_TEST").is_ok_and(|value| value == "1")
+        {
+            app.config()
+                .build
+                .dev_url
+                .as_ref()
+                .ok_or("Missing bootstrap development URL")?
+                .join("bootstrap")
+                .map_err(|error| error.to_string())?
+        } else {
+            url
+        };
         window
             .navigate(url)
             .map_err(|error| format!("failed to reload frontend window {label}: {error}"))?;
@@ -74,7 +88,9 @@ pub(crate) fn product_webview_url(
     manager: &FrontendResourceManager,
     query: &str,
 ) -> Result<tauri::WebviewUrl, String> {
-    if !cfg!(debug_assertions) {
+    if !cfg!(debug_assertions)
+        || std::env::var("OPENAGENT_BOOTSTRAP_TEST").is_ok_and(|value| value == "1")
+    {
         if let Some(version) = manager.active_version() {
             return external_frontend_url(query, &version).map(tauri::WebviewUrl::CustomProtocol);
         }
@@ -153,6 +169,9 @@ pub(crate) fn arm_frontend_confirmation_deadline(
                     "frontend activation was not confirmed within the deadline; rolled back"
                 );
                 let version = manager.active_version();
+                if version.is_none() {
+                    crate::desktop_bootstrap::provisioning::frontend_failed(&app);
+                }
                 if let Err(error) = navigate_frontend_windows(&app, version.as_deref()) {
                     tracing::error!(%error, "failed to display frontend rollback");
                 }
@@ -250,6 +269,7 @@ pub(crate) async fn confirm_frontend_activation(
     updates: State<'_, RuntimeUpdateState>,
     supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
     window_state: State<'_, DesktopWindowState>,
+    home: State<'_, crate::DesktopDataDir>,
     version: String,
 ) -> Result<bool, String> {
     let diagnostic_version = component_update_version(Some(version.clone()))?
@@ -281,6 +301,15 @@ pub(crate) async fn confirm_frontend_activation(
         );
         error
     })?;
+    if let Ok(Some(handoff)) = super::handoff::read(&home.0) {
+        let current =
+            semver::Version::parse(env!("CARGO_PKG_VERSION")).map_err(|error| error.to_string())?;
+        let planned =
+            semver::Version::parse(&handoff.shell_version).map_err(|error| error.to_string())?;
+        if current >= planned {
+            super::handoff::clear(&home.0)?;
+        }
+    }
     release_component_update(updates.inner(), supervisor.inner()).await?;
     tracing::info!(
         target: "openagent::component_update",
