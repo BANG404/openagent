@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:http";
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { resolveBlackboxHome } from "./tauri-test-environment.mjs";
@@ -147,9 +147,17 @@ try {
   for (const agent of Object.values(config.flash_agents))
     if (agent && typeof agent === "object" && "enabled" in agent) agent.enabled = false;
   await invoke("save_settings", { config });
-  const summary = await invoke("install_agent_plugin", {
-    source: join(repo, "plugins/chat-groups"),
+  // Hidden wakes and Stop are exercised independently of branch tool activation.
+  // The activation runner qualifies the unmodified package manifest.
+  const panelFixture = join(artifacts, "chat-groups-wake-fixture");
+  cpSync(join(repo, "plugins/chat-groups"), panelFixture, {
+    recursive: true,
+    filter: (source) => !source.endsWith(".git"),
   });
+  const manifest = JSON.parse(readFileSync(join(panelFixture, "plugin.json"), "utf8"));
+  delete manifest.extensions.openagent.sidebar[0].activation_tools;
+  writeFileSync(join(panelFixture, "plugin.json"), JSON.stringify(manifest));
+  const summary = await invoke("install_agent_plugin", { source: panelFixture });
   installed = true;
   for (const name of ["Product reviewer", "Developer reviewer", "News reviewer"]) {
     discussionRoles.push(

@@ -107,6 +107,10 @@ bundled Skill for creation/start semantics and state upgrades. Run
 `test:blackbox:chat-groups-sidebar` for unbound and role-bound owner labels,
 language-stable owner mentions, reload and the four theme/language combinations;
 run `test:blackbox:chat-groups-wake` for real hidden wakes and transcript recovery.
+Both panel runners use task-owned package copies without conditional sidebar
+activation, since their bridge calls are outside the model transcript. Also run
+`test:blackbox:plugin-sidebar-activation` against the unmodified manifest to
+qualify the branch activation contract.
 
 ## Developer acceptance before publication
 
