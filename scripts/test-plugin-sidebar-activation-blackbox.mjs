@@ -5,6 +5,7 @@ import { createServer } from "node:http";
 import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { captureBlackboxScreenshot } from "./blackbox-screenshot.mjs";
 import { resolveBlackboxHome } from "./tauri-test-environment.mjs";
 
 const repo = resolve(import.meta.dirname, "..");
@@ -273,7 +274,10 @@ try {
       await reload();
       await until(visible);
       await pilot(["snapshot", "-i"]);
-      await pilot(["screenshot", join(artifacts, `${theme}-${language}.png`)]);
+      const screenshot = join(artifacts, `${theme}-${language}.png`);
+      if (process.env.BLACKBOX_NATIVE_WINDOW_ID) {
+        captureBlackboxScreenshot(pilot, screenshot);
+      } else await pilot(["screenshot", screenshot]);
       const tip = await invoke("get_active_branch_tip", { convId: id });
       assert(tip, "qualified branch must have a durable checkpoint");
       const records = spawnSync(

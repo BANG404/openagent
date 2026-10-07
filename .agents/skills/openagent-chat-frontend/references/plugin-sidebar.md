@@ -91,6 +91,8 @@ to test iframe behavior separately from branch activation.
 Late-response fixtures must bind the injected response to the first outgoing
 request and its old scope; never overwrite it with a request from the incoming
 conversation, which would corrupt current data instead of testing stale replies.
+Windows activation runs accept `BLACKBOX_NATIVE_WINDOW_ID` for native captures
+of the verified main window; run the fixture in the interactive user session.
 Requested `conversation`/`branch` capabilities still receive live IDs. Chat
 Groups filters its own list with `chat_group_list.conversation_id` when an ID is
 present, using creator, membership and persisted Agent sender associations.
