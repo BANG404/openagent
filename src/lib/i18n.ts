@@ -49,6 +49,7 @@ const toolNameKeys: Partial<Record<string, TranslationKeys>> = {
   chat_group_read_messages: "toolChatGroupReadMessages",
   submit_compaction_summary: "toolSubmitCompactionSummary",
   chat_group_start: "chatGroupStartTool",
+  chat_group_stop: "chatGroupStopTool",
   dispatch_role: "toolDispatchRole",
   create_role: "createRoleTool",
   search_roles: "searchRolesTool",

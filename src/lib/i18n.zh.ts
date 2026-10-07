@@ -174,6 +174,7 @@ export const zh = {
   deleteRole: "删除角色",
   deleteRoleConfirm: "确定删除角色“{name}”吗？之后再次使用需要重新提供角色介绍。",
   chatGroupStartTool: "启动聊天组",
+  chatGroupStopTool: "终止聊天组",
   createRoleTool: "创建角色",
   searchRolesTool: "搜索角色",
   toolCreateGoal: "创建目标",

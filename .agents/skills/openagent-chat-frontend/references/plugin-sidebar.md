@@ -83,6 +83,12 @@ match `app.css`; bound the message scroll viewport above the composer so the
 whole scrollbar and trailing message stay reachable even when input height
 changes. Verify long messages, narrow widths, and sender transitions in the
 native runner.
+The package's composer Stop control invokes `chat_group_stop` through the same
+scoped sidebar tool bridge. Group cancellation belongs to the package; do not
+add group-aware cancellation to the host. The sidebar runner verifies localized
+Stop, duplicate-action guarding and draft/history preservation in all four
+theme/locale combinations; the wake runner verifies cancellation of running
+member turns and later user-triggered resumption.
 Chat Groups renders sanitized GFM inside its package document, preserving raw
 HTML as text and keeping wide code/table scrolling inside the message. Its `@`
 palette filters current members, supports keyboard and pointer selection and
