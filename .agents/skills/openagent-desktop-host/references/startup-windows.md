@@ -95,6 +95,10 @@ have been created.
   viewport: 75% of its width and 80% of its height, bounded by a usable minimum,
   viewport gutters, and a wide-screen maximum. Keep its manual resize and
   expanded state within the main window.
+  CSS resizing writes inline width and height: expanded dimensions must override
+  those values without discarding them, fill the viewport with 16px gutters, and
+  restore the last manual size centered when expansion ends. Recheck expansion
+  after a manual resize and after the native window changes size.
 - Keep the draggable workspace sidebar and conversation-details panel at their
   user-selected proportion when the main window changes size. Apply their
   existing minimum, maximum, and container-ratio bounds after scaling, and keep

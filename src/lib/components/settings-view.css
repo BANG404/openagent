@@ -1291,8 +1291,31 @@
 
 .official-plugin-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
   gap: 10px;
+}
+
+.plugin-management-content {
+  --settings-content-max-width: 1440px;
+  container: plugin-management / inline-size;
+}
+
+.settings-content-col.plugin-management-content .ui-scroll-area-viewport {
+  padding-inline: max(
+    var(--settings-content-padding),
+    calc((100% - var(--settings-content-max-width)) / 2)
+  );
+}
+
+@container plugin-management (max-width: 640px) {
+  .official-plugin-store-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .official-plugin-filters {
+    width: 100%;
+  }
 }
 
 .official-plugin-card {
@@ -2558,19 +2581,6 @@
 }
 
 @media (max-width: 640px) {
-  .official-plugin-store-toolbar {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .official-plugin-filters {
-    width: 100%;
-  }
-
-  .official-plugin-grid {
-    grid-template-columns: 1fr;
-  }
-
   .mcp-detail-grid {
     grid-template-columns: 1fr;
   }

@@ -168,8 +168,10 @@
   :global(.fullscreen-surface.expanded) {
     top: 16px;
     left: 16px;
-    width: calc(100vw - 32px);
-    height: calc(100vh - 32px);
+    /* Native CSS resizing writes inline dimensions. Override them only while
+       expanded so restoring retains the user's manually selected size. */
+    width: calc(100vw - 32px) !important;
+    height: calc(100vh - 32px) !important;
     min-width: 0;
     min-height: 0;
     max-width: none;
