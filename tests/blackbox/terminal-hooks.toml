@@ -33,13 +33,13 @@ script = '''(async () => {
       stopped = true;
       break;
     }
-    const expected = probe.mode === 'mismatch' ? `TERMINAL_ARMED_${probe.id}` : `TERMINAL_RESUMED_${probe.id}`;
+    const expected = probe.mode === 'manage' ? `HOOK_MANAGED_${probe.id}` : probe.mode === 'mismatch' ? `TERMINAL_ARMED_${probe.id}` : `TERMINAL_RESUMED_${probe.id}`;
     if (document.body.textContent.includes(expected) && !document.querySelector('.stop-btn')) break;
     await new Promise(resolve => setTimeout(resolve, 100));
   }
   if (probe.mode === 'cancel' && !stopped) throw new Error('registered condition was not cancelled through Stop');
   if (probe.mode !== 'cancel') {
-    const expected = probe.mode === 'mismatch' ? `TERMINAL_ARMED_${probe.id}` : `TERMINAL_RESUMED_${probe.id}`;
+    const expected = probe.mode === 'manage' ? `HOOK_MANAGED_${probe.id}` : probe.mode === 'mismatch' ? `TERMINAL_ARMED_${probe.id}` : `TERMINAL_RESUMED_${probe.id}`;
     if (!document.body.textContent.includes(expected)) throw new Error('expected Agent reply missing');
   }
   if (document.body.textContent.includes('PRIVATE_TERMINAL_WAKE')) throw new Error('provider-only input leaked into the transcript');

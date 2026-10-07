@@ -100,7 +100,7 @@ const model = createServer(async (request, response) => {
   );
   const prompt = JSON.stringify(messages[lastUserIndex]?.content || "");
   const marker = JSON.stringify(messages).match(
-    /TERMINAL_FIXTURE:(exit|output|mismatch|cancel|child):([a-f0-9-]+)/,
+    /TERMINAL_FIXTURE:(exit|output|mismatch|cancel|child|manage):([a-f0-9-]+)/,
   );
   assert(marker, "Fixture model received unrelated input");
   const [, mode, id] = marker;
@@ -111,7 +111,30 @@ const model = createServer(async (request, response) => {
   const toolResults = messages
     .slice(lastUserIndex + 1)
     .filter((/** @type {any} */ item) => item.role === "tool");
-  if (prompt.includes("CHILD_TASK")) {
+  if (mode === "manage") {
+    assert(
+      body.tools.some((/** @type {any} */ tool) => tool.function.name === "manage_chat_hooks"),
+    );
+    if (toolResults.length < 3) {
+      let args = { action: "list" };
+      if (toolResults.length > 0) {
+        const listed = JSON.parse(toolResults[0].content);
+        const definition = listed.hooks.find(
+          (/** @type {any} */ hook) => hook.record.message === `MANAGED_REMINDER_${id}`,
+        );
+        assert(definition, "Management list omitted the scheduled fixture");
+        args = { action: "cancel", id: definition.record.id };
+      }
+      message = {
+        role: "assistant",
+        content: "",
+        tool_calls: [{ function: { name: "manage_chat_hooks", arguments: args } }],
+      };
+    } else {
+      assert(toolResults[2].content.includes("Unknown scheduled chat hook"));
+      message.content = `HOOK_MANAGED_${id}`;
+    }
+  } else if (prompt.includes("CHILD_TASK")) {
     await new Promise((done) => setTimeout(done, 2000));
     message.content = `CHILD_COMPLETED_${id}`;
   } else if (prompt.includes("PRIVATE_TERMINAL_WAKE")) {
@@ -245,6 +268,10 @@ try {
     ["dark", "en", "cancel"],
     ["light", "en", "child"],
     ["dark", "zh", "child"],
+    ["light", "en", "manage"],
+    ["dark", "zh", "manage"],
+    ["light", "zh", "manage"],
+    ["dark", "en", "manage"],
   ]) {
     console.log(`Checking ${theme}/${language}/${mode}`);
     await invoke("save_settings", { config: { ...config, theme, language } });
@@ -290,6 +317,16 @@ try {
         ])) === "true",
     );
     await new Promise((done) => setTimeout(done, 400));
+    if (mode === "manage") {
+      await invoke("schedule_chat_hook", {
+        args: {
+          message: `MANAGED_REMINDER_${id}`,
+          recurrence: "interval_minutes",
+          interval_minutes: 60,
+          conv_id: id,
+        },
+      });
+    }
     const probe = { id, mode, theme, language, marker: `TERMINAL_FIXTURE:${mode}:${id}` };
     await pilot(["eval", `window.__terminalHookProbe=${JSON.stringify(probe)}; true`]);
     await pilot(["snapshot", "-i"]);
@@ -300,7 +337,44 @@ try {
       console.error(await pilot(["eval", "document.body.innerText"]));
       throw error;
     }
-    if (mode === "exit" || mode === "output" || mode === "child") {
+    if (mode === "manage") {
+      const hooks = await invoke("list_scheduled_chat_hooks", {});
+      assert(
+        !hooks.some((/** @type {any} */ hook) => hook.record.message === `MANAGED_REMINDER_${id}`),
+      );
+      const expectedLabel = language === "zh" ? "管理唤醒" : "Manage wakes";
+      await pilot(["snapshot", "-i"]);
+      await pilot(["click", ".process-record-summary"]);
+      assert((await pilot(["eval", "document.body.innerText"])).includes(expectedLabel));
+      assert.equal(
+        await pilot([
+          "eval",
+          "Boolean(document.querySelector('.tool-call-group .status.failed, .tool-failed'))",
+        ]),
+        "true",
+      );
+      await pilot([
+        "eval",
+        "window.__terminalReloadPending=true; setTimeout(() => location.reload(), 100); true",
+      ]);
+      await until(
+        async () =>
+          (await pilot([
+            "eval",
+            `window.__terminalReloadPending !== true && document.body.textContent.includes('HOOK_MANAGED_${id}') && document.body.textContent.includes(${JSON.stringify(expectedLabel)})`,
+          ])) === "true",
+      );
+      await pilot(["snapshot", "-i"]);
+      await pilot(["click", ".process-record-summary"]);
+      assert((await pilot(["eval", "document.body.innerText"])).includes(expectedLabel));
+      assert.equal(
+        await pilot([
+          "eval",
+          "Boolean(document.querySelector('.tool-call-group .status.failed, .tool-failed'))",
+        ]),
+        "true",
+      );
+    } else if (mode === "exit" || mode === "output" || mode === "child") {
       assert.equal(wakes.get(id), 1, "Each hook must wake exactly once");
       const checkpoints = await invoke("get_renderable_checkpoints", { convId: id });
       const records = checkpoints.at(-1).data.messages;
@@ -359,6 +433,12 @@ try {
   }
 } finally {
   await invoke("save_settings", { config: original });
+  const remainingHooks = await invoke("list_scheduled_chat_hooks", {});
+  for (const definition of remainingHooks) {
+    if (conversations.includes(definition.record.conv_id)) {
+      await invoke("cancel_scheduled_chat_hook", { id: definition.record.id });
+    }
+  }
   for (const convId of conversations) await invoke("delete_conversation", { convId });
   model.closeAllConnections();
   model.close();

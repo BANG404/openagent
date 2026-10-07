@@ -30,6 +30,7 @@ const toolNameKeys: Partial<Record<string, TranslationKeys>> = {
   search_agent_memory: "toolSearchAgentMemory",
   update_agent_memory: "toolUpdateAgentMemory",
   schedule_chat_hook: "toolScheduleChatHook",
+  manage_chat_hooks: "toolManageChatHooks",
   render_mermaid: "toolRenderMermaid",
   ask_user: "toolAskUser",
   terminal_exec: "toolTerminalExec",

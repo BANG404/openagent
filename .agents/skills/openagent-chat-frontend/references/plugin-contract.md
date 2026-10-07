@@ -14,6 +14,13 @@ projection code continues to receive the same shapes.
 Keep checkpoint tags assignable across desktop and remote transports when the
 Runtime gitlink advances; transcript visibility remains a separate projection rule.
 
+The built-in `manage_chat_hooks` tool lists scheduled wakes and cancels exact
+hook IDs through Runtime. Its tool cards use the shared localized tool label;
+the frontend does not interpret management arguments or edit reminder storage.
+The terminal-hooks black-box runner also exercises list/cancel through the
+Agent tool registry, unknown-ID failure, localized cards and checkpoint reload
+in all light/dark and English/Chinese combinations.
+
 Generic condition hooks persist model-only `hook_wake` input. Hide that input
 on checkpoint restoration while retaining the ordinary Agent reply, and keep
 historical `terminal_wake` input hidden too. Live hook start events declare
