@@ -1,0 +1,16 @@
+[scenario]
+name = "Plugin sidebar activation ordinary input"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "submit through the native composer"
+action = "eval"
+script = '''(async()=>{
+  const e=document.querySelector('[contenteditable=true][role=textbox]');
+  e.focus();e.dispatchEvent(new InputEvent('beforeinput',{bubbles:true,cancelable:true,inputType:'insertText',data:window.__sidebarActivationInput}));
+  await new Promise(r=>setTimeout(r,100));
+  const send=document.querySelector('.send-btn');
+  if(!e.textContent.includes(window.__sidebarActivationInput)||send.disabled)throw new Error('input did not reach composer');
+  send.click();return true;
+})()'''

@@ -14,6 +14,28 @@ must not replace an installed package from the chat shell.
 
 ## Availability and navigation
 
+Views may declare `activation_tools`: 1–64 exact transcript tool names (ASCII
+letters, digits, underscore, dot or hyphen, each 1–128 bytes). Such a view is
+inactive by default, including without an open conversation. The selected
+branch's assistant tool-call records and its live stream activate it; prose,
+tool discovery and calls from sibling branches or the sidebar bridge do not.
+An actual call activates it immediately, including a pending or failed call.
+Inherited calls on a selected checkpoint path count. Omission retains ordinary
+scope-based availability. An empty list is invalid, not an unconditional panel.
+
+Activation feeds the same lifecycle gate as settings/navigation. Hydration
+does not consume activation until the selected transcript is ready. First
+activation selects and expands the panel once per conversation/branch during
+the window lifetime; later stream updates, package refreshes and returning to
+that branch preserve the user's collapse and tab choices. Reload re-derives
+availability from saved calls and opens the matching panel. Branches without
+matching calls expose no conditional view or mounted frame; other built-in or
+unconditional panels keep their own availability. Never parse domain results
+or pass transcript/tool content into an iframe to decide activation.
+Qualify with `test:blackbox:plugin-sidebar-activation` in an isolated native
+instance; cover live call, manual collapse, checkpoint reload, sibling branches,
+disabled plugin, settings reason, and all light/dark, English/Chinese passes.
+
 `src/lib/pluginSidebar.ts` is the single lifecycle gate for the right sidebar.
 A declared view is available only while its plugin is enabled, free of manifest
 or component errors, and its declared scope is satisfied by the active context;
@@ -62,8 +84,16 @@ group state or transcript tool results to create a built-in group panel. Native
 qualification is `test:blackbox:chat-groups-sidebar` with a fresh isolated home
 and explicit pilot socket, covering existing data, send/reload, workspace
 isolation, enablement and live locale/theme changes.
-Workspace scope keeps the panel available without an open conversation;
-requested `conversation`/`branch` capabilities still receive live IDs. Chat
+Workspace scope supplies its package data boundary; Chat Groups uses
+`activation_tools` to keep its panel hidden until the selected branch uses a
+group tool. The package-content runner installs an unconditional fixture copy
+to test iframe behavior separately from branch activation.
+Late-response fixtures must bind the injected response to the first outgoing
+request and its old scope; never overwrite it with a request from the incoming
+conversation, which would corrupt current data instead of testing stale replies.
+Windows activation runs accept `BLACKBOX_NATIVE_WINDOW_ID` for native captures
+of the verified main window; run the fixture in the interactive user session.
+Requested `conversation`/`branch` capabilities still receive live IDs. Chat
 Groups filters its own list with `chat_group_list.conversation_id` when an ID is
 present, using creator, membership and persisted Agent sender associations.
 Without an ID it lists the workspace. A conversation change immediately clears
@@ -83,6 +113,12 @@ match `app.css`; bound the message scroll viewport above the composer so the
 whole scrollbar and trailing message stay reachable even when input height
 changes. Verify long messages, narrow widths, and sender transitions in the
 native runner.
+The package's composer Stop control invokes `chat_group_stop` through the same
+scoped sidebar tool bridge. Group cancellation belongs to the package; do not
+add group-aware cancellation to the host. The sidebar runner verifies localized
+Stop, duplicate-action guarding and draft/history preservation in all four
+theme/locale combinations; the wake runner verifies cancellation of running
+member turns and later user-triggered resumption.
 Chat Groups renders sanitized GFM inside its package document, preserving raw
 HTML as text and keeping wide code/table scrolling inside the message. Its `@`
 palette filters current members, supports keyboard and pointer selection and

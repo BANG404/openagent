@@ -435,6 +435,16 @@ only includes data requested by the view. The host registers it beside the built
 `status`, `files`, and `terminal` panels and persists selection with
 the existing conversation/branch scope store.
 
+Optional `activation_tools` declares a sidebar whose visibility follows tools
+on the selected branch. The [sidebar owner](../../openagent-chat-frontend/references/plugin-sidebar.md#availability-and-navigation)
+defines validation, hydration, auto-opening and user-choice behavior. For
+example, `"activation_tools": ["create_report", "read_report"]` hides the
+view until an actual call appears. Matching uses exact exposed transcript names,
+not regexes or tool-result contents. This is an optional protocol-1 surface;
+older loaders skip only the unrecognized conditional view with a diagnostic,
+leaving the package's other components and data intact. Packages using it must
+remain usable through their tools without that view.
+
 The host's navigation owns the visible sidebar view title. Plugin HTML starts
 with its content or actions instead of repeating the manifest view title as an
 introductory heading; distinct content section headings are allowed. The host

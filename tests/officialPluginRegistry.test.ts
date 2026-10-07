@@ -23,12 +23,12 @@ describe("official plugin registry", () => {
       "https://github.com/BANG404/openagent-goal.git",
     );
     expect(registry.plugins.map((plugin) => plugin.version)).toEqual([
-      "2.0.1",
+      "2.2.1",
       "2.2.2",
       "1.0.6",
       "1.3.0",
       "1.1.1",
-      "1.4.0",
+      "1.5.0",
     ]);
     expect(findOfficialPlugin(registry, "message-board")?.sourceUrl).toBe(
       "https://github.com/BANG404/message-board.git",

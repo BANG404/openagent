@@ -26,7 +26,8 @@ script = '''(()=>{
   if(d.querySelector('#choices').textContent.includes('Second group'))throw new Error('unrelated group exposed');
   d.querySelector('#member-list button').click();
   let late;
-  const record=e=>{if(e.source===frame.contentWindow&&e.data?.type==='openagent:sidebar-tool-call')late=e.data;};
+  const outgoingScope=latest.scope;
+  const record=e=>{if(!late&&e.source===frame.contentWindow&&e.data?.type==='openagent:sidebar-tool-call'&&e.data.scope===outgoingScope&&e.data.tool_name==='chat_group_list')late=e.data;};
   window.addEventListener('message',record);
   d.querySelector('#refresh').click();await delay(10);
   await open('other-chat');

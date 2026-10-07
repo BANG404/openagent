@@ -1,13 +1,20 @@
 import { describe, expect, test } from "bun:test";
 import {
   availablePluginSidebarViews,
+  branchToolNames,
   firstAvailablePluginSidebarPanel,
   pluginSidebarEntries,
   pluginSidebarLifecycle,
   pluginSidebarRevision,
+  PluginSidebarActivationStore,
   type PluginSidebarContext,
 } from "../src/lib/pluginSidebar";
-import type { AgentPluginSidebarViewSummary, AgentPluginSummary } from "../src/lib/types";
+import type {
+  AgentPluginSidebarViewSummary,
+  AgentPluginSummary,
+  ChatMessage,
+  StreamItem,
+} from "../src/lib/types";
 
 const FULL_CONTEXT: PluginSidebarContext = { hasWorkspace: true, hasConversation: true };
 const EMPTY_CONTEXT: PluginSidebarContext = { hasWorkspace: false, hasConversation: false };
@@ -55,6 +62,35 @@ function plugin(overrides: Partial<AgentPluginSummary> = {}): AgentPluginSummary
 }
 
 describe("pluginSidebarLifecycle", () => {
+  test("conditional views stay hidden until this branch calls an exact matching tool", () => {
+    const conditional = view({ scope: "workspace", activation_tools: ["create_group"] });
+    expect(pluginSidebarLifecycle(conditional, plugin(), FULL_CONTEXT)).toBe("inactive");
+    expect(
+      pluginSidebarLifecycle(conditional, plugin(), {
+        ...FULL_CONTEXT,
+        toolNames: ["load_tool", "create_group_extra"],
+      }),
+    ).toBe("inactive");
+    expect(
+      pluginSidebarLifecycle(conditional, plugin(), {
+        ...FULL_CONTEXT,
+        toolNames: ["create_group"],
+      }),
+    ).toBe("available");
+    expect(
+      pluginSidebarLifecycle(conditional, plugin(), {
+        hasWorkspace: true,
+        hasConversation: false,
+        toolNames: ["create_group"],
+      }),
+    ).toBe("inactive");
+    expect(
+      pluginSidebarLifecycle(conditional, plugin({ enabled: false }), {
+        ...FULL_CONTEXT,
+        toolNames: ["create_group"],
+      }),
+    ).toBe("disabled");
+  });
   test("keeps an enabled, valid view in scope", () => {
     expect(pluginSidebarLifecycle(view(), plugin(), FULL_CONTEXT)).toBe("available");
   });
@@ -86,6 +122,68 @@ describe("pluginSidebarLifecycle", () => {
 
   test("keeps a global view reachable without a workspace or conversation", () => {
     expect(pluginSidebarLifecycle(view(), plugin(), EMPTY_CONTEXT)).toBe("available");
+  });
+});
+
+describe("branch tool activation", () => {
+  const call: StreamItem = { type: "tool_call", name: "create_group", args: "{}" };
+  test("projects pending, failed, retry and saved calls without parsing user text", () => {
+    const messages: ChatMessage[] = [
+      { id: "user", role: "user", content: "create_group", timestamp: 1, items: [call] },
+      {
+        id: "saved",
+        role: "assistant",
+        content: "",
+        timestamp: 2,
+        toolCalls: [{ name: "read_group", args: "{}", result: "error" }],
+      },
+    ];
+    expect(branchToolNames(messages, [])).toEqual(["read_group"]);
+    expect(branchToolNames(messages, [call, call])).toEqual(["read_group", "create_group"]);
+    expect(
+      branchToolNames([], [{ type: "retry", items: [call], attempt: 1, maxAttempts: 2 }]),
+    ).toEqual(["create_group"]);
+    expect(branchToolNames([{ ...messages[1], items: [call] }], [])).toEqual([
+      "create_group",
+      "read_group",
+    ]);
+    expect(branchToolNames([], [])).toEqual([]);
+  });
+
+  test("auto-opens once per branch and leaves collapse/tab choices alone on updates and return", () => {
+    const store = new PluginSidebarActivationStore();
+    const package_ = plugin({ sidebar_views: [view({ activation_tools: ["create_group"] })] });
+    const inactive = pluginSidebarEntries([package_], FULL_CONTEXT);
+    const active = pluginSidebarEntries([package_], {
+      ...FULL_CONTEXT,
+      toolNames: ["create_group"],
+    });
+    expect(store.activate("branch-a", inactive)).toBeNull();
+    expect(store.activate("branch-a", active)).toBe("plugin:demo:panel");
+    expect(store.activate("branch-a", active)).toBeNull();
+    expect(store.activate("branch-b", inactive)).toBeNull();
+    expect(store.activate("branch-b", active)).toBe("plugin:demo:panel");
+    expect(store.activate("branch-a", inactive)).toBeNull();
+    expect(store.activate("branch-a", active)).toBeNull();
+  });
+
+  test("removal, enablement and scope gates remain authoritative", () => {
+    const store = new PluginSidebarActivationStore();
+    const conditional = view({ activation_tools: ["create_group"] });
+    const context = { ...FULL_CONTEXT, toolNames: ["create_group"] };
+    expect(
+      store.activate(
+        "a",
+        pluginSidebarEntries([plugin({ enabled: false, sidebar_views: [conditional] })], context),
+      ),
+    ).toBeNull();
+    expect(
+      store.activate(
+        "a",
+        pluginSidebarEntries([plugin({ sidebar_views: [conditional] })], context),
+      ),
+    ).toBe(conditional.id);
+    expect(store.activate("a", [])).toBeNull();
   });
 });
 
