@@ -1,3 +1,5 @@
+import { normalizeExternalLinkUrl } from "./streamdown/externalLink";
+
 /** A sidebar can call only its owning package, in the host's current workspace. */
 export interface SidebarToolRequest {
   type: "openagent:sidebar-tool-call";
@@ -6,6 +8,20 @@ export interface SidebarToolRequest {
   scope: string;
   tool_name: string;
   arguments: Record<string, unknown>;
+}
+
+export function sidebarLinkUrl(data: unknown, scope: string): string | null {
+  if (!data || typeof data !== "object") return null;
+  const value = data as Record<string, unknown>;
+  if (
+    value.type !== "openagent:sidebar-open-link" ||
+    value.version !== 1 ||
+    value.scope !== scope ||
+    typeof value.url !== "string" ||
+    value.url.length > 4096
+  )
+    return null;
+  return normalizeExternalLinkUrl(value.url);
 }
 
 export function sidebarToolRequest(data: unknown, scope: string): SidebarToolRequest | null {

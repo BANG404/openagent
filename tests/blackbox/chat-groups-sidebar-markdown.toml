@@ -1,0 +1,36 @@
+[scenario]
+name = "Chat Groups Markdown and content isolation"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "Markdown semantics render without executing message HTML"
+action = "eval"
+script = '''(()=>{
+  const d=document.querySelector('#checkpoint-flow-panel iframe').contentDocument;
+  const content=d.querySelector('[data-message-id="saved-203"] .markdown');
+  if(content.querySelector('h2')?.textContent!=='Markdown report')throw new Error('Markdown heading missing');
+  if(content.querySelector('strong')?.textContent!=='Bold'||!content.querySelector('em')||!content.querySelector('del'))throw new Error('inline formatting missing');
+  if(content.querySelectorAll('ul li').length!==3||content.querySelector('ol')?.start!==3)throw new Error('nested/ordered lists missing');
+  if(!content.querySelector('blockquote')||!content.querySelector('.table-scroll table th')||content.querySelector('tbody strong')?.textContent!=='Ready')throw new Error('block Markdown missing');
+  if(!content.querySelector('pre code')?.textContent.includes('<script>literal</script>'))throw new Error('fenced code lost literal text');
+  if(content.querySelector('a')?.href!=='https://example.com/docs'||content.querySelectorAll('a').length!==1)throw new Error('unsafe links were accepted');
+  if(content.querySelector('script,img,iframe,input,svg,style')||d.defaultView.__markdownExecuted)throw new Error('raw HTML executed');
+  if(!content.textContent.includes('<img src="x" onerror=')||!content.textContent.includes('Image alt'))throw new Error('literal HTML or image alt text lost');
+  if(!content.textContent.includes('& entities'))throw new Error('entities double escaped');
+  return true;
+})()'''
+
+[[step]]
+name = "wide code stays inside a narrow panel"
+action = "eval"
+script = '''(async()=>{
+  const frame=document.querySelector('#checkpoint-flow-panel iframe'), previous=frame.style.width;
+  try{
+    frame.style.width='240px';await new Promise(r=>setTimeout(r,100));
+    const d=frame.contentDocument, box=d.querySelector('#messages'), pre=d.querySelector('pre');
+    if(box.scrollWidth>box.clientWidth||d.documentElement.scrollWidth>d.documentElement.clientWidth)throw new Error('Markdown escaped sidebar bounds');
+    if(pre.scrollWidth<=pre.clientWidth||d.defaultView.getComputedStyle(pre).overflowX!=='auto')throw new Error('code does not scroll independently');
+  }finally{frame.style.width=previous;}
+  return true;
+})()'''

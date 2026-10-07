@@ -3,7 +3,12 @@
   import { t } from "$lib/i18n";
   import type { AgentPluginSidebarViewSummary } from "$lib/types";
   import { desktopOpenAgent } from "$lib/openagent/tauriClient";
-  import { sidebarToolArguments, sidebarToolRequest } from "$lib/pluginSidebarBridge";
+  import {
+    sidebarLinkUrl,
+    sidebarToolArguments,
+    sidebarToolRequest,
+  } from "$lib/pluginSidebarBridge";
+  import { useOpenAgentUiCapabilities } from "$lib/openagent/uiCapabilities";
 
   let {
     view,
@@ -34,6 +39,7 @@
   let loading = $state(true);
   let frame = $state<HTMLIFrameElement | null>(null);
   const assetIdentity = $derived(`${view.id}\u0000${view.entry}\u0000${pluginSidebarRevision}`);
+  const uiCapabilities = useOpenAgentUiCapabilities();
 
   function pluginContext(): Record<string, unknown> {
     const capabilities = new Set(view.capabilities ?? []);
@@ -43,6 +49,7 @@
       plugin_id: view.id.split(":")[1] ?? "",
       scope: scopeKey,
       tool_calls: Boolean(context.workspacePath && view.capabilities?.includes("workspace")),
+      open_links: true,
     };
     if (capabilities.has("workspace")) payload.workspace = context.workspacePath ?? null;
     if (capabilities.has("conversation")) payload.conversation_id = context.conversationId ?? null;
@@ -76,6 +83,13 @@
   async function receive(event: MessageEvent): Promise<void> {
     const target = frame?.contentWindow;
     if (!target || event.source !== target) return;
+    const link = sidebarLinkUrl(event.data, scopeKey);
+    if (link) {
+      await uiCapabilities
+        .openUrl(link)
+        .catch((cause) => console.warn("sidebar openUrl failed", cause));
+      return;
+    }
     if (event.data?.type === "openagent:sidebar-ready" && event.data?.version === 1) {
       postContext();
       return;

@@ -1,0 +1,50 @@
+[scenario]
+name = "Chat Groups mention palette"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "filter and select with the keyboard without sending"
+action = "eval"
+script = '''(()=>{
+  const d=document.querySelector('#checkpoint-flow-panel iframe').contentDocument, draft=d.querySelector('#draft'), palette=d.querySelector('#mention-palette');
+  const count=d.querySelectorAll('article').length;
+  function type(text, caret=text.length){draft.focus();draft.value=text;draft.setSelectionRange(caret,caret);draft.dispatchEvent(new Event('input',{bubbles:true}));}
+  function key(value){const event=new KeyboardEvent('keydown',{key:value,bubbles:true,cancelable:true});draft.dispatchEvent(event);return event.defaultPrevented;}
+  type('@');
+  if(palette.hidden||palette.querySelectorAll('[role=option]').length!==3||draft.getAttribute('aria-expanded')!=='true')throw new Error('member suggestions missing');
+  if(!key('ArrowDown')||draft.getAttribute('aria-activedescendant')!=='mention-option-1')throw new Error('keyboard navigation missing');
+  if(!key('Enter')||draft.value!=='@Reviewer '||!palette.hidden||d.querySelectorAll('article').length!==count)throw new Error('Enter selected incorrectly or sent a message');
+  type('Before @Rev after',11);
+  if(palette.querySelectorAll('[role=option]').length!==1)throw new Error('member filtering missing');
+  key('Enter');if(draft.value!=='Before @Reviewer  after')throw new Error('selection damaged surrounding text');
+  type('@Research');key('Tab');if(draft.value!=='@"Research Lead" ')throw new Error('role with spaces was not quoted');
+  type('@');key('Enter');if(draft.value!=='@all ')throw new Error('@all insertion missing');
+  type('@does-not-exist');if(palette.hidden||!palette.querySelector('#mention-empty'))throw new Error('empty suggestions missing');
+  key('Enter');if(d.querySelectorAll('article').length!==count)throw new Error('unmatched mention sent unexpectedly');
+  type('email@example');if(!palette.hidden)throw new Error('email address opened palette');
+  type('@');draft.dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true}));
+  const ime=new KeyboardEvent('keydown',{key:'Enter',isComposing:true,bubbles:true,cancelable:true});draft.dispatchEvent(ime);
+  if(!palette.hidden||ime.defaultPrevented||draft.value!=='@')throw new Error('IME was interrupted');
+  draft.dispatchEvent(new CompositionEvent('compositionend',{bubbles:true}));
+  if(palette.hidden)throw new Error('palette did not recover after IME');
+  type('@');key('Escape');draft.dispatchEvent(new KeyboardEvent('keyup',{key:'Escape',bubbles:true}));
+  if(!palette.hidden)throw new Error('Escape did not dismiss');
+  type('@Rev');palette.querySelector('[role=option]').click();if(draft.value!=='@Reviewer ')throw new Error('pointer selection failed');
+  type('');
+  return true;
+})()'''
+
+[[step]]
+name = "group switches close suggestions and restore the group draft"
+action = "eval"
+script = '''(async()=>{
+  const d=document.querySelector('#checkpoint-flow-panel iframe').contentDocument, draft=d.querySelector('#draft'), palette=d.querySelector('#mention-palette');
+  draft.focus();draft.value='@Rev';draft.setSelectionRange(4,4);draft.dispatchEvent(new Event('input',{bubbles:true}));
+  d.querySelector('#picker').open=true;[...d.querySelectorAll('#choices button')].find(b=>b.textContent==='Second group').click();
+  await new Promise(r=>setTimeout(r,700));if(draft.value||!palette.hidden)throw new Error('suggestions leaked across groups');
+  d.querySelector('#picker').open=true;[...d.querySelectorAll('#choices button')].find(b=>b.textContent==='Saved group').click();
+  await new Promise(r=>setTimeout(r,700));if(draft.value!=='@Rev')throw new Error('mention draft was lost');
+  draft.value='';draft.dispatchEvent(new Event('input',{bubbles:true}));
+  return true;
+})()'''

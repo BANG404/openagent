@@ -53,6 +53,15 @@ writeFileSync(
         role_name: "Reviewer",
         joined_at: 1,
       },
+      {
+        id: "lead",
+        group_id: group.id,
+        conversation_id: "lead-chat",
+        branch_id: "lead-branch",
+        role_id: "lead-role",
+        role_name: "Research Lead",
+        joined_at: 2,
+      },
     ],
     messages: Array.from({ length: 205 }, (_, index) => ({
       id: `saved-${index}`,
@@ -61,9 +70,39 @@ writeFileSync(
       sender_type: index === 202 || index === 203 ? "agent" : "user",
       sender_id: index === 202 || index === 203 ? "reviewer" : null,
       content:
-        index === 204
-          ? `Long message ${"preserved content ".repeat(30)}\nSecond line <script>visible text only</script>`
-          : `Saved message ${index + 1}`,
+        index === 203
+          ? [
+              "## Markdown report",
+              "",
+              "**Bold** and *italic*, ~~removed~~, `inline code` &amp; entities",
+              "",
+              "- First",
+              "  - Nested",
+              "- Second",
+              "",
+              "3. Third",
+              "4. Fourth",
+              "",
+              "> Quoted text",
+              "",
+              "```js",
+              'const html = "<script>literal</script>";',
+              'const wide = "' + "x".repeat(100) + '";',
+              "```",
+              "",
+              "| Name | Result |",
+              "| --- | --- |",
+              "| Alpha | **Ready** |",
+              "",
+              "[Safe link](https://example.com/docs) [unsafe](javascript:alert(1))",
+              "",
+              '<img src="x" onerror="window.__markdownExecuted=true"><script>window.__markdownExecuted=true</script>',
+              "",
+              "![Image alt](https://example.com/image.png)",
+            ].join("\n")
+          : index === 204
+            ? `Long message ${"preserved content ".repeat(30)}\nSecond line <script>visible text only</script>`
+            : `Saved message ${index + 1}`,
       mentions: [],
       created_at: index + 1,
     })),
@@ -151,16 +190,30 @@ try {
       evaluate(`window.__chatGroupsSidebarPass=${JSON.stringify({ theme, language })}; true`);
       pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-messages.toml")]);
       pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-style.toml")]);
-      // Native captures need the WebView to paint after the DOM assertions.
-      evaluate(
-        "(async()=>{await new Promise(done=>requestAnimationFrame(()=>requestAnimationFrame(done)));return true;})()",
-      );
-      await new Promise((done) => setTimeout(done, 500));
-      const screenshot = join(artifacts, `${theme}-${language}.png`);
-      if (process.env.BLACKBOX_NATIVE_WINDOW_HANDLE) {
-        // Resize and restore the fixture to invalidate WebView2's native
-        // backing buffer before PrintWindow captures the current appearance.
-        evaluate(`(async()=>{
+      pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-markdown.toml")]);
+      pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-mentions.toml")]);
+      for (const surface of ["markdown", "mentions"]) {
+        evaluate(`(()=>{
+        const d=document.querySelector('#checkpoint-flow-panel iframe').contentDocument;
+        const box=d.querySelector('#messages'), message=d.querySelector('[data-message-id="saved-203"]');
+        box.scrollTop=message.offsetTop;
+        const draft=d.querySelector('#draft');draft.focus();draft.value=${JSON.stringify(surface === "mentions" ? "@" : "")};draft.setSelectionRange(draft.value.length,draft.value.length);draft.dispatchEvent(new Event('input',{bubbles:true}));
+        if(${JSON.stringify(surface)}==='mentions'){
+          const palette=d.querySelector('#mention-palette'), r=palette.getBoundingClientRect(), composer=d.querySelector('#composer').getBoundingClientRect();
+          if(palette.hidden||r.top<0||r.bottom>composer.top||r.right>d.documentElement.clientWidth)throw new Error('mention popup does not fit above the composer');
+        }
+        return true;
+      })()`);
+        // Native captures need the WebView to paint after the DOM assertions.
+        evaluate(
+          "(async()=>{await new Promise(done=>requestAnimationFrame(()=>requestAnimationFrame(done)));return true;})()",
+        );
+        await new Promise((done) => setTimeout(done, 500));
+        const screenshot = join(artifacts, `${theme}-${language}-${surface}.png`);
+        if (process.env.BLACKBOX_NATIVE_WINDOW_HANDLE) {
+          // Resize and restore the fixture to invalidate WebView2's native
+          // backing buffer before PrintWindow captures the current appearance.
+          evaluate(`(async()=>{
           const {getCurrentWindow}=await import('/node_modules/@tauri-apps/api/window.js');
           const {PhysicalSize}=await import('/node_modules/@tauri-apps/api/dpi.js');
           const current=getCurrentWindow(), size=await current.innerSize();
@@ -173,19 +226,20 @@ try {
           await new Promise(done=>setTimeout(done,200));
           return true;
         })()`);
-        const captureArguments = [
-          join(repo, "scripts/capture-windows-window.py"),
-          "--hwnd",
-          process.env.BLACKBOX_NATIVE_WINDOW_HANDLE,
-          "--output",
-          screenshot,
-        ];
-        const capture = spawnSync(process.env.PYTHON_BIN || "python", captureArguments, {
-          encoding: "utf8",
-          windowsHide: true,
-        });
-        assert.equal(capture.status, 0, capture.stderr || String(capture.error));
-      } else captureBlackboxScreenshot(pilot, screenshot);
+          const captureArguments = [
+            join(repo, "scripts/capture-windows-window.py"),
+            "--hwnd",
+            process.env.BLACKBOX_NATIVE_WINDOW_HANDLE,
+            "--output",
+            screenshot,
+          ];
+          const capture = spawnSync(process.env.PYTHON_BIN || "python", captureArguments, {
+            encoding: "utf8",
+            windowsHide: true,
+          });
+          assert.equal(capture.status, 0, capture.stderr || String(capture.error));
+        } else captureBlackboxScreenshot(pilot, screenshot);
+      }
     }
   }
   const stored = JSON.parse(readFileSync(join(dataRoot, "chat-groups.json"), "utf8"));

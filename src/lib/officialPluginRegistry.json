@@ -6,7 +6,7 @@
       "id": "chat-groups",
       "display_name": "Chat Groups",
       "description": "Mention-aware group conversations for OpenAgent.",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "repository": "https://github.com/BANG404/openagent-chat-groups",
       "homepage": "https://github.com/BANG404/openagent-chat-groups",
       "source_url": "https://github.com/BANG404/openagent-chat-groups.git",
