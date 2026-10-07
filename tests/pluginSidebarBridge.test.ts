@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import {
   sidebarToolArguments,
+  sidebarLinkUrl,
   sidebarToolRequest,
   type SidebarToolRequest,
 } from "../src/lib/pluginSidebarBridge";
@@ -24,6 +25,25 @@ test("sidebar requests require the current scope and bounded object arguments", 
     { ...request, arguments: { text: "x".repeat(65536) } },
   ])
     expect(sidebarToolRequest(bad, request.scope)).toBeNull();
+});
+
+test("sidebar links are bounded HTTP URLs scoped to the current document", () => {
+  const link = {
+    type: "openagent:sidebar-open-link",
+    version: 1,
+    scope: request.scope,
+    url: "https://example.com",
+  };
+  expect(sidebarLinkUrl(link, request.scope)).toBe("https://example.com/");
+  for (const bad of [
+    { ...link, scope: "other" },
+    { ...link, version: 2 },
+    { ...link, url: "javascript:alert(1)" },
+    { ...link, url: "file:///secret" },
+    { ...link, url: "data:text/html,hi" },
+    { ...link, url: "https://example.com/" + "a".repeat(4096) },
+  ])
+    expect(sidebarLinkUrl(bad, request.scope)).toBeNull();
 });
 
 test("frame arguments cannot replace host workspace, locale, or Agent sender context", () => {

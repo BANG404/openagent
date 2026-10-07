@@ -27,7 +27,7 @@ script = '''(async()=>{
     const d=document.querySelector('#checkpoint-flow-panel iframe')?.contentDocument;
     if(d?.querySelectorAll('article').length===205){
       if(d.querySelector('#group-title').textContent!=='Saved group')throw new Error('saved group missing');
-      if(d.querySelector('#member-list').textContent!=='Reviewer')throw new Error('members missing');
+      if(d.querySelector('#member-list').textContent!=='ReviewerResearch Lead')throw new Error('members missing');
       if(d.querySelector('#choices').textContent.includes('Foreign group'))throw new Error('foreign workspace leaked');
       if(!document.querySelector('.conversation-stage'))throw new Error('conversation unmounted');
       return true;
