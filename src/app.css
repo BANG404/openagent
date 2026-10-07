@@ -966,6 +966,12 @@
   color: var(--text-muted);
 }
 
+.composer-md .composer-block-codeBlock {
+  background: var(--surface2);
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 0.9em;
+}
+
 .composer-md .composer-chip {
   padding: 0 3px;
   border-radius: 3px;

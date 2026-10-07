@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
   insertSoftLineBreak,
-  removeEmptyFormatting,
   parseBlocks,
   parseInline,
   protectedSpans,
@@ -154,18 +153,38 @@ describe("composer markdown line edits", () => {
       caret: 8,
     });
     expect(insertSoftLineBreak("撤**地方**", 3, 5)).toEqual({
-      value: "撤**地方**\n",
-      caret: 8,
+      value: "撤\n",
+      caret: 2,
     });
   });
 
-  test("removes empty inline formatting after visible content is deleted", () => {
-    expect(removeEmptyFormatting("撤****", 5)).toEqual({ value: "撤", caret: 1 });
-    expect(removeEmptyFormatting("~~  ~~", 3)).toEqual({ value: "  ", caret: 2 });
-    expect(removeEmptyFormatting("` `", 2)).toEqual({ value: " ", caret: 1 });
-    expect(removeEmptyFormatting("* *", 2)).toEqual({ value: " ", caret: 1 });
-    expect(removeEmptyFormatting("**", 2)).toEqual({ value: "", caret: 0 });
-    expect(removeEmptyFormatting("**ab**", 5)).toEqual({ value: "**ab**", caret: 5 });
+  test("splits nested formatting into balanced spans and continues its list", () => {
+    expect(insertSoftLineBreak("- **ab**", 5)).toEqual({ value: "- **a**\n- **b**", caret: 12 });
+    expect(insertSoftLineBreak("**a *bc* d**", 6)).toEqual({
+      value: "**a *b***\n***c* d**",
+      caret: 13,
+    });
+  });
+
+  test("preserves indented tasks and nested quotes on the next line", () => {
+    expect(insertSoftLineBreak("  - [x] a", 9)).toEqual({
+      value: "  - [x] a\n  - [ ] ",
+      caret: 18,
+    });
+    expect(insertSoftLineBreak("> > q", 5)).toEqual({ value: "> > q\n> > ", caret: 10 });
+  });
+
+  test("treats fenced code literally and never continues its apparent list", () => {
+    const source = "```md\n- **text**\n```\n# title";
+    expect(parseBlocks(source).map((block) => block.kind)).toEqual([
+      "codeBlock",
+      "codeBlock",
+      "codeBlock",
+      "heading",
+    ]);
+    expect(parseBlocks(source)[1].inline[0].text).toBe("- **text**");
+    expect(insertSoftLineBreak("```\n- a", 7)).toEqual({ value: "```\n- a\n", caret: 8 });
+    expect(serializeBlocks(parseBlocks(source))).toBe(source);
   });
 
   test("never carries a heading marker onto the next line", () => {

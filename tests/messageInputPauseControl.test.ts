@@ -52,9 +52,7 @@ describe("stream pause control", () => {
     );
     expect(source).toContain("oncompositionstart={editorController.handleCompositionStart}");
     expect(source).toContain("oncompositionend={editorController.handleCompositionEnd}");
-    expect(editor).toMatch(
-      /function handleBeforeInput\(event: InputEvent\) \{\s+if \(composing\) return;/,
-    );
+    expect(editor).toMatch(/if \(composing \|\| event\.isComposing\) return;/);
   });
 
   test("replaces a selected range on backward deletion and hides the placeholder during IME", async () => {
@@ -64,7 +62,7 @@ describe("stream pause control", () => {
     ]);
 
     expect(editor).toMatch(
-      /case "deleteContentBackward":\s+if \(start !== end\) \{\s+replace\(start, end, ""\);/s,
+      /case "deleteContentBackward":\s+if \(start !== end\) \{\s+replay\(start, end, ""\);/s,
     );
     expect(source).toContain(
       "class:input-editor-empty={value.length === 0 && !editorController.composing}",

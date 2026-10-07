@@ -407,13 +407,16 @@
         bind:this={editorController.editorEl}
         onkeydown={editorController.handleKeydown}
         onbeforeinput={editorController.handleBeforeInput}
+        oninput={editorController.handleInput}
         onpaste={attachmentController.handlePaste}
         oncut={editorController.handleCut}
+        oncopy={editorController.handleCopy}
         ondrop={editorController.handleDrop}
         ondragover={editorController.handleDragOver}
         oncompositionstart={editorController.handleCompositionStart}
         oncompositionend={editorController.handleCompositionEnd}
         onblur={() => {
+          editorController.rememberSelection();
           // Defer so the mousedown on a palette row still fires.
           setTimeout(() => paletteController.closePalette(), 100);
         }}
@@ -441,7 +444,16 @@
           {/snippet}
         </Tooltip>
         {#if formatToolbarOpen}
-          <div class="format-actions" role="toolbar" aria-label={$t("composerFormatting")}>
+          <div
+            class="format-actions"
+            role="toolbar"
+            tabindex="-1"
+            aria-label={$t("composerFormatting")}
+            onmousedown={(event) => {
+              editorController.rememberSelection();
+              event.preventDefault();
+            }}
+          >
             <Tooltip text={$t("mdEditorBold")}>
               {#snippet trigger(props)}
                 <button
