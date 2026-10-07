@@ -46,6 +46,7 @@
     "test:blackbox:remote-page": "bun scripts/test-remote-page-blackbox.mjs",
     "test:blackbox:plugins": "bun scripts/test-plugin-blackbox.mjs",
     "test:blackbox:chat-groups-sidebar": "bun scripts/test-chat-groups-sidebar-blackbox.mjs",
+    "test:blackbox:chat-groups-wake": "bun scripts/test-chat-groups-wake-blackbox.mjs",
     "test:blackbox:conversation-ui": "bun scripts/test-conversation-ui-blackbox.mjs",
     "test:blackbox:plugin-process": "bun scripts/test-plugin-process-blackbox.mjs",
     "test:blackbox:plugin-update": "bun scripts/test-plugin-update-blackbox.mjs",

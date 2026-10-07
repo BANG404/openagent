@@ -1,0 +1,19 @@
+[scenario]
+name = "Chat Groups model-only wake retains its reply and authored input"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "hide the tagged wake in live and restored transcripts"
+action = "eval"
+script = '''(()=>{
+  const p=window.__groupWakeProbe;
+  if(!document.body.textContent.includes(`GROUP_WOKE_${p.id}`))throw new Error('wake reply missing');
+  if(!document.body.textContent.includes(`GROUP_MANUAL_REPLY_${p.id}`))throw new Error('ordinary reply missing');
+  if(document.querySelectorAll('.user-msg').length!==1)throw new Error('wake added a user bubble');
+  if(!document.querySelector('.user-msg').textContent.includes(p.marker))throw new Error('ordinary user message was hidden');
+  if(document.body.textContent.includes('[chat_group:')||document.body.textContent.includes('You were selected in a Chat Groups message.'))throw new Error('wake prompt leaked');
+  if(!p.restored&&document.querySelector('[contenteditable=true][role=textbox]').textContent!==p.draft)throw new Error('wake changed the unsent draft');
+  if(document.documentElement.classList.contains('dark')!==(p.theme==='dark'))throw new Error('theme mismatch');
+  return true;
+})()'''

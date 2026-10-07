@@ -54,6 +54,17 @@ plugin records. `PluginMessage.svelte` is the common transcript renderer: it
 does not expose edit controls or user-message indexing and labels the source
 plugin from `plugin:<plugin-id>:<tag>` in `pluginTags`.
 
+Chat Groups member wakes request the existing authenticated `hidden: true`
+bridge option. Runtime tags their model-only prompt `plugin:chat-groups:control`;
+the generic checkpoint projection hides it while retaining the Agent reply.
+Keep ordinary group messages and explicit private sends visible. Do not infer
+visibility from prompt text or change historical untagged user messages.
+Run `test:blackbox:chat-groups-wake` in a fresh fixture with an explicit pilot
+socket. Its local model verifies that wake input still reaches the provider;
+native live/reloaded assertions preserve the ordinary user bubble and both
+replies, and live wakes preserve the unsent composer draft, in English/Chinese
+and light/dark.
+
 Goal and Graph are package examples, not frontend-owned command implementations.
 The composer and transcript consume the generic plugin command, event, and
 checkpoint projections so another package can provide the same surfaces without

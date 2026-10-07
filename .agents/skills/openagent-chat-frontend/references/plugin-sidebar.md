@@ -65,8 +65,10 @@ isolation, enablement and live locale/theme changes.
 The package's Chat Groups view retains the desktop group-panel visual grammar:
 compact title/count, collapsible member pills, sticky headings for consecutive
 messages from one sender, and a floating Mica composer. Its inline theme tokens
-match `app.css`; keep the trailing message reachable above the composer and
-verify long messages, narrow widths, and sender transitions in the native runner.
+match `app.css`; bound the message scroll viewport above the composer so the
+whole scrollbar and trailing message stay reachable even when input height
+changes. Verify long messages, narrow widths, and sender transitions in the
+native runner.
 Chat Groups renders sanitized GFM inside its package document, preserving raw
 HTML as text and keeping wide code/table scrolling inside the message. Its `@`
 palette filters current members, supports keyboard and pointer selection and

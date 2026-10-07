@@ -192,7 +192,7 @@ try {
       pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-style.toml")]);
       pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-markdown.toml")]);
       pilot(["run", join(repo, "tests/blackbox/chat-groups-sidebar-mentions.toml")]);
-      for (const surface of ["markdown", "mentions"]) {
+      for (const surface of ["markdown", "mentions", "scrollbar"]) {
         evaluate(`(()=>{
         const d=document.querySelector('#checkpoint-flow-panel iframe').contentDocument;
         const box=d.querySelector('#messages'), message=d.querySelector('[data-message-id="saved-203"]');
@@ -201,6 +201,12 @@ try {
         if(${JSON.stringify(surface)}==='mentions'){
           const palette=d.querySelector('#mention-palette'), r=palette.getBoundingClientRect(), composer=d.querySelector('#composer').getBoundingClientRect();
           if(palette.hidden||r.top<0||r.bottom>composer.top||r.right>d.documentElement.clientWidth)throw new Error('mention popup does not fit above the composer');
+        }
+        if(${JSON.stringify(surface)}==='scrollbar'){
+          box.scrollTop=box.scrollHeight;
+          const last=[...box.querySelectorAll('article')].at(-1);
+          last.tabIndex=-1;last.focus({preventScroll:true});
+          if(box.getBoundingClientRect().bottom>d.querySelector('#composer').getBoundingClientRect().top)throw new Error('input overlaps the scrollbar');
         }
         return true;
       })()`);

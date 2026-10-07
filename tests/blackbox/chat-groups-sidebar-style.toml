@@ -38,11 +38,20 @@ script = '''(async()=>{
     await new Promise(r=>setTimeout(r,100));
     const last=[...box.querySelectorAll('article')].at(-1).getBoundingClientRect();
     const composer=d.querySelector('#composer').getBoundingClientRect();
+    if(box.getBoundingClientRect().bottom>composer.top-7)throw new Error('composer covers the scrollbar bottom');
     if(last.bottom>composer.top)throw new Error('composer hides the final message');
     if(d.documentElement.scrollWidth>d.documentElement.clientWidth||box.scrollWidth>box.clientWidth)throw new Error('narrow panel overflows horizontally');
     const send=d.querySelector('#send').getBoundingClientRect();
     if(send.right>composer.right||send.bottom>composer.bottom)throw new Error('send control escaped input');
     if(d.defaultView.getComputedStyle(d.querySelector('.speaker-divider')).position!=='sticky')throw new Error('speaker header does not stay visible');
+    const draft=d.querySelector('#draft'), previousHeight=draft.style.height;
+    try{
+      draft.style.height='140px';
+      await new Promise(r=>setTimeout(r,100));
+      box.scrollTop=box.scrollHeight;
+      if(box.getBoundingClientRect().bottom>d.querySelector('#composer').getBoundingClientRect().top-7)throw new Error('taller composer covers the scrollbar');
+      if([...box.querySelectorAll('article')].at(-1).getBoundingClientRect().bottom>box.getBoundingClientRect().bottom)throw new Error('final message is clipped after input resize');
+    }finally{draft.style.height=previousHeight;}
   }finally{frame.style.width=previous;}
   return true;
 })()'''

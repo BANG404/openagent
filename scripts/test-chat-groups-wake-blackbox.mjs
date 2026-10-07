@@ -1,0 +1,281 @@
+// @ts-check
+import assert from "node:assert/strict";
+import { spawn, spawnSync } from "node:child_process";
+import { createServer } from "node:http";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { resolveBlackboxHome } from "./tauri-test-environment.mjs";
+
+const repo = resolve(import.meta.dirname, "..");
+const home = resolve(resolveBlackboxHome(process.env, { instanceName: "chat-groups-wake" }));
+assert(process.env.OPENAGENT_HOME && process.env.TAURI_PILOT_SOCKET, "select an isolated fixture");
+assert(![".openagent", ".openagent-dev"].some((name) => home === resolve(homedir(), name)));
+assert(!existsSync(join(home, "plugins/chat-groups")), "preserve installed packages");
+const artifacts =
+  process.env.BLACKBOX_ARTIFACT_DIR || mkdtempSync(join(tmpdir(), "chat-groups-wake-"));
+mkdirSync(artifacts, { recursive: true });
+
+/** @param {string[]} args */
+async function pilot(args) {
+  const child = spawn("tauri-pilot", [...args, "--window", "main"], {
+    env: process.env,
+    cwd: artifacts,
+    windowsHide: true,
+  });
+  let output = "",
+    error = "";
+  child.stdout.on("data", (chunk) => {
+    output += chunk;
+  });
+  child.stderr.on("data", (chunk) => {
+    error += chunk;
+  });
+  const code = await new Promise((done, reject) => {
+    child.once("error", reject);
+    child.once("close", done);
+  });
+  assert.equal(code, 0, error || output);
+  return output.trim();
+}
+/** @param {string} script */
+const evaluate = (script) => pilot(["eval", script]);
+/** @param {string} operation @param {unknown} args @returns {Promise<any>} */
+async function invoke(operation, args) {
+  return JSON.parse(
+    await evaluate(
+      `(async()=>{const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');return JSON.stringify({value:await c.invokeProduct(${JSON.stringify(operation)},${JSON.stringify(args)})});})()`,
+    ),
+  ).value;
+}
+/** @param {string} expression */
+async function until(expression) {
+  const deadline = Date.now() + 30000;
+  while (Date.now() < deadline) {
+    if ((await evaluate(expression)) === "true") return;
+    await new Promise((done) => setTimeout(done, 100));
+  }
+  throw new Error(`Chat Groups wake timed out: ${expression}`);
+}
+/** @type {string[]} */
+const providerPrompts = [];
+const model = createServer(async (request, response) => {
+  let raw = "";
+  for await (const chunk of request) raw += chunk;
+  const body = JSON.parse(raw),
+    lastUser = body.messages?.findLast((/** @type {any} */ m) => m.role === "user");
+  const prompt = JSON.stringify(lastUser?.content || "");
+  const marker = prompt.match(/GROUP_WAKE_FIXTURE:([a-f0-9-]+)/)?.[1];
+  if (!marker) {
+    response.writeHead(400);
+    response.end("Unrelated fixture input");
+    return;
+  }
+  providerPrompts.push(prompt);
+  const hidden = prompt.includes("[chat_group:");
+  await new Promise((done) => setTimeout(done, 300));
+  response.writeHead(200, { "content-type": "application/x-ndjson" });
+  response.end(
+    JSON.stringify({
+      model: "test-model",
+      created_at: new Date().toISOString(),
+      message: {
+        role: "assistant",
+        content: `${hidden ? "GROUP_WOKE" : "GROUP_MANUAL_REPLY"}_${marker}`,
+      },
+      done: true,
+      done_reason: "stop",
+      prompt_eval_count: 30,
+      eval_count: 8,
+    }) + "\n",
+  );
+});
+await new Promise((done) => model.listen(0, "127.0.0.1", () => done(null)));
+const address = model.address();
+assert(address && typeof address !== "string");
+await pilot(["ping"]);
+await pilot(["snapshot", "-i"]);
+const original = await invoke("get_settings", {});
+assert.equal(resolve(original.workspace), resolve(join(home, "workspace")), "wrong fixture socket");
+/** @type {string[]} */ const conversations = [];
+let installed = false;
+try {
+  const config = structuredClone(original);
+  config.providers = [
+    {
+      id: "group-wake-fixture",
+      name: "Local group wake fixture",
+      provider: "ollama",
+      api_key: "",
+      base_url: `http://127.0.0.1:${address.port}`,
+      enabled: true,
+      models: ["test-model"],
+      model_context_compaction_thresholds: {},
+      model_reasoning_efforts: {},
+      model_reasoning_effort_enabled: {},
+      model_vision_enabled: {},
+    },
+  ];
+  config.defaults.chat_model = config.defaults.flash_model = {
+    provider_id: "group-wake-fixture",
+    model: "test-model",
+  };
+  config.approval_mode = "off";
+  config.memory_retrieval_enabled = false;
+  config.agent_plugins_enabled = {
+    ...config.agent_plugins_enabled,
+    "chat-groups": true,
+    "cua-driver": false,
+  };
+  config.permission_profile = {
+    enforcement: "managed",
+    network: "enabled",
+    file_system: {
+      entries: [
+        { access: "read", path: { kind: "host_root" } },
+        { access: "write", path: { kind: "workspace" } },
+      ],
+    },
+  };
+  for (const agent of Object.values(config.flash_agents))
+    if (agent && typeof agent === "object" && "enabled" in agent) agent.enabled = false;
+  await invoke("save_settings", { config });
+  const summary = await invoke("install_agent_plugin", {
+    source: join(repo, "plugins/chat-groups"),
+  });
+  installed = true;
+  for (const theme of ["light", "dark"])
+    for (const language of ["en", "zh"]) {
+      await invoke("save_settings", { config: { ...config, theme, language } });
+      const id = crypto.randomUUID(),
+        branchId = crypto.randomUUID();
+      conversations.push(id);
+      await invoke("create_conversation", {
+        id,
+        title: `Group wake ${theme}/${language}`,
+        workspace: original.workspace,
+      });
+      await invoke("create_branch", { id: branchId, convId: id });
+      await evaluate("window.__groupWakeReload=true; setTimeout(()=>location.reload(),100); true");
+      await until(
+        "window.__groupWakeReload!==true && !!document.querySelector('[contenteditable=true][role=textbox]')",
+      );
+      await evaluate(
+        `(async()=>{const {emitTo}=await import('/node_modules/@tauri-apps/api/event.js');await emitTo('main','settings-open-conversation',{conversationId:${JSON.stringify(id)}});return true;})()`,
+      );
+      await until(
+        `document.body.textContent.includes('conversation: ${id}') && !!document.querySelector('[contenteditable=true][role=textbox]')`,
+      );
+      const probe = {
+        id,
+        theme,
+        language,
+        marker: `GROUP_WAKE_FIXTURE:${id}`,
+        draft: "Unsent group wake draft",
+      };
+      await evaluate(`window.__groupWakeProbe=${JSON.stringify(probe)}; true`);
+      await pilot(["snapshot", "-i"]);
+      await pilot(["run", join(repo, "tests/blackbox/chat-groups-wake-submit.toml")]);
+      await until(
+        `document.body.textContent.includes('GROUP_MANUAL_REPLY_${id}') && !document.querySelector('.stop-btn')`,
+      );
+      await evaluate(
+        `(()=>{const e=document.querySelector('[contenteditable=true][role=textbox]');e.focus();e.dispatchEvent(new InputEvent('beforeinput',{bubbles:true,cancelable:true,inputType:'insertText',data:window.__groupWakeProbe.draft}));return true;})()`,
+      );
+      /** @param {string} tool @param {Record<string, unknown>} args */
+      async function call(tool, args) {
+        const result = await invoke("call_agent_plugin_tool", {
+          plugin_id: "chat-groups",
+          tool_name: tool,
+          arguments: {
+            ...args,
+            _openagent: {
+              workspace: original.workspace,
+              conversation_id: tool === "chat_group_send_message" ? "" : id,
+              branch_id: branchId,
+              locale: language,
+            },
+          },
+        });
+        assert(!result.isError, JSON.stringify(result));
+        return JSON.parse(result.content[0].text);
+      }
+      const group = await call("chat_group_create", { title: `Wake ${id}` });
+      const member = await call("chat_group_add_member", {
+        group_id: group.id,
+        conversation_id: id,
+      });
+      await call("chat_group_send_message", {
+        group_id: group.id,
+        content: `Please reply ${probe.marker}`,
+        mentions: [member.id],
+      });
+      await until(
+        `document.body.textContent.includes('GROUP_WOKE_${id}') && !document.querySelector('.stop-btn')`,
+      );
+      await pilot(["snapshot", "-i"]);
+      await pilot(["run", join(repo, "tests/blackbox/chat-groups-wake-visible.toml")]);
+      console.log(`Live hidden wake passed: ${theme}/${language}`);
+      const checkpoints = await invoke("get_renderable_checkpoints", { convId: id });
+      const hidden = checkpoints
+        .at(-1)
+        .data.messages.filter((/** @type {any} */ m) =>
+          m.plugin_tags?.includes("plugin:chat-groups:control"),
+        );
+      assert.equal(hidden.length, 1);
+      assert.equal(hidden[0].role, "user");
+      assert.equal(hidden[0].plugin_user_visible, false);
+      assert.equal(hidden[0].plugin_model_visible, true);
+      assert(JSON.stringify(hidden[0].content).includes(probe.marker));
+      assert(
+        providerPrompts.some((prompt) => prompt.includes("[chat_group:") && prompt.includes(id)),
+      );
+      await evaluate("window.__groupWakeReload=true; setTimeout(()=>location.reload(),100); true");
+      await until(
+        `window.__groupWakeReload!==true && document.body.textContent.includes('GROUP_WOKE_${id}')`,
+      );
+      await evaluate(
+        `window.__groupWakeProbe=${JSON.stringify({ ...probe, restored: true })}; true`,
+      );
+      await pilot(["snapshot", "-i"]);
+      await pilot(["run", join(repo, "tests/blackbox/chat-groups-wake-visible.toml")]);
+      if (process.env.BLACKBOX_NATIVE_WINDOW_HANDLE) {
+        await evaluate(
+          `(async()=>{const {getCurrentWindow}=await import('/node_modules/@tauri-apps/api/window.js');const {PhysicalSize}=await import('/node_modules/@tauri-apps/api/dpi.js');const w=getCurrentWindow(),s=await w.innerSize();try{await w.setSize(new PhysicalSize(s.width+1,s.height));await new Promise(r=>setTimeout(r,200));}finally{await w.setSize(new PhysicalSize(s.width,s.height));}await new Promise(r=>setTimeout(r,200));return true;})()`,
+        );
+        const capture = spawnSync(
+          process.env.PYTHON_BIN || "python",
+          [
+            join(repo, "scripts/capture-windows-window.py"),
+            "--hwnd",
+            process.env.BLACKBOX_NATIVE_WINDOW_HANDLE,
+            "--output",
+            join(artifacts, `${theme}-${language}-hidden-wake.png`),
+          ],
+          { encoding: "utf8", windowsHide: true },
+        );
+        assert.equal(capture.status, 0, capture.stderr || String(capture.error));
+      }
+    }
+  writeFileSync(
+    join(artifacts, "wake-report.json"),
+    JSON.stringify(
+      {
+        version: summary.version,
+        themes: ["light", "dark"],
+        locales: ["en", "zh"],
+        providerRequests: providerPrompts.length,
+        passed: true,
+      },
+      null,
+      2,
+    ),
+  );
+  console.log(`Chat Groups hidden wake passed: ${artifacts}`);
+} finally {
+  for (const id of conversations) await invoke("delete_conversation", { convId: id });
+  if (installed) await invoke("uninstall_agent_plugin", { id: "chat-groups" });
+  await invoke("save_settings", { config: original });
+  model.closeAllConnections();
+  model.close();
+}

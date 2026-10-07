@@ -1,0 +1,17 @@
+[scenario]
+name = "Chat Groups ordinary authored input"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "send the ordinary user message through the native composer"
+action = "eval"
+script = '''(async()=>{
+  const e=document.querySelector('[contenteditable=true][role=textbox]');
+  e.focus();
+  e.dispatchEvent(new InputEvent('beforeinput',{bubbles:true,cancelable:true,inputType:'insertText',data:window.__groupWakeProbe.marker}));
+  await new Promise(r=>setTimeout(r,100));
+  const send=document.querySelector('.send-btn');
+  if(!e.textContent.includes(window.__groupWakeProbe.marker)||send.disabled)throw new Error('ordinary input did not reach the composer');
+  send.click();return true;
+})()'''
