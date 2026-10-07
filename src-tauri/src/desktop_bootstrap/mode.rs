@@ -75,9 +75,23 @@ pub(crate) fn prepare_host_runtime(
             })
         }
         DesktopRuntimeMode::External => {
-            let launch = external_launch.ok_or_else(|| {
-                anyhow::anyhow!("external Runtime launch inputs were not prepared")
-            })?;
+            let Some(launch) = external_launch else {
+                let initial_locale = if crate::local_capabilities::system_locale()
+                    .to_lowercase()
+                    .starts_with("zh")
+                {
+                    "zh"
+                } else {
+                    "en"
+                };
+                return Ok(HostRuntimeBootstrap {
+                    initial_locale: initial_locale.into(),
+                    data_dir: super::persistence::selected_home()?,
+                    #[cfg(feature = "embedded-runtime")]
+                    runtime: None,
+                    external_launch: None,
+                });
+            };
             Ok(HostRuntimeBootstrap {
                 initial_locale: launch.initial_locale.clone(),
                 data_dir: launch.openagent_home.clone(),

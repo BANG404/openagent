@@ -3,6 +3,7 @@ mod external;
 pub(crate) mod instances;
 mod mode;
 mod persistence;
+pub(crate) mod provisioning;
 pub(crate) use external::start_external_desktop_runtime;
 pub(crate) use mode::prepare_host_runtime;
 #[cfg(feature = "embedded-runtime")]

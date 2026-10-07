@@ -1,1 +1,1 @@
-export * from "../../../sdk/typescript/src/transport";
+export * from "@openagent/client/transport";

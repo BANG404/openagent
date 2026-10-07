@@ -112,13 +112,14 @@ export function buildPreflightCommands(modules) {
     add("format", "Repository formatting", "bun", ["run", "format:check"]);
     add("frontend-tests", "Frontend and automation tests", "bun", ["run", "test"]);
     add("frontend-build", "Frontend production build", "bun", ["run", "build"]);
+    add("bootstrap-build", "Independent shell bootstrap build", "bun", ["run", "build:bootstrap"]);
     add("bundle-size", "Frontend bundle budgets", "bun", ["run", "check:bundle-size"]);
   }
 
   if (modules.nativeQuality || modules.nativePlatform) {
     add("frontend-dist", "Materialize frontendDist for Tauri macros", "node", [
       "-e",
-      "require('fs').mkdirSync('build', { recursive: true })",
+      "for(const p of ['build','.cache/bootstrap-dist'])require('fs').mkdirSync(p,{recursive:true})",
     ]);
   }
   if (modules.nativeQuality) {

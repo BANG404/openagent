@@ -7,6 +7,5 @@ metadata:
 
 # OpenAgent release engineering
 
-Read matching references for CI, SDK, artifacts, releases, or local commands.
-Use [GitHub Pages](references/github-pages.md) for the website and Starlight tutorials.
-Deliver via OWT.
+Read matching references for CI and releases, [Pages](references/github-pages.md),
+or [public development](references/public-development.md). Deliver via OWT.

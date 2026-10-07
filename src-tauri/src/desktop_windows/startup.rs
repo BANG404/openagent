@@ -1,12 +1,12 @@
 //! Construct initial native surfaces before arming frontend confirmation.
 use super::apply_native_window_material;
-use crate::component_updates::{external_frontend_url, product_webview_url};
+use crate::component_updates::product_webview_url;
 use crate::desktop_bootstrap::instances::should_install_desktop_tray;
 use crate::frontend_resource::FrontendResourceManager;
 use tauri::Manager;
 
 pub(crate) fn initialize(
-    app: &tauri::App,
+    app: &tauri::AppHandle,
     startup_frontend_manager: &FrontendResourceManager,
     agent_server: bool,
     is_workspace_window: bool,
@@ -27,38 +27,40 @@ pub(crate) fn initialize(
                 }
             });
         }
-        if !cfg!(debug_assertions) {
-            if let Some(version) = startup_frontend_manager.active_version() {
-                let url = external_frontend_url("", &version).map_err(std::io::Error::other)?;
-                window.navigate(url)?;
-            }
-        }
     }
 
     if !agent_server && !is_workspace_window {
-        let onboarding_window = tauri::WebviewWindowBuilder::new(
-            app,
-            "onboarding",
-            product_webview_url(startup_frontend_manager, "?onboarding-window=1")
-                .map_err(std::io::Error::other)?,
-        )
-        .title("OpenAgent Setup")
-        .inner_size(840.0, 560.0)
-        .decorations(false)
-        .transparent(true)
-        .resizable(false)
-        .maximizable(false)
-        .center()
-        .visible(false)
-        .build()?;
-        apply_native_window_material(&onboarding_window);
+        if app.get_webview_window("onboarding").is_none() {
+            let onboarding_window = tauri::WebviewWindowBuilder::new(
+                app,
+                "onboarding",
+                product_webview_url(startup_frontend_manager, "?onboarding-window=1")
+                    .map_err(std::io::Error::other)?,
+            )
+            .title("OpenAgent Setup")
+            .inner_size(840.0, 560.0)
+            .decorations(false)
+            .transparent(true)
+            .resizable(false)
+            .maximizable(false)
+            .center()
+            .visible(false)
+            .build()?;
+            apply_native_window_material(&onboarding_window);
+        }
 
-        let quick_chat_app = app.handle().clone();
+        let quick_chat_app = app.clone();
         let quick_chat_url = product_webview_url(startup_frontend_manager, "?quick-chat-window=1")
             .map_err(std::io::Error::other)?;
         let quick_chat_builder_app = quick_chat_app.clone();
         quick_chat_app
             .run_on_main_thread(move || {
+                if quick_chat_builder_app
+                    .get_webview_window("quick-chat")
+                    .is_some()
+                {
+                    return;
+                }
                 if let Err(error) = tauri::WebviewWindowBuilder::new(
                     &quick_chat_builder_app,
                     "quick-chat",

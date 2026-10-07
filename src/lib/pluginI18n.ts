@@ -1,4 +1,4 @@
-import type { AgentPluginI18n } from "../../sdk/typescript/src/types";
+import type { AgentPluginI18n } from "@openagent/client/types";
 
 export type { AgentPluginI18n };
 

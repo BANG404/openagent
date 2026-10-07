@@ -1,7 +1,8 @@
 # Development Runtime refresh
 
-Ordinary `bun tauri dev` starts the Vite server together with a private Runtime
-source watcher. Changes beneath `sdk/rust` or to the SDK Cargo manifest/lockfile
+`bun run dev:desktop:source` starts Vite with the private Runtime source
+watcher. Ordinary `bun tauri dev` uses the prepared public kit without watching
+SDK paths; the public-development reference owns that preparation. Changes beneath `sdk/rust` or to the SDK Cargo manifest/lockfile
 first rebuild and stage the debug `openagent-server`, then write an unwatched
 pending stamp. Vite asks the mounted Tauri frontend to acquire the Runtime's
 graceful component-update barrier. While an Agent is active, frontend HMR and

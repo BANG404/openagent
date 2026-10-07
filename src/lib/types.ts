@@ -1,6 +1,6 @@
-import type { AgentMessageTag as SdkAgentMessageTag } from "../../sdk/typescript/src/types";
-export type { ConversationUi, ConversationUiComponent } from "../../sdk/typescript/src/types";
-import type { ConversationUi } from "../../sdk/typescript/src/types";
+import type { AgentMessageTag as SdkAgentMessageTag } from "@openagent/client/types";
+export type { ConversationUi, ConversationUiComponent } from "@openagent/client/types";
+import type { ConversationUi } from "@openagent/client/types";
 
 export interface ToolCallRecord {
   name: string;
@@ -730,12 +730,12 @@ export interface AgentPluginAuthorSummary {
   url: string | null;
 }
 
-export type { AgentPluginInstallProgress } from "../../sdk/typescript/src/types";
+export type { AgentPluginInstallProgress } from "@openagent/client/types";
 
 export interface AgentPluginSummary {
-  ui_components?: import("../../sdk/typescript/src/types").ConversationUiComponent[];
+  ui_components?: import("@openagent/client/types").ConversationUiComponent[];
   mcp_tool_mode?: "direct" | "relay";
-  i18n?: import("../../sdk/typescript/src/types").AgentPluginI18n | null;
+  i18n?: import("@openagent/client/types").AgentPluginI18n | null;
   id: string;
   name: string;
   builtin: boolean;

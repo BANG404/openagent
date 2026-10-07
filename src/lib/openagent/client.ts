@@ -1,1 +1,1 @@
-export { OpenAgentClient } from "../../../sdk/typescript/src/client";
+export { OpenAgentClient } from "@openagent/client/client";

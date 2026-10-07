@@ -58,6 +58,7 @@ describe("local preflight plan", () => {
       "svelte-check",
       "frontend-tests",
       "frontend-build",
+      "bootstrap-build",
       "bundle-size",
     ]);
   });
@@ -97,7 +98,10 @@ describe("local preflight plan", () => {
     const frontendDist = buildPreflightCommands(modules).find(({ id }) => id === "frontend-dist");
     expect(frontendDist).toMatchObject({
       command: "node",
-      args: ["-e", "require('fs').mkdirSync('build', { recursive: true })"],
+      args: [
+        "-e",
+        "for(const p of ['build','.cache/bootstrap-dist'])require('fs').mkdirSync(p,{recursive:true})",
+      ],
     });
     const ids = commandIds(modules);
     expect(ids.indexOf("frontend-dist")).toBeLessThan(ids.indexOf("rust-lint"));

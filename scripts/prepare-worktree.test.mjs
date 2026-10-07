@@ -12,6 +12,7 @@ test("prepares a Linux development worktree in dependency order", () => {
     ["bun", ["install", "--frozen-lockfile"]],
     ["bun", ["run", "prepare:linux-sandbox:dev"]],
     ["bun", ["run", "prepare:runtime-server:dev"]],
+    ["bun", ["scripts/prepare-source-dev.mjs", "--client-only"]],
   ]);
 });
 
@@ -23,6 +24,7 @@ test("prepares Windows helpers but skips the Linux-only helper", () => {
     ["install", "--frozen-lockfile"],
     ["run", "prepare:windows-sandbox:release"],
     ["run", "prepare:runtime-server:release"],
+    ["scripts/prepare-source-dev.mjs", "--client-only"],
   ]);
 });
 
