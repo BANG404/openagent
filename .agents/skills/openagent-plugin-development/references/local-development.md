@@ -107,6 +107,11 @@ bundled Skill for creation/start semantics and state upgrades. Run
 `test:blackbox:chat-groups-sidebar` for unbound and role-bound owner labels,
 language-stable owner mentions, reload and the four theme/language combinations;
 run `test:blackbox:chat-groups-wake` for real hidden wakes and transcript recovery.
+Chat Groups shows its sidebar Stop control only while a joined conversation is
+running. The package projects live bridge state through its member listing;
+the host does not infer activity from membership or the persisted stopped flag.
+The sidebar runner checks idle visibility and the wake runner checks active
+visibility, cancellation and return to idle in all theme/language combinations.
 Chat Groups v3 resolves both Agent and user wake targets from published content
 (`@role`, quoted names with spaces, `@owner` / `@群主`, and `@all`); its sending
 tool has no separate `mentions` input. The wake runner covers Agent member
