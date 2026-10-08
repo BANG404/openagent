@@ -163,7 +163,9 @@ jobs:
           OPENAGENT_CI_REPORTER_APP_ID: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
           OPENAGENT_CI_REPORTER_PRIVATE_KEY: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
           OPENAGENT_SDK_RELEASE_TOKEN: ${{ secrets.OPENAGENT_SDK_RELEASE_TOKEN }}
+          OPENAGENT_PLUGIN_RELEASE_TOKEN: ${{ secrets.OPENAGENT_PLUGIN_RELEASE_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          RUNTIME: ${{ steps.release.outputs.runtime }}
           PRERELEASE: ${{ steps.release.outputs.prerelease }}
           NATIVE_SHELL: ${{ steps.release.outputs.native_shell }}
           AZURE_AD_APPLICATION_CLIENT_ID: ${{ secrets.AZURE_AD_APPLICATION_CLIENT_ID }}
@@ -185,6 +187,10 @@ jobs:
           fi
           if [[ -z "$OPENAGENT_SDK_RELEASE_TOKEN" ]]; then
             echo "Repository secret OPENAGENT_SDK_RELEASE_TOKEN is required." >&2
+            exit 1
+          fi
+          if [[ "$RUNTIME" == "true" && -z "$OPENAGENT_PLUGIN_RELEASE_TOKEN" ]]; then
+            echo "Repository secret OPENAGENT_PLUGIN_RELEASE_TOKEN is required for Runtime releases." >&2
             exit 1
           fi
 
@@ -1041,8 +1047,21 @@ jobs:
 
   publish-distribution-resources:
     name: Publish complete resource distribution
-    needs: [detect, create-draft, distribution-resources]
-    if: needs.detect.outputs.published != 'true' && needs.detect.outputs.native_shell == 'true'
+    needs:
+      - detect
+      - create-draft
+      - distribution-resources
+      - publish-runtime-components
+      - publish-frontend-components
+    if: >-
+      always()
+      && needs.detect.result == 'success'
+      && needs.create-draft.result == 'success'
+      && needs.distribution-resources.result == 'success'
+      && (needs.publish-runtime-components.result == 'success' || needs.publish-runtime-components.result == 'skipped')
+      && (needs.publish-frontend-components.result == 'success' || needs.publish-frontend-components.result == 'skipped')
+      && needs.detect.outputs.published != 'true'
+      && needs.detect.outputs.native_shell == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/download-artifact@v4

@@ -54,6 +54,12 @@ SDK publication dispatches and waits for this same pipeline on public `master`;
 it does not duplicate plugin release logic. Configure the dispatcher App for Actions write
 on OpenAgent and the host's `OPENAGENT_PLUGIN_RELEASE_TOKEN` for contents write
 on the standard package repositories before enabling release publication.
+Release detection requires that plugin token for Runtime-selected releases,
+before qualification or candidate builds start; missing publication credentials
+must fail at this gate rather than after native packaging.
+Plugin tag fetching is restricted to submodules under `plugins/`, including
+nested package submodules. The separate immutable SDK checkout deliberately
+does not persist its reader credential and must not be fetched by package setup.
 
 1. concurrently qualify the desktop SHA and stage or reuse its pinned SDK
    release, including the exact Runtime binaries and manifest;
@@ -77,6 +83,10 @@ on the standard package repositories before enabling release publication.
    acceptable skip;
 6. download and verify every selected candidate, upload its existing bytes, and
    generate one combined `latest.json` from the four verified native targets;
+   complete distribution uploads wait for the Runtime and frontend publishers
+   because their resource filenames overlap. Concurrent `--clobber` uploads can
+   delete or race another publisher's asset. Unselected component publishers may
+   be skipped, but a failed publisher blocks the complete distribution;
 7. submit the Store package only after the same gate, publish the staged SDK
    release, upload the desktop-to-SDK mapping, and generate the GitHub Release
    body from the current changelog section and the assets actually attached to

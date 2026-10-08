@@ -68,7 +68,9 @@ jobs:
       - name: Initialize pinned standard package sources
         run: |
           git submodule update --init --recursive -- plugins
-          git submodule foreach --recursive 'git fetch --tags origin'
+          # Git evaluates displaypath separately for each package submodule.
+          # shellcheck disable=SC2016
+          git submodule foreach --recursive 'case "$displaypath" in plugins/*) git fetch --tags origin ;; esac'
       - name: Stage source-versioned standard packages
         run: bun scripts/plugin-release.mjs --output "$RUNNER_TEMP/plugin-candidates"
       - name: Verify staged standard packages
