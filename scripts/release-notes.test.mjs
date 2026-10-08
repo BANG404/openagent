@@ -30,6 +30,8 @@ const nativeAssets = [
   "latest.json",
   "openagent_1.2.3_x64-setup.exe.sig",
   "openagent-server-windows-x64.exe",
+  "codex-windows-sandbox-setup.exe",
+  "codex-command-runner.exe",
 ];
 
 describe("release notes", () => {
@@ -65,6 +67,38 @@ describe("release notes", () => {
     expect(notes).not.toContain("latest.json)");
     expect(notes).not.toContain("setup.exe.sig)");
     expect(notes).not.toContain("openagent-server-windows-x64.exe)");
+    expect(notes).not.toContain("codex-windows-sandbox-setup.exe)");
+  });
+
+  test("selects the current desktop version among helper, foreign, and older installer assets", () => {
+    const notes = createReleaseNotes({
+      manifest: { version: "1.2.3", tag: "v1.2.3", channel: "stable", previousTag: "v1.2.2" },
+      changelog,
+      assetNames: [
+        ...nativeAssets.map((name) => name.replace("openagent", "OpenAgent")),
+        ...nativeAssets.map((name) => name.replace("1.2.3", "1.2.2")),
+        "other_1.2.3_x64-setup.exe",
+      ],
+      repository: "BANG404/openagent",
+    });
+    expect(notes.match(/\| \[Download\]\(/g)).toHaveLength(10);
+    expect(notes).toContain("OpenAgent_1.2.3_x64-setup.exe)");
+    expect(notes).not.toContain("openagent_1.2.2_x64-setup.exe)");
+    expect(notes).not.toContain("other_1.2.3_x64-setup.exe)");
+  });
+
+  test("helpers and older installers cannot replace a missing current Windows installer", () => {
+    expect(() =>
+      createReleaseNotes({
+        manifest: { version: "1.2.3", tag: "v1.2.3", channel: "stable", previousTag: "v1.2.2" },
+        changelog,
+        assetNames: [
+          ...nativeAssets.filter((name) => name !== "openagent_1.2.3_x64-setup.exe"),
+          "openagent_1.2.2_x64-setup.exe",
+        ],
+        repository: "BANG404/openagent",
+      }),
+    ).toThrow("Expected one windows-standard release asset, found 0");
   });
 
   test("explains component-only releases without inventing installer links", () => {

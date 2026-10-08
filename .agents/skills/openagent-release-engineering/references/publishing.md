@@ -111,7 +111,10 @@ summarizes the selected frontend, Runtime, and native-shell components. When a
 release includes the native shell, it also provides direct, described download
 links for the lightweight and full Windows installers, Apple Silicon and Intel
 DMGs, and Linux AppImage, DEB, and RPM packages. Missing or duplicate expected
-installer assets stop publication. Component-only releases explicitly state
+installer assets stop publication. Installer shortcuts match the OpenAgent
+product prefix and exact manifest version before platform suffixes; distribution
+helpers such as `codex-windows-sandbox-setup.exe` and older-version installers
+cannot qualify as desktop downloads. Component-only releases explicitly state
 that desktop installers are unchanged instead of linking an older installer.
 Signatures, updater manifests, and developer-facing component resources remain
 in the GitHub Assets list rather than the quick-download table.

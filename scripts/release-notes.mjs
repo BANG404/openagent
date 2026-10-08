@@ -166,8 +166,13 @@ export function createReleaseNotes({ manifest, changelog, assetNames, repository
   ];
 
   if (components.nativeShell) {
+    const installerPrefix = new RegExp(
+      String.raw`^openagent[_-]${escapeRegExp(manifest.version)}[_-]`,
+      "i",
+    );
+    const installerNames = assetNames.filter((name) => installerPrefix.test(name));
     const rows = DOWNLOADS.map((download) => {
-      const matches = assetNames.filter((name) => download.pattern.test(name));
+      const matches = installerNames.filter((name) => download.pattern.test(name));
       if (matches.length !== 1) {
         throw new Error(
           `Expected one ${download.id} release asset, found ${matches.length}: ${matches.join(", ")}`,
