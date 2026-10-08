@@ -2,6 +2,12 @@
 
 ## Single instance and focus routing
 
+- Convert Tauri's Windows window handle through its raw pointer into the host's
+  `windows::Win32::Foundation::HWND` before calling Win32 functions. The ordinary
+  shell and SDK-owned embedded diagnostic can resolve different `windows` crate
+  versions; wrapper types from those versions are not interchangeable. Verify
+  both dependency graphs when changing this native boundary.
+
 - Debug hosts resolve the current worktree's prepared Runtime under
   `src-tauri/binaries/` before an executable-directory sidecar. Cargo host output
   can retain an older copied sidecar after the worktree Runtime is rebuilt;

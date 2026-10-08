@@ -9,6 +9,7 @@ fn foreground_belongs_to_desktop_window(
 
 #[cfg(windows)]
 fn desktop_window_is_active(window: &tauri::WebviewWindow) -> Result<bool, String> {
+    use windows::Win32::Foundation::HWND;
     use windows::Win32::UI::WindowsAndMessaging::{GetAncestor, GA_ROOTOWNER};
     use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId};
 
@@ -17,7 +18,9 @@ fn desktop_window_is_active(window: &tauri::WebviewWindow) -> Result<bool, Strin
         return Ok(false);
     }
 
-    let desktop_window = window.hwnd().map_err(|error| error.to_string())?;
+    // Tauri and embedded diagnostics may resolve different windows crate versions.
+    // Carry the native handle across that boundary rather than the crate's wrapper.
+    let desktop_window = HWND(window.hwnd().map_err(|error| error.to_string())?.0);
     let foreground_root_owner = unsafe { GetAncestor(foreground_window, GA_ROOTOWNER) };
     let desktop_root_owner = unsafe { GetAncestor(desktop_window, GA_ROOTOWNER) };
     let shares_root_owner = !foreground_root_owner.0.is_null()

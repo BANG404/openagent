@@ -21,6 +21,9 @@ are rejected before a source is passed to the installer.
 
 Advance a package gitlink, its bundled catalog version and the explicit catalog
 test expectations together. Source-manifest parity remains a required check.
+This applies to release-qualification fixes in package state or tests as well;
+the parent catalog must advertise the newly pinned source version before full
+frontend qualification runs.
 
 Optional `i18n` entries use the validated `AgentPluginI18n` presentation shape.
 Uninstalled cards use catalog declarations; installed cards refresh from the
