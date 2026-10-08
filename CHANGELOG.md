@@ -31,6 +31,7 @@ All notable changes to this project will be documented in this file.
 - **plugins**: Add MCP mounting overrides and localized names
 
 ### Bug Fixes
+- **release**: Unblock Windows diagnostics and group qualification
 - **chat**: Show MCP UI only after approved tool success
 - **sdk**: Include missing call IDs in checkpoint recovery
 - **sdk**: Update tool validation checkpoint recovery
