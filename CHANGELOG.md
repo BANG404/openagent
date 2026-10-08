@@ -31,6 +31,7 @@ All notable changes to this project will be documented in this file.
 - **plugins**: Add MCP mounting overrides and localized names
 
 ### Bug Fixes
+- **chat**: Show MCP UI only after approved tool success
 - **sdk**: Include missing call IDs in checkpoint recovery
 - **sdk**: Update tool validation checkpoint recovery
 - **chat-groups**: Show interruption control only while running
@@ -62,6 +63,7 @@ All notable changes to this project will be documented in this file.
 - **plugins**: Bind stale sidebar replies to outgoing scope
 
 ### Miscellaneous
+- **sdk**: Advance gitlink to reverted mainline
 - **plugins**: Pin accepted conversation UI authoring kit
 - **plugins**: Publish mounting modes and localized catalog
 
