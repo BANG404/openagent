@@ -60,6 +60,12 @@ must fail at this gate rather than after native packaging.
 Plugin tag fetching is restricted to submodules under `plugins/`, including
 nested package submodules. The separate immutable SDK checkout deliberately
 does not persist its reader credential and must not be fetched by package setup.
+Packaged tests run under their declared framework: `node:test` uses Node 24,
+and `bun:test` uses the pinned Bun runner. `verify-plugin-candidates.mjs` retains
+every staged test, rejects ambiguous or absent framework declarations, and
+bounds both individual tests and each runner process. This keeps native Node
+HTTP/child-process fixtures out of Bun's compatibility test bridge and ensures
+a failed fixture cannot leave publication waiting indefinitely on orphan processes.
 
 1. concurrently qualify the desktop SHA and stage or reuse its pinned SDK
    release, including the exact Runtime binaries and manifest;

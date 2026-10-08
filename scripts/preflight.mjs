@@ -23,6 +23,7 @@ const AUTOMATION_TESTS = [
   "scripts/release-candidate-artifacts.test.mjs",
   "scripts/release-workflow.test.mjs",
   "scripts/plugin-release.test.mjs",
+  "scripts/verify-plugin-candidates.test.mjs",
 ];
 
 /**

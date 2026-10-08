@@ -37,6 +37,9 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.2.21
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
       - name: Create private SDK reader
         id: sdk-reader
         uses: actions/create-github-app-token@v2
@@ -81,7 +84,7 @@ jobs:
             mkdir "$package_dir"
             tar -xzf "$archive" -C "$package_dir"
           done
-          bun test "$test_root"/*/tests/*.test.mjs
+          bun scripts/verify-plugin-candidates.mjs --root "$test_root"
       - name: Publish verified pinned packages
         env:
           GH_TOKEN: ${{ secrets.OPENAGENT_PLUGIN_RELEASE_TOKEN }}
