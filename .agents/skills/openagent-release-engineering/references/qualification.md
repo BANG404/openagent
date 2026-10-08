@@ -61,3 +61,12 @@
   Each embedding platform runner installs the pinned Bun before invoking the
   embedded-Cargo launcher. Capture failures through a shell conditional so
   GitHub Actions' `bash -e` cannot bypass the retries and backoff.
+- Embedded diagnostics seed their ignored `sdk/target/desktop-host/Cargo.lock`
+  from the pinned SDK lockfile and let Cargo resolve additional public-host
+  dependencies into one graph. Do not concatenate the independent host and SDK
+  locks: compatible shared crates can have conflicting pinned patch versions,
+  and CRLF checkouts can produce malformed package tables. Keep both source
+  locks untouched, normalize the seed to LF, and retain Cargo's resolved lock
+  across retries until the manifest or source locks change. A changed seeding
+  policy must invalidate existing generated locks; recreate a missing lock even
+  when its input fingerprint remains present.
