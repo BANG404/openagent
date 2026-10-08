@@ -2,7 +2,7 @@
 name = "openagent"
 default-run = "openagent"
 autobins = false
-version = "0.76.0-beta.2"
+version = "0.76.0-beta.3"
 description = "OpenAgent desktop AI agent client"
 authors = ["BANG404"]
 edition = "2021"
