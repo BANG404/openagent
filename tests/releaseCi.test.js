@@ -1,9 +1,112 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { TOML } from "bun";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { prepareEmbeddedManifest } from "../scripts/embedded-cargo.mjs";
 
 /** @param {URL|string} url */
 const readText = (url) => readFileSync(url, "utf8").replace(/\r\n/g, "\n");
+
+/** @param {string} hostNewline @param {string} sdkNewline */
+function embeddedLockFixture(hostNewline, sdkNewline) {
+  const root = mkdtempSync(path.join(tmpdir(), "openagent-embedded-lock-"));
+  const host = path.join(root, "src-tauri");
+  const sdk = path.join(root, "sdk");
+  for (const directory of ["capabilities", "locales", "resources/models", "icons", "binaries"]) {
+    mkdirSync(path.join(host, directory), { recursive: true });
+  }
+  mkdirSync(sdk);
+  writeFileSync(
+    path.join(host, "Cargo.toml"),
+    '[package]\nname = "openagent"\nversion = "0.1.0"\nedition = "2021"\n[dependencies]\n',
+  );
+  writeFileSync(
+    path.join(host, "tauri.conf.json"),
+    JSON.stringify({ build: { frontendDist: "../build" }, bundle: { icon: [], externalBin: [] } }),
+  );
+  const lock = 'version = 4\n\n[[package]]\nname = "reqwest"\nversion = "0.13.4"\n';
+  const hostLock = lock.replace("0.13.4", "0.13.3").replaceAll("\n", hostNewline);
+  const sdkLock = lock.replaceAll("\n", sdkNewline);
+  writeFileSync(path.join(host, "Cargo.lock"), hostLock);
+  writeFileSync(path.join(sdk, "Cargo.lock"), sdkLock);
+  const destination = path.join(sdk, "target", "desktop-host");
+  return { root, host, sdk, destination, hostLock, sdkLock };
+}
+
+describe("embedded diagnostic dependency resolution", () => {
+  for (const [hostNewline, sdkNewline] of [
+    ["\n", "\n"],
+    ["\r\n", "\r\n"],
+    ["\n", "\r\n"],
+    ["\r\n", "\n"],
+  ]) {
+    test(`seeds one compatible graph with ${JSON.stringify([hostNewline, sdkNewline])} checkouts`, async () => {
+      const fixture = embeddedLockFixture(hostNewline, sdkNewline);
+      try {
+        await prepareEmbeddedManifest(fixture.root);
+        const lock = readText(path.join(fixture.destination, "Cargo.lock"));
+        expect(TOML.parse(lock)).toEqual({
+          version: 4,
+          package: [{ name: "reqwest", version: "0.13.4" }],
+        });
+        expect(readFileSync(path.join(fixture.host, "Cargo.lock"), "utf8")).toBe(fixture.hostLock);
+        expect(readFileSync(path.join(fixture.sdk, "Cargo.lock"), "utf8")).toBe(fixture.sdkLock);
+      } finally {
+        rmSync(fixture.root, { recursive: true, force: true });
+      }
+    });
+  }
+
+  test("retains Cargo's resolved graph until inputs change and restores a missing lock", async () => {
+    const fixture = embeddedLockFixture("\n", "\n");
+    try {
+      await prepareEmbeddedManifest(fixture.root);
+      const lockFile = path.join(fixture.destination, "Cargo.lock");
+      const resolved = `${fixture.sdkLock}\n[[package]]\nname = "host-only"\nversion = "1.0.0"\n`;
+      writeFileSync(lockFile, resolved);
+      await prepareEmbeddedManifest(fixture.root);
+      expect(readText(lockFile)).toBe(resolved);
+      writeFileSync(path.join(fixture.host, "Cargo.lock"), `${fixture.hostLock}\n`);
+      await prepareEmbeddedManifest(fixture.root);
+      expect(readText(lockFile)).toBe(fixture.sdkLock);
+      writeFileSync(
+        path.join(fixture.sdk, "Cargo.lock"),
+        fixture.sdkLock.replace("0.13.4", "0.13.5"),
+      );
+      await prepareEmbeddedManifest(fixture.root);
+      expect(readText(lockFile)).toContain('version = "0.13.5"');
+      rmSync(lockFile);
+      await prepareEmbeddedManifest(fixture.root);
+      expect(readText(lockFile)).toContain('version = "0.13.5"');
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+
+  test("replaces a previously cached concatenated lockfile", async () => {
+    const fixture = embeddedLockFixture("\n", "\n");
+    try {
+      const manifest = await prepareEmbeddedManifest(fixture.root);
+      const oldFingerprint = createHash("sha256")
+        .update(readText(manifest))
+        .update(fixture.hostLock)
+        .update(fixture.sdkLock)
+        .digest("hex");
+      writeFileSync(path.join(fixture.destination, "lock-inputs.sha256"), oldFingerprint);
+      writeFileSync(path.join(fixture.destination, "Cargo.lock"), "version = 4\n[[package]]\n");
+      await prepareEmbeddedManifest(fixture.root);
+      expect(TOML.parse(readText(path.join(fixture.destination, "Cargo.lock")))).toEqual({
+        version: 4,
+        package: [{ name: "reqwest", version: "0.13.4" }],
+      });
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+});
 
 const releaseWorkflow = readText(new URL("../.github/workflows/release.yml", import.meta.url));
 const ciWorkflow = readText(new URL("../.github/workflows/ci.yml", import.meta.url));

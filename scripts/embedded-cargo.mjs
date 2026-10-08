@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
@@ -12,6 +12,7 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 export async function prepareEmbeddedManifest(repositoryRoot = root) {
   const host = path.join(repositoryRoot, "src-tauri");
   const destination = path.join(repositoryRoot, "sdk", "target", "desktop-host");
+  /** @param {string} value */
   const quotePath = (value) => JSON.stringify(value.replaceAll("\\", "/"));
   let manifest = await readFile(path.join(host, "Cargo.toml"), "utf8");
   manifest = manifest
@@ -35,6 +36,7 @@ export async function prepareEmbeddedManifest(repositoryRoot = root) {
     "[target.'cfg(windows)'.dependencies]",
     `[target.'cfg(windows)'.dependencies]\nrama-error = "=0.3.0-alpha.4"\nrama-macros = "=0.3.0-alpha.4"\nrama-utils = "=0.3.0-alpha.4"`,
   );
+  /** @type {{ build: { frontendDist: string }; bundle: { icon: string[]; externalBin: string[] } }} */
   const config = JSON.parse(await readFile(path.join(host, "tauri.conf.json"), "utf8"));
   config.build.frontendDist = path.resolve(host, config.build.frontendDist).replaceAll("\\", "/");
   config.bundle.icon = config.bundle.icon.map((name) =>
@@ -60,33 +62,23 @@ export async function prepareEmbeddedManifest(repositoryRoot = root) {
   await writeFile(path.join(destination, "Cargo.toml"), manifest);
   const hostLock = await readFile(path.join(host, "Cargo.lock"), "utf8");
   const sdkLock = await readFile(path.join(repositoryRoot, "sdk", "Cargo.lock"), "utf8");
-  const packageBlocks = (lock) => lock.split("\n[[package]]\n").slice(1);
-  const packageIdentity = (block) =>
-    ["name", "version", "source"]
-      .map((key) => new RegExp(`^${key} = (.+)$`, "m").exec(block)?.[1] ?? "")
-      .join("|");
-  const blocks = packageBlocks(hostLock);
-  const identities = new Set(blocks.map(packageIdentity));
-  for (const block of packageBlocks(sdkLock)) {
-    const identity = packageIdentity(block);
-    if (!identities.has(identity)) {
-      identities.add(identity);
-      blocks.push(block);
-    }
-  }
-  // Retain both owners' pinned dependency versions instead of resolving a new
-  // Tauri/SDK graph when this diagnostic workspace is generated.
+  // Seed one coherent SDK graph and let Cargo resolve the additional host
+  // dependencies. Concatenating lockfiles can pin incompatible shared versions
+  // (for example reqwest 0.13.3 and 0.13.4) and breaks on CRLF checkouts.
   const lockInputs = createHash("sha256")
+    .update("sdk-lock-seed-v1\n")
     .update(manifest)
     .update(hostLock)
     .update(sdkLock)
     .digest("hex");
   const inputFile = path.join(destination, "lock-inputs.sha256");
-  if ((await readFile(inputFile, "utf8").catch(() => "")) !== lockInputs) {
-    await writeFile(
-      path.join(destination, "Cargo.lock"),
-      `${hostLock.split("\n[[package]]\n")[0]}\n[[package]]\n${blocks.join("\n[[package]]\n")}`,
-    );
+  const lockFile = path.join(destination, "Cargo.lock");
+  const lockExists = await access(lockFile).then(
+    () => true,
+    () => false,
+  );
+  if ((await readFile(inputFile, "utf8").catch(() => "")) !== lockInputs || !lockExists) {
+    await writeFile(lockFile, sdkLock.replaceAll("\r\n", "\n"));
     await writeFile(inputFile, lockInputs);
   }
   await writeFile(
@@ -97,6 +89,7 @@ export async function prepareEmbeddedManifest(repositoryRoot = root) {
     const source = path.join(host, `tauri.${platform}.conf.json`);
     const content = await readFile(source, "utf8").catch(() => null);
     if (!content) continue;
+    /** @type {{ bundle?: { resources?: Record<string, string>; externalBin?: string[] } }} */
     const platformConfig = JSON.parse(content);
     if (platformConfig.bundle?.resources) {
       platformConfig.bundle.resources = Object.fromEntries(
