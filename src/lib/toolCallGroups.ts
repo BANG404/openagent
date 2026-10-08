@@ -290,7 +290,8 @@ export function toolCallStatus(item: ToolCallItem, showRunning: boolean): ToolCa
   if (
     /^(error|failed|failure)\b\s*:?\s*/i.test(text) ||
     /^tool\s+[`'"][^`'"]+[`'"]\s+not found\b/i.test(text) ||
-    /^(?:approved tool call|terminal tool) failed\b/i.test(text)
+    /^(?:approved tool call|terminal tool) failed\b/i.test(text) ||
+    /^tool call (?:denied|requires approval|did not run)\b/i.test(text)
   )
     return "failed";
   // Read the leading JSON value so Runtime-appended model context cannot hide a
@@ -300,9 +301,19 @@ export function toolCallStatus(item: ToolCallItem, showRunning: boolean): ToolCa
   if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
     const record = parsed as Record<string, unknown>;
     if (record.cancelled === true) return "cancelled";
-    if (record.ok === false || record.success === false || record.error) return "failed";
+    if (record.ok === false || record.success === false || record.error || record.isError === true)
+      return "failed";
   }
   return "success";
+}
+
+export function canMountMcpApp(item: ToolCallItem): boolean {
+  return (
+    Boolean(item.mcpUi?.resource) &&
+    !item.mcpUi?.is_error &&
+    toolCallStatus(item, false) === "success" &&
+    (!item.approval || item.approval.state === "answered")
+  );
 }
 
 export function shouldDisplayToolCall(item: ToolCallItem, showRunning: boolean): boolean {

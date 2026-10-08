@@ -11,7 +11,12 @@
     summarizePatchChanges,
     type ToolPatchFilePreview,
   } from "$lib/toolCallPatch";
-  import { shouldDisplayToolCall, toolCallStatus, type ToolCallItem } from "$lib/toolCallGroups";
+  import {
+    canMountMcpApp,
+    shouldDisplayToolCall,
+    toolCallStatus,
+    type ToolCallItem,
+  } from "$lib/toolCallGroups";
   import { parseToolResultJson } from "$lib/toolResultJson";
   import FileDiffView from "./FileDiffView.svelte";
   import Tooltip from "./Tooltip.svelte";
@@ -91,6 +96,9 @@
     return key ? $t(key) : name;
   });
   const resultText = $derived(result ?? "");
+  const mountMcpApp = $derived(
+    canMountMcpApp({ type: "tool_call", name, args, result, mcpUi, approval }),
+  );
   const status = $derived(
     toolCallStatus({ type: "tool_call", name, args, result } satisfies ToolCallItem, showRunning),
   );
@@ -337,7 +345,7 @@
         />
       {/if}
 
-      {#if mcpUi?.resource}
+      {#if mcpUi && mountMcpApp}
         <McpAppFrame invocation={mcpUi} />
       {/if}
 

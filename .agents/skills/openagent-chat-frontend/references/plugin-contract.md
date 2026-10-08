@@ -90,6 +90,15 @@ and send `ui/notifications/host-context-changed` on live switching without
 remounting the iframe or discarding its input. Browser language is not a host
 locale source. Package language requirements belong to plugin development.
 
+For plugin tools with MCP UI, show the existing tool-card approval controls
+first. Do not mount the app iframe while approval is pending, or while an
+approved tool is still executing. Mount the MCP UI only after the tool returns
+a successful result. Denied, cancelled, unanswered and failed calls must never
+execute their HTML. Verify approval-before-UI, approval awaiting a result,
+successful completion and denial in English/Chinese and light/dark.
+Run `bun scripts/test-mcp-app-approval-blackbox.mjs` with an isolated
+`OPENAGENT_HOME` and explicit `TAURI_PILOT_SOCKET` for this sequence.
+
 ConversationSurface also derives sidebar context from the resolved application
 locale store, rather than the raw configuration preference (`system` or a stale
 saved snapshot). Sidebar titles and first/live context must follow the same locale

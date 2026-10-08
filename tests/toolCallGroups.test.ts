@@ -2,6 +2,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   appendLiveStreamEntry,
+  canMountMcpApp,
   groupAssistantTurns,
   groupMessageToolCalls,
   groupStreamItems,
@@ -29,6 +30,27 @@ const message = (id: string, item: StreamItem): ChatMessage => ({
 });
 
 describe("tool-call grouping", () => {
+  test("MCP apps mount only after successful execution, never during approval or denial", () => {
+    const mcpUi = { resource: { uri: "ui://app" }, is_error: false };
+    const pending = { ...call("render_app"), mcpUi };
+    expect(canMountMcpApp(pending)).toBe(false);
+    for (const result of [
+      "Tool call requires approval but no interactive chat is available",
+      "Tool call denied because the tool approval task is disabled",
+      "Tool call did not run because the chat was cancelled during approval",
+      "Tool call was denied by the user",
+      '{"isError":true}',
+    ]) {
+      expect(canMountMcpApp({ ...pending, result })).toBe(false);
+    }
+    const success = { ...pending, result: "Rendered" };
+    expect(canMountMcpApp(success)).toBe(true);
+    expect(canMountMcpApp({ ...success, mcpUi: { ...mcpUi, is_error: true } })).toBe(false);
+    for (const state of ["pending", "cancelled", "unanswered"]) {
+      expect(canMountMcpApp({ ...success, approval: { state } })).toBe(false);
+    }
+    expect(canMountMcpApp({ ...success, approval: { state: "answered" } })).toBe(true);
+  });
   test("groups only consecutive ordinary stream tool calls", () => {
     const segments = groupStreamItems([
       call("read_file", "ok"),
