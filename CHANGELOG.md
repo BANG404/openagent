@@ -10,6 +10,56 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.76.0-beta.1] - 2026-10-08
+
+### Features
+- **chat-groups**: Add discussion stop control
+- **delivery**: Add pinned public dev kits and shell-first resource provisioning
+- **plugins**: Activate sidebar views from selected branch tool calls
+- **plugins**: Qualify Chat Groups owner and discussion lifecycle
+- **plugins**: Follow active conversation in Chat Groups sidebar
+- **hooks**: Wake conversations through generic conditions
+- **chat**: Standardize persistent checkpoint UI and plugin components
+- **plugins**: Use source versions and expose runtime embedding
+- **chat**: Hide terminal wake input while streaming agent replies
+- **chat**: Support unordered fuzzy slash command matching
+- **plugins**: Automate compatible plugin release and Runtime synchronization
+- **cua**: Integrate automatic driver updates in plugin v1.3.0
+- **plugins**: Publish Plugin Developer as an independent package
+- **plugins**: Integrate development lifecycle and MCP leases
+- **plugins**: Add MCP mounting overrides and localized names
+
+### Bug Fixes
+- **desktop**: Prefer prepared Runtime for debug startup
+- Preserve visible Markdown composer edit semantics
+- **plugins**: Resolve catalog version merge conflicts
+- **plugins**: Preserve concurrent group controls in sidebar activation
+- Link plugin group participants to durable child conversations
+- **plugins**: Keep group scrollbar visible and hide wake prompts
+- **plugins**: Restore group Markdown and mention completion
+- **plugins**: Unify Chat Groups sidebar styling
+- **plugins**: Restore the Chat Groups sidebar through package tools
+- **hooks**: Enable cancellation of automatic wakes
+- **runtime**: Pin scheduled hook routing safeguards
+- **ui**: Adapt plugin marketplace to management window size
+- **gateway**: Render persisted components in paired browsers
+- **chat**: Preserve component tones and reject stale UI history
+- **dev**: Preserve contrast in dark conversation UI preview
+- **plugins**: Release running MCP processes before updates
+
+### Refactoring
+- **sdk**: Adopt Rig structured output
+- **app**: Compose feature controllers and thin desktop modules
+- **chat**: Render existing dividers through the UI component contract
+- **settings**: Standardize Cua MCP controls
+
+### Testing
+- **plugins**: Bind stale sidebar replies to outgoing scope
+
+### Miscellaneous
+- **plugins**: Pin accepted conversation UI authoring kit
+- **plugins**: Publish mounting modes and localized catalog
+
 ## [0.75.0-beta.1] - 2026-10-05
 
 ### Features
