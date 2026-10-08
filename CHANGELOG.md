@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 ## [0.76.0-beta.1] - 2026-10-08
 
 ### Features
+- Adopt textual chat group handoffs
 - **chat-groups**: Add discussion stop control
 - **delivery**: Add pinned public dev kits and shell-first resource provisioning
 - **plugins**: Activate sidebar views from selected branch tool calls
@@ -30,6 +31,10 @@ All notable changes to this project will be documented in this file.
 - **plugins**: Add MCP mounting overrides and localized names
 
 ### Bug Fixes
+- **sdk**: Include missing call IDs in checkpoint recovery
+- **sdk**: Update tool validation checkpoint recovery
+- **chat-groups**: Show interruption control only while running
+- **release**: Restore native packaging and qualification
 - **desktop**: Prefer prepared Runtime for debug startup
 - Preserve visible Markdown composer edit semantics
 - **plugins**: Resolve catalog version merge conflicts
