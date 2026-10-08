@@ -107,6 +107,12 @@ bundled Skill for creation/start semantics and state upgrades. Run
 `test:blackbox:chat-groups-sidebar` for unbound and role-bound owner labels,
 language-stable owner mentions, reload and the four theme/language combinations;
 run `test:blackbox:chat-groups-wake` for real hidden wakes and transcript recovery.
+Chat Groups v3 resolves both Agent and user wake targets from published content
+(`@role`, quoted names with spaces, `@owner` / `@群主`, and `@all`); its sending
+tool has no separate `mentions` input. The wake runner covers Agent member
+handoffs to a quoted role name and its owner, and user `@all` Stop plus `@owner`
+recovery. Persisted resolved member IDs remain package data; the host does not
+parse group mentions.
 Both panel runners use task-owned package copies without conditional sidebar
 activation, since their bridge calls are outside the model transcript. Also run
 `test:blackbox:plugin-sidebar-activation` against the unmodified manifest to

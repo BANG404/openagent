@@ -294,7 +294,6 @@ try {
       await call("chat_group_send_message", {
         group_id: group.id,
         content: "Qualification message",
-        mentions: [],
       });
       const messages = await call("chat_group_read_messages", {
         group_id: group.id,

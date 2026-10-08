@@ -208,8 +208,8 @@ try {
       await evaluate(
         `(()=>{const e=document.querySelector('[contenteditable=true][role=textbox]');e.focus();e.dispatchEvent(new InputEvent('beforeinput',{bubbles:true,cancelable:true,inputType:'insertText',data:window.__groupWakeProbe.draft}));return true;})()`,
       );
-      /** @param {string} tool @param {Record<string, unknown>} args */
-      async function call(tool, args) {
+      /** @param {string} tool @param {Record<string, unknown>} args @param {string} [sender] */
+      async function call(tool, args, sender) {
         const result = await invoke("call_agent_plugin_tool", {
           plugin_id: "chat-groups",
           tool_name: tool,
@@ -217,7 +217,7 @@ try {
             ...args,
             _openagent: {
               workspace: original.workspace,
-              conversation_id: tool === "chat_group_send_message" ? "" : id,
+              conversation_id: sender ?? (tool === "chat_group_send_message" ? "" : id),
               branch_id: branchId,
               locale: language,
             },
@@ -294,11 +294,40 @@ try {
         return true;
       })()`);
       console.log(`Joined roles and startup wakes passed: ${theme}/${language}`);
-      await call("chat_group_send_message", {
-        group_id: group.id,
-        content: `Please reply ${probe.marker}`,
-        mentions: [member.id],
-      });
+      const beforeHandoff = await invoke("get_renderable_checkpoints", { convId: childIds[0] });
+      const roleReply = await call(
+        "chat_group_send_message",
+        {
+          group_id: group.id,
+          content: `@"Product reviewer": please take over ${probe.marker}`,
+        },
+        childIds[1],
+      );
+      assert.deepEqual(roleReply.mentions, [started.members[1].id]);
+      await until(`(async()=>{
+        const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
+        const checkpoints=await c.invokeProduct('get_renderable_checkpoints',{convId:${JSON.stringify(childIds[0])}});
+        const last=checkpoints.at(-1);
+        return last?.meta.checkpoint_id!==${JSON.stringify(beforeHandoff.at(-1)?.meta.checkpoint_id)} && last?.data.phase==='final_completed' && last.data.messages.some(m=>m.role==='assistant'&&JSON.stringify(m.content).includes(${JSON.stringify(`GROUP_WOKE_${id}`)}));
+      })()`);
+      const handedOff = await invoke("get_renderable_checkpoints", { convId: childIds[0] });
+      assert.equal(
+        handedOff
+          .at(-1)
+          .data.messages.filter((/** @type {any} */ m) =>
+            m.plugin_tags?.includes("plugin:chat-groups:control"),
+          ).length,
+        2,
+      );
+      console.log(`Agent role mention handoff passed: ${theme}/${language}`);
+      await call(
+        "chat_group_send_message",
+        {
+          group_id: group.id,
+          content: `@owner Please reply ${probe.marker}`,
+        },
+        childIds[0],
+      );
       await until(
         `document.body.textContent.includes('GROUP_WOKE_${id}') && !document.querySelector('.stop-btn')`,
       );
@@ -349,8 +378,7 @@ try {
       const stopMembers = [...childIds, id];
       await call("chat_group_send_message", {
         group_id: group.id,
-        content: `GROUP_STOP_HOLD ${probe.marker}`,
-        mentions: ["all"],
+        content: `@all GROUP_STOP_HOLD ${probe.marker}`,
       });
       const holdDeadline = Date.now() + 30000;
       while (
@@ -387,8 +415,7 @@ try {
       );
       await call("chat_group_send_message", {
         group_id: group.id,
-        content: `Resume after Stop ${probe.marker}`,
-        mentions: [member.id],
+        content: `@owner Resume after Stop ${probe.marker}`,
       });
       await until(`(async()=>{
         const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
