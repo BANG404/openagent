@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 
 /** @param {URL|string} url */
 const readText = (url) => readFileSync(url, "utf8").replace(/\r\n/g, "\n");
@@ -67,5 +67,14 @@ describe("sandbox helper packaging", () => {
     expect(cargoManifest).toContain("autobins = false");
     expect(tauriLauncher).toContain('"embedded-cargo.cmd"');
     expect(packageManifest.scripts["dev:agent-server"]).toContain("scripts/embedded-cargo.mjs");
+    const discoveredBinaries = readdirSync(new URL("../src-tauri/src/", import.meta.url), {
+      withFileTypes: true,
+    })
+      .filter((entry) => entry.isDirectory() && entry.name === "bin")
+      .flatMap((entry) => readdirSync(new URL(`../src-tauri/src/${entry.name}/`, import.meta.url)));
+    expect(discoveredBinaries).toEqual([]);
+    expect(
+      readText(new URL("../src-tauri/src/embedded-agent-server.rs", import.meta.url)),
+    ).toContain("openagent_lib::run_agent_server()");
   });
 });

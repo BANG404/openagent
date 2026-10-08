@@ -26,6 +26,11 @@
   not generated `target/` contents. The ordinary desktop build must leave the
   `embedded-runtime` Cargo feature disabled; only the explicit embedded
   diagnostic may link the in-process Runtime command adapter.
+  Keep its agent-server entry point outside `src-tauri/src/bin/`: Tauri CLI
+  scans that directory for bundle binaries even with Cargo `autobins = false`.
+  `scripts/embedded-cargo.mjs` declares the diagnostic binary only in its
+  generated SDK-owned manifest. Preserve retired source allowlist paths until
+  their unpublished history has been delivered.
 - Treat the ordinary Tauri build as the lightweight installer and sole updater
   input. Build the full first-install overlay separately, upload its renamed
   manual installer without updater metadata, and keep its embedding seed out of

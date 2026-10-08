@@ -58,3 +58,6 @@
   times on the same runner, with 20-second and 40-second backoff delays. This
   covers transient package-host or DNS failures during `ort-sys` setup while
   preserving the final non-zero status for deterministic build or test errors.
+  Each embedding platform runner installs the pinned Bun before invoking the
+  embedded-Cargo launcher. Capture failures through a shell conditional so
+  GitHub Actions' `bash -e` cannot bypass the retries and backoff.

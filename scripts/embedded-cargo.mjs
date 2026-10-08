@@ -21,16 +21,12 @@ export async function prepareEmbeddedManifest(repositoryRoot = root) {
     )
     .replaceAll('path = "src/lib.rs"', `path = ${quotePath(path.join(host, "src/lib.rs"))}`)
     .replaceAll('path = "src/main.rs"', `path = ${quotePath(path.join(host, "src/main.rs"))}`)
-    .replaceAll(
-      'path = "src/bin/openagent-agent-server.rs"',
-      `path = ${quotePath(path.join(host, "src/bin/openagent-agent-server.rs"))}`,
-    )
     .replace(
       "[dependencies]",
       `[features]\ndefault = []\nembedded-runtime = ["dep:openagent-app", "dep:openagent-protocol", "dep:openagent-runtime"]\n\n[dependencies]\n${["openagent-app", "openagent-protocol", "openagent-runtime"].map((crate) => `${crate} = { path = ${quotePath(path.join(repositoryRoot, "sdk/rust", crate))}, optional = true }`).join("\n")}`,
     );
   // The main binary must also be explicit because the diagnostic workspace has no src/main.rs.
-  manifest += `\n[[bin]]\nname = "openagent-agent-server"\npath = ${quotePath(path.join(host, "src/bin/openagent-agent-server.rs"))}\nrequired-features = ["embedded-runtime"]\n`;
+  manifest += `\n[[bin]]\nname = "openagent-agent-server"\npath = ${quotePath(path.join(host, "src/embedded-agent-server.rs"))}\nrequired-features = ["embedded-runtime"]\n`;
   manifest = manifest.replace(
     "[patch.crates-io]",
     `[patch.crates-io]\ntokio-tungstenite = { git = "https://github.com/openai-oss-forks/tokio-tungstenite", rev = "0e5b2d73aa18dd9f0a50ee9ff199d5aef7594186" }\ntungstenite = { git = "https://github.com/openai-oss-forks/tungstenite-rs", rev = "4fffad30fe373adbdcffab9545e9e9bf4f2fc19f" }`,

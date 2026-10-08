@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 
 /** @param {URL|string} url */
 const readText = (url) => readFileSync(url, "utf8").replace(/\r\n/g, "\n");
@@ -33,6 +34,41 @@ const privateRunnerEnvironment = readText(
   new URL("../scripts/ci/self-hosted-runner/.env.example", import.meta.url),
 );
 describe("release CI verification", () => {
+  test("prepares Bun and preserves embedding retries under Bash errexit", () => {
+    const embeddingJob = nativeWorkflow
+      .split("  embedding-platform:\n")[1]
+      .split("  required:\n")[0];
+    const setup = embeddingJob.indexOf("uses: oven-sh/setup-bun@v2");
+    const exercise = embeddingJob.indexOf("name: Exercise bundled embedding model");
+    expect(setup).toBeGreaterThan(-1);
+    expect(setup).toBeLessThan(exercise);
+    expect(embeddingJob).toContain("bun-version: 1.2.21");
+    const retryScript = embeddingJob
+      .slice(exercise)
+      .split("        run: |\n")[1]
+      .split("      - name: Exercise authenticated plugin embedding")[0]
+      .split("\n")
+      .map((line) => line.replace(/^ {10}/, ""))
+      .join("\n");
+
+    for (const succeeds of [true, false]) {
+      const result = spawnSync(
+        "bash",
+        [
+          "-e",
+          "-c",
+          `calls=0\nbun() { calls=$((calls + 1)); echo "call=$calls"; ${succeeds ? '[ "$calls" -eq 3 ] && return 0;' : ""} return 9; }\nsleep() { echo "delay=$1"; }\n${retryScript}`,
+        ],
+        { encoding: "utf8" },
+      );
+      expect(result.error).toBeUndefined();
+      expect(result.status).toBe(succeeds ? 0 : 9);
+      expect(result.stdout.match(/call=/g)).toHaveLength(3);
+      expect(result.stdout).toContain("delay=20");
+      expect(result.stdout).toContain("delay=40");
+    }
+  });
+
   test("reserves complete qualification for release, scheduled, and manual runs", () => {
     expect(ciWorkflow).toContain("workflow_call:");
     expect(ciWorkflow).toContain("pull_request:");

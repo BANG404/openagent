@@ -357,6 +357,10 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.21
+
       - name: Materialize Runtime sidecar for Tauri macros
         run: node scripts/prepare-runtime-server.mjs --placeholder
 
@@ -374,10 +378,10 @@ jobs:
           max_attempts=3
           for ((attempt = 1; attempt <= max_attempts; attempt++)); do
             echo "Running bundled embedding model test (attempt ${attempt}/${max_attempts})."
-            bun scripts/embedded-cargo.mjs test bundled_embedding_model_runs_offline
-            status=$?
-            if (( status == 0 )); then
+            if bun scripts/embedded-cargo.mjs test bundled_embedding_model_runs_offline; then
               exit 0
+            else
+              status=$?
             fi
 
             if (( attempt == max_attempts )); then

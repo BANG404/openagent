@@ -27,6 +27,7 @@ src-tauri/src/desktop_windows/startup.rs
 src-tauri/src/desktop_windows/tray.rs
 src-tauri/src/desktop_windows/utility.rs
 src-tauri/src/diagnostics.rs
+src-tauri/src/embedded-agent-server.rs
 src-tauri/src/embedded_commands/conversations.rs
 src-tauri/src/embedded_commands/documents.rs
 src-tauri/src/embedded_commands/input.rs
