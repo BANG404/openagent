@@ -74,15 +74,15 @@ describe("packaged plugin test frameworks", () => {
     }
   });
 
-  test("undeclared or mixed frameworks stop qualification instead of skipping coverage", () => {
-    expect(() => candidateTestFramework('import assert from "node:assert";')).toThrow(
-      "exactly one",
+  test("implicit Bun globals remain covered while mixed frameworks stop qualification", () => {
+    expect(candidateTestFramework('test("implicit suite", () => expect(true).toBe(true));')).toBe(
+      "bun",
     );
     expect(() =>
       candidateTestFramework(
         'import { test } from "node:test"; import { expect } from "bun:test";',
       ),
-    ).toThrow("exactly one");
+    ).toThrow("cannot mix");
   });
 
   test("a failed native Node suite stops publication before running later suites", () => {

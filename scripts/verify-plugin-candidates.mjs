@@ -7,9 +7,10 @@ import { fileURLToPath } from "node:url";
 export function candidateTestFramework(source) {
   const node = /\bfrom\s*["']node:test["']/.test(source);
   const bun = /\bfrom\s*["']bun:test["']/.test(source);
-  if (node === bun) {
-    throw new Error("Candidate tests must declare exactly one of node:test or bun:test.");
+  if (node && bun) {
+    throw new Error("Candidate tests cannot mix node:test and bun:test.");
   }
+  // Existing Bun suites also use the runner's implicit test/expect globals.
   return node ? "node" : "bun";
 }
 
