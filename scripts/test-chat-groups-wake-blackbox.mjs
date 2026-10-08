@@ -376,6 +376,11 @@ try {
         assert.equal(capture.status, 0, capture.stderr || String(capture.error));
       }
       const stopMembers = [...childIds, id];
+      await evaluate(
+        `window.__groupStopProbe=${JSON.stringify({ groupTitle: group.title, stopMembers })}; true`,
+      );
+      await pilot(["snapshot", "-i"]);
+      await pilot(["run", join(repo, "tests/blackbox/chat-groups-wake-idle.toml")]);
       await call("chat_group_send_message", {
         group_id: group.id,
         content: `@all GROUP_STOP_HOLD ${probe.marker}`,
@@ -428,6 +433,8 @@ try {
         resumedGroups.find((/** @type {any} */ item) => item.id === group.id).discussion_stopped,
         false,
       );
+      await pilot(["snapshot", "-i"]);
+      await pilot(["run", join(repo, "tests/blackbox/chat-groups-wake-idle.toml")]);
       console.log(`Stop and resume running members passed: ${theme}/${language}`);
     }
   writeFileSync(

@@ -1,24 +1,21 @@
 [scenario]
-name = "Chat Groups Stop preserves the draft and history"
+name = "Idle Chat Groups hides Stop and preserves the draft and history"
 fail_fast = true
 global_timeout_ms = 30000
 
 [[step]]
-name = "stop uses the selected group and follows live locale"
+name = "idle members do not show Stop in any locale"
 action = "eval"
 script = '''(async()=>{
   const d=document.querySelector('#checkpoint-flow-panel iframe')?.contentDocument;
   const button=d?.querySelector('#stop'), draft=d?.querySelector('#draft');
-  if(!button||button.disabled)throw new Error('Stop is missing or disabled');
+  if(!button||!button.hidden||!button.disabled)throw new Error('Idle group shows Stop');
   const zh=d.documentElement.lang==='zh';
   if(button.getAttribute('aria-label')!==(zh?'终止群组讨论':'Stop group discussion'))throw new Error('Stop label does not follow locale');
   const previous=draft.value, history=d.querySelectorAll('article').length;
   draft.value='Unsent Stop draft';draft.dispatchEvent(new Event('input',{bubbles:true}));
-  button.click();
-  if(!button.disabled||!d.querySelector('#send').disabled)throw new Error('Stop does not guard duplicate actions');
-  const deadline=Date.now()+20000;
-  while(button.disabled&&Date.now()<deadline)await new Promise(r=>setTimeout(r,50));
-  if(button.disabled)throw new Error('Stop never completed');
+  await new Promise(r=>setTimeout(r,2700));
+  if(!button.hidden||!button.disabled)throw new Error('Polling shows Stop for idle members');
   if(!d.querySelector('#error').hidden)throw new Error(d.querySelector('#error').textContent);
   if(draft.value!=='Unsent Stop draft'||d.querySelectorAll('article').length!==history)throw new Error('Stop changed draft or history');
   draft.value=previous;draft.dispatchEvent(new Event('input',{bubbles:true}));

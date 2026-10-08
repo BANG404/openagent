@@ -12,7 +12,7 @@ script = '''(async()=>{
   while(Date.now()<deadline){
     const nav=[...document.querySelectorAll('.panel-navigation button')].find(b=>/Chat Groups|聊天群组/.test(b.textContent));nav?.click();
     const d=document.querySelector('#checkpoint-flow-panel iframe')?.contentDocument;
-    if(d?.querySelector('#group-title')?.textContent===window.__groupStopProbe.groupTitle&&!d.querySelector('#stop').disabled)return true;
+    if(d?.querySelector('#group-title')?.textContent===window.__groupStopProbe.groupTitle&&!d.querySelector('#stop').hidden&&!d.querySelector('#stop').disabled)return true;
     await new Promise(r=>setTimeout(r,100));
   }
   throw new Error('selected group Stop unavailable');
@@ -26,10 +26,10 @@ script = '''(async()=>{
   const draft=d.querySelector('#draft'), stop=d.querySelector('#stop');
   draft.value='Unsent group Stop draft';draft.dispatchEvent(new Event('input',{bubbles:true}));
   stop.click();
-  if(!stop.disabled)throw new Error('duplicate Stop allowed');
+  if(!stop.disabled||stop.hidden)throw new Error('pending Stop must remain visible and disabled');
   const deadline=Date.now()+20000;
-  while((stop.disabled||document.querySelector('.stop-btn'))&&Date.now()<deadline)await new Promise(r=>setTimeout(r,100));
-  if(stop.disabled||!d.querySelector('#error').hidden)throw new Error('Stop failed');
+  while((!stop.hidden||document.querySelector('.stop-btn'))&&Date.now()<deadline)await new Promise(r=>setTimeout(r,100));
+  if(!stop.hidden||!stop.disabled||!d.querySelector('#error').hidden)throw new Error('Stop did not return to idle');
   if(draft.value!=='Unsent group Stop draft')throw new Error('Stop erased draft');
   if(document.querySelector('.stop-btn'))throw new Error('owner is still running');
   return true;

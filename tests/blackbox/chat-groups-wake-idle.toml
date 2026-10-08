@@ -1,0 +1,19 @@
+[scenario]
+name = "Completed Chat Groups hides Stop"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "open the completed group's sidebar and assert Stop is hidden"
+action = "eval"
+script = '''(async()=>{
+  const expand=[...document.querySelectorAll('button')].find(b=>/^(Expand right sidebar|展开右侧栏)$/.test(b.getAttribute('aria-label')||''));expand?.click();
+  const deadline=Date.now()+20000;
+  while(Date.now()<deadline){
+    const nav=[...document.querySelectorAll('.panel-navigation button')].find(b=>/Chat Groups|聊天群组/.test(b.textContent));nav?.click();
+    const d=document.querySelector('#checkpoint-flow-panel iframe')?.contentDocument;
+    if(d?.querySelector('#group-title')?.textContent===window.__groupStopProbe.groupTitle&&!d.querySelector('#draft').disabled&&d.querySelector('#stop').hidden&&d.querySelector('#stop').disabled)return true;
+    await new Promise(r=>setTimeout(r,100));
+  }
+  throw new Error('completed group still shows Stop');
+})()'''

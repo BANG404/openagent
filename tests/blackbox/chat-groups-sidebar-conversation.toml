@@ -36,12 +36,14 @@ script = '''(()=>{
   if(!late)throw new Error('late-response fixture did not capture a request');
   if(d.querySelectorAll('article').length||d.querySelector('#member-list').children.length!==1||d.querySelector('#member-list button').dataset.memberType!=='owner'||draft.value)throw new Error('previous group state leaked');
   if(!d.querySelector('#mention-palette').hidden)throw new Error('previous mention palette leaked');
+  if(!d.querySelector('#stop').hidden)throw new Error('previous group Stop leaked');
   if(late)frame.contentWindow.postMessage({type:'openagent:sidebar-tool-result',version:1,request_id:late.request_id,scope:late.scope,ok:true,result:{content:[{type:'text',text:JSON.stringify([{id:'late-group',title:'Late stale group'}])}]}},'*');
   draft.value='Second conversation draft';draft.dispatchEvent(new Event('input',{bubbles:true}));
   await open('unrelated-chat');
   await until(()=>latest?.conversation_id==='unrelated-chat'&&d.querySelector('#skeleton').hidden&&draft.disabled&&d.querySelector('#choices').children.length===0);
   const empty=window.__chatGroupsSidebarPass.language==='zh'?'当前对话暂无相关群组':'No chat groups for this conversation';
   if(!d.querySelector('#empty').textContent.includes(empty)||d.querySelectorAll('article').length||!d.querySelector('#send').disabled)throw new Error('unrelated conversation did not show an empty state');
+  if(!d.querySelector('#stop').hidden)throw new Error('empty conversation shows Stop');
   await open('reviewer');await delay(10);await open('other-chat');await delay(10);await open('reviewer');
   await until(()=>latest?.conversation_id==='reviewer'&&d.querySelector('#group-title').textContent==='Saved group'&&!draft.disabled);
   if(!draft.value.startsWith('Saved conversation draft'))throw new Error('conversation return lost the draft');
