@@ -2,8 +2,7 @@
   import { Accordion, Tabs } from "bits-ui";
   import type { AgentPluginUpdateSummary } from "$lib/types";
   import { agentPluginUpdateErrorKey } from "$lib/agentPluginUpdateCheck";
-  import { desktopPluginInstallQueue, type PluginInstallTask } from "$lib/agentPluginInstallQueue";
-  import PluginInstallNotice from "../PluginInstallNotice.svelte";
+  import type { PluginInstallTask } from "$lib/agentPluginInstallQueue";
   import PluginLanguageSupport from "../PluginLanguageSupport.svelte";
   import { pluginText } from "$lib/pluginI18n";
   import type { OfficialPluginCatalogItem } from "$lib/officialPluginRegistry";
@@ -39,28 +38,20 @@
       />
     </header>
     {#each plugins.agentPluginInstallTasks as task (task.key)}
-      {#if task.status !== "running" || plugins.pluginManagementView !== "marketplace" || !plugins.officialPluginCards.some((plugin: OfficialPluginCatalogItem) => plugin.id === task.pluginId)}
-        {#if task.status === "running"}
-          <div
-            class="plugin-install-progress"
-            data-plugin-id={task.pluginId ?? task.key}
-            data-install-status={task.status}
-            data-stage={task.progress.stage}
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <progress aria-label={`${task.label} · ${plugins.agentPluginInstallMessage(task)}`}
-            ></progress>
-            <span>{task.label} · {plugins.agentPluginInstallMessage(task)}</span>
-          </div>
-        {:else}
-          <PluginInstallNotice
-            {task}
-            message={plugins.agentPluginInstallMessage(task)}
-            ondismiss={() => desktopPluginInstallQueue.dismiss(task.key)}
-          />
-        {/if}
+      {#if task.status === "running" && (plugins.pluginManagementView !== "marketplace" || !plugins.officialPluginCards.some((plugin: OfficialPluginCatalogItem) => plugin.id === task.pluginId))}
+        <div
+          class="plugin-install-progress"
+          data-plugin-id={task.pluginId ?? task.key}
+          data-install-status={task.status}
+          data-stage={task.progress.stage}
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <progress aria-label={`${task.label} · ${plugins.agentPluginInstallMessage(task)}`}
+          ></progress>
+          <span>{task.label} · {plugins.agentPluginInstallMessage(task)}</span>
+        </div>
       {/if}
     {/each}
     {#if plugins.pluginManagementView === "marketplace"}
@@ -173,8 +164,7 @@
                       icon="download"
                       tone="primary"
                       onclick={() => plugins.updateAgentPlugin(plugin.id)}
-                      disabled={plugins.agentPluginUpdating !== null ||
-                        plugins.agentPluginInstalling(plugin.id) ||
+                      disabled={plugins.agentPluginInstalling(plugin.id) ||
                         plugins.agentPluginRemoveId === plugin.id}
                     />
                   {:else if plugin.installed}
@@ -190,7 +180,6 @@
                       tone="primary"
                       onclick={() => plugins.installOfficialAgentPlugin(plugin)}
                       disabled={plugins.agentPluginInstalling(plugin.id) ||
-                        plugins.agentPluginUpdating === plugin.id ||
                         plugins.agentPluginRemoveId === plugin.id}
                     />
                   {/if}
@@ -294,7 +283,6 @@
                         onclick={() =>
                           plugins.installMarketplaceAgentPlugin(marketplace.path, entry.name)}
                         disabled={plugins.agentPluginInstalling(entry.name) ||
-                          plugins.agentPluginUpdating === entry.name ||
                           plugins.agentPluginRemoveId === entry.name}
                       />
                     {/if}
@@ -510,8 +498,7 @@
                         icon="download"
                         tone="primary"
                         onclick={() => plugins.updateAgentPlugin(plugin.id)}
-                        disabled={plugins.agentPluginUpdating !== null ||
-                          plugins.agentPluginInstalling(plugin.id)}
+                        disabled={plugins.agentPluginInstalling(plugin.id)}
                       />
                     {/if}
                     {#if !plugin.builtin}
@@ -520,8 +507,7 @@
                         icon="trash"
                         tone="danger"
                         onclick={() => plugins.requestUninstallAgentPlugin(plugin.id)}
-                        disabled={plugins.agentPluginUpdating !== null ||
-                          plugins.agentPluginRemoving ||
+                        disabled={plugins.agentPluginRemoving ||
                           plugins.agentPluginInstalling(plugin.id)}
                       />
                     {/if}

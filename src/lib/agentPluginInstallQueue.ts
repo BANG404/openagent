@@ -1,4 +1,6 @@
 import type { AgentPluginInstallProgress } from "$lib/types";
+import { tr } from "$lib/i18n";
+import { showToast } from "$lib/toast";
 
 export type PluginInstallTask = {
   key: string;
@@ -16,7 +18,10 @@ export class AgentPluginInstallQueue {
   private tasks: Record<string, PluginInstallTask> = {};
   private readonly observers = new Set<(tasks: PluginInstallTask[]) => void>();
 
-  constructor(changed?: (tasks: PluginInstallTask[]) => void) {
+  constructor(
+    changed?: (tasks: PluginInstallTask[]) => void,
+    private readonly completed?: (task: PluginInstallTask) => void,
+  ) {
     if (changed) this.observers.add(changed);
   }
 
@@ -47,6 +52,7 @@ export class AgentPluginInstallQueue {
   private publish(task: PluginInstallTask): void {
     this.tasks = { ...this.tasks, [task.key]: task };
     for (const changed of this.observers) changed(this.snapshot());
+    if (task.status !== "running") this.completed?.(task);
   }
 
   async run<T>(options: {
@@ -102,4 +108,21 @@ export class AgentPluginInstallQueue {
 
 // A Settings dialog can close while Runtime is installing. Its replacement
 // observes the same tasks and still blocks duplicate requests in this window.
-export const desktopPluginInstallQueue = new AgentPluginInstallQueue();
+export const desktopPluginInstallQueue = new AgentPluginInstallQueue(undefined, (task) => {
+  // Completion belongs to the window queue, so closing or reopening Settings
+  // neither loses a result nor announces it twice.
+  showToast({
+    title:
+      task.status === "error"
+        ? `${task.label} · ${tr("pluginOperationFailed")}`
+        : tr(
+            task.hostAccessRequired
+              ? "pluginInstalledHostAccessRequired"
+              : task.operation === "update"
+                ? "pluginUpdateSuccess"
+                : "pluginInstallSuccess",
+          ).replace("{name}", task.label),
+    description: task.error,
+    variant: task.status === "error" ? "error" : task.hostAccessRequired ? "info" : "success",
+  });
+});

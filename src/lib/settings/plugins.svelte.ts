@@ -64,10 +64,6 @@ export function createPluginSettings(
   let pluginManagementView = $state<"marketplace" | "installed">("marketplace");
   const pluginInstallQueue = desktopPluginInstallQueue;
   let agentPluginInstallTasks = $state<PluginInstallTask[]>(pluginInstallQueue.snapshot());
-  const agentPluginUpdating = $derived(
-    agentPluginInstallTasks.find((task) => task.operation === "update" && task.status === "running")
-      ?.pluginId ?? null,
-  );
   const pluginHostAccessQueue = desktopPluginHostAccessQueue;
   let agentPluginHostAccessRequests = $state<AgentPluginSummary[]>(
     pluginHostAccessQueue.snapshot(),
@@ -393,14 +389,7 @@ export function createPluginSettings(
   }
 
   async function updateAgentPlugin(pluginId: string): Promise<void> {
-    if (
-      !isTauri() ||
-      agentPluginRemoveId === pluginId ||
-      pluginInstallQueue
-        .snapshot()
-        .some((task) => task.operation === "update" && task.status === "running") ||
-      pluginInstallQueue.isInstalling(pluginId)
-    )
+    if (!isTauri() || agentPluginRemoveId === pluginId || pluginInstallQueue.isInstalling(pluginId))
       return;
     agentPluginStatus = "";
     await pluginInstallQueue.run({
@@ -511,16 +500,14 @@ export function createPluginSettings(
   }
 
   async function installMarketplaceAgentPlugin(marketplacePath: string, pluginName: string) {
-    if (!isTauri() || agentPluginUpdating === pluginName || agentPluginRemoveId === pluginName)
-      return;
+    if (!isTauri() || agentPluginRemoveId === pluginName) return;
     await runPluginInstall(pluginName, pluginName, pluginName, () =>
       desktopOpenAgent.installMarketplaceAgentPlugin(marketplacePath, pluginName),
     );
   }
 
   async function installOfficialAgentPlugin(plugin: OfficialPluginRegistryEntry): Promise<void> {
-    if (!isTauri() || agentPluginUpdating === plugin.id || agentPluginRemoveId === plugin.id)
-      return;
+    if (!isTauri() || agentPluginRemoveId === plugin.id) return;
     await runPluginInstall(plugin.id, plugin.id, plugin.displayName, () =>
       desktopOpenAgent.installOfficialAgentPlugin(plugin.id, plugin.displayName, plugin.sourceUrl),
     );
@@ -613,9 +600,6 @@ export function createPluginSettings(
     },
     get agentPluginUpdatesLoading() {
       return agentPluginUpdatesLoading;
-    },
-    get agentPluginUpdating() {
-      return agentPluginUpdating;
     },
     get agentPluginRemoveDialogOpen() {
       return agentPluginRemoveId !== null;

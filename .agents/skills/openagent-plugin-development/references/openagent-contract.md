@@ -107,12 +107,14 @@ Enablement and host authorization remain independent; enabling a package never
 grants host access. Do not place both switches together as unlabeled controls or
 repeat the same authorization warning in the card summary.
 
-Installation results use compact, neutral text with a success/error icon and a
-localized sentence naming the package, rather than a filled provider-status
-banner. Completed and failed results can be dismissed independently from the
-window-wide install queue and stay dismissed when Settings reopens. Running
-tasks cannot be dismissed; their progress and duplicate-install guard survive
-surface closure. Verify these controls with `test:blackbox:plugin-settings`.
+Installation and update results use the application's shared Toast component,
+with localized package names and failure details. The window-wide task queue emits
+one notification per completion even when Settings is closed; reopening Settings
+does not replay completed results. Running tasks retain per-package progress in
+cards or the queue summary. Distinct packages can install or update concurrently;
+only the target package's running task or pending removal blocks its actions.
+Verify notification dismissal, concurrent updates, failure/retry, and reopening
+with `test:blackbox:plugin-settings`.
 
 Runtime hosts that need to emit a plugin message resolve its namespaced tag
 through the installed-plugin policy resolver. The resolver checks the plugin
@@ -486,7 +488,9 @@ and restore the previous active package if replacement cannot be completed.
 Startup also repairs an interrupted replacement by restoring a backup when the
 active package is missing and removing stale staging directories.
 Enable and disable remain lifecycle gates for mounted components.
-Update and uninstall await the target package's MCP process shutdown before
+Update downloads run concurrently outside the MCP reload lock; activation rejects
+a target removed or changed during download. Update and uninstall await the target
+package's MCP process shutdown before
 changing its files, with concurrent MCP refresh excluded until the file operation
 finishes. Failed operations reconnect the package that remains installed; updates
 reload components from the newly activated package on success. Desktop hosts stop
