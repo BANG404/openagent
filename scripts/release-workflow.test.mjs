@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { runtimeChannelArtifacts, stageRuntimeChannel } from "./runtime-channel-artifacts.mjs";
+import { signingFixture } from "../tests/fixtures/minisign.mjs";
 
 const workflowPath = new URL("../.github/workflows/release.yml", import.meta.url);
 
@@ -19,6 +24,22 @@ async function releaseJobSource(jobName, nextJobName) {
 }
 
 describe("release workflow publication gates", () => {
+  test("Runtime channels stage the manifest-selected files before uploading", async () => {
+    const job = await releaseJobSource("publish", "archive-prerelease");
+    const step = job.slice(
+      job.indexOf("      - name: Update signed runtime component channel"),
+      job.indexOf("      - name: Update signed frontend component channel"),
+    );
+    expect(step).toContain(
+      'node scripts/runtime-channel-artifacts.mjs "$RELEASE_TAG" "$component_dir"',
+    );
+    expect(step.indexOf("node scripts/runtime-channel-artifacts.mjs")).toBeLessThan(
+      step.indexOf('gh release upload "$component_channel"'),
+    );
+    expect(step).not.toContain("expected_count=6");
+    expect(step).not.toContain("--pattern 'openagent-server-*'");
+  });
+
   test("plugin tag setup excludes the separately checked-out private SDK", async () => {
     const source = (
       await readFile(new URL("../.github/workflows/plugin-releases.yml", import.meta.url), "utf8")
@@ -181,5 +202,164 @@ git() {
         "needs.detect.outputs.prerelease == 'true' || needs.publish-store.result == 'success'",
       );
     }
+  });
+});
+
+describe("Runtime channel asset admission", () => {
+  const signer = signingFixture();
+  /** @param {(directory: string, files: Map<string, Buffer>) => Promise<void>} run */
+  async function withChannelFixture(run) {
+    const directory = await mkdtemp(path.join(tmpdir(), "openagent-runtime-channel-"));
+    const { files } = channelFixture();
+    try {
+      await run(directory, files);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  }
+
+  function channelFixture() {
+    const files = new Map([
+      ["openagent-server-windows-x64.exe", Buffer.from("windows Runtime")],
+      ["openagent-server-linux-x64", Buffer.from("linux Runtime")],
+      ["codex-command-runner.exe", Buffer.from("command runner")],
+      ["codex-windows-sandbox-setup.exe", Buffer.from("sandbox setup")],
+      ["codex-bwrap-linux-x64", Buffer.from("linux sandbox")],
+    ]);
+    /** @param {string} file */
+    const descriptor = (file) => {
+      const bytes = files.get(file);
+      if (!bytes) throw new Error(`Missing fixture: ${file}`);
+      return { file, size: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") };
+    };
+    const manifest = {
+      schema_version: 1,
+      artifacts: {
+        "windows-x64": descriptor("openagent-server-windows-x64.exe"),
+        "linux-x64": descriptor("openagent-server-linux-x64"),
+      },
+      helpers: {
+        "windows-x64": {
+          "codex-command-runner.exe": descriptor("codex-command-runner.exe"),
+          "codex-windows-sandbox-setup.exe": descriptor("codex-windows-sandbox-setup.exe"),
+        },
+        "linux-x64": { "codex-bwrap-linux-x64": descriptor("codex-bwrap-linux-x64") },
+      },
+    };
+    files.set("openagent-sdk-manifest.json", Buffer.from(JSON.stringify(manifest)));
+    files.set(
+      "openagent-sdk-manifest.json.sig",
+      Buffer.from(signer.sign(files.get("openagent-sdk-manifest.json"))),
+    );
+    return { files, manifest };
+  }
+
+  /** @param {Map<string, Buffer>} files */
+  function fixtureDownload(files) {
+    /** @param {string} release @param {string} directory @param {string[]} names */
+    return async (release, directory, names) => {
+      expect(release).toBe("v1.2.3-beta.1");
+      for (const name of names) {
+        const bytes = files.get(name);
+        if (!bytes) throw new Error(`Release asset missing: ${name}`);
+        await writeFile(path.join(directory, name), bytes);
+      }
+    };
+  }
+
+  test("copies all declared servers and helpers with unchanged manifest and signature", async () => {
+    await withChannelFixture(async (directory, files) => {
+      await stageRuntimeChannel({
+        release: "v1.2.3-beta.1",
+        directory,
+        publicKey: signer.publicKey,
+        download: fixtureDownload(files),
+      });
+      for (const [name, bytes] of files) {
+        expect(await readFile(path.join(directory, name))).toEqual(bytes);
+      }
+    });
+  });
+
+  test("missing helper aborts channel staging", async () => {
+    await withChannelFixture(async (directory, files) => {
+      files.delete("codex-command-runner.exe");
+      await expect(
+        stageRuntimeChannel({
+          release: "v1.2.3-beta.1",
+          directory,
+          publicKey: signer.publicKey,
+          download: fixtureDownload(files),
+        }),
+      ).rejects.toThrow("Release asset missing: codex-command-runner.exe");
+    });
+  });
+
+  for (const name of ["openagent-server-windows-x64.exe", "codex-command-runner.exe"]) {
+    test(`rejects wrong size and same-size corruption of ${name}`, async () => {
+      await withChannelFixture(async (directory, files) => {
+        const original = files.get(name);
+        if (!original) throw new Error("Missing fixture bytes");
+        files.set(name, Buffer.concat([original, Buffer.from("corrupt")]));
+        await expect(
+          stageRuntimeChannel({
+            release: "v1.2.3-beta.1",
+            directory,
+            publicKey: signer.publicKey,
+            download: fixtureDownload(files),
+          }),
+        ).rejects.toThrow(`Runtime artifact size mismatch: ${name}`);
+        files.set(name, Buffer.alloc(original.length));
+        await expect(
+          stageRuntimeChannel({
+            release: "v1.2.3-beta.1",
+            directory,
+            publicKey: signer.publicKey,
+            download: fixtureDownload(files),
+          }),
+        ).rejects.toThrow(`Runtime artifact SHA-256 mismatch: ${name}`);
+      });
+    });
+  }
+
+  test("rejects unsafe filenames and collisions with signed manifest files", () => {
+    for (const file of [
+      "../runner.exe",
+      "runner*.exe",
+      "--runner.exe",
+      "openagent-sdk-manifest.json",
+    ]) {
+      const { manifest } = channelFixture();
+      manifest.helpers["windows-x64"]["codex-command-runner.exe"].file = file;
+      expect(() => runtimeChannelArtifacts(manifest)).toThrow();
+    }
+  });
+
+  test("rejects a missing signature or modified manifest before downloading binaries", async () => {
+    await withChannelFixture(async (directory, files) => {
+      files.set("openagent-sdk-manifest.json.sig", Buffer.alloc(0));
+      await expect(
+        stageRuntimeChannel({
+          release: "v1.2.3-beta.1",
+          directory,
+          publicKey: signer.publicKey,
+          download: fixtureDownload(files),
+        }),
+      ).rejects.toThrow("Invalid signature encoding");
+      const { files: signedFiles } = channelFixture();
+      files.set(
+        "openagent-sdk-manifest.json.sig",
+        signedFiles.get("openagent-sdk-manifest.json.sig"),
+      );
+      files.set("openagent-sdk-manifest.json", Buffer.from("{}"));
+      await expect(
+        stageRuntimeChannel({
+          release: "v1.2.3-beta.1",
+          directory,
+          publicKey: signer.publicKey,
+          download: fixtureDownload(files),
+        }),
+      ).rejects.toThrow("signature verification failed");
+    });
   });
 });

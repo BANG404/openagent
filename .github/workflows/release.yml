@@ -1372,17 +1372,7 @@ jobs:
         run: |
           component_channel="runtime-$RELEASE_CHANNEL"
           component_dir="$(mktemp -d)"
-          gh release download "$RELEASE_TAG" \
-            --pattern 'openagent-server-*' \
-            --pattern 'openagent-sdk-manifest.json' \
-            --pattern 'openagent-sdk-manifest.json.sig' \
-            --dir "$component_dir"
-          expected_count=6
-          actual_count="$(find "$component_dir" -maxdepth 1 -type f | wc -l | tr -d ' ')"
-          if [[ "$actual_count" != "$expected_count" ]]; then
-            echo "Expected $expected_count runtime component files, found $actual_count." >&2
-            exit 1
-          fi
+          node scripts/runtime-channel-artifacts.mjs "$RELEASE_TAG" "$component_dir"
 
           tag_type="$(gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" --jq '.object.type')"
           tag_object="$(gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')"

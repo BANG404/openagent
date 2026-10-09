@@ -146,6 +146,17 @@ its public URL. Frontend-only and Runtime-only releases do not create or replace
 Tauri updater metadata. The packaged updater endpoint uses the same lowercase
 channel name.
 
+Fixed Runtime channels copy the exact manifest and detached signature from the
+qualified immutable desktop release, plus every server and sandbox helper named
+by that manifest. `scripts/runtime-channel-artifacts.mjs` selects those assets
+and verifies the manifest signature and each byte size and SHA-256 before the workflow uploads anything to
+the channel. Never select only `openagent-server-*` or use a fixed file count:
+a signed manifest that names missing helpers makes production update preparation
+fail even when the server binaries and signature are present. To repair an
+incomplete channel, preserve its signed manifest bytes and copy only matching
+assets from that manifest's immutable `release_version` release, checking size
+and SHA-256 before upload.
+
 The Linux target first builds `codex-bwrap` from the immutable Codex revision
 pinned by the SDK, strips the helper, and exports its SHA-256 before Tauri
 compiles the application. The release binary embeds that digest and verifies
