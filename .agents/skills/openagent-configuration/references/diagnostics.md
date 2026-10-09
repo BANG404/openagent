@@ -1,5 +1,24 @@
 ## Software error collection
 
+Frontend fault recording is a separate, explicitly armed developer facility.
+It does not use diagnostic upload or Langfuse. Debug native commands require
+per-session private-content opt-in; no persisted configuration switch exists.
+Private journals live at `<OPENAGENT_HOME>/diagnostics/replay/<session-id>/`,
+including under the selected debug root. The host never queries release state
+to replay a case. On Unix, newly created journal directories/files use 0700/0600;
+Windows inherits the selected application-root ACL. Symlink journal paths fail.
+
+The initial budgets are 128 MiB per native session, 16 MiB per record/anchor,
+10000 records, 1 MiB queued frontend bytes and a 2-second frontend writer-drain
+deadline. At 16 retained capture directories, start refuses further recording;
+it does not delete incident evidence automatically. Developers review and remove
+only their selected captures. Append failure, overflow, timeout, reload and
+process loss cannot publish a complete manifest. The unfinalized manifest stays
+beside an atomically published `finalized.json` carrying exact journal hash,
+bytes and committed watermark. Capture content must remain outside Git and
+console output. Workflow and supported coverage belong to
+[frontend fault replay](../../openagent-chat-frontend/references/fault-replay.md).
+
 `diagnostic_log_collection_enabled` defaults to `true` and is exposed in
 General settings. It controls remote diagnostic upload immediately without an
 application restart. Turning it off stops OTLP export while continuing to keep

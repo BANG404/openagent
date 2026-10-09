@@ -73,7 +73,7 @@ export class ReplayTransport implements OpenAgentTransport {
     this.pending.delete(record.correlation);
     const payload = object(record.payload);
     if (record.kind === "request.reject") request.reject(new Error(string(payload.code)));
-    else request.resolve(payload.output);
+    else request.resolve(payload.output_kind === "undefined" ? undefined : payload.output);
   }
 
   deliver(record: ReplayRecord): void {

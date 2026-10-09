@@ -1,6 +1,7 @@
 import type { ChatMessage, Conversation } from "../types";
 import type { ChatStreamState } from "../chatStreamState.svelte";
 import { initializeStreamItems } from "../chatStream";
+import { observeFrontendAction } from "../replay/captureObservation";
 
 export function insertProjectedUserMessage(
   conversations: Conversation[],
@@ -17,6 +18,12 @@ export function insertProjectedUserMessage(
     return conversations;
   }
   const existing = conversations[index];
+  observeFrontendAction({
+    action: "insert-user",
+    conversation: convId,
+    assistant: assistantMessageId,
+    message: userMessage,
+  });
   const assistantIndex = existing.messages.findIndex(
     (message) => message.id === assistantMessageId,
   );
@@ -33,6 +40,11 @@ export function startProjectedStream(
   assistantMessageId: string,
   startedAt: number,
 ): void {
+  observeFrontendAction({
+    action: "start-stream",
+    conversation: convId,
+    assistant: assistantMessageId,
+  });
   if (streams.recoveredConversationIds[convId]) {
     const { [convId]: _recovered, ...rest } = streams.recoveredConversationIds;
     streams.recoveredConversationIds = rest;

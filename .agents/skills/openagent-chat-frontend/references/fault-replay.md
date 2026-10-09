@@ -1,8 +1,51 @@
 # Frontend incident replay
 
-The frontend replay foundation is implemented; opt-in incident recording,
-private SDK execution replay, reload epochs and wire-level adapters remain
+The frontend replay foundation and the initial developer recorder are implemented.
+Private SDK execution replay, reload continuation and wire-level adapters remain
 planned in [the architecture proposal](fault-replay-design.md).
+
+## Private developer recording
+
+In a source development main window, `window.openagentFaultCapture.start({
+conversations: ["<selected-conversation>"], includePrivateContent: true })` explicitly
+arms a session. `stop()` finalizes it. The initial target requires an idle,
+text-only supported conversation state and established single-consumer chat
+subscriptions. Start snapshots only the selected conversations synchronously,
+then buffers observations while the native journal is created. This is a
+consumer-observation anchor, not an SDK producer-completeness claim.
+
+The shared client uses `RecordingTransport`; inactive observation serializes no
+payload. Product requests, actual consumer callbacks and shared projection/
+hydration action boundaries retain their existing code paths.
+Only independent action boundaries become schedule inputs. Synchronous child
+actions inside a recorded event handler are suppressed by the observation seam,
+because the real handler performs them again during replay; scheduling both
+would create duplicate hydration requests.
+Supported payloads are private local data. Credential-named fields invalidate the recording before
+ingestion. Unsupported operations/events, subscription changes, resync, pending
+requests and writer failures cannot yield a qualified full case. Initial coverage
+is deliberately the replay target's existing capability set; ordinary full chat
+submission, approvals and other effects still require their target adapters.
+
+Native files live under the selected application root's
+`diagnostics/replay/<session-id>/`. `manifest.json` remains unfinalized evidence,
+`records.jsonl` is append-only, and successful stop atomically publishes
+`finalized.json` with byte count, SHA-256 and committed sequence. Reload/process
+loss leaves an unfinalized capture. No automatic upload or normal product UI
+control is introduced. See the configuration owner for budgets and retention.
+
+After private content review, supply independently written assertions and run:
+
+```powershell
+bun run replay:extract --capture <private-capture-directory> --assertions <assertions.json> --out <new-private-case.json> --id <case-id> --private-reviewed
+```
+
+Extraction verifies fixed contained files, journal hash and watermark, checks
+target support and replays the case before writing a new private file. It never
+overwrites an output or derives correct expectations from captured behavior.
+`--private-reviewed` acknowledges local review; it is not a sanitizer or public
+export authorization. Public fixtures still require synthetic replacement and
+review. Interrupted sessions are diagnostic-only until prefix support is added.
 
 ## Run a case
 
@@ -36,7 +79,8 @@ same helpers/finalizer, with its normal effects. A plain scoped state facade
 replaces Svelte reactivity during headless replay; it does not duplicate the
 production transitions.
 
-Full cases currently support text-only initial user messages, explicit existing
+Full cases currently support initial user/assistant text, thinking and runtime
+notices, explicit existing
 streams, tool-call/result correlation, text/thinking chunks, checkpoint/done/
 cancelled events and hydration through scripted product operations. Actions
 are `hydrate`, `insert-user` and `start-stream`. Unsupported events, effects,
@@ -46,6 +90,22 @@ run-start recovery, resync, reload, files, usage/suggestions or Runtime behavior
 Do not extend coverage by replacing an unsupported capability with a no-op.
 No-op host affordances are limited to recents, notifications, timing persistence
 and absent file/usage work outside this target's stated coverage.
+
+The initial recording rejection preserves a generic safe operation-error code;
+cases depending on a particular server error message/category are not qualified
+by this recorder. Provider system prompts and tool definitions are removed from
+checkpoint responses before ingestion because they are outside the frontend
+projection. Exact chunk boundaries and supplied tool/assistant identities remain.
+Responses returning `undefined` use `output_kind: "undefined"` with a null JSON
+placeholder; replay resolves `undefined` again. A plain null stays null. System
+checkpoint messages are refused before recording rather than storing provider
+context or changing snapshot cardinality.
+
+`bun run test:blackbox:fault-recording` qualifies the native writer and the
+record -> hash verification -> independent assertions -> extraction -> replay
+chain in light/dark and en/zh. Its source is synthetic; this is not evidence that
+a historical incident failed before a fix. Normal main-window recording and
+Runtime/approval/reload qualification need their supported real incident cases.
 
 Each request must match the next recorded operation and payload in observed
 request-start order. `await-request` checks that the current code has issued it;

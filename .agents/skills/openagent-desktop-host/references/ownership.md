@@ -9,6 +9,13 @@ the host.
 
 ## Host module composition
 
+`replay_capture.rs` is a debug-only private frontend journal capability: it
+allocates fixed application-root paths, bounds native writes, binds sessions to
+their requesting window, and publishes a finalized hash/watermark manifest.
+It never owns Runtime recording, model outcomes or replay execution. Unsupported
+or interrupted captures remain diagnostic evidence. The frontend owner defines
+the observation contract; configuration owns storage/retention policy.
+
 `lib.rs` composes Tauri plugins, managed state, and command registrations.
 `diagnostics.rs` owns host tracing and the allowlists for frontend-originated
 records. `desktop_exit.rs` owns shell-install preparation, exit phases, bounded

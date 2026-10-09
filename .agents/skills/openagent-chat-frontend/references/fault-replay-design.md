@@ -2,7 +2,9 @@
 
 Status: frontend replay foundation implemented with a bounded inline case bundle;
 see [the actual workflow and capability limits](fault-replay.md).
-Recording, SDK/adapter replay and configuration switches remain proposed.
+Initial developer frontend recording and extraction are implemented for the
+foundation's limited capabilities. SDK/adapter replay, reload continuation and
+configuration switches remain proposed.
 The chat owner maintains the shared host-facing contract. SDK recording and
 execution details must be designed and implemented in the private SDK repository.
 

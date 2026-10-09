@@ -95,13 +95,22 @@ export function admitInitial(initial: Json): void {
       const message = object(rawMessage);
       string(message.id);
       if (
-        message.role !== "user" ||
+        !["user", "assistant"].includes(string(message.role)) ||
         typeof message.content !== "string" ||
-        message.items ||
         message.ui ||
         message.toolCalls
       )
         refuse("initial-message-capability");
+      if (message.items !== undefined) {
+        if (!Array.isArray(message.items)) refuse("initial-message-items");
+        for (const rawItem of message.items) {
+          const item = object(rawItem);
+          if (!["text", "thinking", "runtime_notice"].includes(string(item.type)))
+            refuse("initial-message-item-capability");
+          if (item.type !== "runtime_notice" && typeof item.content !== "string")
+            refuse("initial-message-text");
+        }
+      }
     }
   }
   for (const raw of input.streams) {

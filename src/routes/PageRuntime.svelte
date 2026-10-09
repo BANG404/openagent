@@ -34,6 +34,7 @@
   import { createWorkspaceNavigation } from "$lib/page/workspaceNavigation";
   import { insertProjectedUserMessage, startProjectedStream } from "$lib/page/chatProjection";
   import { createChatFinalizer } from "$lib/page/chatFinalization";
+  import { observeFrontendAction } from "$lib/replay/captureObservation";
   import { createCheckpointController } from "$lib/page/checkpoints";
   import { restorePendingUserInputFromCheckpoint } from "$lib/page/pendingInputProjection";
   import { createPageStartup } from "$lib/page/startup";
@@ -2854,6 +2855,41 @@
 
   // ─── Chat ─────────────────────────────────────────────────────────────────────
 
+  onMount(() => {
+    if (!import.meta.env.DEV || !tauriAvailable || standaloneDevPreview) return;
+    let dispose: (() => void) | undefined;
+    let mounted = true;
+    void import("$lib/replay/developerCapture").then(({ registerFrontendCaptureContext }) => {
+      if (!mounted) return;
+      dispose = registerFrontendCaptureContext({
+        idle: (ids) =>
+          ids.length > 0 &&
+          ids.every(
+            (id) =>
+              !chatStreams.streamingConversationIds[id] &&
+              !pendingUserInputs[id] &&
+              !loadingConversationIds[id],
+          ),
+        snapshot: (ids) =>
+          JSON.parse(
+            JSON.stringify({
+              active_conversation: activeConvId,
+              conversations: ids.map((id) => {
+                const conversation = conversations.find((item) => item.id === id);
+                if (!conversation) throw new Error("Unknown capture conversation");
+                return conversation;
+              }),
+              streams: [],
+            }),
+          ),
+      });
+    });
+    return () => {
+      mounted = false;
+      dispose?.();
+    };
+  });
+
   async function dispatchChatMessage(
     rawText: string,
     targetConvId: string | null = activeConvId,
@@ -2943,6 +2979,13 @@
     };
     const location = findConversationLocation(convId);
     if (!location) return;
+    const assistantMsgId = crypto.randomUUID();
+    observeFrontendAction({
+      action: "insert-user",
+      conversation: convId,
+      assistant: assistantMsgId,
+      message: userMsg,
+    });
     const existingConversation = location.conversations[location.index];
     const priorMessages = existingConversation.messages;
     const isFirstUserMsg = !priorMessages.some((m) => m.role === "user");
@@ -2980,7 +3023,11 @@
         .catch(() => {});
     }
 
-    const assistantMsgId = crypto.randomUUID();
+    observeFrontendAction({
+      action: "start-stream",
+      conversation: convId,
+      assistant: assistantMsgId,
+    });
     chatStreams.startTiming(convId, userMsg.timestamp);
     chatStreams.streamingConversationIds = {
       ...chatStreams.streamingConversationIds,

@@ -1,0 +1,21 @@
+[scenario]
+name = "native private fault journal qualification"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "record production chat callbacks to a finalized native journal"
+action = "eval"
+script = '''(async () => {
+  document.querySelector('[data-record-case="hydration-race"]').click();
+  for (let i=0; i<200; i++) {
+    const output=document.querySelector('[data-capture-session]');
+    if (output.dataset.captureSession && output.dataset.replayStatus==='passed') {
+      if (!document.body.innerText.includes('queued')) throw new Error('recorded user disappeared');
+      return output.dataset.captureSession;
+    }
+    if (output.dataset.replayStatus==='capture_incomplete') throw new Error('capture incomplete');
+    await new Promise(resolve=>setTimeout(resolve,20));
+  }
+  throw new Error('capture did not finalize');
+})()'''

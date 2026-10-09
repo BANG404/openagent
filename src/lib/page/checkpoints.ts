@@ -37,6 +37,7 @@ import { conversationBranchScopeKey } from "$lib/sidebarPanelScope";
 import { preserveResolvedUserInputs } from "$lib/chatStream";
 import { retainUndurableFileChanges } from "$lib/fileChangeReconciliation";
 import { restorePendingUserInputFromCheckpoint } from "$lib/page/pendingInputProjection";
+import { observeFrontendAction } from "$lib/replay/captureObservation";
 
 export interface CheckpointOptions {
   readonly tauriAvailable: boolean;
@@ -87,6 +88,12 @@ export function createCheckpointController(
     if (options.loadedConvIds.has(convId) && !forceRefresh) return;
     options.loadedConvIds.add(convId);
     if (!options.tauriAvailable) return;
+    observeFrontendAction({
+      action: "hydrate",
+      conversation: convId,
+      show_loading: showLoadingState,
+      force_refresh: forceRefresh,
+    });
     const messageIdsAtStart = new Set(
       options.conversations
         .find((conversation) => conversation.id === convId)

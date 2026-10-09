@@ -130,6 +130,11 @@ export function validateReplayCase(input: unknown): ReplayCase {
       outcomes.add(correlation);
       if (record.kind === "request.reject") string(payload.code);
       else if (!Object.hasOwn(payload, "output")) invalid("missing-request-output");
+      if (
+        payload.output_kind !== undefined &&
+        (payload.output_kind !== "undefined" || payload.output !== null)
+      )
+        invalid("invalid-output-kind");
     }
     if (record.kind === "event.deliver") {
       string(payload.event);

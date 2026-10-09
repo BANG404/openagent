@@ -1,4 +1,4 @@
-import { OpenAgentClient } from "../openagent";
+import { OpenAgentClient, type OpenAgentTransport } from "../openagent";
 import type { Conversation, ChatMessage } from "../types";
 import type { ChatStreamState } from "../chatStreamState.svelte";
 import {
@@ -15,7 +15,9 @@ import { insertProjectedUserMessage, startProjectedStream } from "../page/chatPr
 import { InterruptTerminalHandoff } from "../interruptResolutionTracker";
 import { ReplayError, type Json } from "./types";
 import { object, string } from "./validate";
-import type { ReplayTargetFactory } from "./runner";
+import type { ReplayTarget } from "./runner";
+import type { ReplayTransport } from "./transport";
+import type { ReplayCase } from "./types";
 import { admitChatCase } from "./chatAdmission";
 
 const unsupported = (): never => {
@@ -54,7 +56,12 @@ function streamState(now: () => number): ChatStreamState {
 }
 
 /** Drives actual chat event, hydration and finalization controllers offline. */
-export const createChatReplayTarget: ReplayTargetFactory = async (initial, transport, fixture) => {
+export const createChatReplayTarget = async (
+  initial: Json,
+  transport: ReplayTransport,
+  fixture: ReplayCase,
+  clientTransport: OpenAgentTransport = transport,
+): Promise<ReplayTarget> => {
   admitChatCase(fixture);
   const input = object(initial);
   // Prefix/reload and other event families need dedicated target adapters.
@@ -65,7 +72,7 @@ export const createChatReplayTarget: ReplayTargetFactory = async (initial, trans
   let id = 0;
   const now = () => clock;
   const chatStreams = streamState(now);
-  const client = new OpenAgentClient(transport);
+  const client = new OpenAgentClient(clientTransport);
   const failures: unknown[] = [];
   const work = new Set<Promise<unknown>>();
   const track = <T>(promise: Promise<T>): Promise<T> => {
@@ -218,7 +225,13 @@ export const createChatReplayTarget: ReplayTargetFactory = async (initial, trans
       clock += 1;
       const convId = string(payload.conversation);
       if (name === "hydrate") {
-        track(checkpoints.loadMessagesForConv(convId, false, true));
+        track(
+          checkpoints.loadMessagesForConv(
+            convId,
+            payload.show_loading === true,
+            payload.force_refresh !== false,
+          ),
+        );
       } else if (name === "insert-user") {
         const message = object(payload.message);
         if (message.role !== "user" || typeof message.content !== "string")
