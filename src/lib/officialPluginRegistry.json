@@ -154,7 +154,7 @@
       "id": "graph",
       "display_name": "Graph",
       "description": "Dependency graph execution through OpenAgent checkpoints.",
-      "version": "1.0.6",
+      "version": "1.0.7",
       "repository": "https://github.com/BANG404/openagent-graph",
       "homepage": "https://github.com/BANG404/openagent-graph",
       "source_url": "https://github.com/BANG404/openagent-graph.git",
