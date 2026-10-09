@@ -32,6 +32,8 @@
   } from "$lib/composerDrafts";
   import { installPageEvents } from "$lib/page/events";
   import { createWorkspaceNavigation } from "$lib/page/workspaceNavigation";
+  import { insertProjectedUserMessage, startProjectedStream } from "$lib/page/chatProjection";
+  import { createChatFinalizer } from "$lib/page/chatFinalization";
   import { createCheckpointController } from "$lib/page/checkpoints";
   import { restorePendingUserInputFromCheckpoint } from "$lib/page/pendingInputProjection";
   import { createPageStartup } from "$lib/page/startup";
@@ -127,8 +129,6 @@
     ckIdsAlongActivePath,
     attachNewTurn,
     findUserMessageIndexForAssistant,
-    reconcileTerminalAssistantMessage,
-    terminalEventMatchesActiveStream,
     type ConvTree,
   } from "$lib/checkpointTree";
   import {
@@ -136,13 +136,7 @@
     DESKTOP_WINDOW_ACTIVATED_EVENT,
     type WindowFocusState,
   } from "$lib/windowFocus";
-  import {
-    appendUserInput,
-    clearCompactionProgress,
-    initializeStreamItems,
-    collapseStreamText,
-    resolveUserInput,
-  } from "$lib/chatStream";
+  import { appendUserInput, clearCompactionProgress, resolveUserInput } from "$lib/chatStream";
   import {
     fetchChildConversations,
     fetchConversationMeta,
@@ -1957,20 +1951,13 @@
     userMessage: ChatMessage,
     assistantMessageId: string,
   ): void {
-    const index = conversations.findIndex((conversation) => conversation.id === convId);
-    if (
-      index === -1 ||
-      conversations[index].messages.some((message) => message.id === userMessage.id)
-    ) {
-      return;
-    }
-    const existing = conversations[index];
-    const assistantIndex = existing.messages.findIndex(
-      (message) => message.id === assistantMessageId,
+    conversations = insertProjectedUserMessage(
+      conversations,
+      convId,
+      userMessage,
+      assistantMessageId,
+      Date.now(),
     );
-    const messages = [...existing.messages];
-    messages.splice(assistantIndex === -1 ? messages.length : assistantIndex, 0, userMessage);
-    conversations[index] = { ...existing, messages, updatedAt: Date.now() };
   }
 
   function startProjectedChatStream(
@@ -1978,33 +1965,7 @@
     assistantMessageId: string,
     startedAt: number,
   ): void {
-    if (chatStreams.recoveredConversationIds[convId]) {
-      const { [convId]: _recovered, ...rest } = chatStreams.recoveredConversationIds;
-      chatStreams.recoveredConversationIds = rest;
-    }
-    const isSameRun =
-      chatStreams.streamingConversationIds[convId] &&
-      chatStreams.assistantMessageIds[convId] === assistantMessageId;
-    if (!isSameRun) {
-      // Runtime events use independent listeners. An ask_user event can reach
-      // the local listener just before chat-run-started initializes the live
-      // stream. Preserve that request so the form is not erased by startup.
-      const pendingItems = initializeStreamItems(chatStreams.itemsByConversation[convId]);
-      chatStreams.itemsByConversation = {
-        ...chatStreams.itemsByConversation,
-        [convId]: pendingItems,
-      };
-      chatStreams.assistantMessageIds = {
-        ...chatStreams.assistantMessageIds,
-        [convId]: assistantMessageId,
-      };
-      chatStreams.startTiming(convId, startedAt);
-    }
-    chatStreams.streamingConversationIds = {
-      ...chatStreams.streamingConversationIds,
-      [convId]: true,
-    };
-    chatStreams.awaitingOutput = { ...chatStreams.awaitingOutput, [convId]: true };
+    startProjectedStream(chatStreams, convId, assistantMessageId, startedAt);
     // Usage is persisted on the preceding checkpoint. Refresh it when a new
     // stream starts so the composer can keep showing the latest known context
     // size while the next response is still in flight.
@@ -2419,150 +2380,58 @@
     void conv_id;
   }
 
-  function finalizeStreamedMessage(
-    conv_id: string,
-    status: CheckpointTurnStatus,
-    asstMsgId?: string,
-    turnId?: string,
-    error?: string | null,
-  ): boolean {
-    const activeAssistantMessageId = chatStreams.assistantMessageIds[conv_id];
-    const recoveredStream = !!chatStreams.recoveredConversationIds[conv_id];
-    if (!terminalEventMatchesActiveStream(activeAssistantMessageId, asstMsgId, recoveredStream)) {
-      return false;
-    }
-    const assistantMessageId = asstMsgId ?? activeAssistantMessageId;
-    const responseMessageId = turnId ?? assistantMessageId;
-    notifyInactiveWindowOfAgentCompletion(
-      assistantMessageId,
-      status,
-      !!chatStreams.streamingConversationIds[conv_id],
-    );
-    beginStreamCompletionTailAnchor(conv_id);
-    let items = chatStreams.itemsByConversation[conv_id] ?? [];
-    if (error) {
-      items = [...items, { type: "runtime_notice", kind: "error", reason: error }];
-    } else if (status === "cancelled") {
-      items = [
-        ...items,
-        {
-          type: "runtime_notice",
-          kind: "interrupted",
-          reason: tr("agentRunInterrupted"),
-        },
-      ];
-    }
-    const fullText = collapseStreamText(items);
-    const hasContent = fullText.length > 0 || items.some((i) => i.type !== "text");
-    if (!hasContent) {
-      const finalizedLiveChangeIds = new Set(
-        (liveFileChangesPerConv[conv_id] ?? []).map((change) => change.id),
-      );
-      void loadFileChangesForConv(conv_id).then((durableChanges) => {
-        if (durableChanges) {
-          reconcileLiveFileChanges(conv_id, durableChanges, finalizedLiveChangeIds);
-        }
-      });
-      // A cancelled/empty turn has no checkpoint to attach to the optimistic
-      // fork. Clear the one-shot fork markers before the next ordinary send,
-      // otherwise it is incorrectly submitted as another sibling branch.
-      clearPendingForkState(conv_id);
-      chatStreams.cleanup(conv_id);
-      void dispatchNextQueuedMessage(conv_id);
-      return true;
-    }
-
-    const checkpointId = pendingCheckpointIds[conv_id] ?? null;
-
-    // The live divider is a streaming affordance: once this turn is durable the
-    // reconciled compaction replay renders the same boundary, so persisting the
-    // marker as well would mount it twice.
-    const durableItems = items.filter((item) => item.type !== "compaction_boundary");
-
-    const finalizedAt = Date.now();
-    const assistantMsg: ChatMessage = {
-      id: assistantMessageId ?? crypto.randomUUID(),
-      role: "assistant",
-      content: fullText,
-      timestamp: finalizedAt,
-      items: durableItems.length > 0 ? [...durableItems] : undefined,
-      aborted: status === "cancelled" || undefined,
-      checkpointId: checkpointId ?? undefined,
-      firstTokenAt: chatStreams.firstTokenAt[conv_id],
-      completedAt: status === "interrupted" ? undefined : finalizedAt,
-      transientTurnStatus: status,
-    };
-
-    const location = findConversationLocation(conv_id);
-    if (!location) {
-      // Conv was deleted while streaming — drop the in-flight message instead of saving an orphan row.
-      const { [conv_id]: _items, ...restItems } = chatStreams.itemsByConversation;
-      const { [conv_id]: _streaming, ...restStreaming } = chatStreams.streamingConversationIds;
-      const { [conv_id]: _ck, ...restCk } = pendingCheckpointIds;
-      const { [conv_id]: _pp, ...restPp } = pendingParentCk;
-      const { [conv_id]: _pf, ...restPf } = pendingForkMessageId;
-      const { [conv_id]: _pfs, ...restPfs } = pendingForkSourceCheckpointId;
-      const { [conv_id]: _pfu, ...restPfu } = pendingForkUserMessageIds;
-      const { [conv_id]: _asstId, ...restAsstIds } = chatStreams.assistantMessageIds;
-      const { [conv_id]: _recovered, ...restRecovered } = chatStreams.recoveredConversationIds;
-      chatStreams.itemsByConversation = restItems;
-      chatStreams.streamingConversationIds = restStreaming;
-      pendingCheckpointIds = restCk;
-      pendingParentCk = restPp;
-      pendingForkMessageId = restPf;
-      pendingForkSourceCheckpointId = restPfs;
-      pendingForkUserMessageIds = restPfu;
-      chatStreams.assistantMessageIds = restAsstIds;
-      chatStreams.recoveredConversationIds = restRecovered;
-      return true;
-    }
-
-    const reconciliation = reconcileTerminalAssistantMessage(
-      location.conversations[location.index].messages,
-      assistantMsg,
-      responseMessageId ?? assistantMsg.id,
-    );
-    location.conversations[location.index] = {
-      ...location.conversations[location.index],
-      messages: reconciliation.messages,
-      updatedAt: Date.now(),
-    };
-    promoteConversationInRecents(location.conversations[location.index]);
-
-    // Rust persists completed responses, but the client is the source of the
-    // stream timing. Save every final message so firstTokenAt/completedAt are
-    // merged into that persisted record before a refresh.
-    if (reconciliation.appended) {
-      saveAssistantMessage(conv_id, assistantMsg, checkpointId);
-    }
-
-    // Keep the temporary records visible until the durable terminal records
-    // have actually loaded. This avoids a blank banner when IPC refresh is
-    // delayed or fails, and does not clear changes from a queued next turn.
-    const finalizedLiveChangeIds = new Set(
-      (liveFileChangesPerConv[conv_id] ?? []).map((change) => change.id),
-    );
-    void loadFileChangesForConv(conv_id).then((durableChanges) => {
-      if (durableChanges) {
-        reconcileLiveFileChanges(conv_id, durableChanges, finalizedLiveChangeIds);
-      }
-    });
-
-    // Attach the just-completed turn to the conversation tree.
-    if (checkpointId) {
-      attachNewTurnToTree(conv_id, checkpointId, assistantMsg);
-    }
-    void refreshTaskUsagesForConversation(conv_id);
-
-    // Clean up pending checkpoint id and any re-execution hint for this conv
-    const { [conv_id]: _ck, ...restCk } = pendingCheckpointIds;
-    pendingCheckpointIds = restCk;
-    clearPendingForkState(conv_id);
-
-    chatStreams.cleanup(conv_id);
-    void dispatchNextQueuedMessage(conv_id);
-    return true;
-  }
+  const finalizeStreamedMessage = createChatFinalizer({
+    get chatStreams() {
+      return chatStreams;
+    },
+    get pendingCheckpointIds() {
+      return pendingCheckpointIds;
+    },
+    set pendingCheckpointIds(value) {
+      pendingCheckpointIds = value;
+    },
+    get pendingParentCk() {
+      return pendingParentCk;
+    },
+    set pendingParentCk(value) {
+      pendingParentCk = value;
+    },
+    get pendingForkMessageId() {
+      return pendingForkMessageId;
+    },
+    set pendingForkMessageId(value) {
+      pendingForkMessageId = value;
+    },
+    get pendingForkSourceCheckpointId() {
+      return pendingForkSourceCheckpointId;
+    },
+    set pendingForkSourceCheckpointId(value) {
+      pendingForkSourceCheckpointId = value;
+    },
+    get pendingForkUserMessageIds() {
+      return pendingForkUserMessageIds;
+    },
+    set pendingForkUserMessageIds(value) {
+      pendingForkUserMessageIds = value;
+    },
+    get liveFileChangesPerConv() {
+      return liveFileChangesPerConv;
+    },
+    notifyInactiveWindowOfAgentCompletion,
+    beginStreamCompletionTailAnchor,
+    loadFileChangesForConv,
+    reconcileLiveFileChanges,
+    clearPendingForkState,
+    dispatchNextQueuedMessage,
+    findConversationLocation,
+    promoteConversationInRecents,
+    saveAssistantMessage,
+    attachNewTurnToTree,
+    refreshTaskUsagesForConversation,
+    now: () => Date.now(),
+    newId: () => crypto.randomUUID(),
+    interruptedLabel: () => tr("agentRunInterrupted"),
+  });
 
   function notifyInactiveWindowOfAgentCompletion(
     replyId: string | undefined,

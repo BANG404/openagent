@@ -254,13 +254,13 @@ describe("desktop conversation branches", () => {
     expect(dispatchSource).toContain(
       "pendingForkUserMessageIds = { ...pendingForkUserMessageIds, [convId]: userMsg.id }",
     );
-    const finalizationSource = pageSource.slice(
-      pageSource.indexOf("function finalizeStreamedMessage"),
-      pageSource.indexOf("function notifyInactiveWindowOfAgentCompletion"),
+    const finalizationSource = await readFile(
+      new URL("../src/lib/page/chatFinalization.ts", import.meta.url),
+      "utf8",
     );
     expect(finalizationSource).toContain("clearPendingForkState(conv_id);");
     expect(finalizationSource).toContain(
-      "clearPendingForkState(conv_id);\n      chatStreams.cleanup(conv_id);",
+      "options.clearPendingForkState(conv_id);\n      options.chatStreams.cleanup(conv_id);",
     );
     expect(switchSource).toContain("openAgent.switchRemoteConversationBranch");
     expect(switchSource).toContain("getActiveTipNode(updatedTree)?.ckId");

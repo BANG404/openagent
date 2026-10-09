@@ -1,0 +1,214 @@
+{
+  "format_version": 1,
+  "target": "frontend",
+  "target_version": 1,
+  "id": "duplicate-tool-result",
+  "completeness": "full",
+  "allowed_pending": [],
+  "initial": {
+    "active_conversation": "A",
+    "conversations": [
+      {
+        "id": "A",
+        "title": "Synthetic A",
+        "messages": [
+          {
+            "id": "user-A",
+            "role": "user",
+            "content": "first",
+            "timestamp": 1
+          }
+        ],
+        "createdAt": 1,
+        "updatedAt": 1
+      },
+      {
+        "id": "B",
+        "title": "Synthetic sibling",
+        "messages": [
+          {
+            "id": "user-B",
+            "role": "user",
+            "content": "sibling",
+            "timestamp": 1
+          }
+        ],
+        "createdAt": 1,
+        "updatedAt": 1
+      }
+    ],
+    "streams": [
+      {
+        "conversation": "A",
+        "assistant": "assistant-A"
+      },
+      {
+        "conversation": "B",
+        "assistant": "assistant-B"
+      }
+    ]
+  },
+  "records": [
+    {
+      "record_id": "r1",
+      "producer": "host",
+      "epoch": 0,
+      "seq": 1,
+      "kind": "event.deliver",
+      "correlation": "A",
+      "caused_by": [],
+      "monotonic_offset_us": 1,
+      "payload": {
+        "event": "chat.tool_call",
+        "data": {
+          "conv_id": "A",
+          "name": "fetch",
+          "args": {
+            "url": "fixture"
+          },
+          "tool_use_id": "call-A"
+        }
+      }
+    },
+    {
+      "record_id": "duplicate-call",
+      "producer": "host",
+      "epoch": 0,
+      "seq": 2,
+      "kind": "event.deliver",
+      "correlation": "A",
+      "caused_by": ["r1"],
+      "monotonic_offset_us": 2,
+      "payload": {
+        "event": "chat.tool_call",
+        "data": {
+          "conv_id": "A",
+          "name": "fetch",
+          "args": {
+            "url": "conflict"
+          },
+          "tool_use_id": "call-A"
+        }
+      }
+    },
+    {
+      "record_id": "r2",
+      "producer": "host",
+      "epoch": 0,
+      "seq": 3,
+      "kind": "event.deliver",
+      "correlation": "A",
+      "caused_by": [],
+      "monotonic_offset_us": 3,
+      "payload": {
+        "event": "chat.tool_result",
+        "data": {
+          "conv_id": "A",
+          "result": "first",
+          "tool_use_id": "call-A"
+        }
+      }
+    },
+    {
+      "record_id": "r3",
+      "producer": "host",
+      "epoch": 0,
+      "seq": 4,
+      "kind": "event.deliver",
+      "correlation": "A",
+      "caused_by": [],
+      "monotonic_offset_us": 4,
+      "payload": {
+        "event": "chat.tool_result",
+        "data": {
+          "conv_id": "A",
+          "result": "conflict",
+          "tool_use_id": "call-A"
+        }
+      }
+    },
+    {
+      "record_id": "r4",
+      "producer": "host",
+      "epoch": 0,
+      "seq": 5,
+      "kind": "event.deliver",
+      "correlation": "A",
+      "caused_by": [],
+      "monotonic_offset_us": 5,
+      "payload": {
+        "event": "chat.done",
+        "data": {
+          "conv_id": "A",
+          "asst_msg_id": "assistant-A",
+          "turn_id": "assistant-A",
+          "error": null
+        }
+      }
+    }
+  ],
+  "schedule": [
+    {
+      "step": "s1",
+      "do": "deliver",
+      "after": [],
+      "record": "r1"
+    },
+    {
+      "step": "s2",
+      "do": "deliver",
+      "record": "duplicate-call",
+      "after": ["s1"]
+    },
+    {
+      "step": "s3",
+      "do": "deliver",
+      "after": ["s2"],
+      "record": "r2"
+    },
+    {
+      "step": "s4",
+      "do": "deliver",
+      "after": ["s3"],
+      "record": "r3"
+    },
+    {
+      "step": "s5",
+      "do": "deliver",
+      "after": ["s4"],
+      "record": "r4"
+    },
+    {
+      "step": "s6",
+      "do": "assert",
+      "after": ["s5"],
+      "assertion": "single-canonical-tool"
+    },
+    {
+      "step": "s7",
+      "do": "assert",
+      "after": ["s6"],
+      "assertion": "sibling-still-streaming"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "single-canonical-tool",
+      "path": ["conversations", "A", "messages", "1", "items"],
+      "equals": [
+        {
+          "type": "tool_call",
+          "name": "fetch",
+          "args": "{\n  \"url\": \"fixture\"\n}",
+          "toolUseId": "call-A",
+          "result": "first"
+        }
+      ]
+    },
+    {
+      "id": "sibling-still-streaming",
+      "path": ["streaming", "B"],
+      "equals": true
+    }
+  ]
+}

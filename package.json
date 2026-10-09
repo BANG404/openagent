@@ -38,6 +38,8 @@
     "format": "prettier --write src tests scripts .github *.json *.js",
     "format:check": "prettier --check src tests scripts .github *.json *.js",
     "test": "bun test",
+    "replay": "bun scripts/fault-replay.ts",
+    "test:blackbox:fault-replay": "bun scripts/test-fault-replay-blackbox.mjs",
     "test:sonar": "bun scripts/test-sonar.mjs",
     "test:browser:preview": "bun scripts/test-browser-preview.mjs",
     "test:blackbox:memory": "bun scripts/test-memory-blackbox.mjs",

@@ -50,6 +50,7 @@
   import MessageList from "$lib/components/MessageList.svelte";
   import RuntimeStatusPreview from "$lib/components/RuntimeStatusPreview.svelte";
   import ThinkingPreview from "$lib/components/ThinkingPreview.svelte";
+  import FaultReplayPreview from "$lib/components/FaultReplayPreview.svelte";
   import MediaSourcePreview from "$lib/components/MediaSourcePreview.svelte";
   import NewConversationContext from "$lib/components/NewConversationContext.svelte";
   import PermissionSettings from "$lib/components/PermissionSettings.svelte";
@@ -1560,6 +1561,8 @@
       />
     </section>
   </main>
+{:else if preview === "streaming-transcript" && query.has("streaming-transcript-preview-replay")}
+  <FaultReplayPreview {theme} />
 {:else if preview === "streaming-transcript" && query.has("streaming-transcript-preview-runtime-status")}
   <RuntimeStatusPreview {theme} />
 {:else if preview === "streaming-transcript" && query.has("streaming-transcript-preview-thinking")}

@@ -37,9 +37,9 @@ different responsibilities.
 ## Event and edge-case matrix
 
 For unified incident recording and deterministic regression replay, use the
-[fault replay proposal](fault-replay-design.md). It defines the proposed case
-format, completeness rules, execution boundaries and delivery milestones;
-the tooling is not implemented yet.
+[implemented frontend replay workflow](fault-replay.md) and
+[architecture proposal](fault-replay-design.md). The workflow states actual
+capability limits; the proposal owns recording completeness and later targets.
 
 For stream changes, consider normal, duplicate, out-of-order, missing-id,
 conflicting-payload, late-after-cleanup, empty-value, cancellation, reload,

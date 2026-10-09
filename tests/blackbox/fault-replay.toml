@@ -1,0 +1,28 @@
+[scenario]
+name = "production chat controller incident replay"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "replay and render each deterministic incident"
+action = "eval"
+script = '''(async () => {
+  for (const id of ['duplicate-tool-result', 'delayed-terminal', 'hydration-race']) {
+    document.querySelector(`[data-replay-case="${id}"]`).click();
+    for (let i=0; i<100; i++) {
+      const output=document.querySelector('[data-replay-status]');
+      if (output.dataset.replayId===id && output.dataset.replayStatus==='passed') break;
+      if (i===99) throw new Error('replay failed: '+output.textContent);
+      await new Promise(resolve=>setTimeout(resolve,20));
+    }
+    const text=document.body.innerText;
+    if (document.querySelectorAll('[data-message-id="user-A"]').length!==1) throw new Error('original user duplicated or not rendered');
+    const assistant=id==='delayed-terminal'?'assistant-next':'assistant-A';
+    if (document.querySelectorAll(`[data-message-id="${assistant}"]`).length!==1) throw new Error('assistant duplicated or not rendered');
+    if (!text.includes('first')) throw new Error('original user disappeared');
+    if (id==='hydration-race' && !text.includes('queued')) throw new Error('queued user disappeared');
+    if (id==='delayed-terminal' && !text.includes('next')) throw new Error('new assistant disappeared');
+    if (id==='duplicate-tool-result' && text.includes('conflict')) throw new Error('duplicate result replaced original');
+  }
+  return 'all replay cases passed and rendered';
+})()'''

@@ -1,0 +1,94 @@
+# Frontend incident replay
+
+The frontend replay foundation is implemented; opt-in incident recording,
+private SDK execution replay, reload epochs and wire-level adapters remain
+planned in [the architecture proposal](fault-replay-design.md).
+
+## Run a case
+
+Prepare the worktree and its exact SDK client, then run:
+
+```powershell
+bun run replay validate --case src/lib/replay/fixtures/hydration-race.json
+bun run replay replay --case src/lib/replay/fixtures/hydration-race.json
+```
+
+The command reads a bounded JSON file, emits a metadata-only JSON report and
+exits nonzero for every unsuccessful status. `validate` checks the envelope;
+`replay` additionally admits the target's supported capabilities and exercises
+the current client and page controllers. Reports identify the committed host
+revision and whether the worktree is dirty; local edits are exercised too, so
+a dirty result is not evidence that the printed revision alone passes. No provider, application
+database, process tool or real transport is available to the replay target.
+
+The current `format_version: 1`/`target_version: 1` bundle has inline `initial`,
+`records`, `schedule` and `assertions`. This single bounded file is the first
+implementation of the logical case layout in the proposal. Content-addressed
+payload files and capture conversion arrive with the recorder. Do not interpret
+ordinary log files or metadata traces as compatible cases.
+
+## Supported coverage
+
+`createChatReplayTarget` runs the actual SDK chat subscription projection,
+`subscribePageChatEvents`, `createCheckpointController`, shared stream-start/
+user-insertion helpers and `createChatFinalizer`. The shipped page consumes the
+same helpers/finalizer, with its normal effects. A plain scoped state facade
+replaces Svelte reactivity during headless replay; it does not duplicate the
+production transitions.
+
+Full cases currently support text-only initial user messages, explicit existing
+streams, tool-call/result correlation, text/thinking chunks, checkpoint/done/
+cancelled events and hydration through scripted product operations. Actions
+are `hydrate`, `insert-user` and `start-stream`. Unsupported events, effects,
+content kinds, initial states and prefix cases stop with `unsupported`.
+The target does not yet prove queue submission, approvals, plugin frames,
+run-start recovery, resync, reload, files, usage/suggestions or Runtime behavior.
+Do not extend coverage by replacing an unsupported capability with a no-op.
+No-op host affordances are limited to recents, notifications, timing persistence
+and absent file/usage work outside this target's stated coverage.
+
+Each request must match the next recorded operation and payload in observed
+request-start order. `await-request` checks that the current code has issued it;
+`resolve`/`reject` releases its scripted promise; `deliver` enters actual client
+subscription callbacks. Explicit `drain`/assertion gates drain released promise
+chains without advancing logical time. The current target bounds microtask
+draining and rejects remaining full-case work rather than assuming quiescence.
+Internal task races and timer-dependent cases need their own scoped seams.
+
+All records and assertions must be scheduled, request outcomes must pair with
+starts, producer sequences must be contiguous and links must point backward.
+Malformed identities, unsafe keys, excessive depth/bytes, unsupported versions
+and dangling links cannot reach the target. Request mismatches remain fatal even
+if product code catches the transport rejection. A failing assertion reports its
+stable ID without exposing payload values. These checks validate bundle integrity,
+not completeness of a real recording; the recorder must supply anchor/watermark
+evidence before any capture is accepted.
+
+The three bundled fixtures cover repeated conflicting tool results, a delayed
+old terminal after a new stream, and user insertion during terminal hydration.
+They are wholly synthetic and labelled coverage cases; no affected historical
+revision has been qualified with the new harness yet. Bun tests repeat each
+schedule 20 times and exercise invalid, incomplete, unsupported and negative
+assertion paths. They do not claim verified incident reproduction.
+
+## Native verification
+
+The developer-only `streaming-transcript-preview-replay` variant runs these same
+cases and renders final observations using the real MessageList. It stays in
+the lazily loaded standalone preview tree, outside normal product startup.
+Use a task-owned source development instance and explicit pilot socket:
+
+```powershell
+$env:OPENAGENT_HOME = Join-Path $env:TEMP 'openagent-fault-replay-native'
+$env:OPENAGENT_DEV_RUNTIME_SOURCE = '1'
+bun tauri dev --multi-instance fault-replay
+# In the runner shell, use that instance's exact TAURI_PILOT_SOCKET and home.
+bun run test:blackbox:fault-replay
+```
+
+The committed native scenario runs every fixture in light/dark and en/zh,
+asserts the report plus visible user/assistant preservation, and returns to the
+original page. It verifies rendering after the shared controller transitions;
+it does not substitute for real composer/queue interaction coverage when those
+capabilities are added. Recorder implementation must also add isolation and
+completeness tests described by the proposal.

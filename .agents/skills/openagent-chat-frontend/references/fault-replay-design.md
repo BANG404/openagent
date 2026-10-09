@@ -1,7 +1,8 @@
 # Fault recording and deterministic replay proposal
 
-Status: proposed architecture; no recorder, replay runner, configuration switch,
-or commands described here are implemented by this documentation change.
+Status: frontend replay foundation implemented with a bounded inline case bundle;
+see [the actual workflow and capability limits](fault-replay.md).
+Recording, SDK/adapter replay and configuration switches remain proposed.
 The chat owner maintains the shared host-facing contract. SDK recording and
 execution details must be designed and implemented in the private SDK repository.
 
@@ -302,8 +303,9 @@ resync/bootstrap with stale response; invalid model tool identity with bounded
 retry; cancellation during retry. Every case has an unaffected sibling scope
 where isolation matters. Normal cases accompany failure/recovery cases.
 
-Proposed tooling verbs are `capture start/stop`, `case extract/validate`, and
-`replay --case <path>`; executable/package names are chosen during implementation.
+The frontend foundation provides `bun run replay validate|replay --case <path>`.
+Remaining proposed verbs are `capture start/stop` and `case extract`; executable
+names for the recorder and private SDK runner are chosen during implementation.
 Do not add placeholder scripts or advertise these as existing commands.
 Frontend cases join Bun tests/preflight and existing frontend CI classification;
 SDK cases join SDK tests. No recording or model call is needed in default CI.
