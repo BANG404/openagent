@@ -7,5 +7,6 @@ metadata:
 
 # OpenAgent chat frontend
 
-Own chat rendering, streaming and restore. Read `references/plugin-contract.md`
-and [conversation UI](references/conversation-ui.md). Reuse components/ui and Bits UI.
+Own chat rendering, streaming and restore. Read [plugin](references/plugin-contract.md),
+[UI](references/conversation-ui.md) and [tests](references/testing-workflow.md).
+Reuse Bits UI.
