@@ -41,6 +41,17 @@ drive the same controls a user uses. Record the exact command and result in the
 handoff. If the changed behavior is not user-facing and has no native
 interaction, use its owning contract or integration tests instead.
 
+## Skill discovery settings coverage
+
+Run `bun run test:blackbox:skill-discovery-settings` against an isolated
+`skill-directory` debug instance with its explicit `TAURI_PILOT_SOCKET`.
+The scenario checks that Flash settings has no skill-classification controls,
+retains the MCP, hook, and approval tasks, and reads configuration without the
+retired task. It captures light/dark and Chinese/English combinations. Set
+`BLACKBOX_NATIVE_WINDOW_HANDLE` to the verified main HWND on Windows to capture
+the scrolled automation controls from the native window. Runtime
+inventory discovery is verified in the SDK's prompt and role-filtering tests.
+
 ## Memory management coverage
 
 Run `bun run test:blackbox:memory` against the same isolated debug instance and

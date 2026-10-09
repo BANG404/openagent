@@ -118,8 +118,8 @@ The canonical locations and compatibility behavior live in
 
 Never overwrite user-maintained memory sections or commit provider secrets.
 Change structured memory through existing commands or tools. Skills require
-YAML `name` and `description`; store category under `metadata` while continuing
-to read legacy top-level category values.
+YAML `name` and `description`; discovery lists directories, counts, and names
+so agents inspect relevant skill instructions progressively.
 
 Persisted configuration and conversation schemas are versioned compatibility
 boundaries. Supported shapes require migration or normalization and failure

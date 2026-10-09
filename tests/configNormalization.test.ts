@@ -416,3 +416,19 @@ describe("approval mode config", () => {
     expect(manual.flash_agents.tool_approval.enabled).toBe(false);
   });
 });
+
+describe("retired skill classifier", () => {
+  test("discards its configuration while retaining other Flash tasks", () => {
+    const normalized = normalizeConfigShape({
+      flash_agents: {
+        skill_category: { enabled: true, prompt: "Old taxonomy" },
+        memory: { enabled: false, prompt: "Keep my memory rules" },
+      },
+    } as unknown as AppConfig);
+    expect(normalized.flash_agents).not.toHaveProperty("skill_category");
+    expect(normalized.flash_agents.memory).toEqual({
+      enabled: false,
+      prompt: "Keep my memory rules",
+    });
+  });
+});

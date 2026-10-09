@@ -83,6 +83,11 @@ Older `[web_search]` and `[fetch]` tables are ignored when loading configuration
 and disappear on the next successful settings save. Webpage search and fetching
 are not built-in Agent capabilities.
 
+The retired `[flash_agents.skill_category]` table is ignored on load and removed
+on the next successful settings save. Skills are discovered progressively from
+directories and names; settings has no skill-classification task and loading or
+switching a workspace never rewrites SKILL.md metadata.
+
 The retired `[html_preview]` table follows the same read-and-discard rule. The
 product has no `render_web` tool, AGUI `Html(...)` renderer, browser sidebar, or
 HTML-preview setting; links are shared as `Url(...)` references and opened in

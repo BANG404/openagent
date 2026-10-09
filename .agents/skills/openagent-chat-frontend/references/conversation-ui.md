@@ -44,3 +44,7 @@ SvelteKit resolves this to a prepared development snapshot or the explicitly
 selected source client. Do not import `sdk/typescript` paths in product code.
 The release-engineering public-development reference owns kit preparation and
 source/version admission.
+
+Skill discovery is Runtime-owned. Frontend configuration snapshots and Flash
+settings omit skill-classification controls, and static tool labels follow the
+current built-in registry. Discovery diagnostics remain outside the transcript UI.

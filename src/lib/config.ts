@@ -179,7 +179,6 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
   const flash_agents = {
     title: normalizeFlashAgent(input.flash_agents?.title),
     memory: normalizeFlashAgent(input.flash_agents?.memory),
-    skill_category: normalizeFlashAgent(input.flash_agents?.skill_category),
     mcp_server_category: normalizeFlashAgent(input.flash_agents?.mcp_server_category),
     suggestions: normalizeFlashAgent(input.flash_agents?.suggestions),
     hook: normalizeFlashAgent(input.flash_agents?.hook),

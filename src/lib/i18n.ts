@@ -17,7 +17,6 @@ const toolNameKeys: Partial<Record<string, TranslationKeys>> = {
   delete_goal_graph: "toolDeleteGoalGraph",
   graph_read: "toolGraphRead",
   search_conversation_messages: "toolSearchConversationMessages",
-  get_skill_descriptions: "toolGetSkillDescriptions",
   read_file: "toolReadFile",
   write_file: "toolWriteFile",
   edit_file: "toolEditFile",

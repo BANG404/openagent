@@ -575,7 +575,6 @@ export interface FlashAgentConfig {
 export interface FlashAgentsConfig {
   title: FlashAgentConfig;
   memory: FlashAgentConfig;
-  skill_category: FlashAgentConfig;
   mcp_server_category: FlashAgentConfig;
   suggestions: FlashAgentConfig;
   hook: FlashAgentConfig;
@@ -853,7 +852,6 @@ export interface McpSettings {
 export interface SkillMetadata {
   name: string;
   description: string;
-  category?: string | null;
   dir_name: string;
   path: string;
   scope: "global" | "local" | `plugin:${string}`;

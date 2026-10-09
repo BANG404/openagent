@@ -1,0 +1,26 @@
+[scenario]
+name = "skill discovery has no Flash classification controls"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "verify retired controls and current configuration"
+action = "eval"
+script = '''(async () => {
+  const surface = document.querySelector('[data-value="agents"]');
+  if (!surface) throw new Error('Flash settings did not open');
+  if (/Skill Category|skill categorization|Classify skills|技能分类|技能归类|技能自动分类/.test(surface.textContent)) {
+    throw new Error('retired skill classifier is still visible');
+  }
+  const headings = [...surface.querySelectorAll('[aria-labelledby="automation-flash-tasks"] .flash-task-card h5')].map(node => node.textContent);
+  if (headings.length !== 3 || !headings.some(text => /MCP/.test(text))) {
+    throw new Error('removing skill classification affected the remaining automation tasks');
+  }
+  const expectedCopy = window.__skillDiscoveryLocale === 'en' ? 'Summarize MCP capabilities' : 'MCP 能力摘要';
+  if (!surface.textContent.includes(expectedCopy)) throw new Error('automation description is stale or incorrectly localized');
+  const {desktopOpenAgent} = await import('/src/lib/openagent/tauriClient.ts');
+  const config = await desktopOpenAgent.invokeProduct('get_settings', {});
+  if ('skill_category' in config.flash_agents) throw new Error('retired classifier remains in the configuration contract');
+  if (!config.flash_agents.mcp_server_category) throw new Error('MCP classifier configuration was lost');
+  return true;
+})()'''

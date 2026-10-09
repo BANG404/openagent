@@ -40,13 +40,6 @@ function frontmatter(file) {
   if (!fields.name || !fields.description) {
     throw new Error(`${file}: name and description are required`);
   }
-  const metadataLines = lines.slice(1, end);
-  if (
-    !metadataLines.includes("metadata:") ||
-    !metadataLines.some((line) => /^\s+category:\s*\S+/.test(line))
-  ) {
-    throw new Error(`${file}: metadata.category is required`);
-  }
   return /** @type {SkillFields} */ (fields);
 }
 

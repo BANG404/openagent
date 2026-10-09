@@ -123,32 +123,6 @@
         <article class="flash-task-item">
           <div class="flash-task-heading">
             <div class="flash-task-copy">
-              <h5>{$t("skillCategoryAgent")}</h5>
-              <p>{$t("skillCategoryTaskDescription")}</p>
-            </div>
-            <SettingsStatusToggle
-              bind:checked={draft.draftConfig.flash_agents.skill_category.enabled}
-              ariaLabel={$t("skillCategoryAgentEnabled")}
-            />
-          </div>
-          <details
-            class="flash-task-custom"
-            open={draft.draftConfig.flash_agents.skill_category.prompt.trim().length > 0}
-          >
-            <summary>{$t("taskCustomPrompt")}</summary>
-            <label class="detail-label">
-              <span class="sr-only">{$t("agentExtraPrompt")}</span>
-              <textarea
-                class="detail-input flash-task-textarea"
-                bind:value={draft.draftConfig.flash_agents.skill_category.prompt}
-                placeholder={$t("skillCategoryAgentPromptPlaceholder")}></textarea>
-            </label>
-          </details>
-        </article>
-
-        <article class="flash-task-item">
-          <div class="flash-task-heading">
-            <div class="flash-task-copy">
               <h5>{$t("mcpServerCategoryAgent")}</h5>
               <p>{$t("mcpServerCategoryTaskDescription")}</p>
             </div>

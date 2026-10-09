@@ -23,7 +23,7 @@ the user.
 ## Routing contract
 
 Every workspace skill has one directory-matching `name`, a non-empty
-description, a `metadata.category`, and a record in
+description and a record in
 `.agents/skills/manifest.json`. The manifest identifies the primary owner for
 repository paths. A task may load secondary contracts for cross-boundary
 behavior, but the primary owner decides where the durable invariant is edited.
@@ -36,6 +36,10 @@ When two owners appear applicable, use this order:
 
 Do not resolve overlap by copying the same rule into multiple skills. Link to
 the primary owner instead.
+
+Skill discovery uses directory paths, visible counts, and names for global,
+project, and enabled plugin skills. Models inspect candidate SKILL.md metadata
+and instructions progressively. Categories are not required or generated.
 
 ## Change and verification contract
 

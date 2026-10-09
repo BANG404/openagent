@@ -200,7 +200,6 @@ const en: Record<TranslationKeys, string> = {
   toolDeleteGoalGraph: "Delete goal graph",
   toolGraphRead: "Read goal graph",
   toolSearchConversationMessages: "Search conversation messages",
-  toolGetSkillDescriptions: "Get skill descriptions",
   toolReadFile: "Read file",
   toolWriteFile: "Write file",
   toolEditFile: "Edit file",
@@ -298,7 +297,7 @@ const en: Record<TranslationKeys, string> = {
     "Generate titles and follow-up suggestions, and maintain memory.",
   automationFlashTasks: "Background automation",
   automationFlashTasksDescription:
-    "Classify skills, create scheduled work, and support automatic approval decisions.",
+    "Summarize MCP capabilities, create scheduled work, and support automatic approval decisions.",
   taskEnabled: "Enable task",
   taskCustomPrompt: "Custom instructions",
   managedByApprovalMode: "Controlled by approval mode",
@@ -649,7 +648,6 @@ const en: Record<TranslationKeys, string> = {
   suggestionsAgentEnabled: "Enable Follow-up Suggestions Task",
   hookAgent: "Hook Task",
   titleAgent: "Title Task",
-  skillCategoryAgent: "Skill Category Task",
   mcpServerCategoryAgent: "MCP Server Category Task",
   autoApprovalTask: "Auto Approval Task",
   autoApprovalTaskEnabled: "Enable Auto Approval Task",
@@ -780,15 +778,10 @@ const en: Record<TranslationKeys, string> = {
   titleAgentEnabled: "Enable Title Task",
   suggestionsAgentPromptPlaceholder:
     "Additional Suggestions Task rules, e.g. prioritize immediately actionable next steps",
-  skillCategoryAgentEnabled: "Enable automatic skill categorization",
-  skillCategoryTaskDescription:
-    "After startup or a workspace switch, use the Flash model in the background to categorize ungrouped skills and persist metadata.category to SKILL.md.",
   agentExtraPrompt: "Extra Prompt",
   memoryAgentPromptPlaceholder: "Additional Memory Task rules, e.g. ignore temporary preferences",
   hookAgentPromptPlaceholder: "Additional Hook Task rules, e.g. only create explicit reminders",
   titleAgentPromptPlaceholder: "Additional Title Task rules, e.g. prefer titles in English",
-  skillCategoryAgentPromptPlaceholder:
-    "Additional Skill Category Task rules, e.g. prefer the team taxonomy",
   mcpServerCategoryAgentEnabled: "Enable automatic MCP server categorization",
   mcpServerCategoryTaskDescription:
     "After an MCP server is added or its advertised tools/resources change, use the Flash model in the background to summarize its capability family. Reuse the cached summary when the discovery fingerprint is unchanged and expose it to tool_search discovery.",
@@ -860,7 +853,6 @@ const en: Record<TranslationKeys, string> = {
   projectSkills: "Project",
   noSkills: "No skills yet",
   noSkillsHint: "Create a skill to give the Agent specialized instructions and workflow rules",
-  uncategorizedSkills: "Uncategorized",
   newSkill: "New Skill",
   skillName: "Skill Name",
   skillNamePlaceholder: "e.g. Rust Error Handling",
