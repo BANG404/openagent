@@ -9,7 +9,7 @@ each selected Runtime target once; native candidates wait for its staged,
 release-qualified binaries and package those exact bytes as Tauri sidecars.
 Candidate builds have no release-side effects: they upload only run-scoped
 Actions artifacts. Only a successful full result, successful SDK resolution,
-and every selected candidate allow the workflow to create the
+and every installer and resource candidate allow the workflow to create the
 annotated tag. The detection checkout includes complete tag history because
 release metadata validation resolves `previousTag` against local immutable tag
 refs.
@@ -70,7 +70,7 @@ a failed fixture cannot leave publication waiting indefinitely on orphan process
 1. concurrently qualify the desktop SHA and stage or reuse its pinned SDK
    release, including the exact Runtime binaries and manifest;
 2. verify the staged SDK SHA, artifact names, sizes, and SHA-256 values, then
-   package those bytes into every selected native candidate without rebuilding
+   package those bytes into every native candidate without rebuilding
    or retesting the Runtime;
 3. store Runtime, frontend, lightweight Tauri, full first-install, and Store
    candidates only as run-scoped Actions artifacts;
@@ -80,15 +80,17 @@ a failed fixture cannot leave publication waiting indefinitely on orphan process
    staged asset names so the two candidate artifacts can be merged without
    overwriting one architecture with the other;
 5. after every gate succeeds, create the immutable tag and create or reuse the
-   draft GitHub Release; draft creation must explicitly continue past skipped
-   jobs for unselected components while still requiring successful detection
-   and tagging, so frontend-only and Runtime-only releases reach publication;
+   draft GitHub Release; every unpublished product release requires successful
+   native and complete resource candidates, even when only frontend or Runtime
+   source changed. Draft creation must explicitly require successful detection
+   and tagging;
    selected component publication jobs must likewise evaluate explicitly after
    skipped non-selected ancestors, and a selected publisher that does not
    succeed must block SDK and desktop publication rather than be treated as an
    acceptable skip;
-6. download and verify every selected candidate, upload its existing bytes, and
-   generate one combined `latest.json` from the four verified native targets;
+6. download and verify every installer and resource candidate, upload its
+   existing bytes, and generate one combined `latest.json` from the four
+   verified native targets;
    complete distribution uploads wait for the Runtime and frontend publishers
    because their resource filenames overlap. Concurrent `--clobber` uploads can
    delete or race another publisher's asset. Unselected component publishers may
@@ -99,7 +101,7 @@ a failed fixture cannot leave publication waiting indefinitely on orphan process
    the draft;
 8. publish the desktop draft only after its release body contains the exact
    previous-tag comparison and every expected user-facing installer shortcut;
-9. update fixed component channels and, for native-shell prereleases only, the
+9. update fixed component channels and, for every prerelease, the
    fixed Beta or RC `latest.json`;
 10. fast-forward `release/beta/X.Y` or `release/rc/X.Y` to the published
     prerelease SHA when applicable;
@@ -107,15 +109,19 @@ a failed fixture cannot leave publication waiting indefinitely on orphan process
 
 The published GitHub Release body embeds only the current version's generated
 `CHANGELOG.md` section, links the exact `previousTag...tag` comparison, and
-summarizes the selected frontend, Runtime, and native-shell components. When a
-release includes the native shell, it also provides direct, described download
-links for the lightweight and full Windows installers, Apple Silicon and Intel
+summarizes the selected frontend, Runtime, and native-shell components. Every
+product release also provides direct, described download links for the
+lightweight and full Windows installers, Apple Silicon and Intel
 DMGs, and Linux AppImage, DEB, and RPM packages. Missing or duplicate expected
 installer assets stop publication. Installer shortcuts match the OpenAgent
 product prefix and exact manifest version before platform suffixes; distribution
 helpers such as `codex-windows-sandbox-setup.exe` and older-version installers
-cannot qualify as desktop downloads. Component-only releases explicitly state
-that desktop installers are unchanged instead of linking an older installer.
+cannot qualify as desktop downloads. Frontend-only and Runtime-only source
+releases rebuild installers with the current product version and exact signed
+resource distribution; their download
+tables obey the same completeness gate. Component selection continues to
+control fixed frontend and Runtime channels, while every product release
+refreshes installer updater metadata and eligible Stable Store packages.
 Signatures, updater manifests, and developer-facing component resources remain
 in the GitHub Assets list rather than the quick-download table.
 
@@ -141,10 +147,10 @@ the updater client downloads and installs shell updates as separate commands.
 Prerelease updater channel tags and download URLs use the lowercase manifest
 values `beta` and `rc`. GitHub release tags and asset URLs are case-sensitive,
 so the release workflow must pass the manifest channel through unchanged when
-creating a native-shell channel release, uploading `latest.json`, and verifying
-its public URL. Frontend-only and Runtime-only releases do not create or replace
-Tauri updater metadata. The packaged updater endpoint uses the same lowercase
-channel name.
+creating a prerelease updater channel release, uploading `latest.json`, and
+verifying its public URL. Frontend-only and Runtime-only source releases also
+refresh Tauri updater metadata for their rebuilt, versioned installers. The
+packaged updater endpoint uses the same lowercase channel name.
 
 Fixed Runtime channels copy the exact manifest and detached signature from the
 qualified immutable desktop release, plus every server and sandbox helper named

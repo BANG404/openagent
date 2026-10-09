@@ -17,9 +17,10 @@ render.
 
 Release metadata must therefore be interpreted as a tuple: product release
 identity, selected component set, and the protocol compatibility constraints
-for that tuple. A component-only release may advance the release identity while
-leaving the packaged shell version unchanged; it must never use the product
-release number as a substitute for a component artifact version.
+for that tuple. An installed application may advance its release identity
+through a component update while retaining its installed shell version; it must
+never use the product release number as a substitute for a component artifact
+version.
 
 Development commits and Beta release metadata land on `master`. Ordinary
 pushes never create a version or tag by themselves. Start `Prepare Release` and
@@ -72,8 +73,9 @@ directly to the immutable SDK commit; package versions are stamped only in
 release build worktrees, so publishing never creates a different source SHA. A
 commit with no release-worthy SDK change reuses its newest ancestor SDK release.
 That release does not require a desktop installer update. Desktop Runtime
-changes are also eligible for the signed Runtime component channel and do not
-require a Tauri installer when the native shell is unchanged.
+changes are also eligible for the signed Runtime component channel. Independent
+SDK publication does not build Tauri installers; a product release always does,
+even when the native shell source is unchanged.
 
 Host-triggered SDK publication is two-phase. The desktop workflow first stages
 the exact SDK tag and machine-readable manifest as a short-lived private SDK
@@ -110,9 +112,8 @@ Minisign signature over their manifest. After the versioned release is public,
 the same six files are atomically replaced on the fixed `runtime-beta`,
 `runtime-rc`, or `runtime-stable` release channel. The runtime channel uses
 the Tauri updater trust root, while each artifact's declared size and SHA-256
-protect the selected bytes. Native-shell installers additionally package the
-same pinned server as the immutable fallback used when no downloaded candidate
-can be activated.
+protect the selected bytes. Every product release also binds that pinned server
+into its complete signed resource distribution for initial shell provisioning.
 
 Frontend-selected releases build the static frontend once, archive it as
 `openagent-frontend.tar.gz`, records its exact compressed and unpacked sizes,
@@ -131,19 +132,22 @@ native shell compares its packaged product version through the Tauri updater,
 the frontend compares the active signed frontend-manifest version, and the
 Runtime compares the active independently versioned SDK/server manifest. The
 combined product update check must query all three channels before reporting
-that OpenAgent is current. A component-only product release may therefore
-advance the release tag and the selected component without changing the
-packaged native-shell version.
+that OpenAgent is current. A component update may therefore advance an installed
+application without immediately replacing its shell. Every product release also provides
+new installers and updater metadata with its current product version.
 
 Each generated `.github/release.json` records a `components` object with
 `frontend`, `runtime`, and `nativeShell` booleans. Beta preparation classifies
 the application diff and the actual paths changed between the old and new SDK
 gitlinks. RC and Stable promotions inherit the selected source release's
 component set. Manifests created before this field existed are treated
-conservatively as selecting all three components. Frontend-only releases build
-and publish only the signed frontend resource; Runtime-only releases build the
-four signed server resources; only `nativeShell` releases build Tauri updater
-artifacts, full first-install bundles, and eligible Microsoft Store packages.
+conservatively as selecting all three components. Component flags describe
+changed source and select fixed frontend/Runtime channel publication. Every
+product release builds the complete signed resource
+distribution, all four platform installers, Tauri updater artifacts, full
+first-install bundles, and eligible Stable Microsoft Store packages, including
+frontend-only and Runtime-only source releases. Packaging retains the classified
+component set instead of inventing a native-shell source change.
 
 The selected release channel controls the suffix and GitHub Release state. The
 release-relevant Conventional Commits control the `X.Y.Z` base version:

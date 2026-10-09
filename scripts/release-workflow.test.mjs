@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { runInNewContext } from "node:vm";
 import { runtimeChannelArtifacts, stageRuntimeChannel } from "./runtime-channel-artifacts.mjs";
 import { signingFixture } from "../tests/fixtures/minisign.mjs";
 
@@ -23,7 +24,89 @@ async function releaseJobSource(jobName, nextJobName) {
   return source.slice(start, end);
 }
 
+/** @param {string} source @param {Record<string, unknown>} needs */
+function jobCondition(source, needs) {
+  const condition =
+    source.match(/^ {4}if: >-\n((?: {6}.+\n)+)/m)?.[1] ?? source.match(/^ {4}if: (.+)$/m)?.[1];
+  if (!condition) throw new Error("Missing release job condition");
+  const expression = condition.replace(/needs\.([\w-]+)/g, 'needs["$1"]');
+  return runInNewContext(expression, { needs, always: () => true }, { timeout: 1000 });
+}
+
 describe("release workflow publication gates", () => {
+  test.each([
+    { frontend: "true", runtime: "false", native_shell: "false" },
+    { frontend: "false", runtime: "true", native_shell: "false" },
+    { frontend: "false", runtime: "false", native_shell: "true" },
+  ])("component selection %s still produces a complete desktop release", async (components) => {
+    const candidateJobs = [
+      ["build", "distribution-helpers"],
+      ["distribution-helpers", "distribution-resources"],
+      ["distribution-resources", "runtime-components"],
+      ["runtime-components", "frontend-components"],
+      ["frontend-components", "publish-native-assets"],
+    ];
+    const needs = {
+      detect: {
+        result: "success",
+        outputs: { ...components, active: "true", published: "false", prerelease: "true" },
+      },
+      "sdk-release": { result: "success" },
+      qualify: { result: "success" },
+      build: { result: "success" },
+      "runtime-components": { result: "success" },
+      "frontend-components": { result: "success" },
+      "distribution-resources": { result: "success" },
+      "create-draft": { result: "success", outputs: { published: "false" } },
+      "publish-native-assets": { result: "success" },
+      "publish-distribution-resources": { result: "success" },
+      "publish-runtime-components": {
+        result: components.runtime === "true" ? "success" : "skipped",
+      },
+      "publish-frontend-components": {
+        result: components.frontend === "true" ? "success" : "skipped",
+      },
+      "publish-store": { result: "skipped" },
+      "publish-sdk-release": { result: "success" },
+      "publish-plugins": { result: components.runtime === "true" ? "success" : "skipped" },
+    };
+    for (const [name, next] of candidateJobs) {
+      const source = await releaseJobSource(name, next);
+      expect(jobCondition(source, needs)).toBe(true);
+      expect(
+        jobCondition(source, {
+          ...needs,
+          detect: { ...needs.detect, outputs: { ...needs.detect.outputs, published: "true" } },
+        }),
+      ).toBe(false);
+    }
+    const tag = await releaseJobSource("tag", "create-draft");
+    expect(jobCondition(tag, needs)).toBe(true);
+    expect(jobCondition(tag, { ...needs, build: { result: "skipped" } })).toBe(false);
+    const native = await releaseJobSource(
+      "publish-native-assets",
+      "publish-distribution-resources",
+    );
+    const distribution = await releaseJobSource(
+      "publish-distribution-resources",
+      "publish-runtime-components",
+    );
+    expect(jobCondition(native, needs)).toBe(true);
+    expect(jobCondition(distribution, needs)).toBe(true);
+    for (const [name, next] of [
+      ["publish-sdk-release", "publish"],
+      ["publish", "archive-prerelease"],
+    ]) {
+      const source = await releaseJobSource(name, next);
+      expect(jobCondition(source, needs)).toBe(true);
+      for (const missing of ["publish-native-assets", "publish-distribution-resources"]) {
+        for (const result of ["failure", "skipped", "cancelled"]) {
+          expect(jobCondition(source, { ...needs, [missing]: { result } })).toBe(false);
+        }
+      }
+    }
+  });
+
   test("Runtime channels stage the manifest-selected files before uploading", async () => {
     const job = await releaseJobSource("publish", "archive-prerelease");
     const step = job.slice(
@@ -109,7 +192,6 @@ git() {
             OPENAGENT_PLUGIN_RELEASE_TOKEN: String(token),
             RUNTIME: String(runtime),
             PRERELEASE: "true",
-            NATIVE_SHELL: "false",
           },
         },
       );
@@ -140,18 +222,19 @@ git() {
     }
   });
 
-  test("tagging accepts skipped candidate jobs for unselected components", async () => {
+  test("tagging requires every installer candidate unless reusing a published release", async () => {
     const job = await releaseJobSource("tag", "create-draft");
 
     expect(job).toContain("always()");
     for (const dependency of ["build", "runtime-components", "frontend-components"]) {
       expect(job).toContain(
-        `(needs.${dependency}.result == 'success' || needs.${dependency}.result == 'skipped')`,
+        `(needs.detect.outputs.published == 'true' || needs.${dependency}.result == 'success')`,
       );
+      expect(job).not.toContain(`needs.${dependency}.result == 'skipped'`);
     }
   });
 
-  test("draft creation continues after unselected component jobs are skipped", async () => {
+  test("draft creation requires successful detection and tagging", async () => {
     const job = await releaseJobSource("create-draft", "build");
 
     expect(job).toContain("always()");
@@ -187,8 +270,12 @@ git() {
     for (const [jobName, nextJobName] of finalPublicationJobs) {
       const job = await releaseJobSource(jobName, nextJobName);
       expect(job).toContain(
-        "needs.detect.outputs.native_shell != 'true' || needs.publish-native-assets.result == 'success'",
+        "needs.create-draft.outputs.published == 'true' || needs.publish-native-assets.result == 'success'",
       );
+      expect(job).toContain(
+        "needs.create-draft.outputs.published == 'true' || needs.publish-distribution-resources.result == 'success'",
+      );
+      expect(job).not.toContain("needs.detect.outputs.native_shell != 'true'");
       expect(job).toContain(
         "needs.detect.outputs.runtime != 'true' || needs.publish-runtime-components.result == 'success'",
       );

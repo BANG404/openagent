@@ -61,11 +61,11 @@
   pushed by `GITHUB_TOKEN` to trigger another workflow.
   Before publishing the desktop draft, generate its body from the exact current
   changelog section, `previousTag...tag` comparison, selected components, and
-  the assets attached to that draft. Native-shell releases must expose each
-  expected user installer as a described direct download and fail when one is
-  missing or duplicated; component-only releases must say installers are
-  unchanged. Keep signatures, updater metadata, and component resources out of
-  the user-facing download table.
+  the assets attached to that draft. Every product release must expose each
+  expected user installer for its exact version as a described direct download
+  and fail when one is missing or duplicated, including frontend-only and
+  Runtime-only releases. Keep signatures, updater metadata, and component
+  resources out of the user-facing download table.
   Keep the product TypeScript client private and distribute it only as pinned
   source or a checksummed development snapshot. The release-qualified server is
   the executable Runtime sidecar used by the desktop host.
@@ -94,11 +94,14 @@
   installers must decode that standard wrapper, verify the exact manifest bytes
   before downloading artifacts, and retain integration coverage with an
   ephemeral test key; never require or print the production signing key locally.
-- Record `frontend`, `runtime`, and `nativeShell` in release metadata. Component
-  releases build their selected resources; `nativeShell` also prepares the complete
-  Runtime/frontend/embedding/helper set needed for initial shell provisioning.
-  Only `nativeShell` builds Tauri
-  updater artifacts, full installers, Store packages, or fixed `latest.json`.
+- Record `frontend`, `runtime`, and `nativeShell` in release metadata. These
+  flags describe source changes and select fixed frontend/Runtime channel updates;
+  they do not gate installer construction. Every product release prepares the
+  complete signed Runtime/frontend/embedding/helper distribution and builds all
+  four Tauri targets, updater artifacts, full installers, and eligible Stable
+  Store packages. Refresh prerelease `latest.json` for every Beta/RC release.
+  Tagging requires every candidate unless resuming an already published release;
+  SDK and desktop publication require both installer and distribution uploads.
   RC and Stable promotions inherit the source component set, and legacy
   manifests without it conservatively select every component.
 - During Tauri development, pass the selected Vite URL as a CLI configuration

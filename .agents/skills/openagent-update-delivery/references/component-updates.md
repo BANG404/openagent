@@ -33,8 +33,11 @@ the staged frontend and arms its confirmation deadline. No moving channel is
 queried to reconstruct a handoff. An identical handoff may be retried, while a
 different pending transaction refuses overwrite. Frontend-only
 activation reloads and confirms the frontend in the current process.
-Component-only releases keep the same notification model without restarting
-the shell.
+An update that activates only frontend or Runtime resources keeps the same
+notification model without restarting the shell. Every product release also
+publishes current-version installers and shell updater metadata, even when
+`nativeShell` source is unchanged; a selected shell update follows the coupled
+shell-first sequence above.
 
 The Cua Driver is a plugin-owned daemon. OpenAgent installs and updates the
 verified package from `https://github.com/BANG404/openagent-cua-driver` beneath

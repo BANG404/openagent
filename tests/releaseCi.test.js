@@ -469,7 +469,7 @@ describe("release CI verification", () => {
     expect(releaseWorkflow).toContain("openagent-frontend-manifest.json.sig");
   });
 
-  test("builds only the release components selected by the manifest", () => {
+  test("retains component selection while packaging every product release", () => {
     expect(releaseWorkflow).toContain(
       "const components = manifest.components ?? { frontend: true, runtime: true, nativeShell: true };",
     );
@@ -478,7 +478,21 @@ describe("release CI verification", () => {
     expect(releaseWorkflow).toContain(
       "console.log(`native_shell=${components.nativeShell === true}`)",
     );
-    expect(releaseWorkflow).toContain("&& needs.detect.outputs.native_shell == 'true'");
+    for (const jobName of [
+      "build",
+      "distribution-helpers",
+      "distribution-resources",
+      "runtime-components",
+      "frontend-components",
+      "publish-native-assets",
+      "publish-distribution-resources",
+    ]) {
+      const job = releaseWorkflow.split(`  ${jobName}:\n`)[1].split(/^ {2}[\w-]+:/m)[0];
+      expect(job).not.toContain("needs.detect.outputs.native_shell");
+      expect(job).not.toContain("needs.detect.outputs.frontend");
+      expect(job).not.toContain("needs.detect.outputs.runtime");
+      expect(job).toContain("outputs.published != 'true'");
+    }
     expect(releaseWorkflow).toContain("id: tauri\n        uses: tauri-apps/tauri-action@v0");
     expect(releaseWorkflow).not.toContain("name: Build runtime candidate");
     expect(releaseWorkflow).toContain("name: Verify and stage runtime candidate");
@@ -540,20 +554,20 @@ describe("release CI verification", () => {
     );
   });
 
-  test("keeps resource-only releases independent from native publishing", () => {
+  test("refreshes installer channels and Store packages without requiring shell source changes", () => {
     const frontendJob = releaseWorkflow.match(
       / {2}frontend-components:\n(?<job>[\s\S]*?)\n {2}publish-native-assets:/,
     )?.groups?.job;
-    const storeJob = releaseWorkflow.match(/ {2}publish-store:\n(?<job>[\s\S]*?)\n {2}publish:/)
-      ?.groups?.job;
+    const storeJob = releaseWorkflow.match(
+      / {2}publish-store:\n(?<job>[\s\S]*?)\n {2}publish-plugins:/,
+    )?.groups?.job;
 
     expect(frontendJob).not.toContain("- build");
     expect(frontendJob).toContain("repository: BANG404/openagent-sdk");
-    expect(frontendJob).toContain("needs.detect.outputs.frontend == 'true'");
-    expect(storeJob).toContain("needs.detect.outputs.native_shell == 'true'");
-    expect(releaseWorkflow).toContain(
-      "if: needs.detect.outputs.native_shell == 'true' && needs.detect.outputs.prerelease == 'true'",
-    );
+    expect(frontendJob).not.toContain("needs.detect.outputs.frontend");
+    expect(storeJob).not.toContain("needs.detect.outputs.native_shell");
+    expect(storeJob).toContain("needs.detect.outputs.prerelease != 'true'");
+    expect(releaseWorkflow).toContain("if: needs.detect.outputs.prerelease == 'true'");
     expect(releaseWorkflow).toContain("needs.detect.outputs.runtime == 'true'");
   });
 
