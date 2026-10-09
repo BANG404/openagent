@@ -1,0 +1,57 @@
+[scenario]
+name = "Files sidebar renders language syntax and plaintext fallback"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "open the Files sidebar through its visible control"
+action = "click"
+target = ".checkpoint-flow-toggle"
+
+[[step]]
+name = "each file keeps diff metadata and theme-aware syntax"
+action = "eval"
+script = '''(async () => {
+  const panel = document.querySelector('#checkpoint-flow-panel .file-panel');
+  const sidebar = document.querySelector('#checkpoint-flow-panel');
+  if (sidebar.classList.contains('collapsed') || panel.getBoundingClientRect().height <= 0) throw new Error('Files sidebar is not visible');
+  const tabs = [...panel.querySelectorAll('.file-tab')];
+  const paths = ['sample.ts', 'sample.py', 'sample.ps1', 'sample.unknown'];
+  if (tabs.length !== paths.length) throw new Error('language fixtures missing');
+  for (const [index, path] of paths.entries()) {
+    tabs[index].click();
+    const deadline = Date.now() + 10000;
+    while (Date.now() < deadline && (panel.querySelector('.file-path')?.textContent !== path || !panel.querySelector('.diff-token'))) await new Promise(resolve => setTimeout(resolve, 50));
+    if (panel.querySelector('.file-path')?.textContent !== path) throw new Error('file selection is stale');
+    if (!panel.querySelector('.diff-row.add .line-number') || panel.querySelector('.diff-row.add .line-marker')?.textContent !== '+') throw new Error('diff metadata lost');
+    const tokens = [...panel.querySelectorAll('.diff-row.add .diff-token')];
+    if (index < 3) {
+      const styledDeadline = Date.now() + 10000;
+      while (Date.now() < styledDeadline && !panel.querySelector('.diff-token[style*="--shiki-light"]')) await new Promise(resolve => setTimeout(resolve, 50));
+      const colored = [...panel.querySelectorAll('.diff-row.add .diff-token[style*="--shiki-light"]')];
+      if (!colored.length || !colored.every(token => token.style.getPropertyValue('--shiki-dark'))) throw new Error(`syntax styles missing: ${path}`);
+      const colors = new Set(colored.map(token => getComputedStyle(token).color));
+      if (colors.size < 2) throw new Error(`no syntax color distinction: ${path}`);
+      const mode = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+      const token = colored[0];
+      const probe = document.createElement('span');
+      probe.style.color = token.style.getPropertyValue(`--shiki-${mode}`);
+      panel.append(probe);
+      if (getComputedStyle(token).color !== getComputedStyle(probe).color) throw new Error(`wrong ${mode} syntax theme`);
+      probe.remove();
+    } else {
+      const text = panel.querySelector('.diff-table').textContent;
+      if (!text.includes('<script>alert("raw text")</script>') || !text.includes('```literal fences```')) throw new Error('unknown-file text was interpreted or lost');
+      if (tokens.some(token => token.style.cssText) || panel.querySelector('code script')) throw new Error('unknown-file fallback is not plain text');
+    }
+  }
+  tabs[0].click();
+  await new Promise(resolve => setTimeout(resolve, 200));
+  const rows = [...panel.querySelectorAll('.diff-row.add code')];
+  if (rows.map(row => row.textContent).join('\n') !== 'const message: string = "你好";\n/* comment\ncontinued */\nconsole.log(message);') throw new Error('source text changed during highlighting');
+  document.querySelector('#checkpoint-flow-panel').style.width = '260px';
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  const viewport = panel.querySelector('.ui-scroll-area-viewport');
+  if (viewport.scrollWidth > viewport.clientWidth + 2) throw new Error('narrow file sidebar overflows');
+  return 'multilanguage diff, active theme and literal fallback verified';
+})()'''

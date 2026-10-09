@@ -1,18 +1,51 @@
 <script lang="ts">
   import { t } from "$lib/i18n";
-  import type { FileChangeDiffLine } from "$lib/fileChangeDiff";
+  import { diffCodeText, type FileChangeDiffLine } from "$lib/fileChangeDiff";
+  import type { ThemedToken } from "shiki/core";
 
   let {
     lines,
     compact = false,
     scrollable = true,
+    path = "",
   }: {
     lines: FileChangeDiffLine[];
     compact?: boolean;
     scrollable?: boolean;
+    path?: string;
   } = $props();
 
   let singleLineNumbers = $derived(lines.every((line) => line.type !== "context"));
+  let highlighted = $state.raw<{
+    lines: FileChangeDiffLine[];
+    path: string;
+    tokens: ThemedToken[][];
+  } | null>(null);
+  const tokens = $derived(
+    highlighted?.lines === lines && highlighted.path === path ? highlighted.tokens : null,
+  );
+  $effect(() => {
+    const source = lines;
+    const filename = path;
+    let cancelled = false;
+    void import("$lib/streamdown/diffHighlight")
+      .then(({ highlightDiffLines }) => highlightDiffLines(source, filename))
+      .then((tokens) => {
+        if (!cancelled) highlighted = { lines: source, path: filename, tokens };
+      })
+      .catch(() => {
+        /* Keep source text visible if the syntax chunk cannot load. */
+      });
+    return () => {
+      cancelled = true;
+    };
+  });
+
+  function tokenStyle(token: ThemedToken): string {
+    return Object.entries(token.htmlStyle ?? {})
+      .map(([key, value]) => `${key}:${value}`)
+      .join(";");
+  }
 </script>
 
 <div class="diff-viewport" class:compact class:scrollable>
@@ -30,9 +63,10 @@
             >{line.type === "add" ? "+" : line.type === "remove" ? "−" : ""}</span
           >
           <code
-            >{line.type === "add" || line.type === "remove"
-              ? line.text.slice(1) || " "
-              : line.text || " "}</code
+            >{#if tokens?.[index]?.length}{#each tokens[index] as token, tokenIndex (tokenIndex)}<span
+                  class="diff-token"
+                  style={tokenStyle(token)}>{token.content}</span
+                >{/each}{:else}{diffCodeText(line) || " "}{/if}</code
           >
         </div>
       {/each}
@@ -115,6 +149,18 @@
   .diff-row.add {
     background: color-mix(in srgb, #18794e 24%, transparent);
     color: var(--text);
+  }
+  .diff-token {
+    color: var(--shiki-light, inherit);
+    font-style: var(--shiki-light-font-style, normal);
+    font-weight: var(--shiki-light-font-weight, normal);
+    text-decoration: var(--shiki-light-text-decoration, none);
+  }
+  :global(.dark) .diff-token {
+    color: var(--shiki-dark, inherit);
+    font-style: var(--shiki-dark-font-style, normal);
+    font-weight: var(--shiki-dark-font-weight, normal);
+    text-decoration: var(--shiki-dark-text-decoration, none);
   }
   .diff-row.remove {
     background: color-mix(in srgb, #b42318 24%, transparent);

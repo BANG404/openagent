@@ -61,6 +61,18 @@ Follow the shared setup and isolation rules in the desktop-host
 Update this owner reference when a new invariant or test surface becomes part
 of the product contract.
 
+`test:blackbox:background-terminal-scroll` verifies intrinsic short output,
+growth to the height cap, inner scrolling, and shrinkage after output changes
+in both themes/locales. `test:blackbox:file-diff` opens the real Files sidebar
+with `checkpoint-flow-preview-code`, switches TypeScript/Python/PowerShell and
+unknown files, and repeats after reload in English/Chinese and light/dark.
+FileDiffView delegates to `streamdown/diffHighlight.ts`: use the same Shiki
+JavaScript regex engine and GitHub themes as streamed code, infer grammar from
+the filename, and load the highlighter module and grammars on demand. Tokenize old and new revisions
+independently and reset at hunk gaps; preserve diff markers and numbers. Render
+tokens as escaped text with both theme styles, keep plaintext during loading
+or grammar failure, and discard stale results after a file change.
+
 ## Shared control and tool labels
 
 Frontend changes also run `check:components` and `check:tool-i18n`. Reuse the

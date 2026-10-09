@@ -4,6 +4,19 @@ fail_fast = true
 global_timeout_ms = 30000
 
 [[step]]
+name = "short output reserves only its content height"
+action = "eval"
+script = '''(async () => {
+  const output = document.querySelector('#background-terminal-panel .terminal-output');
+  const viewport = document.querySelector('#background-terminal-panel .terminal-output-scroll .ui-scroll-area-viewport');
+  if (!output || !viewport) throw new Error('expanded terminal output is missing');
+  output.textContent = 'total backslashes: 0\nbackslash-quote pairs: 0';
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  if (Math.abs(viewport.clientHeight - output.offsetHeight) > 2 || viewport.clientHeight > 90) throw new Error(`short output leaves blank space: ${viewport.clientHeight}/${output.offsetHeight}`);
+  return 'short output fits its content';
+})()'''
+
+[[step]]
 name = "long command output can be scrolled inside the expanded session"
 action = "eval"
 script = '''(async () => {
@@ -15,8 +28,26 @@ script = '''(async () => {
   if (viewport.clientHeight <= 0 || viewport.scrollHeight <= viewport.clientHeight) {
     throw new Error(`output has no bounded scroll viewport: ${viewport.clientHeight}/${viewport.scrollHeight}`);
   }
+  if (viewport.clientHeight > Math.min(280, innerHeight * .4) + 2) throw new Error('output exceeded its maximum height');
   viewport.scrollTop = viewport.scrollHeight;
   await new Promise(resolve => requestAnimationFrame(resolve));
   if (viewport.scrollTop <= 0) throw new Error('terminal output did not scroll to its last line');
   return `terminal viewport scrolls (${viewport.clientHeight}px high)`;
+})()'''
+
+[[step]]
+name = "output shrinks again and wrapped lines fit a narrow sidebar"
+action = "eval"
+script = '''(async () => {
+  const output = document.querySelector('#background-terminal-panel .terminal-output');
+  const viewport = document.querySelector('#background-terminal-panel .terminal-output-scroll .ui-scroll-area-viewport');
+  const panel = document.querySelector('#checkpoint-flow-panel');
+  panel.style.width = '260px';
+  output.textContent = '短输出 / short output';
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  if (viewport.clientHeight > 60 || viewport.scrollHeight > viewport.clientHeight + 2) throw new Error('viewport did not shrink after long output');
+  output.textContent = 'A long output line that should wrap in the narrow terminal sidebar. '.repeat(4);
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  if (output.offsetHeight <= 60 || viewport.scrollWidth > viewport.clientWidth + 2) throw new Error('wrapped output is clipped or overflows horizontally');
+  return 'output shrinks and reflows';
 })()'''

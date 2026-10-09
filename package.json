@@ -74,6 +74,7 @@
     "test:blackbox:compaction-settings": "bun scripts/test-compaction-settings-blackbox.mjs",
     "test:blackbox:skill-discovery-settings": "bun scripts/test-skill-discovery-settings-blackbox.mjs",
     "test:blackbox:background-terminal-scroll": "bun scripts/test-background-terminal-scroll-blackbox.mjs",
+    "test:blackbox:file-diff": "bun scripts/test-sidebar-content-blackbox.mjs --files",
     "test:blackbox:terminal-history": "bun scripts/test-terminal-history-blackbox.mjs",
     "test:blackbox:terminal-hooks": "bun scripts/test-terminal-hooks-blackbox.mjs",
     "test:blackbox:slash-command-matching": "bun scripts/test-slash-command-matching-blackbox.mjs",
@@ -123,6 +124,7 @@
     "tar": "7.5.22"
   },
   "dependencies": {
+    "@shikijs/themes": "3.23.0",
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/plugin-autostart": "^2.5.1",
     "@tauri-apps/plugin-dialog": "^2.7.3",
@@ -135,6 +137,7 @@
     "fzstd": "^0.1.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "shiki": "3.23.0",
     "svelte-streamdown": "^3.1.2"
   },
   "devDependencies": {

@@ -13,6 +13,7 @@
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import { NEW_CONVERSATION_GREETING } from "$lib/newConversation";
   import type { BackgroundTerminalSession } from "$lib/openagent";
+  import { fileDiffPreviewChanges } from "$lib/devFixtures/fileDiff";
   import { terminalHistory } from "$lib/terminalHistory";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
   import { defaultPermissionProfile, normalizeConfigShape } from "$lib/config";
@@ -866,7 +867,9 @@
     query.has("checkpoint-flow-preview-no-details") ||
     query.has("checkpoint-flow-preview-completed")
       ? []
-      : checkpointPanelChanges;
+      : query.has("checkpoint-flow-preview-code")
+        ? fileDiffPreviewChanges(checkpointPanelChanges[0])
+        : checkpointPanelChanges;
   const checkpointFlowPreviewHasDetails = Boolean(
     conversationDetailsAvailable(checkpointFlowPreviewFlow, checkpointFlowPreviewChanges.length),
   );

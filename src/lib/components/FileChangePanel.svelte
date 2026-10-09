@@ -107,7 +107,7 @@
 
     <ScrollArea height="100%" class="diff-scroll" scrollHideDelay={350}>
       <div class="diff-host" role="tabpanel">
-        <FileDiffView lines={diffLines} scrollable={false} />
+        <FileDiffView lines={diffLines} path={selectedChange.path} scrollable={false} />
       </div>
     </ScrollArea>
   {/if}

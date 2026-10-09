@@ -3,7 +3,8 @@
   import type { Snippet } from "svelte";
 
   let {
-    height,
+    height = "auto",
+    maxHeight,
     scrollHideDelay = 350,
     class: className = "",
     viewport = $bindable(null),
@@ -13,7 +14,9 @@
     onpointerdown,
     children,
   }: {
-    height: string;
+    height?: string;
+    /** Cap an intrinsic-height viewport without reserving empty space. */
+    maxHeight?: string;
     scrollHideDelay?: number;
     class?: string;
     viewport?: HTMLElement | null;
@@ -29,7 +32,7 @@
   type="scroll"
   {scrollHideDelay}
   class={`ui-scroll-area ${className}`}
-  style={`height: ${height}`}
+  style={`height: ${height};${maxHeight ? ` max-height: ${maxHeight};` : ""}`}
 >
   <ScrollArea.Viewport
     bind:ref={viewport}
@@ -38,6 +41,7 @@
     {ontouchstart}
     {onpointerdown}
     class="ui-scroll-area-viewport"
+    style={maxHeight ? `max-height: ${maxHeight};` : undefined}
   >
     {@render children?.()}
   </ScrollArea.Viewport>
