@@ -10,6 +10,19 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.77.0-beta.1] - 2026-10-09
+
+### Features
+- **chat**: Preview latest thinking line before reader expansion
+
+### Bug Fixes
+- **chat**: Retain duration summary for replies without process records
+- **chat**: Show live runtime duration after initial thinking
+- **plugins**: Show update progress through shared install queue
+
+### Styling
+- **plugins**: Clarify installed card layout
+
 ## [0.76.1-beta.1] - 2026-10-09
 
 ### Bug Fixes
