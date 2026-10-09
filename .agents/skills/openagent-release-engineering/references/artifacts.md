@@ -23,7 +23,12 @@
 - Use `bun run tauri:build` for shell release builds; helper compilation and its
   digests belong to the qualified SDK Runtime, outside shell compilation.
   Keep the release Cargo profile size-oriented and audit installer size,
-  not generated `target/` contents. The ordinary desktop build must leave the
+  not generated `target/` contents. Qualify the standalone SDK Runtime's release
+  footprint separately: shell profile settings cannot optimize a prebuilt
+  Runtime. Compare executable and compressed artifact sizes using the same
+  source, target and toolchain, and exercise the resulting release binary before
+  packaging it. SDK-owned documentation defines its build and inference checks.
+  The ordinary desktop build must leave the
   `embedded-runtime` Cargo feature disabled; only the explicit embedded
   diagnostic may link the in-process Runtime command adapter.
   Keep its agent-server entry point outside `src-tauri/src/bin/`: Tauri CLI
