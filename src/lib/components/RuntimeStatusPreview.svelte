@@ -4,7 +4,15 @@
   import type { ChatMessage, CheckpointTurnStatus, StreamItem } from "$lib/types";
 
   let { theme }: { theme: string } = $props();
-  const phases = ["initial", "response", "waiting", "completed", "cancelled", "failed"] as const;
+  const phases = [
+    "initial",
+    "response",
+    "waiting",
+    "completed",
+    "plain",
+    "cancelled",
+    "failed",
+  ] as const;
   let phase = $state<(typeof phases)[number]>("initial");
   let scrollElement = $state<HTMLElement | null>(null);
   const startedAt = Date.now() - 12_000;
@@ -19,7 +27,9 @@
     },
     { type: "text", content: "Runtime status fixture answer." },
   ];
-  let terminal = $derived(phase === "completed" || phase === "cancelled" || phase === "failed");
+  let terminal = $derived(
+    phase === "completed" || phase === "plain" || phase === "cancelled" || phase === "failed",
+  );
   let messages = $derived<ChatMessage[]>([
     {
       id: "runtime-status-user",
@@ -33,13 +43,16 @@
             id: responseId,
             role: "assistant" as const,
             content: "Runtime status fixture answer.",
-            items,
+            items:
+              phase === "plain"
+                ? [{ type: "text" as const, content: "Runtime status fixture answer." }]
+                : items,
             timestamp: startedAt + 1_000,
             turn: {
               id: "runtime-status-turn",
               input_message_id: "runtime-status-user",
               response_message_id: responseId,
-              status: phase as CheckpointTurnStatus,
+              status: phase === "plain" ? "completed" : (phase as CheckpointTurnStatus),
               started_at: startedAt,
               first_token_at: startedAt + 1_000,
               completed_at: startedAt + 15_000,

@@ -233,6 +233,7 @@
   <ProcessRecordGroup
     grouped={showProcessRecords}
     running={showRunningStatus}
+    summary={turnIsTerminal}
     duration={showRunningStatus ? formatDuration(Math.max(0, liveNow - liveStart)) : timing?.total}
   >
     {@render renderAssistantSegments(processSegments)}
@@ -354,11 +355,10 @@
             {/if}
           </div>
         {/if}
-        {#if timing}
+        {#if timing?.firstToken}
           <span class="run-timing">
-            {#if timing.firstToken}{$t("firstTokenTime")} {timing.firstToken} ·
-            {/if}{$t("totalRunTime")}
-            {timing.total}
+            {$t("firstTokenTime")}
+            {timing.firstToken}
           </span>
         {/if}
         {#if cacheUsage?.kind === "available"}

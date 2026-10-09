@@ -184,8 +184,13 @@
   transport's conversation-scoped start timestamp, with durable Turn metadata
   or the authored user timestamp for paired clients; switching conversations
   must not restart the clock. Dispose the interval at completion or unmount.
-  Completed turns retain their collapsed process disclosure; cancelled/failed
-  turns retain visible records without a live timer. Verify these transitions
+  Every terminal reply retains a top process summary, including replies with
+  no process records to fold. Use a static header without a chevron when there
+  is no disclosure, and display the final duration there when available. Keep
+  the footer's first-response timing, cache usage and timestamp, but never
+  repeat total duration in the footer. Completed turns with process records
+  retain their collapsed disclosure; cancelled/failed turns retain visible
+  records under a static summary without a live timer. Verify these transitions
   with `bun run test:blackbox:runtime-status` against an isolated debug window
   in light/dark and English/Chinese. Treat the compatibility field
   `first_token_at` as the first observable model response, not only the first

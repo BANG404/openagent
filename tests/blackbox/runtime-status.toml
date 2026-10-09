@@ -53,6 +53,8 @@ script = '''(async () => {
   const disclosure = document.querySelector('button.process-record-summary');
   assert(disclosure && disclosure.getAttribute('aria-expanded') === 'false', 'completed work is not collapsed');
   assert(disclosure.textContent.includes('15s'), 'completed work lost its final duration');
+  assert(!/Total time|总耗时/.test(document.querySelector('.msg-footer-row').textContent), 'footer repeats total duration');
+  assert(/First token|首字/.test(document.querySelector('.run-timing').textContent), 'footer lost first-response timing');
   assert(document.body.innerText.includes('Runtime status fixture answer.'), 'final answer collapsed with process records');
   disclosure.click();
   await new Promise(resolve => setTimeout(resolve, 100));
@@ -68,7 +70,14 @@ script = '''(async () => {
     assert(!document.querySelector('.process-record-running, .thinking-status'), name + ' retained live status');
     const tool = document.querySelector('.tool-call-card .tool-toggle');
     assert(tool && tool.getBoundingClientRect().height > 0, name + ' hid tool records');
+    assert(document.querySelector('.process-record-static').textContent.includes('15s'), name + ' lost its final summary');
   }
+  await phase('plain');
+  const summary = document.querySelector('.process-record-static');
+  assert(summary && summary.textContent.includes('15s'), 'plain answer lost its top duration summary');
+  assert(!document.querySelector('button.process-record-summary, .process-chevron'), 'plain answer has an empty disclosure');
+  assert(document.body.innerText.includes('Runtime status fixture answer.'), 'plain answer is hidden');
+  assert(!/Total time|总耗时/.test(document.querySelector('.msg-footer-row').textContent), 'plain answer repeats total duration in footer');
   await phase('initial');
   assert(document.querySelectorAll('.thinking-status').length === 1, 'new turn did not reset initial thinking');
   assert(!document.querySelector('.process-record-running'), 'new turn retained old running header');
