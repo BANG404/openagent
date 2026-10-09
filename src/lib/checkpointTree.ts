@@ -690,6 +690,16 @@ export function getActiveTipNode(tree: ConvTree | undefined): CkTreeNode | undef
   return tip;
 }
 
+/** Undefined skips live restoration; null clears an idle conversation with no tip. */
+export function agentHistoryRestoreCheckpoint(
+  tree: ConvTree | undefined,
+  isStreaming: boolean,
+): string | null | undefined {
+  if (isStreaming) return undefined;
+  // Hidden plugin input and UI-only snapshots still own a durable history tip.
+  return getActiveTipNode(tree)?.ckId ?? null;
+}
+
 function attachSelectedTurnMetadata(
   messages: ChatMessage[],
   selectedNodes: CkTreeNode[],

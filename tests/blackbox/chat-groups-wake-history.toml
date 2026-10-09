@@ -1,0 +1,24 @@
+[scenario]
+name = "Navigate into a running hidden-only member conversation"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "select the running member while its first provider request is held"
+action = "eval"
+script = '''(async()=>{
+  const member=document.querySelector('.sub-conv-item');
+  if(!member)throw new Error('member conversation missing');
+  member.click();
+  const deadline=Date.now()+20000;
+  while(Date.now()<deadline){
+    const text=document.querySelector('.debug-context')?.textContent||'';
+    if(window.__groupHistoryProbe.childIds.some(id=>text.includes(id))&&document.querySelector('.stop-btn')){
+      if(document.querySelector('.user-msg'))throw new Error('hidden wake became an authored bubble');
+      if(document.body.textContent.includes('You were selected in a Chat Groups message.'))throw new Error('hidden input leaked');
+      return true;
+    }
+    await new Promise(resolve=>setTimeout(resolve,100));
+  }
+  throw new Error('running member was not restored');
+})()'''

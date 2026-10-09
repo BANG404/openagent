@@ -8,6 +8,21 @@ terminal notices use the same renderer. UI records do not participate in authore
 or response suggestions. When a UI record lies inside an assistant reply, turn
 grouping retains it in order without manufacturing a new Turn or duplicate footer.
 
+History restoration follows the selected checkpoint-tree tip even when its
+visible projection contains no assistant message (hidden plugin input or UI-only
+records). Skip restoration while the surface knows that conversation is
+streaming; Runtime must also serialize restoration with the conversation run
+guard because navigation can arrive before live events. An idle tree without a
+tip may explicitly clear history. Verify hidden-only and user-only tips, selected
+branches, and navigation during an interrupted tool approval.
+
+`bun run test:blackbox:chat-groups-wake` holds each member's first provider
+request while native navigation opens its hidden-only conversation. It sends
+restore/clear requests from a surface without live state and asserts Runtime
+rejection, then releases the model and verifies complete durable snapshots and
+visible replies in English/Chinese and light/dark. Runtime contract tests cover
+approval tool-use retention through interrupted terminal persistence.
+
 Live checkpoint hydration updates only UI slots and leaves optimistic chat text,
 tool cards and pending approval state intact. New records belonging to the live
 reply join that conversation's stream items; terminal hydration returns to the

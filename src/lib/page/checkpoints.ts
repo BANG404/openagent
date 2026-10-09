@@ -4,7 +4,6 @@ import { desktopOpenAgent as openAgent } from "$lib/openagent/tauriClient";
 import { tr } from "$lib/i18n";
 import type {
   Conversation,
-  ChatMessage,
   FileChange,
   UserInputRequest,
   StartupConversationBundle,
@@ -17,6 +16,7 @@ import {
   buildTreeFromCheckpoints,
   selectActivePathToCheckpoint,
   getActiveTipNode,
+  agentHistoryRestoreCheckpoint,
   reconcileLiveCheckpointTip,
   computeActivePath,
   preserveStreamingMessagesDuringHydration,
@@ -329,19 +329,19 @@ export function createCheckpointController(options: CheckpointOptions) {
           }
         : { ...options.conversations[idx], messages: msgs };
     }
-    if (syncBackendHistory) await syncAgentHistoryToActivePath(convId, tree, activePath);
+    if (syncBackendHistory) await syncAgentHistoryToActivePath(convId, tree);
   }
 
   async function syncAgentHistoryToActivePath(
     convId: string,
     tree = options.convTrees[convId],
-    projectedPath?: ChatMessage[],
   ): Promise<void> {
     if (!options.tauriAvailable) return;
-    const tipCheckpoint = projectedPath
-      ? [...projectedPath].reverse().find((m) => m.role === "assistant" && m.checkpointId)
-          ?.checkpointId
-      : (getActiveTipNode(tree)?.ckId ?? null);
+    const tipCheckpoint = agentHistoryRestoreCheckpoint(
+      tree,
+      options.chatStreams.streamingConversationIds[convId] === true,
+    );
+    if (tipCheckpoint === undefined) return;
     await openAgent
       .invokeProduct("restore_agent_history", {
         convId,
