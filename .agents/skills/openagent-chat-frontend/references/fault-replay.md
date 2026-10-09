@@ -1,9 +1,10 @@
 # Frontend incident replay
 
 The frontend replay foundation and the initial developer recorder are implemented.
-The private SDK has a constrained Runtime case runner. SDK live recording
-qualification, reload continuation and general wire-level adapters remain
-planned in [the architecture proposal](fault-replay-design.md).
+The private SDK has a bounded async model-boundary journal and a constrained
+Runtime case runner. Desktop SDK recording qualification, reload continuation
+and general wire-level adapters remain planned in
+[the architecture proposal](fault-replay-design.md).
 
 `bun run replay validate|replay --case <case.json>` dispatches by the versioned
 target. A Runtime case requires the private SDK checkout and Cargo; the command
@@ -16,6 +17,9 @@ It never substitutes an installed Runtime or development sidecar. SDK payload
 validation and execution remain private; unsupported cases and missing SDK
 capabilities fail. The common command currently bounds inline cases to 16 MiB.
 Frontend extraction does not infer Runtime inputs or execution anchors.
+An SDK journal's committed prefix supports private diagnosis; an incomplete
+prefix cannot become a complete Runtime case. Desktop arming and execution
+anchors still require their own qualification.
 
 ## Private developer recording
 

@@ -3,9 +3,9 @@
 Status: frontend replay foundation implemented with a bounded inline case bundle;
 see [the actual workflow and capability limits](fault-replay.md).
 Initial developer frontend recording and extraction are implemented for the
-foundation's limited capabilities. The private SDK also implements bounded
-model-boundary recording and a constrained Runtime case runner; `bun run replay`
-dispatches Runtime cases to that current private checkout. SDK live arming and
+foundation's limited capabilities. The private SDK also implements a bounded
+async model-boundary journal and a constrained Runtime case runner; `bun run replay`
+dispatches Runtime cases to that current private checkout. Desktop SDK arming and
 durable-anchor qualification, general adapter cases, reload continuation and
 configuration switches remain proposed.
 The chat owner maintains the shared host-facing contract. SDK recording and
