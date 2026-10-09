@@ -1,5 +1,5 @@
 // @ts-check
-import { mkdirSync, mkdtempSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -15,6 +15,17 @@ if (!process.env.TAURI_PILOT_SOCKET || !fixtureHome.includes("plugin-layout")) {
 const artifacts =
   process.env.BLACKBOX_ARTIFACT_DIR || mkdtempSync(join(tmpdir(), "openagent-plugin-layout-"));
 mkdirSync(artifacts, { recursive: true });
+const fixturePlugin = join(fixtureHome, "plugins", "locale-sidebar-fixture");
+if (existsSync(fixturePlugin)) throw new Error(`Fixture already exists: ${fixturePlugin}`);
+cpSync(join(repo, "tests/fixtures/plugin-i18n-sidebar"), fixturePlugin, { recursive: true });
+// A lazy HTTP declaration exposes the mode selector without running a process.
+writeFileSync(
+  join(fixturePlugin, "mcp.json"),
+  JSON.stringify({
+    $schema: "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+    mcpServers: { layout: { type: "http", url: "https://127.0.0.1:9/mcp" } },
+  }),
+);
 
 /** @param {string[]} args */
 function pilot(args) {
@@ -107,6 +118,25 @@ try {
       pilot(["wait", "--selector", ".fullscreen-surface.expanded"]);
       await new Promise((resolve) => setTimeout(resolve, 350));
       capture(join(artifacts, `${theme}-${language}-expanded.png`));
+      pilot(["snapshot", "-i"]);
+      pilot(["click", ".plugin-management-tabs button:nth-of-type(2)"]);
+      pilot([
+        "wait",
+        "--selector",
+        '.plugin-accordion-item[data-plugin-id="locale-sidebar-fixture"]',
+        "--timeout",
+        "20000",
+      ]);
+      pilot(["snapshot", "-i"]);
+      pilot(["run", join(repo, "tests/blackbox/plugin-installed-layout.toml")]);
+      capture(join(artifacts, `${theme}-${language}-installed-narrow.png`));
+      evaluate(`(async () => {
+        document.querySelector('.fullscreen-surface').style.width = '1100px';
+        await new Promise(resolve => setTimeout(resolve, 350));
+        document.querySelector('.plugin-accordion-item[data-plugin-id="locale-sidebar-fixture"]').scrollIntoView({block:'center'});
+        return true;
+      })()`);
+      capture(join(artifacts, `${theme}-${language}-installed-wide.png`));
     }
   }
   const errors = pilot(["logs", "--level", "error", "--json"]);
@@ -117,6 +147,7 @@ try {
     throw new Error(errors);
   process.stdout.write(`Plugin layout black-box passed. Artifacts: ${artifacts}\n`);
 } finally {
+  rmSync(fixturePlugin, { recursive: true });
   close();
   evaluate(`(async () => {
     const original = window.__pluginLayoutOriginal;

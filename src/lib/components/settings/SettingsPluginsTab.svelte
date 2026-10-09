@@ -318,10 +318,16 @@
             <Accordion.Header class="plugin-accordion-header">
               <Accordion.Trigger class="plugin-accordion-trigger">
                 <span class="plugin-accordion-copy">
-                  <span class="label-text"
-                    >{pluginText(plugin.i18n, $locale, "display_name", plugin.name)}</span
-                  >
-                  <span class="detail-hint"
+                  <span class="plugin-title-row">
+                    <span class="label-text plugin-name"
+                      >{pluginText(plugin.i18n, $locale, "display_name", plugin.name)}</span
+                    >
+                    <span class="plugin-version">{plugin.version ?? "-"}</span>
+                    {#if (plugins.agentPluginUpdates ?? []).find((item: AgentPluginUpdateSummary) => item.id === plugin.id)?.update_available}
+                      <span class="plugin-update-mark">{$t("pluginUpdateAvailable")}</span>
+                    {/if}
+                  </span>
+                  <span class="detail-hint plugin-description"
                     >{pluginText(
                       plugin.i18n,
                       $locale,
@@ -329,19 +335,23 @@
                       plugin.description ?? plugin.id,
                     )}</span
                   >
-                  <PluginLanguageSupport i18n={plugin.i18n} />
-                  {#if plugin.license || plugin.homepage}
-                    <span class="detail-hint"
-                      >{[plugin.license, plugin.homepage].filter(Boolean).join(" · ")}</span
-                    >
-                  {/if}
+                  <span class="plugin-card-meta">
+                    <PluginLanguageSupport i18n={plugin.i18n} />
+                    {#if plugin.license || plugin.homepage}
+                      <span class="detail-hint"
+                        >{[plugin.license, plugin.homepage].filter(Boolean).join(" · ")}</span
+                      >
+                    {/if}
+                  </span>
                 </span>
-                <span class="plugin-version">
-                  {plugin.version ?? "-"}
-                  {#if (plugins.agentPluginUpdates ?? []).find((item: AgentPluginUpdateSummary) => item.id === plugin.id)?.update_available}
-                    <span class="plugin-update-mark">{$t("pluginUpdateAvailable")}</span>
-                  {/if}
-                </span>
+                <svg
+                  class="plugin-accordion-chevron"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
               </Accordion.Trigger>
               <div class="plugin-accordion-actions">
                 <label class="plugin-enable-label" for={`plugin-enable-${plugin.id}`}
@@ -374,25 +384,29 @@
             {/if}
             <Accordion.Content class="plugin-accordion-content">
               {#if plugin.mcp_servers.length > 0}
-                <div class="settings-section-heading">
-                  <label class="label-text" for={`plugin-mcp-mode-${plugin.id}`}
-                    >{$t("pluginMcpToolMode")}</label
-                  >
-                  <span class="detail-hint">{$t("pluginMcpToolModeHint")}</span>
+                <div class="plugin-mcp-mode-row">
+                  <div class="plugin-mcp-mode-copy">
+                    <label class="label-text" for={`plugin-mcp-mode-${plugin.id}`}
+                      >{$t("pluginMcpToolMode")}</label
+                    >
+                    <span class="detail-hint">{$t("pluginMcpToolModeHint")}</span>
+                  </div>
+                  <div class="plugin-mcp-mode-control">
+                    <Select
+                      id={`plugin-mcp-mode-${plugin.id}`}
+                      value={plugins.agentPluginMcpToolMode(plugin.id)}
+                      items={[
+                        { value: "default", label: $t("pluginMcpToolModeDefault") },
+                        { value: "direct", label: $t("pluginMcpToolModeDirect") },
+                        { value: "relay", label: $t("pluginMcpToolModeRelay") },
+                      ]}
+                      ariaLabel={$t("pluginMcpToolMode")}
+                      onValueChange={(mode) => plugins.setAgentPluginMcpToolMode(plugin.id, mode)}
+                    />
+                  </div>
                 </div>
-                <Select
-                  id={`plugin-mcp-mode-${plugin.id}`}
-                  value={plugins.agentPluginMcpToolMode(plugin.id)}
-                  items={[
-                    { value: "default", label: $t("pluginMcpToolModeDefault") },
-                    { value: "direct", label: $t("pluginMcpToolModeDirect") },
-                    { value: "relay", label: $t("pluginMcpToolModeRelay") },
-                  ]}
-                  ariaLabel={$t("pluginMcpToolMode")}
-                  onValueChange={(mode) => plugins.setAgentPluginMcpToolMode(plugin.id, mode)}
-                />
               {/if}
-              <div class="plugin-tools-heading">
+              <div class="plugin-components-summary">
                 <div class="plugin-tools-title">
                   <span class="label-text">{$t("pluginComponents")}</span>
                   <span class="plugin-tool-count"
@@ -403,18 +417,18 @@
                       plugin.sidebar_views.length}</span
                   >
                 </div>
+                <span class="detail-hint">
+                  {plugin.skills.length}
+                  {$t("pluginSkills")} · {plugin.mcp_servers.length}
+                  {$t("pluginMcpServers")}
+                  {#if plugin.commands.length > 0}
+                    · {plugin.commands.length} {$t("pluginCommands")}{/if}
+                  {#if plugin.message_policies.length > 0}
+                    · {plugin.message_policies.length} {$t("pluginMessagePolicies")}{/if}
+                  {#if plugin.sidebar_views.length > 0}
+                    · {plugin.sidebar_views.length} {$t("pluginSidebarViews")}{/if}
+                </span>
               </div>
-              <span class="detail-hint">
-                {plugin.skills.length}
-                {$t("pluginSkills")} · {plugin.mcp_servers.length}
-                {$t("pluginMcpServers")}
-                {#if plugin.commands.length > 0}
-                  · {plugin.commands.length} {$t("pluginCommands")}{/if}
-                {#if plugin.message_policies.length > 0}
-                  · {plugin.message_policies.length} {$t("pluginMessagePolicies")}{/if}
-                {#if plugin.sidebar_views.length > 0}
-                  · {plugin.sidebar_views.length} {$t("pluginSidebarViews")}{/if}
-              </span>
               {#each plugin.warnings as warning (warning)}
                 <p class="plugin-warning">{warning}</p>
               {/each}
@@ -458,54 +472,58 @@
               )}
               {#if (update?.update_available && update.latest_version) || !plugin.builtin || plugin.repository || update?.error}
                 <div class="plugin-accordion-footer">
-                  {#if plugin.repository}
-                    <a href={plugin.repository} target="_blank" rel="noreferrer">GitHub</a>
-                  {/if}
-                  {#if update?.error}
-                    <!-- The reason, so a quota or a manifest problem is not
+                  <div class="plugin-footer-meta">
+                    {#if plugin.repository}
+                      <a href={plugin.repository} target="_blank" rel="noreferrer">GitHub</a>
+                    {/if}
+                    {#if update?.error}
+                      <!-- The reason, so a quota or a manifest problem is not
                          silently counted as a broken package. The raw
                          diagnostic from the update check stays underneath it
                          rather than standing in for the explanation. -->
-                    {@const reasonKey = agentPluginUpdateErrorKey(update.error_kind)}
-                    <p class="plugin-warning">
-                      {#if update.stale}
-                        {$t("pluginUpdateStaleHint")}
+                      {@const reasonKey = agentPluginUpdateErrorKey(update.error_kind)}
+                      <p class="plugin-warning">
+                        {#if update.stale}
+                          {$t("pluginUpdateStaleHint")}
+                        {/if}
+                        {reasonKey === null ? update.error : $t(reasonKey)}
+                      </p>
+                      {#if reasonKey !== null}
+                        <p class="detail-hint">{update.error}</p>
                       {/if}
-                      {reasonKey === null ? update.error : $t(reasonKey)}
-                    </p>
-                    {#if reasonKey !== null}
-                      <p class="detail-hint">{update.error}</p>
                     {/if}
-                  {/if}
-                  {#if update?.update_available && update.latest_version}
-                    <p class="plugin-update-hint">
-                      {$t("pluginLatestVersion").replace("{version}", update.latest_version)}
-                      {#if update.release_url}
-                        <a href={update.release_url} target="_blank" rel="noreferrer">GitHub</a>
-                      {/if}
-                      {#if update.asset_url}
-                        <SettingsActionButton
-                          label={$t("pluginUpdate")}
-                          icon="download"
-                          tone="quiet"
-                          onclick={() => plugins.updateAgentPlugin(plugin.id)}
-                          disabled={plugins.agentPluginUpdating !== null ||
-                            plugins.agentPluginInstalling(plugin.id)}
-                        />
-                      {/if}
-                    </p>
-                  {/if}
-                  {#if !plugin.builtin}
-                    <SettingsActionButton
-                      label={$t("pluginUninstall")}
-                      icon="trash"
-                      tone="danger"
-                      onclick={() => plugins.requestUninstallAgentPlugin(plugin.id)}
-                      disabled={plugins.agentPluginUpdating !== null ||
-                        plugins.agentPluginRemoving ||
-                        plugins.agentPluginInstalling(plugin.id)}
-                    />
-                  {/if}
+                    {#if update?.update_available && update.latest_version}
+                      <p class="plugin-update-hint">
+                        {$t("pluginLatestVersion").replace("{version}", update.latest_version)}
+                        {#if update.release_url}
+                          <a href={update.release_url} target="_blank" rel="noreferrer">GitHub</a>
+                        {/if}
+                      </p>
+                    {/if}
+                  </div>
+                  <div class="plugin-footer-actions">
+                    {#if update?.update_available && update.latest_version && update.asset_url}
+                      <SettingsActionButton
+                        label={$t("pluginUpdate")}
+                        icon="download"
+                        tone="primary"
+                        onclick={() => plugins.updateAgentPlugin(plugin.id)}
+                        disabled={plugins.agentPluginUpdating !== null ||
+                          plugins.agentPluginInstalling(plugin.id)}
+                      />
+                    {/if}
+                    {#if !plugin.builtin}
+                      <SettingsActionButton
+                        label={$t("pluginUninstall")}
+                        icon="trash"
+                        tone="danger"
+                        onclick={() => plugins.requestUninstallAgentPlugin(plugin.id)}
+                        disabled={plugins.agentPluginUpdating !== null ||
+                          plugins.agentPluginRemoving ||
+                          plugins.agentPluginInstalling(plugin.id)}
+                      />
+                    {/if}
+                  </div>
                 </div>
               {/if}
             </Accordion.Content>

@@ -1418,6 +1418,7 @@
 
 .plugin-directory-heading {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -1438,6 +1439,7 @@
 
 .plugin-directory-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin-left: auto;
@@ -1450,20 +1452,22 @@
 }
 
 .plugin-update-mark {
-  margin-left: 6px;
   color: var(--primary);
-  font-size: 10px;
+  font-size: var(--settings-hint-size);
   font-weight: 600;
 }
 
 .plugin-update-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   margin: 0;
   color: var(--primary);
-  font-size: 11px;
+  font-size: var(--settings-hint-size);
 }
 
 .plugin-update-hint a {
-  margin-left: 6px;
   color: inherit;
   text-decoration: underline;
 }
@@ -1517,17 +1521,24 @@
 
 .plugin-accordion {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .plugin-accordion-item {
+  min-width: 0;
   overflow: hidden;
   border-radius: 10px;
 }
 
+.plugin-accordion-item .detail-hint {
+  margin: 0;
+}
+
 .plugin-accordion-header {
   display: flex;
-  align-items: stretch;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
   min-width: 0;
 }
 
@@ -1537,7 +1548,7 @@
   flex: 1;
   align-items: center;
   gap: 12px;
-  padding: 16px;
+  padding: 0;
   border: 0;
   background: transparent;
   color: inherit;
@@ -1556,19 +1567,40 @@
   display: grid;
   min-width: 0;
   flex: 1;
-  gap: 4px;
+  gap: 8px;
 }
 
-.plugin-accordion-copy .detail-hint {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.plugin-title-row,
+.plugin-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+}
+
+.plugin-name {
+  color: var(--text);
+  font-size: var(--settings-body-size);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.plugin-description,
+.plugin-card-meta .detail-hint {
+  overflow-wrap: anywhere;
+}
+
+.plugin-card-meta > .detail-hint + .detail-hint {
+  padding-left: 12px;
+  border-left: 1px solid var(--mica-divider);
 }
 
 .plugin-accordion-chevron {
   width: 16px;
   height: 16px;
   flex: 0 0 16px;
+  align-self: flex-start;
+  margin-top: 2px;
   stroke: var(--text-muted);
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -1583,7 +1615,8 @@
 .plugin-accordion-actions {
   display: flex;
   align-items: center;
-  padding: 0 16px 0 4px;
+  flex-shrink: 0;
+  min-height: 20px;
   gap: 8px;
 }
 
@@ -1598,8 +1631,8 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  margin: 0 16px;
-  padding: 12px 0 16px;
+  margin: 0 20px;
+  padding: 16px 0;
   border-top: 1px solid var(--mica-divider);
 }
 
@@ -1615,10 +1648,13 @@
 }
 
 .plugin-accordion-content {
-  padding: 0 16px 16px;
+  padding: 0 20px 20px;
 }
 
 .plugin-accordion-content[data-state="open"] {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
   animation: plugin-content-open var(--motion-panel) var(--ease-enter);
 }
 
@@ -1627,7 +1663,104 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
-  margin-top: 12px;
+  justify-content: space-between;
+  padding-top: 16px;
+  border-top: 1px solid var(--mica-divider);
+}
+
+.plugin-footer-meta {
+  display: flex;
+  flex: 1 1 240px;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  font-size: var(--settings-hint-size);
+  overflow-wrap: anywhere;
+}
+
+.plugin-footer-meta > a {
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.plugin-footer-meta > a:hover {
+  color: var(--primary);
+}
+
+.plugin-footer-meta .plugin-warning,
+.plugin-footer-meta > .detail-hint {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.plugin-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.plugin-mcp-mode-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--mica-divider);
+}
+
+.plugin-mcp-mode-copy {
+  display: grid;
+  flex: 1 1 260px;
+  min-width: 0;
+  gap: 4px;
+}
+
+.plugin-mcp-mode-control {
+  flex: 0 1 220px;
+  min-width: 0;
+}
+
+.plugin-components-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.plugin-accordion-content > .plugin-warning {
+  margin: 0;
+}
+
+@container plugin-management (max-width: 640px) {
+  .plugin-directory-actions {
+    margin-left: 0;
+  }
+
+  .plugin-accordion-header {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .plugin-accordion-trigger {
+    flex-basis: 100%;
+  }
+
+  .plugin-accordion-content {
+    padding: 0 16px 16px;
+  }
+
+  .plugin-host-access-row {
+    margin-inline: 16px;
+  }
+
+  .plugin-mcp-mode-control {
+    flex-basis: 100%;
+  }
 }
 
 @keyframes plugin-content-open {
@@ -1679,22 +1812,22 @@
 .plugin-sidebar-views {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   width: 100%;
-  margin-top: 16px;
 }
 
 .plugin-sidebar-view-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 8px 0 8px 12px;
+  padding: 10px 0;
   border-top: 1px solid var(--mica-divider);
 }
 
 .plugin-sidebar-view-row:last-child {
-  border-bottom: 1px solid var(--mica-divider);
+  padding-bottom: 0;
 }
 
 .plugin-sidebar-view-copy {

@@ -65,6 +65,18 @@ below the fold. The role editor surface is the current example.
 Top-bar settings windows place their active section content directly in the
 window surface; they do not render a separate left navigation rail.
 
+Installed plugin cards keep the name, installed version and update status in
+one wrapping title row, followed by the description and compact language/license
+metadata. Enablement stays outside the accordion trigger. Expanded content uses
+separate configuration, component summary and sidebar rows with a 20px rhythm.
+The MCP mode selector is bounded beside its explanation on wide surfaces and
+fills a row on narrow surfaces. The footer separates source/release information
+from trailing update and uninstall actions; errors remain readable on their own
+lines. Wrap against the management surface width, not the native viewport.
+Verify with `bun run test:blackbox:plugin-layout` in the isolated `plugin-layout`
+instance; it covers installed cards as well as the marketplace in both themes
+and languages.
+
 Memory Management keeps scope and refresh in its toolbar, user-written memory
 beside the searchable Agent memory list, and backup/cleanup in a collapsed
 disclosure. The editor footer owns saved/unsaved feedback, Save, and Discard.

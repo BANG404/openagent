@@ -1,0 +1,50 @@
+[scenario]
+name = "installed plugin card layout and disclosure"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "version and controls remain readable at wide and narrow surface widths"
+action = "eval"
+script = '''(async () => {
+  const surface = document.querySelector('.fullscreen-surface');
+  if (surface.classList.contains('expanded')) surface.querySelector('.fullscreen-surface-expand').click();
+  const card = surface.querySelector('.plugin-accordion-item[data-plugin-id="locale-sidebar-fixture"]');
+  const trigger = card.querySelector('.plugin-accordion-trigger');
+  if (trigger.getAttribute('data-state') !== 'open') trigger.click();
+  const settle = () => new Promise(resolve => setTimeout(resolve, 350));
+  await settle();
+  const version = card.querySelector('.plugin-title-row .plugin-version');
+  if (version?.textContent.trim() !== '1.0.0') throw new Error('installed version missing from title');
+  if (!card.querySelector('.plugin-card-meta .plugin-languages')) throw new Error('language metadata missing');
+  const control = card.querySelector('.plugin-mcp-mode-control');
+  if (!control) throw new Error('fixture did not expose MCP mode');
+  for (const width of [1100, 520]) {
+    surface.style.width = `${width}px`;
+    await settle();
+    const bounds = card.getBoundingClientRect();
+    for (const selector of ['.plugin-name', '.plugin-version', '.plugin-accordion-actions', '.plugin-mcp-mode-control', '.plugin-sidebar-view-row', '.plugin-footer-actions']) {
+      const rect = card.querySelector(selector).getBoundingClientRect();
+      if (rect.width <= 0 || rect.left < bounds.left || rect.right > bounds.right + 1) {
+        throw new Error(`${selector} is clipped at ${width}px`);
+      }
+    }
+    if (card.scrollWidth > card.clientWidth + 1) throw new Error(`card overflows at ${width}px`);
+    const copy = card.querySelector('.plugin-mcp-mode-copy').getBoundingClientRect();
+    const select = control.getBoundingClientRect();
+    if (width === 1100 && (select.left <= copy.right || select.width > 240)) throw new Error('wide selector is not bounded beside explanation');
+    if (width === 520 && select.top < copy.bottom) throw new Error('narrow selector did not stack');
+    const footer = card.querySelector('.plugin-accordion-footer').getBoundingClientRect();
+    const actions = card.querySelector('.plugin-footer-actions').getBoundingClientRect();
+    if (Math.abs(actions.right - footer.right) > 1) throw new Error('footer actions are not trailing');
+  }
+  // Collapsing keeps enablement available; reopening restores the same selector.
+  trigger.click();
+  await settle();
+  if (trigger.getAttribute('aria-expanded') !== 'false' || card.querySelector('[role=switch]').getBoundingClientRect().width <= 0) throw new Error('collapse hid enablement');
+  trigger.click();
+  await settle();
+  if (trigger.getAttribute('aria-expanded') !== 'true' || control.getBoundingClientRect().height <= 0) throw new Error('details did not reopen');
+  card.scrollIntoView({block:'center'});
+  return 'installed card fits wide and narrow management surfaces';
+})()'''
