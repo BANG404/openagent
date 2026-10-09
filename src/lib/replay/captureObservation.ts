@@ -16,3 +16,14 @@ export function duringFrontendEvent<T>(receive: () => T): T {
     deliveredEventDepth -= 1;
   }
 }
+
+/** Host effects outside the target re-enter through their recorded projection action. */
+export function duringIndependentFrontendAction<T>(receive: () => T): T {
+  const depth = deliveredEventDepth;
+  deliveredEventDepth = 0;
+  try {
+    return receive();
+  } finally {
+    deliveredEventDepth = depth;
+  }
+}

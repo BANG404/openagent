@@ -1,0 +1,9 @@
+[scenario]
+name = "Stop a real partial provider response"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "preserve the streamed partial response on Stop"
+action = "click"
+target = ".stop-btn"

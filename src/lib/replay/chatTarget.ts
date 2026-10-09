@@ -12,6 +12,7 @@ import { createCheckpointController, type CheckpointOptions } from "../page/chec
 import { createChatFinalizer, type ChatFinalizationOptions } from "../page/chatFinalization";
 import { subscribePageChatEvents, type PageChatEventOptions } from "../page/events/chatEvents";
 import { insertProjectedUserMessage, startProjectedStream } from "../page/chatProjection";
+import { createChatRunStart } from "../page/chatRunStart";
 import { InterruptTerminalHandoff } from "../interruptResolutionTracker";
 import { ReplayError, type Json } from "./types";
 import { object, string } from "./validate";
@@ -97,7 +98,7 @@ export const createChatReplayTarget = async (
     activeConvId: typeof input.active_conversation === "string" ? input.active_conversation : null,
     chatStreams,
     tauriAvailable: true,
-    loadedConvIds: new Set<string>(),
+    loadedConvIds: new Set((input.loaded_conversations ?? []) as string[]),
     pendingForkUserMessageIds: {},
     convTrees: {},
     loadingConversationIds: {},
@@ -135,7 +136,8 @@ export const createChatReplayTarget = async (
     },
     now,
     newId: () => `replay-${++id}`,
-    interruptedLabel: () => "interrupted",
+    interruptedLabel: () =>
+      typeof input.interrupted_label === "string" ? input.interrupted_label : "interrupted",
     notifyInactiveWindowOfAgentCompletion: () => {},
     beginStreamCompletionTailAnchor: () => {},
     loadFileChangesForConv: async () => null,
@@ -155,7 +157,7 @@ export const createChatReplayTarget = async (
   const options: PageChatEventOptions = {
     chatStreams,
     config: null,
-    workspacePath: "",
+    workspacePath: typeof input.workspace === "string" ? input.workspace : "",
     get pendingUserInputs() {
       return state.pendingUserInputs;
     },
@@ -189,7 +191,23 @@ export const createChatReplayTarget = async (
     compactionProgressRevisions: new Map(),
     followUpSuggestionsByMessageId: {},
     newConversationSuggestions: [],
-    applyExternalChatRunStarted: unsupported,
+    applyExternalChatRunStarted: createChatRunStart({
+      workspacePath: typeof input.workspace === "string" ? input.workspace : "",
+      get conversations() {
+        return state.conversations;
+      },
+      set conversations(value) {
+        state.conversations = value;
+      },
+      loadedConvIds: state.loadedConvIds,
+      now,
+      newConversationLabel: () => "New conversation",
+      promoteConversation: () => {},
+      selectRole: () => {},
+      startStream: (convId, assistant, startedAt) =>
+        startProjectedStream(chatStreams, convId, assistant, startedAt),
+      loadMessages: (convId, loading) => track(checkpoints.loadMessagesForConv(convId, loading)),
+    }),
     recoverUnannouncedChatStream: unsupported,
     applyStreamMutation(convId, mutate) {
       chatStreams.itemsByConversation = {
@@ -225,6 +243,9 @@ export const createChatReplayTarget = async (
       clock += 1;
       const convId = string(payload.conversation);
       if (name === "hydrate") {
+        // A recorded independent hydrate action already passed the production
+        // admission gate (the host may have invalidated its loaded marker).
+        state.loadedConvIds.delete(convId);
         track(
           checkpoints.loadMessagesForConv(
             convId,
@@ -271,6 +292,9 @@ export const createChatReplayTarget = async (
           assistant_ids: chatStreams.assistantMessageIds,
           items: chatStreams.itemsByConversation,
           checkpoint_errors: state.checkpointLoadErrors,
+          awaiting_output: chatStreams.awaitingOutput,
+          memory_retrieval: chatStreams.memoryRetrievalStages,
+          live_usage: options.liveContextUsageByConversation,
         }),
       ) as Json;
     },

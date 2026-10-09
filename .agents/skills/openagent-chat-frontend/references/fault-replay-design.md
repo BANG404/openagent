@@ -31,12 +31,12 @@ rebuilding snapshots from parent links or querying a later database state.
 
 ## One case format, separate execution responsibilities
 
-| Replay target | Recorded boundary | Code exercised | Responsibility |
-| --- | --- | --- | --- |
-| `frontend` | User actions, typed client requests/responses, delivered events, bootstrap and persisted frontend drafts | Existing page startup, chat handlers, queues, reconciliation and projections | Public host |
-| `runtime` | Submitted inputs, initial durable fixture, model outcomes and supported external effects | Canonical SDK execution and persistence | Private SDK |
-| `adapter` (later) | Sanitized wire frames and connection outcomes | Actual transport/provider decoding | Owning SDK transport or native host adapter |
-| Native UI verification | A frontend case plus real interactions | Actual rendered Svelte/Tauri surface | Public host and tauri-pilot |
+| Replay target          | Recorded boundary                                                                                        | Code exercised                                                               | Responsibility                              |
+| ---------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------- |
+| `frontend`             | User actions, typed client requests/responses, delivered events, bootstrap and persisted frontend drafts | Existing page startup, chat handlers, queues, reconciliation and projections | Public host                                 |
+| `runtime`              | Submitted inputs, initial durable fixture, model outcomes and supported external effects                 | Canonical SDK execution and persistence                                      | Private SDK                                 |
+| `adapter` (later)      | Sanitized wire frames and connection outcomes                                                            | Actual transport/provider decoding                                           | Owning SDK transport or native host adapter |
+| Native UI verification | A frontend case plus real interactions                                                                   | Actual rendered Svelte/Tauri surface                                         | Public host and tauri-pilot                 |
 
 The envelope, case identity, scheduling vocabulary and report shape are shared.
 Target-specific payload schemas and assertions stay with their owners. The
@@ -291,12 +291,12 @@ successful replay of the sanitized case. A scanner alone is insufficient.
 
 ## Delivery milestones and acceptance
 
-| Milestone | Deliverable | Acceptance |
-| --- | --- | --- |
-| 1: frontend replay foundation | Versioned validator, scripted transport/action harness, scheduler, assertions and report; synthetic cases first | Existing duplicate-tool, delayed-terminal and hydration-race cases execute through current handlers; unsupported input cannot pass |
-| 2: opt-in local recording | Transport/action/draft recorder, anchor, bounded journal and reviewed export tooling | One newly recorded incident can be converted and replayed; overflow, reload and interrupted capture have explicit completeness results |
-| 3: SDK replay | Matching private contract, model/effect adapters and private fixtures | Protocol failure/retry/cancellation cases execute the canonical Runtime and persist inspectable terminal state without external effects |
-| 4: native and adapter coverage | Native scenarios consuming cases, then targeted wire/connection recording | UI assertions run in real Tauri; wire cases test actual decoding; reports distinguish all targets |
+| Milestone                      | Deliverable                                                                                                     | Acceptance                                                                                                                              |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| 1: frontend replay foundation  | Versioned validator, scripted transport/action harness, scheduler, assertions and report; synthetic cases first | Existing duplicate-tool, delayed-terminal and hydration-race cases execute through current handlers; unsupported input cannot pass      |
+| 2: opt-in local recording      | Transport/action/draft recorder, anchor, bounded journal and reviewed export tooling                            | One newly recorded incident can be converted and replayed; overflow, reload and interrupted capture have explicit completeness results  |
+| 3: SDK replay                  | Matching private contract, model/effect adapters and private fixtures                                           | Protocol failure/retry/cancellation cases execute the canonical Runtime and persist inspectable terminal state without external effects |
+| 4: native and adapter coverage | Native scenarios consuming cases, then targeted wire/connection recording                                       | UI assertions run in real Tauri; wire cases test actual decoding; reports distinguish all targets                                       |
 
 The initial backlog is: duplicate/conflicting tool result; terminal checkpoint
 hydrated before cancellation event; old terminal event after queued next turn;
@@ -305,10 +305,15 @@ resync/bootstrap with stale response; invalid model tool identity with bounded
 retry; cancellation during retry. Every case has an unaffected sibling scope
 where isolation matters. Normal cases accompany failure/recovery cases.
 
-The frontend foundation provides `bun run replay validate|replay --case <path>`.
-Remaining proposed verbs are `capture start/stop` and `case extract`; executable
-names for the recorder and private SDK runner are chosen during implementation.
-Do not add placeholder scripts or advertise these as existing commands.
+The frontend provides `bun run replay validate|replay --case <path>`, the explicit
+developer main-window `openagentFaultCapture.start/stop` API and
+`bun run replay:extract`. The native writer/converter and normal-completion/
+partial-response cancellation recording paths are implemented and qualified
+through the real composer and Runtime. Offline coverage remains frontend
+consumer projection; SDK execution replay and wire adapters are still proposed.
+See [the workflow](fault-replay.md) for exact capability limits and qualification
+commands. Do not add placeholder scripts or advertise proposed SDK verbs as
+existing commands.
 Frontend cases join Bun tests/preflight and existing frontend CI classification;
 SDK cases join SDK tests. No recording or model call is needed in default CI.
 Native runners retain the existing theme/locale and isolated-instance rules.

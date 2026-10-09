@@ -64,6 +64,8 @@ export async function startFrontendCapture(options: {
 export async function stopFrontendCapture() {
   if (!active) throw new ReplayError("unsupported", "no-active-capture");
   const current = active;
+  if (!desktopRecordingTransport.idle || !context?.idle(current.capture.anchor.conversations))
+    current.capture.invalidate("capture-stopped-before-idle");
   active = null;
   desktopRecordingTransport.capture = null;
   setFrontendActionObserver(null);

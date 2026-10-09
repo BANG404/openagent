@@ -15,17 +15,34 @@ then buffers observations while the native journal is created. This is a
 consumer-observation anchor, not an SDK producer-completeness claim.
 
 The shared client uses `RecordingTransport`; inactive observation serializes no
-payload. Product requests, actual consumer callbacks and shared projection/
-hydration action boundaries retain their existing code paths.
+payload. Product reads, actual consumer callbacks and shared projection/hydration
+action boundaries retain their existing code paths. The anchor also retains
+workspace, loaded-conversation markers and the localized interruption label;
+otherwise replay could spuriously reload already loaded history on run-start.
 Only independent action boundaries become schedule inputs. Synchronous child
 actions inside a recorded event handler are suppressed by the observation seam,
 because the real handler performs them again during replay; scheduling both
-would create duplicate hydration requests.
+would create duplicate hydration requests. Host post-terminal hydration re-enters
+through `duringIndependentFrontendAction`: the target's host affordance does not
+issue it, and its recorded independent action invalidates the loaded marker
+before entering the shared hydration controller.
 Supported payloads are private local data. Credential-named fields invalidate the recording before
 ingestion. Unsupported operations/events, subscription changes, resync, pending
 requests and writer failures cannot yield a qualified full case. Initial coverage
-is deliberately the replay target's existing capability set; ordinary full chat
-submission, approvals and other effects still require their target adapters.
+is bounded by the replay target's capability set; Runtime execution, approvals
+and other effects still require their target adapters.
+
+The target observes the frontend projection of successful plain-text ordinary
+submission. `agent.submit_input` and explicitly listed host affordances
+(`get_chat_task_usages`, `get_conversation_meta`, empty `get_file_changes`, `set_chat_queue_pending(false)`,
+`cancel_chat_message` and fallback-title writes) are outside its schedule. The
+real app still performs them. Rejections, nonempty file responses, queued input,
+slash commands, attachment/context submission, immediate-command outcomes and
+other scoped operations invalidate capture qualification. Stop before consumer/
+transport idle is incomplete. Do not infer SDK, title, usage polling, file or
+queue coverage from such a case.
+An ordinary captured turn uses an established conversation/branch; creating a
+new conversation or branch remains unsupported by this projection target.
 
 Native files live under the selected application root's
 `diagnostics/replay/<session-id>/`. `manifest.json` remains unfinalized evidence,
@@ -67,26 +84,27 @@ database, process tool or real transport is available to the replay target.
 The current `format_version: 1`/`target_version: 1` bundle has inline `initial`,
 `records`, `schedule` and `assertions`. This single bounded file is the first
 implementation of the logical case layout in the proposal. Content-addressed
-payload files and capture conversion arrive with the recorder. Do not interpret
+payload files remain planned; local journal conversion is implemented. Do not interpret
 ordinary log files or metadata traces as compatible cases.
 
 ## Supported coverage
 
 `createChatReplayTarget` runs the actual SDK chat subscription projection,
 `subscribePageChatEvents`, `createCheckpointController`, shared stream-start/
-user-insertion helpers and `createChatFinalizer`. The shipped page consumes the
+user-insertion helpers, `createChatRunStart` and `createChatFinalizer`. The shipped page consumes the
 same helpers/finalizer, with its normal effects. A plain scoped state facade
 replaces Svelte reactivity during headless replay; it does not duplicate the
 production transitions.
 
 Full cases currently support initial user/assistant text, thinking and runtime
 notices, explicit existing
-streams, tool-call/result correlation, text/thinking chunks, checkpoint/done/
+streams, announced run starts, response-start/memory-retrieval/model-usage event
+projection, tool-call/result correlation, text/thinking chunks, checkpoint/done/
 cancelled events and hydration through scripted product operations. Actions
 are `hydrate`, `insert-user` and `start-stream`. Unsupported events, effects,
 content kinds, initial states and prefix cases stop with `unsupported`.
 The target does not yet prove queue submission, approvals, plugin frames,
-run-start recovery, resync, reload, files, usage/suggestions or Runtime behavior.
+unannounced run recovery, resync, reload, files, usage polling/suggestions or Runtime behavior.
 Do not extend coverage by replacing an unsupported capability with a no-op.
 No-op host affordances are limited to recents, notifications, timing persistence
 and absent file/usage work outside this target's stated coverage.
@@ -104,8 +122,21 @@ context or changing snapshot cardinality.
 `bun run test:blackbox:fault-recording` qualifies the native writer and the
 record -> hash verification -> independent assertions -> extraction -> replay
 chain in light/dark and en/zh. Its source is synthetic; this is not evidence that
-a historical incident failed before a fix. Normal main-window recording and
-Runtime/approval/reload qualification need their supported real incident cases.
+a historical incident failed before a fix.
+
+`bun run test:blackbox:live-fault-replay` uses an isolated main window, ordinary
+composer and real SDK Runtime with a loopback Ollama fixture. It records normal
+completion and Stop during an actual partial provider response in light/dark
+and en/zh, checks native journal integrity, extracts with predetermined content/
+record-count/cleanup expectations, then repeats each offline case five times.
+Cancellation preserves the user, partial assistant and separate durable
+interruption notice: the SDK terminal checkpoint contract owns those three
+records. Select the exact `TAURI_PILOT_SOCKET` and a dedicated `OPENAGENT_HOME`
+containing `fault-replay`; configured workspace must be `<home>/workspace`.
+The runner restores settings and deletes only conversations it created. Captures
+and screenshots stay private in temporary fixture directories. This qualifies
+real consumer recording paths, not a historical affected revision or SDK replay.
+Runtime/approval/reload qualification still needs its target adapters.
 
 Each request must match the next recorded operation and payload in observed
 request-start order. `await-request` checks that the current code has issued it;

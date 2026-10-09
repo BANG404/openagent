@@ -3,21 +3,8 @@ import type { Json, ReplayRecord } from "./types";
 import { ReplayError } from "./types";
 import { admitInitial } from "./chatAdmission";
 
-export const CAPTURE_EVENTS = new Set([
-  "chat.chunk",
-  "chat.thinking_chunk",
-  "chat.tool_call",
-  "chat.tool_result",
-  "chat.checkpoint",
-  "chat.done",
-  "chat.cancelled",
-]);
-export const CAPTURE_OPERATIONS = new Set([
-  "get_renderable_checkpoints",
-  "get_active_branch_tip",
-  "get_branches",
-  "restore_agent_history",
-]);
+import { CAPTURE_EVENTS } from "./chatCapabilities";
+export { CAPTURE_EVENTS, CAPTURE_OPERATIONS, TRANSCRIPT_AFFORDANCES } from "./chatCapabilities";
 const MAX_RECORD_BYTES = 16 * 1024 * 1024;
 const MAX_QUEUED_BYTES = 1024 * 1024;
 const MAX_RECORDS = 10000;

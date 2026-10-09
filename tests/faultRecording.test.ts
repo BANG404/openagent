@@ -14,6 +14,7 @@ import hydration from "../src/lib/replay/fixtures/hydration-race.json";
 import {
   observeFrontendAction,
   setFrontendActionObserver,
+  duringIndependentFrontendAction,
 } from "../src/lib/replay/captureObservation";
 
 const anchor: CaptureAnchor = {
@@ -231,14 +232,142 @@ test("event-owned hydration actions are not recorded again as independent inputs
   } as unknown as OpenAgentTransport;
   try {
     const transport = new RecordingTransport(underlying);
-    await transport.subscribe("chat.chunk", () =>
-      observeFrontendAction({ action: "hydrate", conversation: "A" }),
-    );
+    await transport.subscribe("chat.chunk", () => {
+      observeFrontendAction({ action: "hydrate", conversation: "A" });
+      duringIndependentFrontendAction(() =>
+        observeFrontendAction({ action: "hydrate", conversation: "A", force_refresh: true }),
+      );
+    });
     callback();
-    expect(actions).toEqual([]);
+    expect(actions).toEqual([{ action: "hydrate", conversation: "A", force_refresh: true }]);
     observeFrontendAction({ action: "hydrate", conversation: "A" });
-    expect(actions).toHaveLength(1);
+    expect(actions).toHaveLength(2);
   } finally {
     setFrontendActionObserver(null);
   }
+});
+
+test("an announced run-start after optimistic insertion preserves one user and assistant row", async () => {
+  const records: ReplayRecord[] = [];
+  const capture = new FrontendCapture(
+    {
+      ...anchor,
+      initial: { ...(anchor.initial as object), workspace: "fixture", loaded_conversations: ["A"] },
+    },
+    {
+      append: async (record) => {
+        records.push(record);
+      },
+    },
+  );
+  capture.action({
+    action: "insert-user",
+    conversation: "A",
+    assistant: "reply",
+    message: { id: "user", role: "user", content: "Authored input" },
+  });
+  capture.action({ action: "start-stream", conversation: "A", assistant: "reply" });
+  const started = {
+    conv_id: "A",
+    msg_id: "user",
+    asst_msg_id: "reply",
+    message: "Authored input",
+    workspace: "fixture",
+    title: "Fixture",
+    pinned: false,
+    created_at: 1,
+    updated_at: 1,
+    is_new: false,
+    source: "desktop",
+  };
+  capture.event("chat.run_started", started);
+  capture.event("chat.run_started", started);
+  capture.event("chat.memory_retrieval", { conv_id: "A", stage: "searching" });
+  capture.event("chat.response_started", { conv_id: "A" });
+  capture.event("chat.chunk", { conv_id: "A", text: "Recorded reply" });
+  capture.event("chat.done", { conv_id: "A", asst_msg_id: "reply" });
+  const result = await capture.stop();
+  const fixture = extractFrontendCase(
+    {
+      capture_version: 1,
+      target_version: 1,
+      target: "frontend",
+      session_id: "synthetic",
+      anchor: capture.anchor,
+      finalized: true,
+      completeness: "complete",
+      ...result,
+      journal_bytes: 0,
+      journal_sha256: "unused-core",
+    },
+    records,
+    "run-start-correlation",
+    [
+      {
+        id: "no-duplicate-user",
+        path: ["conversations", "A", "message_ids"],
+        equals: ["user", "reply"],
+      },
+      {
+        id: "text-preserved",
+        path: ["conversations", "A", "messages", "1", "content"],
+        equals: "Recorded reply",
+      },
+      { id: "awaiting-cleaned", path: ["awaiting_output"], equals: {} },
+      { id: "retrieval-cleaned", path: ["memory_retrieval"], equals: {} },
+    ],
+  );
+  for (let repeat = 0; repeat < 20; repeat++)
+    expect((await replayCase(fixture, createChatReplayTarget)).status).toBe("passed");
+});
+
+test("out-of-target Runtime and file effects cannot silently qualify unsupported outcomes", async () => {
+  const recording = new RecordingTransport({
+    request: async () => [{ id: "file" }],
+    subscribe: async () => () => {},
+  } as unknown as OpenAgentTransport);
+  recording.capture = new FrontendCapture(anchor, { append: async () => {} });
+  await recording.request("product.invoke_desktop", {
+    operation: "get_file_changes",
+    args: { convId: "A" },
+  });
+  await recording.request("agent.resume_interrupt", {
+    convId: "A",
+    interruptId: "approval",
+    response: "yes",
+    assistantMessageId: "reply",
+  });
+  await recording.request("product.invoke_desktop", {
+    operation: "set_chat_queue_pending",
+    args: { convId: "A", pending: true },
+  });
+  expect((await recording.capture.stop()).reasons).toEqual([
+    "file-changes-capability",
+    "queued-submission-capability",
+    "unsupported-operation:agent.resume_interrupt",
+  ]);
+  const original = new Error("private provider failure");
+  const failed = new RecordingTransport({
+    request: async () => {
+      throw original;
+    },
+    subscribe: async () => () => {},
+  } as unknown as OpenAgentTransport);
+  failed.capture = new FrontendCapture(anchor, { append: async () => {} });
+  await expect(
+    failed.request("agent.submit_input", { convId: "A", text: "Plain input" }),
+  ).rejects.toBe(original);
+  expect((await failed.capture.stop()).reasons).toEqual(["unsupported-effect-rejection"]);
+  const synchronous = new RecordingTransport({
+    request: () => {
+      throw original;
+    },
+    subscribe: async () => () => {},
+  } as unknown as OpenAgentTransport);
+  synchronous.capture = new FrontendCapture(anchor, { append: async () => {} });
+  expect(() =>
+    synchronous.request("agent.submit_input", { convId: "A", text: "Plain input" }),
+  ).toThrow(original);
+  expect(synchronous.idle).toBe(true);
+  expect((await synchronous.capture.stop()).reasons).toEqual(["unsupported-effect-rejection"]);
 });

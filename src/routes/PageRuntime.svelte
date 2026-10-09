@@ -32,9 +32,13 @@
   } from "$lib/composerDrafts";
   import { installPageEvents } from "$lib/page/events";
   import { createWorkspaceNavigation } from "$lib/page/workspaceNavigation";
-  import { insertProjectedUserMessage, startProjectedStream } from "$lib/page/chatProjection";
+  import { startProjectedStream } from "$lib/page/chatProjection";
   import { createChatFinalizer } from "$lib/page/chatFinalization";
-  import { observeFrontendAction } from "$lib/replay/captureObservation";
+  import {
+    observeFrontendAction,
+    duringIndependentFrontendAction,
+  } from "$lib/replay/captureObservation";
+  import { createChatRunStart } from "$lib/page/chatRunStart";
   import { createCheckpointController } from "$lib/page/checkpoints";
   import { restorePendingUserInputFromCheckpoint } from "$lib/page/pendingInputProjection";
   import { createPageStartup } from "$lib/page/startup";
@@ -65,7 +69,7 @@
   import { DEFAULT_QUICK_CHAT_SHORTCUT, normalizeQuickChatShortcut } from "$lib/quickChatShortcut";
   import { disposeQuickChatShortcut, replaceQuickChatShortcut } from "$lib/quickChatWindow";
   import { desktopOpenAgent as openAgent, emit, invoke, listen } from "$lib/openagent/tauriClient";
-  import type { AgentCommandSpec, ChatRunStartedEvent } from "$lib/openagent";
+  import type { AgentCommandSpec } from "$lib/openagent";
   import {
     DEV_MAIN_DEBUG_VISIBILITY_EVENT,
     readMainDebugComponentsVisible,
@@ -1947,20 +1951,6 @@
     cacheRestoreSurface(restoringSurface, activeConvId, workspacePath);
   }
 
-  function insertExternalUserMessage(
-    convId: string,
-    userMessage: ChatMessage,
-    assistantMessageId: string,
-  ): void {
-    conversations = insertProjectedUserMessage(
-      conversations,
-      convId,
-      userMessage,
-      assistantMessageId,
-      Date.now(),
-    );
-  }
-
   function startProjectedChatStream(
     convId: string,
     assistantMessageId: string,
@@ -1983,75 +1973,31 @@
     }
   }
 
-  function applyExternalChatRunStarted(event: ChatRunStartedEvent): void {
-    if (event.workspace !== (workspacePath || "")) return;
-    const startedAt = Date.now();
-    const userMessage: ChatMessage | undefined =
-      event.user_visible === false
-        ? undefined
-        : {
-            id: event.msg_id,
-            role: "user",
-            content: event.message,
-            timestamp: startedAt,
-          };
-    const insertUserMessage = () => {
-      if (userMessage) insertExternalUserMessage(event.conv_id, userMessage, event.asst_msg_id);
-    };
-    const incoming: Conversation = {
-      id: event.conv_id,
-      title: event.title || $t("newConv"),
-      messages: userMessage ? [userMessage] : [],
-      createdAt: event.created_at * 1000,
-      updatedAt: startedAt,
-      pinned: event.pinned,
-      parentConvId: event.parent_conv_id ?? undefined,
-      compactedFromConvId: event.compacted_from_conv_id ?? undefined,
-      flowKind: event.flow_kind ?? undefined,
-      flowStatus: event.flow_status ?? undefined,
-      roleId: event.role_id ?? undefined,
-    };
-    const existingIndex = conversations.findIndex(
-      (conversation) => conversation.id === event.conv_id,
-    );
-    if (existingIndex === -1) {
-      conversations = [incoming, ...conversations];
-    } else {
-      const existing = conversations[existingIndex];
-      conversations[existingIndex] = {
-        ...existing,
-        title: event.title || existing.title,
-        pinned: event.pinned,
-        parentConvId: event.parent_conv_id ?? undefined,
-        compactedFromConvId: event.compacted_from_conv_id ?? undefined,
-        flowKind: event.flow_kind ?? undefined,
-        flowStatus:
-          event.flow_status ??
-          (existing.flowStatus === "pending" ? "running" : existing.flowStatus),
-        roleId: event.role_id ?? undefined,
-        updatedAt: startedAt,
-      };
-      insertUserMessage();
-    }
-    promoteConversationInRecents(existingIndex === -1 ? incoming : conversations[existingIndex]);
-
-    const eventRoleKey = event.role_id ?? defaultRoleKey;
-    if (event.conv_id === activeConvId && eventRoleKey !== roleController.selectedRoleKey) {
-      roleController.selectedRoleKey = eventRoleKey;
-      window.localStorage.setItem(roleSelectionStorageKey(), eventRoleKey);
-      void refreshRecentConversations();
-    }
-    startProjectedChatStream(event.conv_id, event.asst_msg_id, startedAt);
-
-    if (event.is_new) {
-      loadedConvIds.add(event.conv_id);
-      return;
-    }
-    if (!loadedConvIds.has(event.conv_id)) {
-      void loadMessagesForConv(event.conv_id, false).finally(insertUserMessage);
-    }
-  }
-
+  const applyExternalChatRunStarted = createChatRunStart({
+    get workspacePath() {
+      return workspacePath || "";
+    },
+    get conversations() {
+      return conversations;
+    },
+    set conversations(value) {
+      conversations = value;
+    },
+    loadedConvIds,
+    now: () => Date.now(),
+    newConversationLabel: () => $t("newConv"),
+    promoteConversation: promoteConversationInRecents,
+    selectRole: (convId, roleId) => {
+      const eventRoleKey = roleId ?? defaultRoleKey;
+      if (convId === activeConvId && eventRoleKey !== roleController.selectedRoleKey) {
+        roleController.selectedRoleKey = eventRoleKey;
+        window.localStorage.setItem(roleSelectionStorageKey(), eventRoleKey);
+        void refreshRecentConversations();
+      }
+    },
+    startStream: startProjectedChatStream,
+    loadMessages: loadMessagesForConv,
+  });
   function recoverUnannouncedChatStream(convId: string): void {
     const startedAt = Date.now();
     const assistantMessageId = crypto.randomUUID();
@@ -2295,7 +2241,7 @@
       loadedConvIds.delete(conv_id);
       // Reconcile the optimistic turn with its durable checkpoint without
       // replacing the visible transcript with the conversation-loading skeleton.
-      void loadMessagesForConv(conv_id, false);
+      duringIndependentFrontendAction(() => void loadMessagesForConv(conv_id, false));
     }
   }
 
@@ -2874,6 +2820,9 @@
           JSON.parse(
             JSON.stringify({
               active_conversation: activeConvId,
+              workspace: workspacePath || "",
+              loaded_conversations: ids.filter((id) => loadedConvIds.has(id)),
+              interrupted_label: tr("agentRunInterrupted"),
               conversations: ids.map((id) => {
                 const conversation = conversations.find((item) => item.id === id);
                 if (!conversation) throw new Error("Unknown capture conversation");

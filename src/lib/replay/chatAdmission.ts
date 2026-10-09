@@ -1,6 +1,7 @@
 import type { Json, ReplayCase } from "./types";
 import { ReplayError } from "./types";
 import { object, string } from "./validate";
+import { CAPTURE_EVENTS } from "./chatCapabilities";
 
 function refuse(code: string): never {
   throw new ReplayError("unsupported", code);
@@ -113,6 +114,16 @@ export function admitInitial(initial: Json): void {
       }
     }
   }
+  if (input.workspace !== undefined && typeof input.workspace !== "string")
+    refuse("chat-workspace");
+  if (input.interrupted_label !== undefined && typeof input.interrupted_label !== "string")
+    refuse("chat-interrupted-label");
+  if (
+    input.loaded_conversations !== undefined &&
+    (!Array.isArray(input.loaded_conversations) ||
+      input.loaded_conversations.some((id) => typeof id !== "string" || !conversations.has(id)))
+  )
+    refuse("chat-loaded-anchor");
   for (const raw of input.streams) {
     const stream = object(raw);
     if (!conversations.has(string(stream.conversation))) refuse("stream-without-conversation");
@@ -123,19 +134,27 @@ export function admitInitial(initial: Json): void {
 function admitEvent(payload: Record<string, unknown>): void {
   const event = string(payload.event);
   const data = object(payload.data);
-  if (
-    ![
-      "chat.chunk",
-      "chat.thinking_chunk",
-      "chat.tool_call",
-      "chat.tool_result",
-      "chat.checkpoint",
-      "chat.done",
-      "chat.cancelled",
-    ].includes(event)
-  )
-    refuse("chat-event-family");
+  if (!CAPTURE_EVENTS.has(event)) refuse("chat-event-family");
   string(data.conv_id);
+  if (event === "chat.run_started") {
+    for (const key of ["message", "msg_id", "asst_msg_id", "workspace", "title", "source"]) {
+      if (typeof data[key] !== "string") refuse("run-start-field");
+    }
+    for (const key of ["created_at", "updated_at"])
+      if (typeof data[key] !== "number") refuse("run-start-time");
+    for (const key of ["pinned", "is_new"])
+      if (typeof data[key] !== "boolean") refuse("run-start-flag");
+    if (data.user_visible !== undefined && typeof data.user_visible !== "boolean")
+      refuse("run-start-visibility");
+  }
+  if (
+    event === "chat.memory_retrieval" &&
+    !["query_rewrite", "embedding", "searching", "completed", "skipped"].includes(
+      string(data.stage),
+    )
+  )
+    refuse("memory-retrieval-stage");
+  if (event === "chat.model_usage") object(data.usage);
   if (data.mcp_ui !== undefined) refuse("mcp-ui-capability");
   if (event.endsWith("chunk") && typeof data.text !== "string") refuse("chat-text");
   if (event === "chat.tool_call") {
