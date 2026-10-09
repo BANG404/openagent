@@ -23,6 +23,7 @@
     previewSessions = null,
     previewOutputs = {},
     historicalTerminalSessions = [],
+    outputMaxHeight = "min(280px, 40vh)",
   }: {
     active?: boolean;
     enabled?: boolean;
@@ -34,6 +35,7 @@
     previewSessions?: BackgroundTerminalSession[] | null;
     previewOutputs?: Record<string, string>;
     historicalTerminalSessions?: HistoricalTerminalSession[];
+    outputMaxHeight?: string;
   } = $props();
 
   const scopeKey = $derived(conversationBranchScopeKey(conversationId, branchId));
@@ -490,7 +492,7 @@
                         {$t("backgroundTerminalOutputTruncated")}
                       </p>{/if}
                     <ScrollArea
-                      height="min(280px, 40vh)"
+                      maxHeight={outputMaxHeight}
                       class="terminal-output-scroll"
                       bind:viewport={outputElement}
                       scrollHideDelay={350}
@@ -881,7 +883,6 @@
   }
 
   :global(.terminal-output-scroll) {
-    max-height: 280px;
     flex: 0 1 auto;
   }
 

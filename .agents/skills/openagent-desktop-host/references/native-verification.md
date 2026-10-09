@@ -153,16 +153,19 @@ It restores appearance and native size in `finally`. Set
 `BLACKBOX_NATIVE_WINDOW_HANDLE` to the verified main HWND for native captures;
 artifacts default to the system temporary directory.
 
-Plugin control clarity and installation-result dismissal use the process-free
+Plugin control clarity and standard installation/update Toast notifications use
+the process-free
 `tests/fixtures/agent-plugin-settings` package and the committed
 `tests/blackbox/plugin-settings.toml` scenario. Start
 `bun tauri dev --multi-instance plugin-settings`, set `TAURI_PILOT_SOCKET` to
 that instance, and run `bun run test:blackbox:plugin-settings`. The runner covers
 independent enablement/host authorization, always-visible localized permission
-copy, completed/error result dismissal, background task preservation, and
+copy, success/error Toast dismissal, completion while Settings is closed,
+background task preservation, and
 Settings reopening in every light/dark and English/Chinese combination. Update
 coverage controls typed catalog/update responses while driving the real buttons
-and shared queue: assert card/summary progress, filtering, duplicate/removal
+and shared queue: assert concurrent distinct-package updates, card/summary
+progress, filtering, duplicate/removal
 guards, reopening, failure and retry. It requires no provider or network and
 restores appearance and
 window size. Set `BLACKBOX_NATIVE_WINDOW_HANDLE` for native Windows captures;

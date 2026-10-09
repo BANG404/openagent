@@ -37,6 +37,49 @@ function fixture() {
 }
 
 describe("concurrent plugin installation", () => {
+  test("concurrent updates announce independent outcomes once across observer reopening", async () => {
+    const completed: PluginInstallTask[] = [];
+    const queue = new AgentPluginInstallQueue(undefined, (task) => completed.push(task));
+    const first = deferred<string>();
+    const second = deferred<string>();
+    const calls: string[] = [];
+    const start = (id: string, result: Promise<string>) =>
+      queue.run({
+        key: id,
+        pluginId: id,
+        label: id,
+        operation: "update",
+        subscribe: async () => () => {},
+        install: () => {
+          calls.push(id);
+          return result;
+        },
+        activate: async () => {},
+      });
+    const one = start("graph", first.promise);
+    const two = start("goal", second.promise);
+    await Promise.resolve();
+    expect(calls).toEqual(["graph", "goal"]);
+    await start("graph", Promise.resolve("duplicate"));
+    expect(calls).toHaveLength(2);
+    first.reject(new Error("download failed"));
+    await one;
+    expect(queue.isInstalling("goal")).toBe(true);
+    const close = queue.subscribe(() => {});
+    close();
+    second.resolve("goal");
+    await two;
+    const reopen = queue.subscribe(() => {});
+    expect(completed.map((task) => [task.key, task.status])).toEqual([
+      ["graph", "error"],
+      ["goal", "success"],
+    ]);
+    await start("graph", Promise.resolve("graph"));
+    expect(completed).toHaveLength(3);
+    expect(completed[2].status).toBe("success");
+    reopen();
+  });
+
   test("an update shares install duplicate protection and survives reopening through failure and retry", async () => {
     const f = fixture();
     const pending = deferred<string>();

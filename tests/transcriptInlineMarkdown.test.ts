@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { parseInline, serializeInline } from "../src/lib/composerMarkdown";
+import { parseBlocks, parseInline, serializeBlocks } from "../src/lib/composerMarkdown";
 
 const USER_MESSAGE_ROW = "../src/lib/components/transcript/UserMessageRow.svelte";
 const USER_CONTENT = "../src/lib/transcript/userContent.ts";
@@ -12,13 +12,20 @@ describe("user transcript markdown", () => {
     expect(nodes.map((node) => node.kind)).toEqual(["strong", "text", "code", "text", "del"]);
   });
 
-  test("leaves block markers literal so the bubble can still line-clamp", () => {
-    // `-webkit-line-clamp` needs an inline-only flow; block children break it,
-    // so block syntax stays literal and the projection is inline + chips only.
-    const source = "# head\n> quote\n- [ ] task";
-    const nodes = parseInline(source, 0, new Map());
-    expect(serializeInline(nodes)).toBe(source);
-    for (const node of nodes) expect(["text", "chip"]).toContain(node.kind);
+  test("preserves heading, quote, task and literal fenced code through projection", () => {
+    const source = "# head\n> quote\n- [ ] task\n```md\n# **literal**\n```";
+    const blocks = parseBlocks(source);
+    expect(blocks.map((block) => block.kind)).toEqual([
+      "heading",
+      "quote",
+      "listItem",
+      "codeBlock",
+      "codeBlock",
+      "codeBlock",
+    ]);
+    expect(blocks[0].inline[0].text).toBe("head");
+    expect(blocks[4].inline[0].text).toBe("# **literal**");
+    expect(serializeBlocks(blocks)).toBe(source);
   });
 
   test("never lets an attachment label become a link", () => {
@@ -35,17 +42,14 @@ describe("user transcript markdown", () => {
 });
 
 describe("user transcript projection wiring", () => {
-  test("projects both bubble states inline and keeps the edit control plain", async () => {
+  test("projects both bubble states as blocks and keeps the edit control plain", async () => {
     const source = (await Promise.all([read(USER_MESSAGE_ROW), read(USER_CONTENT)])).join("\n");
 
     // Both the click-to-edit trigger and the read-only bubble render markdown.
     expect(source.match(/use:renderUserContent=/g)).toHaveLength(2);
-    expect(source).toContain(
-      "renderInlineNodes(node, parseInline(next.content, 0, next.references))",
-    );
-    // Inline only: block projection would break `-webkit-line-clamp`.
-    expect(source).not.toContain("parseBlocks");
-    expect(source).not.toContain("renderBlocks");
+    expect(source).toContain("renderBlocks(node, parseBlocks(next.content, next.references))");
+    expect(source).toContain("max-height: calc(var(--user-message-collapse-lines) * 1.47em)");
+    expect(source).not.toContain("-webkit-line-clamp");
     // The in-place edit control stays a plain textarea showing raw markdown.
     expect(source).toMatch(
       /<textarea\s+bind:this=\{edit\.editingTextarea\}\s+class="user-content-edit/,

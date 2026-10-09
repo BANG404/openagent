@@ -1,5 +1,5 @@
 [scenario]
-name = "plugin control clarity and dismissible installation results"
+name = "plugin control clarity, standard notifications and concurrent updates"
 fail_fast = true
 global_timeout_ms = 60000
 
@@ -55,27 +55,23 @@ script = '''(async () => {
   await make('settings-success', async () => true);
   await make('settings-error', async () => {throw new Error('settings fixture failure');});
   await new Promise(resolve => setTimeout(resolve, 0));
-  const notice = document.querySelector('.plugin-install-notice[data-plugin-id="settings-success"]');
-  const error = document.querySelector('.plugin-install-notice[data-plugin-id="settings-error"]');
+  const toast = title => [...document.querySelectorAll('.toast')].find(item => item.querySelector('.toast-title')?.textContent.trim() === title);
+  const notice = toast(probe.success);
+  const error = toast('Graph · ' + probe.failed);
   const running = document.querySelector('[data-plugin-id="settings-running"][data-install-status="running"]');
-  if (!notice || notice.querySelector('.notice-copy').textContent.trim() !== probe.success) {
-    throw new Error('success notice did not name the installed package in a localized sentence');
-  }
-  if (!notice.querySelector('svg') || getComputedStyle(notice).backgroundColor !== 'rgba(0, 0, 0, 0)') {
-    throw new Error('success notice regressed to a filled banner or lost its icon');
-  }
-  if (!error?.textContent.includes('settings fixture failure') || !error.querySelector('button')) {
-    throw new Error('failure notice lost its diagnostic or dismissal');
-  }
+  if (!notice || !notice.classList.contains('floating-application-surface')) throw new Error('install result does not use the standard Toast');
+  if (!error?.textContent.includes('settings fixture failure') || !error.querySelector('.toast-dismiss')) throw new Error('failure Toast lost its detail or dismissal');
+  if (document.querySelector('.plugin-install-notice')) throw new Error('inline result notices remain');
   if (!running?.querySelector('progress') || running.querySelector('button')) throw new Error('running task can be dismissed');
-  notice.querySelector('button').click();
-  await new Promise(resolve => setTimeout(resolve, 0));
-  if (queue.snapshot().some(task => task.key === 'settings-success') || !queue.isInstalling('settings-running') || !document.body.contains(error)) {
-    throw new Error('dismissing success changed other tasks');
-  }
-  error.querySelector('button').click();
+  notice.querySelector('.toast-dismiss').click();
+  await new Promise(resolve => setTimeout(resolve, 200));
+  if (toast(probe.success) || !queue.isInstalling('settings-running') || !document.body.contains(error)) throw new Error('dismissing a Toast changed other work');
+  error.querySelector('.toast-dismiss').click();
   probe.finish(true);
-  await new Promise(resolve => setTimeout(resolve, 0));
+  await new Promise(resolve => setTimeout(resolve, 30));
+  toast(probe.success)?.querySelector('.toast-dismiss').click();
+  queue.dismiss('settings-success');
+  queue.dismiss('settings-error');
   queue.dismiss('settings-running');
   return 'result dismissal preserved other work';
 })()'''
@@ -90,12 +86,12 @@ script = '''(async () => {
   await new Promise(resolve => setTimeout(resolve, 0));
   [...document.querySelectorAll('[role=menuitem]')].find(item => /Plugins|插件/.test(item.textContent)).click();
   await new Promise(resolve => setTimeout(resolve, 300));
-  if (document.querySelector('.plugin-install-notice[data-plugin-id^="settings-"]')) throw new Error('dismissed results returned');
+  if (document.querySelector('.plugin-install-notice') || [...document.querySelectorAll('.toast-title')].some(item => item.textContent.trim() === window.__pluginSettingsProbe.success)) throw new Error('dismissed results returned');
   return 'dismissal survived reopening';
 })()'''
 
 [[step]]
-name = "update buttons show progress and preserve guards after reopening, failure and retry"
+name = "distinct updates run concurrently and keep independent progress, notifications and retry"
 action = "eval"
 script = '''(async () => {
   const {desktopOpenAgent: client} = await import('/src/lib/openagent/tauriClient.ts');
@@ -105,9 +101,11 @@ script = '''(async () => {
   const installed = await client.listAgentPlugins();
   const fixture = installed.find(plugin => plugin.id === 'openagent-settings-probe');
   const graph = {...fixture, id:'graph', name:'Graph', version:'1.0.0', capabilities:[]};
+  const goal = {...graph, id:'goal', name:'Goal'};
   let calls = 0;
   let finish;
   let fail;
+  let finishGoal;
   const tick = () => new Promise(resolve => setTimeout(resolve, 30));
   const wait = async (check) => {
     for (let i=0;i<100;i++) {if (check()) return; await tick();}
@@ -120,15 +118,17 @@ script = '''(async () => {
     await wait(() => document.querySelector('.official-plugin-card[data-plugin-id="graph"] button'));
   };
   const close = () => document.querySelector('[role=dialog] button[aria-label="Close"], [role=dialog] button[aria-label="关闭"]').click();
-  const updateButton = () => [...document.querySelectorAll('.official-plugin-card[data-plugin-id="graph"] button')].find(button => button.textContent.trim() === probe.update);
+  const updateButton = (id='graph') => [...document.querySelectorAll('.official-plugin-card[data-plugin-id="' + id + '"] button')].find(button => button.textContent.trim() === probe.update);
+  const toast = title => [...document.querySelectorAll('.toast')].find(item => item.querySelector('.toast-title')?.textContent.trim() === title);
   const progress = () => document.querySelector('.official-plugin-card[data-plugin-id="graph"] .plugin-install-progress');
   try {
     // Only typed product responses are controlled; the real Settings handlers,
     // shared queue, subscriptions and user controls remain in the native window.
-    client.listAgentPlugins = async () => [...installed.filter(plugin => plugin.id !== 'graph'), graph];
-    client.checkAgentPluginUpdates = async () => ({updates:[{id:'graph',current_version:'1.0.0',latest_version:'2.0.0',update_available:true,asset_url:'https://example.invalid/graph.zip'}]});
-    client.updateAgentPlugin = async () => {
+    client.listAgentPlugins = async () => [...installed.filter(plugin => !['graph','goal'].includes(plugin.id)), graph, goal];
+    client.checkAgentPluginUpdates = async () => ({updates:['graph','goal'].map(id => ({id,current_version:'1.0.0',latest_version:'2.0.0',update_available:true,asset_url:'https://example.invalid/' + id + '.zip'}))});
+    client.updateAgentPlugin = async (id) => {
       calls++;
+      if (id === 'goal') return new Promise(resolve => {finishGoal = () => resolve({...goal,version:'2.0.0'});});
       return new Promise((resolve,reject) => {finish = () => resolve({...graph,version:'2.0.0'});fail = reject;});
     };
     close();
@@ -140,11 +140,15 @@ script = '''(async () => {
     if (!progress().querySelector('progress') || progress().querySelector('progress').hasAttribute('value') || !progress().textContent.includes(probe.updating)) throw new Error('update lost localized indeterminate progress');
     updateButton().click();
     if (calls !== 1 || !updateButton().disabled) throw new Error('duplicate update was allowed');
+    if (updateButton('goal').disabled) throw new Error('another update disables an unrelated package');
+    updateButton('goal').click();
+    await wait(() => calls === 2 && queue.isInstalling('goal'));
+    if (!document.querySelector('.official-plugin-card[data-plugin-id="goal"] .plugin-install-progress')) throw new Error('second update has no independent progress');
     close();
     await tick();
     await open();
     await wait(() => progress() && updateButton());
-    if (!updateButton().disabled || !queue.isInstalling('graph')) throw new Error('reopening lost update protection');
+    if (!updateButton().disabled || !updateButton('goal').disabled || !queue.isInstalling('graph') || !queue.isInstalling('goal')) throw new Error('reopening lost concurrent update protection');
     const search = document.querySelector('.official-plugin-search input');
     search.value = 'no-matching-update-card';
     search.dispatchEvent(new Event('input', {bubbles:true}));
@@ -161,21 +165,32 @@ script = '''(async () => {
     if ([...card.querySelectorAll('.plugin-footer-actions button')].some(button => !button.disabled)) throw new Error('running update allows update or removal');
     fail(new Error('update fixture download failed'));
     await wait(() => queue.snapshot().find(task => task.key === 'graph')?.status === 'error');
-    await wait(() => document.querySelector('.plugin-install-notice[data-plugin-id="graph"]'));
-    if (!document.querySelector('.plugin-install-notice[data-plugin-id="graph"]').textContent.includes('update fixture download failed')) throw new Error('update failure is invisible');
+    await wait(() => toast('Graph · ' + probe.failed));
+    if (!toast('Graph · ' + probe.failed).textContent.includes('update fixture download failed') || !queue.isInstalling('goal')) throw new Error('update failure lost its notification or stopped another update');
+    toast('Graph · ' + probe.failed).querySelector('.toast-dismiss').click();
     document.querySelector('.plugin-management-tabs button:nth-of-type(1)').click();
     await wait(() => updateButton() && !updateButton().disabled);
     updateButton().click();
-    await wait(() => calls === 2 && progress());
+    await wait(() => calls === 3 && progress());
     finish();
     await wait(() => queue.snapshot().find(task => task.key === 'graph')?.status === 'success');
-    await wait(() => document.querySelector('.plugin-install-notice[data-plugin-id="graph"]'));
-    if (document.querySelector('.plugin-install-notice[data-plugin-id="graph"]').querySelector('.notice-copy').textContent.trim() !== probe.updated) throw new Error('update result uses install wording');
-    document.querySelector('.plugin-install-notice[data-plugin-id="graph"] button').click();
+    await wait(() => toast(probe.updated));
+    if (!queue.isInstalling('goal')) throw new Error('first completion released another update');
+    toast(probe.updated).querySelector('.toast-dismiss').click();
+    close();
+    finishGoal();
+    await wait(() => queue.snapshot().find(task => task.key === 'goal')?.status === 'success' && toast(probe.updatedGoal));
+    toast(probe.updatedGoal).querySelector('.toast-dismiss').click();
+    await wait(() => !toast(probe.updatedGoal));
+    await open();
+    await tick();
+    if ([...document.querySelectorAll('.toast-title')].some(item => item.textContent.trim() === probe.updatedGoal)) throw new Error('reopening replayed the completion Toast');
     return 'update progress, reopening, duplicate/removal protection, failure and retry passed';
   } finally {
     if (queue.isInstalling('graph')) {fail?.(new Error('fixture cleanup'));await tick();}
+    if (queue.isInstalling('goal')) {finishGoal?.();await tick();}
     queue.dismiss('graph');
+    queue.dismiss('goal');
     client.listAgentPlugins = original.list;
     client.checkAgentPluginUpdates = original.check;
     client.updateAgentPlugin = original.update;

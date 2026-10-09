@@ -18,6 +18,7 @@ interface Options {
 
 export function createUserMessageEditor(options: Options) {
   let editingMsgId = $state<string | null>(null);
+  let isTextEditorOpen = $state(false);
   let editingText = $state("");
   let removedAttachmentPaths = $state(new Set<string>());
   let removedContextKeys = $state(new Set<string>());
@@ -31,6 +32,7 @@ export function createUserMessageEditor(options: Options) {
 
   function cancelEdit() {
     editingMsgId = null;
+    isTextEditorOpen = false;
     editingText = "";
     removedAttachmentPaths = new Set();
     removedContextKeys = new Set();
@@ -66,12 +68,26 @@ export function createUserMessageEditor(options: Options) {
 
   async function startEdit(msg: ChatMessage) {
     if (!options.editable || options.isStreaming) return;
-    editingMsgId = msg.id;
-    editingText = msg.content;
-    removedAttachmentPaths = new Set();
-    removedContextKeys = new Set();
+    if (editingMsgId !== msg.id) {
+      editingMsgId = msg.id;
+      editingText = msg.content;
+      removedAttachmentPaths = new Set();
+      removedContextKeys = new Set();
+    }
+    isTextEditorOpen = true;
     await tick();
     editingTextarea?.focus();
+  }
+
+  function blurEdit(msg: ChatMessage) {
+    if (editingMsgId !== msg.id) return;
+    isTextEditorOpen = false;
+    if (
+      editingText === msg.content &&
+      removedAttachmentPaths.size === 0 &&
+      removedContextKeys.size === 0
+    )
+      cancelEdit();
   }
 
   async function stageAttachmentRemoval(msg: ChatMessage, attachmentPath: string) {
@@ -83,6 +99,7 @@ export function createUserMessageEditor(options: Options) {
       removedContextKeys = new Set();
     }
     removedAttachmentPaths = new Set([...removedAttachmentPaths, attachmentPath]);
+    isTextEditorOpen = true;
     await tick();
     editingTextarea?.focus();
   }
@@ -96,6 +113,7 @@ export function createUserMessageEditor(options: Options) {
       removedContextKeys = new Set();
     }
     removedContextKeys = new Set([...removedContextKeys, contextKey(context)]);
+    isTextEditorOpen = true;
     await tick();
     editingTextarea?.focus();
   }
@@ -114,6 +132,9 @@ export function createUserMessageEditor(options: Options) {
   return {
     get editingMsgId() {
       return editingMsgId;
+    },
+    get isTextEditorOpen() {
+      return isTextEditorOpen;
     },
     get editingText() {
       return editingText;
@@ -135,6 +156,7 @@ export function createUserMessageEditor(options: Options) {
     },
     contextKey,
     cancelEdit,
+    blurEdit,
     commitEdit,
     switchBranch,
     startEdit,

@@ -105,7 +105,7 @@ try {
     })()`);
     await openPlugins();
     evaluate(
-      `window.__pluginSettingsProbe = ${JSON.stringify({ enable: catalog.pluginEnable, access: catalog.pluginHostAccess, hint: catalog.pluginHostAccessHint, success: catalog.pluginInstallSuccess.replace("{name}", "Graph"), update: catalog.pluginUpdate, updating: catalog.pluginUpdating, updated: catalog.pluginUpdateSuccess.replace("{name}", "Graph") })}; true`,
+      `window.__pluginSettingsProbe = ${JSON.stringify({ enable: catalog.pluginEnable, access: catalog.pluginHostAccess, hint: catalog.pluginHostAccessHint, success: catalog.pluginInstallSuccess.replace("{name}", "Graph"), update: catalog.pluginUpdate, updating: catalog.pluginUpdating, updated: catalog.pluginUpdateSuccess.replace("{name}", "Graph"), updatedGoal: catalog.pluginUpdateSuccess.replace("{name}", "Goal"), failed: catalog.pluginOperationFailed })}; true`,
     );
     pilot(["snapshot", "-i"]);
     pilot(["run", join(repo, "tests/blackbox/plugin-settings.toml")]);
@@ -114,6 +114,8 @@ try {
     evaluate(`(async () => {
       const {desktopPluginInstallQueue:queue} = await import('/src/lib/agentPluginInstallQueue.ts');
       void queue.run({key:'settings-capture',pluginId:'settings-capture',label:'Graph',operation:'update',subscribe:async()=>()=>{},install:()=>new Promise(resolve=>{window.__pluginSettingsCaptureFinish=resolve;}),activate:async()=>{}});
+      await queue.run({key:'settings-capture-install',pluginId:'settings-capture-install',label:'Graph',subscribe:async()=>()=>{},install:async()=>true,activate:async()=>{}});
+      await queue.run({key:'settings-capture-update',pluginId:'settings-capture-update',label:'Goal',operation:'update',subscribe:async()=>()=>{},install:async()=>true,activate:async()=>{}});
       return true;
     })()`);
     pilot([
@@ -121,6 +123,12 @@ try {
       join(artifacts, `${theme}-${language}.png`),
       "--selector",
       "[role=dialog]",
+    ]);
+    pilot([
+      "screenshot",
+      join(artifacts, `${theme}-${language}-notifications.png`),
+      "--selector",
+      ".toast-stack",
     ]);
     if (process.env.BLACKBOX_NATIVE_WINDOW_HANDLE) {
       const capture = spawnSync(
@@ -138,7 +146,7 @@ try {
         throw new Error(capture.stderr, { cause: capture.error });
     }
     evaluate(
-      `(async () => {const {desktopPluginInstallQueue:queue} = await import('/src/lib/agentPluginInstallQueue.ts');window.__pluginSettingsCaptureFinish(true);await new Promise(resolve=>setTimeout(resolve,0));queue.dismiss('settings-capture');return true;})()`,
+      `(async () => {const {desktopPluginInstallQueue:queue} = await import('/src/lib/agentPluginInstallQueue.ts');const {toasts,dismissToast} = await import('/src/lib/toast.ts');window.__pluginSettingsCaptureFinish(true);await new Promise(resolve=>setTimeout(resolve,0));for(const key of ['settings-capture','settings-capture-install','settings-capture-update']) queue.dismiss(key);let current=[];toasts.subscribe(items=>current=items)();current.forEach(item=>dismissToast(item.id));return true;})()`,
     );
     close();
   }

@@ -8,6 +8,10 @@ export type FileChangeDiffLine = {
   newLine?: number;
 };
 
+export function diffCodeText(line: FileChangeDiffLine): string {
+  return line.type === "context" ? line.text : line.text.slice(1);
+}
+
 function changedPatchLines(source: string[], start: number, oldLine: number, newLine: number) {
   const lines: FileChangeDiffLine[] = [];
   const changed: string[] = [];

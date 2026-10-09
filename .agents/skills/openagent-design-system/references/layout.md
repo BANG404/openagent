@@ -50,9 +50,11 @@ resource browsers, and background-terminal sessions. Preserve native scrolling
 only for content that is intentionally horizontally scrollable (for example
 diffs, code blocks, diagrams, and textareas).
 
-Expanded background-terminal output has its own bounded scroll viewport with
-an explicit height, so long command output scrolls inside the session detail
-instead of stretching or clipping the sidebar.
+Expanded background-terminal output uses an intrinsic-height ScrollArea with
+only a maximum height (`outputMaxHeight`, default `min(280px, 40vh)`). Short
+output reserves no blank viewport; long output scrolls inside the session
+detail. The shared wrapper accepts `maxHeight` on both root and viewport while
+existing definite-height lists retain their explicit `height`.
 
 A surface with side-by-side columns fills its body instead of scrolling it. The
 body is a definite-height grid, so each column owns its own scroll window: the
