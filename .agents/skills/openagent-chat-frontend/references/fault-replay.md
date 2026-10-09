@@ -25,8 +25,12 @@ qualified durable history and observed input/Stop; unsupported versions or
 capabilities refuse validation. Runtime target version 3 adds automatically
 recorded, explicitly scheduled tool outcomes for the SDK's qualified adapter
 subset. It preserves typed success/error/refusal results and the canonical
-validation/retry/persistence path. General effects, approval/resume and nonzero
-retry-delay clocks still require separate capabilities and qualification; a
+validation/retry/persistence path. Runtime target version 4 adds observed manual
+and automatic approvals, resume queue/acquisition and accepted/rejected replies,
+including intermediate batch persistence. It verifies actual command results
+and classifier execution instead of injecting approval decisions. Its tool and
+classifier capabilities remain bounded by the private SDK contract.
+General effects and nonzero retry-delay clocks still require separate capabilities and qualification; a
 passing subset is not coverage of an ordinary fully configured desktop Runtime.
 The common `replay:extract` command dispatches
 Runtime captures to the current private SDK, verifies its source fingerprint,

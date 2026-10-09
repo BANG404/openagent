@@ -328,8 +328,9 @@ Native runners retain the existing theme/locale and isolated-instance rules.
 
 Runtime work prioritizes automatically recorded tool outcomes, approval and retry
 trajectories before desktop arming. Target version 3 implements the qualified
-tool-outcome subset; approval/resume, retry clocks and general adapters remain
-proposed. Model-only tests with manually supplied effect outcomes do not prove
+tool-outcome subset; target version 4 adds bounded manual/automatic approval and
+resume observation. Retry clocks and general adapters remain proposed.
+Model-only tests with manually supplied effect outcomes do not prove
 automatic effect capture. Private recording seams and payload codecs belong to
 the SDK conversation-runtime owner.
 
@@ -348,13 +349,13 @@ outcomes, undeclared metadata and unmatched calls fail qualification. An adapter
 cannot claim filesystem, process, plugin or network replay merely because a
 model received the recorded tool-result text.
 
-| Delivery slice | Required observed trajectory | Independent behavior assertions |
-| --- | --- | --- |
-| Tool effect recording | Invalid call identity, protocol rewind, valid tool dispatch, follow-up completion | Invalid call executes zero effects; valid call executes once; a later retry never repeats a completed effect; results retain their own call IDs |
-| Tool errors and argument recovery | Invalid arguments, typed execution error/refusal, corrected call | Invalid arguments enter neither approval nor execution; exact feedback is retained; failure/refusal/success stay distinct; the correction consumes only its own recorded outcome |
-| Approval and resume | Approval required, allow/deny, persisted interrupt, canonical resume, batched decisions | Denial executes zero effects; allow executes once; duplicate/stale responses cannot consume another pending call; logical Turn identity and selected branch survive resume |
-| Retry clock and cancellation | Failure, recovery checkpoint, delay entered, retry release or Stop | Retry budget resets per distinct request; exhausted retries restore clean provider history; Stop during delay issues zero further provider requests and persists one interruption |
-| Combined isolation | Successful tool round, later failed request, approval/cancel, unaffected sibling | Earlier tool results survive rewind; sibling tip/history/interrupts remain unchanged; all released work drains and run locks are released |
+| Delivery slice                    | Required observed trajectory                                                            | Independent behavior assertions                                                                                                                                                   |
+| --------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tool effect recording             | Invalid call identity, protocol rewind, valid tool dispatch, follow-up completion       | Invalid call executes zero effects; valid call executes once; a later retry never repeats a completed effect; results retain their own call IDs                                   |
+| Tool errors and argument recovery | Invalid arguments, typed execution error/refusal, corrected call                        | Invalid arguments enter neither approval nor execution; exact feedback is retained; failure/refusal/success stay distinct; the correction consumes only its own recorded outcome  |
+| Approval and resume               | Approval required, allow/deny, persisted interrupt, canonical resume, batched decisions | Denial executes zero effects; allow executes once; duplicate/stale responses cannot consume another pending call; logical Turn identity and selected branch survive resume        |
+| Retry clock and cancellation      | Failure, recovery checkpoint, delay entered, retry release or Stop                      | Retry budget resets per distinct request; exhausted retries restore clean provider history; Stop during delay issues zero further provider requests and persists one interruption |
+| Combined isolation                | Successful tool round, later failed request, approval/cancel, unaffected sibling        | Earlier tool results survive rewind; sibling tip/history/interrupts remain unchanged; all released work drains and run locks are released                                         |
 
 For approval, include both an answer submitted before the previous run releases
 and an answer after release. Gate on the observed interrupt and persisted state,
