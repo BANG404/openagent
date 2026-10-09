@@ -10,6 +10,14 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.76.1-beta.1] - 2026-10-09
+
+### Bug Fixes
+- **runtime**: Update SDK tool validation feedback
+
+### Refactoring
+- **skills**: Replace categorization with directory discovery
+
 ## [0.76.0-beta.3] - 2026-10-08
 
 ## [0.76.0-beta.2] - 2026-10-08
