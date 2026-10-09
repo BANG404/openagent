@@ -4,9 +4,10 @@ Status: frontend replay foundation implemented with a bounded inline case bundle
 see [the actual workflow and capability limits](fault-replay.md).
 Initial developer frontend recording and extraction are implemented for the
 foundation's limited capabilities. The private SDK also implements a bounded
-async model-boundary journal and a constrained Runtime case runner; `bun run replay`
+async model-boundary journal, an anchored embedded capture controller and a
+constrained Runtime case runner; `bun run replay`
 dispatches Runtime cases to that current private checkout. Desktop SDK arming and
-durable-anchor qualification, general adapter cases, reload continuation and
+general adapter cases, reload continuation and
 configuration switches remain proposed.
 The chat owner maintains the shared host-facing contract. SDK recording and
 execution details must be designed and implemented in the private SDK repository.
@@ -314,7 +315,8 @@ developer main-window `openagentFaultCapture.start/stop` API and
 `bun run replay:extract`. The native writer/converter and normal-completion/
 partial-response cancellation recording paths are implemented and qualified
 through the real composer and Runtime. Offline coverage remains frontend
-consumer projection; SDK execution replay and wire adapters are still proposed.
+consumer projection. SDK execution has a qualified private subset; desktop SDK
+arming, general effects and additional wire adapters remain proposed.
 See [the workflow](fault-replay.md) for exact capability limits and qualification
 commands. Do not add placeholder scripts or advertise proposed SDK verbs as
 existing commands.

@@ -2,7 +2,8 @@
 
 The frontend replay foundation and the initial developer recorder are implemented.
 The private SDK has a bounded async model-boundary journal and a constrained
-Runtime case runner. Desktop SDK recording qualification, reload continuation
+Runtime case runner and an embedded controller for a qualified anchored capture
+profile. Desktop SDK arming, reload continuation
 and general wire-level adapters remain planned in
 [the architecture proposal](fault-replay-design.md).
 
@@ -18,8 +19,13 @@ validation and execution remain private; unsupported cases and missing SDK
 capabilities fail. The common command currently bounds inline cases to 16 MiB.
 Frontend extraction does not infer Runtime inputs or execution anchors.
 An SDK journal's committed prefix supports private diagnosis; an incomplete
-prefix cannot become a complete Runtime case. Desktop arming and execution
-anchors still require their own qualification.
+prefix cannot become a complete Runtime case. Desktop arming still requires its
+own qualification. Runtime target version 2 carries
+qualified durable history and observed input/Stop; unsupported versions or
+capabilities refuse validation. The common `replay:extract` command dispatches
+Runtime captures to the current private SDK, verifies its source fingerprint,
+and replays with independently authored assertions before writing a private case.
+Provider-only Runtime captures do not imply general tool/effect coverage.
 
 ## Private developer recording
 
@@ -77,6 +83,8 @@ bun run replay:extract --capture <private-capture-directory> --assertions <asser
 Extraction verifies fixed contained files, journal hash and watermark, checks
 target support and replays the case before writing a new private file. It never
 overwrites an output or derives correct expectations from captured behavior.
+The output must be outside every Git checkout and the original capture directory;
+existing files are never overwritten. A failed independent assertion creates no case.
 `--private-reviewed` acknowledges local review; it is not a sanitizer or public
 export authorization. Public fixtures still require synthetic replacement and
 review. Interrupted sessions are diagnostic-only until prefix support is added.

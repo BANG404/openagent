@@ -19,6 +19,14 @@ bytes and committed watermark. Capture content must remain outside Git and
 console output. Workflow and supported coverage belong to
 [frontend fault replay](../../openagent-chat-frontend/references/fault-replay.md).
 
+The embedded SDK capture controller also accepts an explicitly selected existing
+private root. Its qualified provider-only journals use a 16 MiB async queue and
+a five-second model-writer drain deadline; its local 16-directory limit refuses
+start without deleting evidence. A separate Runtime completion marker joins the
+durable anchor and observed action journal. Desktop SDK arming is still pending;
+frontend recording does not enable it. The common extraction command dispatches
+by capture target and writes a new private case only after successful replay.
+
 `diagnostic_log_collection_enabled` defaults to `true` and is exposed in
 General settings. It controls remote diagnostic upload immediately without an
 application restart. Turning it off stops OTLP export while continuing to keep
