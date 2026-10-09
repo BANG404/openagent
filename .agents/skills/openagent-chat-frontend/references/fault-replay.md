@@ -30,7 +30,12 @@ and automatic approvals, resume queue/acquisition and accepted/rejected replies,
 including intermediate batch persistence. It verifies actual command results
 and classifier execution instead of injecting approval decisions. Its tool and
 classifier capabilities remain bounded by the private SDK contract.
-General effects and nonzero retry-delay clocks still require separate capabilities and qualification; a
+Runtime target version 5 adds recorded chat retry waits, cancellation during a
+wait, and an explicit same-provider model queue. Offline replay releases the
+scoped timer while canonical Stop and checkpoint recovery still execute. It
+does not wait the recorded wall time or change the configured retry delay.
+Cross-provider queues, automatic-classifier retry clocks and general effects
+still require separate capabilities and qualification; a
 passing subset is not coverage of an ordinary fully configured desktop Runtime.
 The common `replay:extract` command dispatches
 Runtime captures to the current private SDK, verifies its source fingerprint,

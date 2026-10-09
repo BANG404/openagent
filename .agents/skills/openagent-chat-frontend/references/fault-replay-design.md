@@ -329,7 +329,9 @@ Native runners retain the existing theme/locale and isolated-instance rules.
 Runtime work prioritizes automatically recorded tool outcomes, approval and retry
 trajectories before desktop arming. Target version 3 implements the qualified
 tool-outcome subset; target version 4 adds bounded manual/automatic approval and
-resume observation. Retry clocks and general adapters remain proposed.
+resume observation. Target version 5 adds scoped chat retry clocks and
+same-provider fallback models; cross-provider queues, classifier clocks and
+general adapters remain separate capabilities.
 Model-only tests with manually supplied effect outcomes do not prove
 automatic effect capture. Private recording seams and payload codecs belong to
 the SDK conversation-runtime owner.

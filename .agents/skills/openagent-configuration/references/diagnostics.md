@@ -20,11 +20,14 @@ console output. Workflow and supported coverage belong to
 [frontend fault replay](../../openagent-chat-frontend/references/fault-replay.md).
 
 The embedded SDK capture controller also accepts an explicitly selected existing
-private root. Its qualified provider, tool-outcome and approval journals use a 16 MiB async queue and
+private root. Its qualified provider, tool-outcome, approval and chat retry-clock
+journals use a 16 MiB async queue and
 a five-second model-writer drain deadline; its local 16-directory limit refuses
 start without deleting evidence. A separate Runtime completion marker joins the
 durable anchor and observed action journal. An unresolved approval or outstanding
-resume cannot qualify completion. Desktop SDK arming is still pending;
+resume or retry-wait consumer cannot qualify completion. Retry policy and
+same-provider queue metadata are captured without provider origins or secrets;
+unsupported clock/profile combinations refuse qualification. Desktop SDK arming is still pending;
 frontend recording does not enable it. The common extraction command dispatches
 by capture target and writes a new private case only after successful replay.
 
