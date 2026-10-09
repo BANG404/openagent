@@ -50,6 +50,7 @@
   let contexts = $derived(quoteItems.map((item) => item.context));
   let contentReferences = $derived(attachmentReferenceMap(attachments));
   let isEditingThisMessage = $derived(edit.editingMsgId === msg.id);
+  let displayedContent = $derived(isEditingThisMessage ? edit.editingText : msg.content);
   let retainedAttachmentCount = $derived(
     attachments.filter((attachment) => !edit.removedAttachmentPaths.has(attachment.path)).length,
   );
@@ -70,7 +71,19 @@
   );
 </script>
 
-<div class="user-msg message-record" id={`message-${msg.id}`} data-message-id={msg.id}>
+<div
+  class="user-msg message-record"
+  id={`message-${msg.id}`}
+  data-message-id={msg.id}
+  onfocusout={(event) => {
+    if (
+      !(event.relatedTarget instanceof Node) ||
+      !event.currentTarget.contains(event.relatedTarget)
+    ) {
+      edit.blurEdit(msg);
+    }
+  }}
+>
   {#if contexts.length > 0}
     <div class="user-contexts">
       {#each contexts.filter((context) => !isEditingThisMessage || !edit.removedContextKeys.has(edit.contextKey(context))) as context (edit.contextKey(context))}
@@ -83,7 +96,7 @@
       {/each}
     </div>
   {/if}
-  {#if edit.editingMsgId === msg.id}
+  {#if isEditingThisMessage && edit.isTextEditorOpen}
     <textarea
       bind:this={edit.editingTextarea}
       class="user-content-edit bg-conversation-component"
@@ -107,7 +120,7 @@
         <div
           {...props}
           class="user-content bg-conversation-component"
-          class:collapsed={edit.isUserMessageCollapsed(msg)}
+          class:collapsed={!isEditingThisMessage && edit.isUserMessageCollapsed(msg)}
           role="button"
           tabindex="0"
           aria-label={$t("editMsgTitle")}
@@ -119,13 +132,13 @@
             }
           }}
         >
-          <span
+          <div
             class="user-content-text composer-md"
             use:renderUserContent={{
-              content: msg.content,
+              content: displayedContent,
               references: contentReferences,
             }}
-          ></span>
+          ></div>
           <span class="user-edit-hint" aria-hidden="true">
             <svg
               viewBox="0 0 16 16"
@@ -147,12 +160,12 @@
   {:else}
     <div
       class="user-content readonly bg-conversation-component"
-      class:collapsed={edit.isUserMessageCollapsed(msg)}
+      class:collapsed={!isEditingThisMessage && edit.isUserMessageCollapsed(msg)}
     >
-      <span
+      <div
         class="user-content-text composer-md"
-        use:renderUserContent={{ content: msg.content, references: contentReferences }}
-      ></span>
+        use:renderUserContent={{ content: displayedContent, references: contentReferences }}
+      ></div>
     </div>
   {/if}
   {#if attachments.length > 0}
@@ -343,10 +356,7 @@
     overflow-wrap: anywhere;
   }
   .user-content.collapsed .user-content-text {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: var(--user-message-collapse-lines);
-    line-clamp: var(--user-message-collapse-lines);
+    max-height: calc(var(--user-message-collapse-lines) * 1.47em);
     overflow: hidden;
   }
   .user-content.collapsed::after {

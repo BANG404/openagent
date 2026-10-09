@@ -1,5 +1,22 @@
 # Conversation components
 
+Authored user bubbles reuse `composerMarkdown.parseBlocks` and
+`composerDom.renderBlocks`, including headings, quotes, lists, tasks, fenced
+code and inline formatting. Attachments and mention tokens retain their chip
+projection; raw HTML remains text. Keep the stored Markdown and the plain-text
+in-place editor unchanged by rendering. Both editable and read-only bubbles use
+the same projection. Long messages clip by an eight-body-line height, rather
+than CSS line-clamp, so block formatting survives collapse and expansion.
+Leaving the whole user-message editing surface restores Markdown rendering.
+An unchanged edit ends; a changed draft (including staged attachment/quote
+removals) stays rendered with Send/Cancel until explicitly submitted or discarded.
+Reopening that message retains the draft. Moving focus to its editing actions
+or attachments does not end text editing or reset staged changes. Blur never
+submits a new turn. Cancel and Escape restore the authored message.
+Verify send, expand/collapse, edit/blur/reopen/cancel, read-only and reload with
+`bun run test:blackbox:user-message-markdown` in an isolated Tauri window,
+covering English/Chinese and light/dark. The development preview loads on demand.
+
 The SDK's `ConversationUi` is the common durable presentation contract.
 `role: ui` records retain ID, position and props through checkpoint hydration,
 branch switching and rollback. `ConversationUiRecord` renders built-in divider

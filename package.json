@@ -47,6 +47,7 @@
     "test:browser:preview": "bun scripts/test-browser-preview.mjs",
     "test:blackbox:memory": "bun scripts/test-memory-blackbox.mjs",
     "test:blackbox:composer-editor": "bun scripts/test-composer-editor-blackbox.mjs",
+    "test:blackbox:user-message-markdown": "bun scripts/test-user-message-markdown-blackbox.mjs",
     "test:blackbox:book-reader": "bun scripts/test-book-reader-blackbox.mjs",
     "test:blackbox:runtime-status": "bun scripts/test-runtime-status-blackbox.mjs",
     "test:blackbox:thinking-preview": "bun scripts/test-thinking-preview-blackbox.mjs",

@@ -1,6 +1,6 @@
 import type { ChatAttachment } from "$lib/types";
-import { parseInline } from "$lib/composerMarkdown";
-import { renderInlineNodes } from "$lib/composerDom";
+import { parseBlocks } from "$lib/composerMarkdown";
+import { renderBlocks } from "$lib/composerDom";
 
 export const USER_MESSAGE_COLLAPSE_LINES = 8;
 const USER_MESSAGE_COLLAPSE_LENGTH = 800;
@@ -21,17 +21,15 @@ export function attachmentReferenceMap(attachments: ChatAttachment[]): ReadonlyM
 }
 
 /**
- * Projects the user's own markdown inline. Block children would break the
- * `-webkit-line-clamp` collapse on `.user-content-text`, so only the inline
- * projection is drawn and block markers stay literal in the bubble.
+ * Uses the composer's block and inline projection so sending a message keeps
+ * its formatting. The bubble clips long content by height, retaining blocks.
  */
 export function renderUserContent(
   node: HTMLElement,
   params: { content: string; references: ReadonlyMap<string, string> },
 ) {
   const draw = (next: { content: string; references: ReadonlyMap<string, string> }) => {
-    node.replaceChildren();
-    renderInlineNodes(node, parseInline(next.content, 0, next.references));
+    renderBlocks(node, parseBlocks(next.content, next.references));
   };
   draw(params);
   return { update: draw };
