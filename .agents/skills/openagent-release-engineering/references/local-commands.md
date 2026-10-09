@@ -11,11 +11,14 @@ In a fresh checkout or isolated task worktree:
 
 ```bash
 bun run prepare:worktree:dev
+bun run prepare:worktree:dev --native   # Only for a desktop/native scenario
 bun run dev:desktop:source
 ```
 
 Preparation initializes pinned submodules, installs the frozen Bun lockfile,
-and builds the platform's development sandbox helpers and Runtime sidecar.
+and materializes the pinned SDK source client. The default development command
+does not compile Rust; `--native` additionally builds and stages the platform's
+sandbox helpers and Runtime sidecar. Release preparation still builds both.
 Ordinary desktop development supervises an external `openagent-server` and uses
 `~/.openagent-dev`; select `OPENAGENT_HOME` only for a task-specific fixture.
 Public development without SDK permissions uses `bun run dev:prepare` then
@@ -26,6 +29,25 @@ for an explicit embedded-Runtime diagnostic. See
 build-directory ownership.
 
 ## Verify and build
+
+During implementation, run exact affected cases before broad qualification:
+
+```bash
+bun scripts/verify-runtime.mjs --package openagent-runtime --case '<fully-qualified-unit-test>'
+bun scripts/verify-runtime.mjs --package openagent-runtime --test '<integration-target>' --case '<exact-case>'
+# Once focused behavior is stable, qualify that final source serially:
+bun scripts/verify-runtime.mjs --package openagent-runtime --case '<fully-qualified-unit-test>' --qualify
+```
+
+The wrapper uses the same target triple, private dependency directory and
+Windows non-incremental setting as Runtime preparation. It always creates a
+temporary `OPENAGENT_HOME`, retains private logs there, rejects zero passed tests,
+and stops before workspace tests when the focused case fails or source changes.
+Do not start full workspace tests in parallel with focused tests. Complete the
+SDK-owned remaining gates before an SDK push; this command does not replace
+formatting, client, benchmark or real-model qualification. Source corrections
+require a new focused pass before any broad checks. Final host preflight follows
+the stabilized affected cases; do not run full preflight repeatedly as a debugger.
 
 Inspect the complete diff, stage intended paths, and run `bun run preflight`.
 It selects the applicable type, lint, format, test, build, and contract checks;

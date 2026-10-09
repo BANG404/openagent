@@ -33,11 +33,14 @@ layout through implementation and handoff; plugin destinations are owned by
    working tree. Never relocate, reset, clean, or reuse an unrelated
    worktree. From the task worktree, run `bun run prepare:worktree:dev`
    before validation. This initializes pinned submodules, installs frozen
-   Bun dependencies, and builds the current-platform development sandbox
-   and Runtime sidecars; it creates ignored build inputs instead of relying
-   on artifacts from another worktree. Use the release variant only for
-   release qualification, and do not change manifests or lockfiles as
-   incidental setup.
+   Bun dependencies, and materializes the pinned source client. This light
+   preparation does not compile Rust. Add `--native` only when a desktop run
+   or native scenario actually needs development sandbox and Runtime sidecars.
+   Private development Cargo builds share dependency output across associated
+   worktrees; Cargo must build the current checkout before staging its bytes.
+   Never copy another worktree's executable as evidence of this source.
+   Use the release variant only for release qualification, and do not change
+   manifests or lockfiles as incidental setup.
 3. Implement code, focused coverage, and agent-facing documentation together
    in the task worktree. Keep behavior, architecture, and repeatable procedures
    in the triggering workspace skill; keep private SDK internals in the SDK
@@ -45,6 +48,12 @@ layout through implementation and handoff; plugin destinations are owned by
 4. Do not manually run lint, test, check, build, or documentation commands
    that duplicate repository CI. Run implementation-time interactive checks,
    explicitly requested checks, and validators required by another skill.
+   Stabilize the smallest affected cases first, then the affected suite, and
+   only then run final qualification/preflight. Do not launch broad Cargo tests
+   while focused failures are unresolved or focused tests are still running.
+   Any source correction invalidates earlier qualification for that source.
+   The Runtime verification command and cache ownership live in
+   [local development commands](../../openagent-release-engineering/references/local-commands.md).
 5. Inspect status and the complete diff, stage only explicit intended paths,
    then run `bun run preflight`. Stage new files first so the whitespace
    guard can inspect them. OWT branches automatically compare against the

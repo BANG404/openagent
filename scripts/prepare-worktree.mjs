@@ -10,7 +10,11 @@ function argument(name, fallback) {
   return index === -1 ? fallback : process.argv[index + 1];
 }
 
-export function worktreePreparationPlan({ platform = process.platform, profile = "dev" } = {}) {
+export function worktreePreparationPlan({
+  platform = process.platform,
+  profile = "dev",
+  native = profile === "release",
+} = {}) {
   if (profile !== "dev" && profile !== "release") {
     throw new Error(`Unsupported Cargo profile: ${profile}`);
   }
@@ -20,13 +24,14 @@ export function worktreePreparationPlan({ platform = process.platform, profile =
     ["git", ["submodule", "update", "--init", "--recursive"]],
     [bun, ["install", "--frozen-lockfile"]],
   ];
+  commands.push([bun, ["scripts/prepare-source-dev.mjs", "--client-only"]]);
+  if (!native) return commands;
   if (platform === "linux") {
     commands.push([bun, ["run", `prepare:linux-sandbox:${profile}`]]);
   } else if (platform === "win32") {
     commands.push([bun, ["run", `prepare:windows-sandbox:${profile}`]]);
   }
   commands.push([bun, ["run", `prepare:runtime-server:${profile}`]]);
-  commands.push([bun, ["scripts/prepare-source-dev.mjs", "--client-only"]]);
   return commands;
 }
 
@@ -41,8 +46,12 @@ function run(command, args) {
   }
 }
 
-export function prepareWorktree({ platform = process.platform, profile = "dev" } = {}) {
-  for (const [command, args] of worktreePreparationPlan({ platform, profile })) {
+export function prepareWorktree({
+  platform = process.platform,
+  profile = "dev",
+  native = profile === "release",
+} = {}) {
+  for (const [command, args] of worktreePreparationPlan({ platform, profile, native })) {
     run(command, args);
   }
 }
@@ -51,5 +60,6 @@ if (
   process.argv[1] &&
   path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))
 ) {
-  prepareWorktree({ profile: argument("--profile", "dev") });
+  const profile = argument("--profile", "dev");
+  prepareWorktree({ profile, native: profile === "release" || process.argv.includes("--native") });
 }

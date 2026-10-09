@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
+import { sourceCargoEnvironment } from "../scripts/source-cargo.mjs";
 import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = fileURLToPath(new URL("..", import.meta.url));
 
 /** @param {URL|string} url */
 const readText = (url) => readFileSync(url, "utf8").replace(/\r\n/g, "\n");
@@ -50,7 +55,18 @@ describe("sandbox helper packaging", () => {
 
   test("keeps private sandbox compiler output outside the public Tauri target", () => {
     expect(linuxHelper).toContain('targetDirectory = path.join(root, "sdk", "target")');
-    expect(windowsHelper).toContain('argument("--target-dir", path.join("sdk", "target"))');
+    expect(windowsHelper).toContain('argument("--target-dir", environment.CARGO_TARGET_DIR)');
+    const environment = sourceCargoEnvironment({
+      repositoryRoot: root,
+      platform: "win32",
+      environment: {},
+    });
+    expect(environment.CARGO_TARGET_DIR).not.toContain("src-tauri");
+    expect(environment.CARGO_TARGET_DIR).toContain("openagent-source-target");
+    expect(
+      sourceCargoEnvironment({ repositoryRoot: root, profile: "release", environment: {} })
+        .CARGO_TARGET_DIR,
+    ).toBe(join(root, "sdk", "target"));
     expect(nativeWorkflow).toContain('$env:CARGO_TARGET_DIR = (Resolve-Path "sdk\\target").Path');
   });
 

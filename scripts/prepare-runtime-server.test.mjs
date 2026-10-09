@@ -95,6 +95,21 @@ test("rejects targets that the release matrix cannot publish", () => {
   ).toThrow("no packaged runtime server");
 });
 
+test("stages the Runtime from the actual overridden Cargo output", () => {
+  const paths = runtimeServerPaths({
+    repositoryRoot: "/worktree",
+    targetTriple: "x86_64-pc-windows-msvc",
+    profile: "dev",
+    targetDirectory: "/private-cache",
+  });
+  expect(paths.source).toBe(
+    path.join("/private-cache", "x86_64-pc-windows-msvc", "debug", "openagent-server.exe"),
+  );
+  expect(paths.destination).toBe(
+    path.join("/worktree", "src-tauri", "binaries", "openagent-server-x86_64-pc-windows-msvc.exe"),
+  );
+});
+
 test("requires non-empty staged bytes when release builds reuse a Runtime", async () => {
   const repositoryRoot = await mkdtemp(path.join(os.tmpdir(), "openagent-prebuilt-runtime-"));
   const paths = runtimeServerPaths({

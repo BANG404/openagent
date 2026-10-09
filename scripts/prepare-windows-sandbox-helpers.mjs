@@ -5,6 +5,8 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import { copyFileIfChanged } from "./copy-if-changed.mjs";
+import { parseRustHost } from "./prepare-runtime-server.mjs";
+import { sourceCargoEnvironment, withSourceCargoLock } from "./source-cargo.mjs";
 
 const helperNames = ["codex-windows-sandbox-setup.exe", "codex-command-runner.exe"];
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -40,8 +42,12 @@ if (!new Set(["dev", "release"]).has(requestedProfile)) {
   throw new Error(`Unsupported Cargo profile: ${requestedProfile}`);
 }
 const profileDirectory = requestedProfile === "dev" ? "debug" : "release";
-const targetDirectory = path.resolve(root, argument("--target-dir", path.join("sdk", "target")));
+const environment = sourceCargoEnvironment({ repositoryRoot: root, profile: requestedProfile });
+const targetDirectory = path.resolve(root, argument("--target-dir", environment.CARGO_TARGET_DIR));
 const cargo = process.env.CARGO ?? "cargo";
+const targetTriple =
+  argument("--target", process.env.OPENAGENT_RUNTIME_TARGET ?? process.env.CARGO_BUILD_TARGET) ??
+  parseRustHost(run(process.env.RUSTC ?? "rustc", ["-vV"]));
 
 const metadata = JSON.parse(
   run(cargo, [
@@ -74,34 +80,38 @@ if (!revision || !/^[0-9a-f]{40}$/.test(revision)) {
   );
 }
 
-run(
-  cargo,
-  [
-    "build",
-    "--locked",
-    "--manifest-path",
-    sandboxPackage.manifest_path,
-    "--package",
-    "codex-windows-sandbox",
-    "--bin",
-    "codex-windows-sandbox-setup",
-    "--bin",
-    "codex-command-runner",
-    "--profile",
-    requestedProfile,
-    "--target-dir",
-    targetDirectory,
-  ],
-  { stdio: "inherit" },
-);
-
-const resourceDirectory = path.join(root, "src-tauri", "resources", "codex-resources");
-await mkdir(resourceDirectory, { recursive: true });
-for (const helperName of helperNames) {
-  await copyFileIfChanged(
-    path.join(targetDirectory, profileDirectory, helperName),
-    path.join(resourceDirectory, helperName),
+await withSourceCargoLock(targetDirectory, async () => {
+  run(
+    cargo,
+    [
+      "build",
+      "--locked",
+      "--manifest-path",
+      sandboxPackage.manifest_path,
+      "--package",
+      "codex-windows-sandbox",
+      "--bin",
+      "codex-windows-sandbox-setup",
+      "--bin",
+      "codex-command-runner",
+      "--profile",
+      requestedProfile,
+      "--target-dir",
+      targetDirectory,
+      "--target",
+      targetTriple,
+    ],
+    { stdio: "inherit", env: environment },
   );
-}
 
-console.log(`Prepared Codex Windows sandbox helpers from ${revision}.`);
+  const resourceDirectory = path.join(root, "src-tauri", "resources", "codex-resources");
+  await mkdir(resourceDirectory, { recursive: true });
+  for (const helperName of helperNames) {
+    await copyFileIfChanged(
+      path.join(targetDirectory, targetTriple, profileDirectory, helperName),
+      path.join(resourceDirectory, helperName),
+    );
+  }
+
+  console.log(`Prepared Codex Windows sandbox helpers from ${revision}.`);
+});

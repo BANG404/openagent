@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 
 import { worktreePreparationPlan } from "./prepare-worktree.mjs";
 
-test("prepares a Linux development worktree in dependency order", () => {
+test("light development preparation has no Cargo or sandbox build", () => {
   const commands = worktreePreparationPlan({ platform: "linux", profile: "dev" });
 
   expect(
@@ -10,8 +10,6 @@ test("prepares a Linux development worktree in dependency order", () => {
   ).toEqual([
     ["git", ["submodule", "update", "--init", "--recursive"]],
     ["bun", ["install", "--frozen-lockfile"]],
-    ["bun", ["run", "prepare:linux-sandbox:dev"]],
-    ["bun", ["run", "prepare:runtime-server:dev"]],
     ["bun", ["scripts/prepare-source-dev.mjs", "--client-only"]],
   ]);
 });
@@ -22,10 +20,19 @@ test("prepares Windows helpers but skips the Linux-only helper", () => {
   expect(commands.map(([, args]) => args)).toEqual([
     ["submodule", "update", "--init", "--recursive"],
     ["install", "--frozen-lockfile"],
+    ["scripts/prepare-source-dev.mjs", "--client-only"],
     ["run", "prepare:windows-sandbox:release"],
     ["run", "prepare:runtime-server:release"],
-    ["scripts/prepare-source-dev.mjs", "--client-only"],
   ]);
+});
+
+test("native development preparation is explicit and follows source client preparation", () => {
+  const commands = worktreePreparationPlan({ platform: "win32", native: true });
+  expect(commands.slice(-2).map(([, args]) => args)).toEqual([
+    ["run", "prepare:windows-sandbox:dev"],
+    ["run", "prepare:runtime-server:dev"],
+  ]);
+  expect(commands[2][1]).toEqual(["scripts/prepare-source-dev.mjs", "--client-only"]);
 });
 
 test("rejects an unsupported profile", () => {

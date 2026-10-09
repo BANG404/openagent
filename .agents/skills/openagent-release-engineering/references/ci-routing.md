@@ -81,6 +81,10 @@ resource adapters while their introduction remains in unpublished history.
 the Cua Driver plugin took over provisioning; its historical entry permits
 publishing that existing native boundary. Current Cua provisioning remains
 package-owned, and private Runtime sources require the SDK repository.
+The withdrawn `replay_capture.rs` native journal adapter also remains on the
+historical allowlist so unpublished commits that introduced it can be inspected;
+it has no current module or invoke registration. This entry does not reactivate
+recording.
 Host source tests require every current adapter to appear in that allowlist;
 historical entries authorized for unpublished commits may also remain.
 

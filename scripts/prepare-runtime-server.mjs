@@ -5,6 +5,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import { copyFileIfChanged } from "./copy-if-changed.mjs";
+import { sourceCargoEnvironment, withSourceCargoLock } from "./source-cargo.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const supportedTargets = new Set([
@@ -52,7 +53,12 @@ export function tauriTarget(platform, architecture) {
   return targets[key];
 }
 
-export function runtimeServerPaths({ repositoryRoot, targetTriple, profile }) {
+export function runtimeServerPaths({
+  repositoryRoot,
+  targetTriple,
+  profile,
+  targetDirectory = path.join(repositoryRoot, "sdk", "target"),
+}) {
   if (!supportedTargets.has(targetTriple)) {
     throw new Error(`OpenAgent has no packaged runtime server for ${targetTriple}.`);
   }
@@ -63,7 +69,7 @@ export function runtimeServerPaths({ repositoryRoot, targetTriple, profile }) {
   const executable = targetTriple.includes("windows") ? "openagent-server.exe" : "openagent-server";
   const extension = targetTriple.includes("windows") ? ".exe" : "";
   return {
-    source: path.join(repositoryRoot, "sdk", "target", targetTriple, profileDirectory, executable),
+    source: path.join(targetDirectory, targetTriple, profileDirectory, executable),
     destination: path.join(
       repositoryRoot,
       "src-tauri",
@@ -89,10 +95,12 @@ export async function prepareRuntimeServer({ profile = "dev", targetTriple } = {
     process.env.OPENAGENT_RUNTIME_TARGET ??
     tauriTarget(process.env.TAURI_ENV_PLATFORM, process.env.TAURI_ENV_ARCH) ??
     parseRustHost(run(process.env.RUSTC ?? "rustc", ["-vV"]));
+  const environment = sourceCargoEnvironment({ repositoryRoot: root, profile });
   const paths = runtimeServerPaths({
     repositoryRoot: root,
     targetTriple: resolvedTarget,
     profile,
+    targetDirectory: environment.CARGO_TARGET_DIR,
   });
   if (process.env.OPENAGENT_RUNTIME_SERVER_PREBUILT === "1") {
     return requirePreparedRuntimeServer({ ...paths, targetTriple: resolvedTarget });
@@ -108,23 +116,19 @@ export async function prepareRuntimeServer({ profile = "dev", targetTriple } = {
     resolvedTarget,
   ];
   if (profile === "release") cargoArguments.push("--release");
-  run(cargo, cargoArguments, {
-    stdio: "inherit",
-    // Cargo's incremental finalizer can fail to remove its temporary session
-    // directory on Windows/ReFS when the compiler still has a file handle.
-    // The runtime sidecar is rebuilt frequently in dev, so deterministic
-    // non-incremental cleanup is preferable to emitting an access-denied
-    // warning at every startup.
-    env: {
-      ...process.env,
-      ...(process.platform === "win32" ? { CARGO_INCREMENTAL: "0" } : {}),
-    },
+  return withSourceCargoLock(environment.CARGO_TARGET_DIR, async () => {
+    run(cargo, cargoArguments, {
+      stdio: "inherit",
+      env: environment,
+    });
+    await mkdir(path.dirname(paths.destination), { recursive: true });
+    const changed = await copyFileIfChanged(paths.source, paths.destination);
+    if (!resolvedTarget.includes("windows")) await chmod(paths.destination, 0o755);
+    console.log(
+      `${changed ? "Prepared" : "Reused"} fallback runtime server for ${resolvedTarget}.`,
+    );
+    return { ...paths, targetTriple: resolvedTarget, changed };
   });
-  await mkdir(path.dirname(paths.destination), { recursive: true });
-  const changed = await copyFileIfChanged(paths.source, paths.destination);
-  if (!resolvedTarget.includes("windows")) await chmod(paths.destination, 0o755);
-  console.log(`${changed ? "Prepared" : "Reused"} fallback runtime server for ${resolvedTarget}.`);
-  return { ...paths, targetTriple: resolvedTarget, changed };
 }
 
 export async function materializeRuntimeServerPlaceholder({

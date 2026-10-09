@@ -36,10 +36,12 @@ different responsibilities.
 
 ## Event and edge-case matrix
 
-For unified incident recording and deterministic regression replay, use the
-[fault replay proposal](fault-replay-design.md). It defines the proposed case
-format, completeness rules, execution boundaries and delivery milestones;
-the tooling is not implemented yet.
+The experimental unified fault recorder and replay harness are withdrawn from
+the mainline. The local `archive/fault-replay-20261010` branch preserves their
+design and unfinished implementation; ordinary chat continues through the shared
+SDK client and existing event handlers. Verify regressions with deterministic
+state/event fixtures and the owning desktop scenario. Do not depend on an
+archived replay CLI or native recording command.
 
 For stream changes, consider normal, duplicate, out-of-order, missing-id,
 conflicting-payload, late-after-cleanup, empty-value, cancellation, reload,
