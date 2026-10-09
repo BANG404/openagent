@@ -36,6 +36,11 @@ different responsibilities.
 
 ## Event and edge-case matrix
 
+For unified incident recording and deterministic regression replay, use the
+[fault replay proposal](fault-replay-design.md). It defines the proposed case
+format, completeness rules, execution boundaries and delivery milestones;
+the tooling is not implemented yet.
+
 For stream changes, consider normal, duplicate, out-of-order, missing-id,
 conflicting-payload, late-after-cleanup, empty-value, cancellation, reload,
 and cross-conversation cases. Keep fixtures deterministic and isolate durable
