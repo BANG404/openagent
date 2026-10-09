@@ -11,7 +11,7 @@ import type {
 } from "$lib/types";
 import type { ChatStreamState } from "$lib/chatStreamState.svelte";
 import type { RightSidebarPanel } from "$lib/rightSidebar";
-import type { OpenAgentClient } from "$lib/openagent";
+import { fetchRenderableCheckpoints, fetchFileChanges } from "$lib/conversationDb";
 import {
   buildTreeFromCheckpoints,
   selectActivePathToCheckpoint,
@@ -37,9 +37,8 @@ import { conversationBranchScopeKey } from "$lib/sidebarPanelScope";
 import { preserveResolvedUserInputs } from "$lib/chatStream";
 import { retainUndurableFileChanges } from "$lib/fileChangeReconciliation";
 import { restorePendingUserInputFromCheckpoint } from "$lib/page/pendingInputProjection";
-import { observeFrontendAction } from "$lib/replay/captureObservation";
 
-export interface CheckpointOptions {
+interface CheckpointOptions {
   readonly tauriAvailable: boolean;
   readonly activeConvId: string | null;
   conversations: Conversation[];
@@ -72,14 +71,7 @@ export interface CheckpointOptions {
 }
 
 /** Owns durable hydration and branch-scoped checkpoint reconciliation. */
-export function createCheckpointController(
-  options: CheckpointOptions,
-  client: Pick<OpenAgentClient, "invokeProduct"> = openAgent,
-  settle: () => Promise<void> = tick,
-) {
-  const fetchRenderableCheckpoints = (convId: string) =>
-    client.invokeProduct("get_renderable_checkpoints", { convId });
-  const fetchFileChanges = (convId: string) => client.invokeProduct("get_file_changes", { convId });
+export function createCheckpointController(options: CheckpointOptions) {
   async function loadMessagesForConv(
     convId: string,
     showLoadingState = true,
@@ -88,12 +80,6 @@ export function createCheckpointController(
     if (options.loadedConvIds.has(convId) && !forceRefresh) return;
     options.loadedConvIds.add(convId);
     if (!options.tauriAvailable) return;
-    observeFrontendAction({
-      action: "hydrate",
-      conversation: convId,
-      show_loading: showLoadingState,
-      force_refresh: forceRefresh,
-    });
     const messageIdsAtStart = new Set(
       options.conversations
         .find((conversation) => conversation.id === convId)
@@ -105,8 +91,8 @@ export function createCheckpointController(
     try {
       const [checkpoints, savedTip, branches] = await Promise.all([
         fetchRenderableCheckpoints(convId),
-        client.invokeProduct("get_active_branch_tip", { convId }).catch(() => null),
-        client
+        openAgent.invokeProduct("get_active_branch_tip", { convId }).catch(() => null),
+        openAgent
           .invokeProduct("get_branches", {
             convId,
           })
@@ -122,7 +108,7 @@ export function createCheckpointController(
       );
       // The usage projection needs the freshly hydrated checkpoint tree to map
       // request checkpoints back to the active durable turn.
-      await settle();
+      await tick();
       void options.refreshTaskUsagesForConversation(convId);
       if (convId in options.checkpointLoadErrors) {
         const { [convId]: _cleared, ...rest } = options.checkpointLoadErrors;
@@ -356,7 +342,7 @@ export function createCheckpointController(
       options.chatStreams.streamingConversationIds[convId] === true,
     );
     if (tipCheckpoint === undefined) return;
-    await client
+    await openAgent
       .invokeProduct("restore_agent_history", {
         convId,
         checkpointId: tipCheckpoint,
@@ -374,7 +360,7 @@ export function createCheckpointController(
       return options.activeBranchIds[convId];
     }
     if (forkedFromCheckpointId === undefined) {
-      const branches = await client.invokeProduct("get_branches", { convId }).catch(() => []);
+      const branches = await openAgent.invokeProduct("get_branches", { convId }).catch(() => []);
       const tip = [
         ...(options.convTrees[convId] ? computeActivePath(options.convTrees[convId]) : []),
       ]
@@ -388,7 +374,7 @@ export function createCheckpointController(
     }
     const id = crypto.randomUUID();
     const parentBranchId = options.activeBranchIds[convId] ?? null;
-    await client.invokeProduct("create_branch", {
+    await openAgent.invokeProduct("create_branch", {
       id,
       convId,
       parentBranchId,

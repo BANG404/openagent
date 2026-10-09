@@ -33,7 +33,6 @@ use desktop_windows::install_desktop_tray;
 use desktop_windows::show_desktop_window;
 mod desktop_exit;
 mod diagnostics;
-mod replay_capture;
 use desktop_exit::{
     install_dev_parent_shutdown_monitor, install_parent_shutdown_monitor, DesktopWindowState,
 };
@@ -142,9 +141,7 @@ fn run_with_mode(agent_server: bool) {
     let protocol_runtime_supervisor = runtime_supervisor.clone();
     let runtime_manager = runtime_resource_manager(data_dir);
     let startup_runtime_manager = runtime_manager.clone();
-    let builder = tauri::Builder::default()
-        .manage(desktop_data_dir)
-        .manage(replay_capture::ReplayCaptureState::default());
+    let builder = tauri::Builder::default().manage(desktop_data_dir);
 
     let builder = desktop_plugins::register_base(
         builder,

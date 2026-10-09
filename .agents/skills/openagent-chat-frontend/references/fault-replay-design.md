@@ -1,14 +1,7 @@
 # Fault recording and deterministic replay proposal
 
-Status: frontend replay foundation implemented with a bounded inline case bundle;
-see [the actual workflow and capability limits](fault-replay.md).
-Initial developer frontend recording and extraction are implemented for the
-foundation's limited capabilities. The private SDK also implements a bounded
-async model-boundary journal, an anchored embedded capture controller and a
-constrained Runtime case runner; `bun run replay`
-dispatches Runtime cases to that current private checkout. Desktop SDK arming and
-general adapter cases, reload continuation and
-configuration switches remain proposed.
+Status: proposed architecture; no recorder, replay runner, configuration switch,
+or commands described here are implemented by this documentation change.
 The chat owner maintains the shared host-facing contract. SDK recording and
 execution details must be designed and implemented in the private SDK repository.
 
@@ -35,12 +28,12 @@ rebuilding snapshots from parent links or querying a later database state.
 
 ## One case format, separate execution responsibilities
 
-| Replay target          | Recorded boundary                                                                                        | Code exercised                                                               | Responsibility                              |
-| ---------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------- |
-| `frontend`             | User actions, typed client requests/responses, delivered events, bootstrap and persisted frontend drafts | Existing page startup, chat handlers, queues, reconciliation and projections | Public host                                 |
-| `runtime`              | Submitted inputs, initial durable fixture, model outcomes and supported external effects                 | Canonical SDK execution and persistence                                      | Private SDK                                 |
-| `adapter` (later)      | Sanitized wire frames and connection outcomes                                                            | Actual transport/provider decoding                                           | Owning SDK transport or native host adapter |
-| Native UI verification | A frontend case plus real interactions                                                                   | Actual rendered Svelte/Tauri surface                                         | Public host and tauri-pilot                 |
+| Replay target | Recorded boundary | Code exercised | Responsibility |
+| --- | --- | --- | --- |
+| `frontend` | User actions, typed client requests/responses, delivered events, bootstrap and persisted frontend drafts | Existing page startup, chat handlers, queues, reconciliation and projections | Public host |
+| `runtime` | Submitted inputs, initial durable fixture, model outcomes and supported external effects | Canonical SDK execution and persistence | Private SDK |
+| `adapter` (later) | Sanitized wire frames and connection outcomes | Actual transport/provider decoding | Owning SDK transport or native host adapter |
+| Native UI verification | A frontend case plus real interactions | Actual rendered Svelte/Tauri surface | Public host and tauri-pilot |
 
 The envelope, case identity, scheduling vocabulary and report shape are shared.
 Target-specific payload schemas and assertions stay with their owners. The
@@ -57,10 +50,9 @@ transport traffic alone cannot reproduce optimistic messages or reloads.
 Transport observation precedes the normal consumer callback without awaiting
 disk writes. Native/remote adapters retain their existing ownership.
 
-SDK recording attaches to the canonical execution boundaries. The current
-private SDK records model HTTP bodies/frames below its existing provider decoder
-and compatibility layer, preserving their decoding semantics. Runtime replay
-substitutes that recorded IO and supported
+SDK recording attaches to the canonical execution boundaries. Model recording
+captures normalized response chunks and structured errors; wire-level failures
+need the later adapter target. Replay substitutes a model backend and supported
 effect adapters while retaining the production execution path. A frontend replay
 can demonstrate a display race without proving runtime correctness; reports
 must name the target and cannot infer cross-layer coverage.
@@ -215,7 +207,7 @@ Reload destroys the old consumer, retains only recorded persisted state, creates
 the new consumer and releases its recorded bootstrap. Avoid testing only a copy
 of reducer logic or invoking handlers with a hand-built final state.
 
-Runtime replay uses the normal SDK input route and its declared model IO boundary.
+Runtime replay uses the SDK's registered backend path and normal input route.
 Supported tools/effects run with isolated state and deterministic dependencies;
 recorded external outcomes replace only the relevant effect boundary. Retain
 argument validation, approvals, cancellation and persistence. Every adapter
@@ -296,12 +288,12 @@ successful replay of the sanitized case. A scanner alone is insufficient.
 
 ## Delivery milestones and acceptance
 
-| Milestone                      | Deliverable                                                                                                     | Acceptance                                                                                                                              |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| 1: frontend replay foundation  | Versioned validator, scripted transport/action harness, scheduler, assertions and report; synthetic cases first | Existing duplicate-tool, delayed-terminal and hydration-race cases execute through current handlers; unsupported input cannot pass      |
-| 2: opt-in local recording      | Transport/action/draft recorder, anchor, bounded journal and reviewed export tooling                            | One newly recorded incident can be converted and replayed; overflow, reload and interrupted capture have explicit completeness results  |
-| 3: SDK replay                  | Matching private contract, model/effect adapters and private fixtures                                           | Protocol failure/retry/cancellation cases execute the canonical Runtime and persist inspectable terminal state without external effects |
-| 4: native and adapter coverage | Native scenarios consuming cases, then targeted wire/connection recording                                       | UI assertions run in real Tauri; wire cases test actual decoding; reports distinguish all targets                                       |
+| Milestone | Deliverable | Acceptance |
+| --- | --- | --- |
+| 1: frontend replay foundation | Versioned validator, scripted transport/action harness, scheduler, assertions and report; synthetic cases first | Existing duplicate-tool, delayed-terminal and hydration-race cases execute through current handlers; unsupported input cannot pass |
+| 2: opt-in local recording | Transport/action/draft recorder, anchor, bounded journal and reviewed export tooling | One newly recorded incident can be converted and replayed; overflow, reload and interrupted capture have explicit completeness results |
+| 3: SDK replay | Matching private contract, model/effect adapters and private fixtures | Protocol failure/retry/cancellation cases execute the canonical Runtime and persist inspectable terminal state without external effects |
+| 4: native and adapter coverage | Native scenarios consuming cases, then targeted wire/connection recording | UI assertions run in real Tauri; wire cases test actual decoding; reports distinguish all targets |
 
 The initial backlog is: duplicate/conflicting tool result; terminal checkpoint
 hydrated before cancellation event; old terminal event after queued next turn;
@@ -310,75 +302,12 @@ resync/bootstrap with stale response; invalid model tool identity with bounded
 retry; cancellation during retry. Every case has an unaffected sibling scope
 where isolation matters. Normal cases accompany failure/recovery cases.
 
-The frontend provides `bun run replay validate|replay --case <path>`, the explicit
-developer main-window `openagentFaultCapture.start/stop` API and
-`bun run replay:extract`. The native writer/converter and normal-completion/
-partial-response cancellation recording paths are implemented and qualified
-through the real composer and Runtime. Offline coverage remains frontend
-consumer projection. SDK execution has a qualified private subset; desktop SDK
-arming, general effects and additional wire adapters remain proposed.
-See [the workflow](fault-replay.md) for exact capability limits and qualification
-commands. Do not add placeholder scripts or advertise proposed SDK verbs as
-existing commands.
+Proposed tooling verbs are `capture start/stop`, `case extract/validate`, and
+`replay --case <path>`; executable/package names are chosen during implementation.
+Do not add placeholder scripts or advertise these as existing commands.
 Frontend cases join Bun tests/preflight and existing frontend CI classification;
 SDK cases join SDK tests. No recording or model call is needed in default CI.
 Native runners retain the existing theme/locale and isolated-instance rules.
-
-## Complex Runtime trajectories: implementation order and acceptance
-
-Runtime work prioritizes automatically recorded tool outcomes, approval and retry
-trajectories before desktop arming. Target version 3 implements the qualified
-tool-outcome subset; target version 4 adds bounded manual/automatic approval and
-resume observation. Target version 5 adds scoped chat retry clocks and
-same-provider fallback models; cross-provider queues, classifier clocks and
-general adapters remain separate capabilities.
-Model-only tests with manually supplied effect outcomes do not prove
-automatic effect capture. Private recording seams and payload codecs belong to
-the SDK conversation-runtime owner.
-
-Treat a tool's externally observed outcome and Runtime's approval decision as
-different records. Replay substitutes only the declared external effect. Current
-code still validates arguments, decides approval, creates and resolves interrupts,
-matches tool identities, projects history and persists checkpoints. A skipped or
-denied call is never inferred to have executed. An execution error retains its
-typed classification and model-visible content; rendered text is insufficient
-to reconstruct typed text/JSON/image blocks or refusal semantics.
-
-Each new capability receives a target-schema version and named qualification.
-An adapter declares its recorded boundary, supported input/output/error shapes,
-resource restrictions and causal release gates. Unknown adapters, missing
-outcomes, undeclared metadata and unmatched calls fail qualification. An adapter
-cannot claim filesystem, process, plugin or network replay merely because a
-model received the recorded tool-result text.
-
-| Delivery slice                    | Required observed trajectory                                                            | Independent behavior assertions                                                                                                                                                   |
-| --------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tool effect recording             | Invalid call identity, protocol rewind, valid tool dispatch, follow-up completion       | Invalid call executes zero effects; valid call executes once; a later retry never repeats a completed effect; results retain their own call IDs                                   |
-| Tool errors and argument recovery | Invalid arguments, typed execution error/refusal, corrected call                        | Invalid arguments enter neither approval nor execution; exact feedback is retained; failure/refusal/success stay distinct; the correction consumes only its own recorded outcome  |
-| Approval and resume               | Approval required, allow/deny, persisted interrupt, canonical resume, batched decisions | Denial executes zero effects; allow executes once; duplicate/stale responses cannot consume another pending call; logical Turn identity and selected branch survive resume        |
-| Retry clock and cancellation      | Failure, recovery checkpoint, delay entered, retry release or Stop                      | Retry budget resets per distinct request; exhausted retries restore clean provider history; Stop during delay issues zero further provider requests and persists one interruption |
-| Combined isolation                | Successful tool round, later failed request, approval/cancel, unaffected sibling        | Earlier tool results survive rewind; sibling tip/history/interrupts remain unchanged; all released work drains and run locks are released                                         |
-
-For approval, include both an answer submitted before the previous run releases
-and an answer after release. Gate on the observed interrupt and persisted state,
-not a guessed delay. Multiple pending approvals need exact identities; a recorder
-must preserve duplicates or blank IDs as evidence rather than repair them.
-
-Retry delay is a scoped Runtime dependency with explicit enter/release/cancel
-observations. Replay does not shorten a configured delay or patch global time.
-Model-queue switches retain distinct request, attempt and binding identities.
-Zero-delay tests remain qualified only for their existing subset until the clock
-and queue capabilities have their own recordings and fixtures.
-
-Every slice must record through canonical execution, finalize the original
-private journal, and extract its external outcomes automatically. Tests cannot
-fill the replay result from the expected answer. Acceptance requires twenty
-replays with zero source-provider/effect calls, a deliberately wrong independent
-assertion that fails, and an attempted undeclared effect that fails before access.
-Where available, the affected revision must fail the same behavior assertion;
-otherwise report coverage-only. Interrupted/unsupported captures remain evidence
-and never become passing full cases. Desktop or UI qualification is additional
-and is not inferred from these Runtime results.
 
 Before milestone 2, the configuration owner must define retention/byte budgets,
 local permissions and the opt-in lifecycle; the host and SDK owners must agree

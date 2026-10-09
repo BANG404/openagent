@@ -49,7 +49,6 @@ src-tauri/src/main.rs
 src-tauri/src/native_commands.rs
 src-tauri/src/plugin_daemon_supervisor.rs
 src-tauri/src/process_lifetime.rs
-src-tauri/src/replay_capture.rs
 src-tauri/src/resource_download.rs
 src-tauri/src/runtime_asset_protocol.rs
 src-tauri/src/runtime_process.rs

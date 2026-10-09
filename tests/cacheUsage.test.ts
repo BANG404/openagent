@@ -316,18 +316,12 @@ describe("completed-turn cache usage", () => {
 
 describe("streaming-turn indicators", () => {
   test("keeps the composer usage indicator and compaction divider mounted while streaming", async () => {
-    const [routeSource, surfaceSource, streamRendererSource, chatEventsSource, finalizationSource] =
-      await Promise.all([
-        Bun.file(new URL("../src/routes/PageRuntime.svelte", import.meta.url)).text(),
-        Bun.file(
-          new URL("../src/lib/components/ConversationSurface.svelte", import.meta.url),
-        ).text(),
-        Bun.file(
-          new URL("../src/lib/components/StreamItemRenderer.svelte", import.meta.url),
-        ).text(),
-        Bun.file(new URL("../src/lib/page/events/chatEvents.ts", import.meta.url)).text(),
-        Bun.file(new URL("../src/lib/page/chatFinalization.ts", import.meta.url)).text(),
-      ]);
+    const [routeSource, surfaceSource, streamRendererSource, chatEventsSource] = await Promise.all([
+      Bun.file(new URL("../src/routes/PageRuntime.svelte", import.meta.url)).text(),
+      Bun.file(new URL("../src/lib/components/ConversationSurface.svelte", import.meta.url)).text(),
+      Bun.file(new URL("../src/lib/components/StreamItemRenderer.svelte", import.meta.url)).text(),
+      Bun.file(new URL("../src/lib/page/events/chatEvents.ts", import.meta.url)).text(),
+    ]);
 
     // The composer indicator walks the active path for the newest measurement,
     // so a turn whose checkpoint is still pending keeps reporting usage.
@@ -341,7 +335,7 @@ describe("streaming-turn indicators", () => {
     );
     // The optimistic marker must not be persisted: the reconciled replay owns
     // the boundary once the turn is durable.
-    expect(finalizationSource).toContain(
+    expect(routeSource).toContain(
       'const durableItems = items.filter((item) => item.type !== "compaction_boundary");',
     );
     expect(streamRendererSource).toContain('{:else if item.type === "compaction_boundary"}');

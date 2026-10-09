@@ -32,13 +32,6 @@
   } from "$lib/composerDrafts";
   import { installPageEvents } from "$lib/page/events";
   import { createWorkspaceNavigation } from "$lib/page/workspaceNavigation";
-  import { startProjectedStream } from "$lib/page/chatProjection";
-  import { createChatFinalizer } from "$lib/page/chatFinalization";
-  import {
-    observeFrontendAction,
-    duringIndependentFrontendAction,
-  } from "$lib/replay/captureObservation";
-  import { createChatRunStart } from "$lib/page/chatRunStart";
   import { createCheckpointController } from "$lib/page/checkpoints";
   import { restorePendingUserInputFromCheckpoint } from "$lib/page/pendingInputProjection";
   import { createPageStartup } from "$lib/page/startup";
@@ -69,7 +62,7 @@
   import { DEFAULT_QUICK_CHAT_SHORTCUT, normalizeQuickChatShortcut } from "$lib/quickChatShortcut";
   import { disposeQuickChatShortcut, replaceQuickChatShortcut } from "$lib/quickChatWindow";
   import { desktopOpenAgent as openAgent, emit, invoke, listen } from "$lib/openagent/tauriClient";
-  import type { AgentCommandSpec } from "$lib/openagent";
+  import type { AgentCommandSpec, ChatRunStartedEvent } from "$lib/openagent";
   import {
     DEV_MAIN_DEBUG_VISIBILITY_EVENT,
     readMainDebugComponentsVisible,
@@ -134,6 +127,8 @@
     ckIdsAlongActivePath,
     attachNewTurn,
     findUserMessageIndexForAssistant,
+    reconcileTerminalAssistantMessage,
+    terminalEventMatchesActiveStream,
     type ConvTree,
   } from "$lib/checkpointTree";
   import {
@@ -141,7 +136,13 @@
     DESKTOP_WINDOW_ACTIVATED_EVENT,
     type WindowFocusState,
   } from "$lib/windowFocus";
-  import { appendUserInput, clearCompactionProgress, resolveUserInput } from "$lib/chatStream";
+  import {
+    appendUserInput,
+    clearCompactionProgress,
+    initializeStreamItems,
+    collapseStreamText,
+    resolveUserInput,
+  } from "$lib/chatStream";
   import {
     fetchChildConversations,
     fetchConversationMeta,
@@ -1951,12 +1952,59 @@
     cacheRestoreSurface(restoringSurface, activeConvId, workspacePath);
   }
 
+  function insertExternalUserMessage(
+    convId: string,
+    userMessage: ChatMessage,
+    assistantMessageId: string,
+  ): void {
+    const index = conversations.findIndex((conversation) => conversation.id === convId);
+    if (
+      index === -1 ||
+      conversations[index].messages.some((message) => message.id === userMessage.id)
+    ) {
+      return;
+    }
+    const existing = conversations[index];
+    const assistantIndex = existing.messages.findIndex(
+      (message) => message.id === assistantMessageId,
+    );
+    const messages = [...existing.messages];
+    messages.splice(assistantIndex === -1 ? messages.length : assistantIndex, 0, userMessage);
+    conversations[index] = { ...existing, messages, updatedAt: Date.now() };
+  }
+
   function startProjectedChatStream(
     convId: string,
     assistantMessageId: string,
     startedAt: number,
   ): void {
-    startProjectedStream(chatStreams, convId, assistantMessageId, startedAt);
+    if (chatStreams.recoveredConversationIds[convId]) {
+      const { [convId]: _recovered, ...rest } = chatStreams.recoveredConversationIds;
+      chatStreams.recoveredConversationIds = rest;
+    }
+    const isSameRun =
+      chatStreams.streamingConversationIds[convId] &&
+      chatStreams.assistantMessageIds[convId] === assistantMessageId;
+    if (!isSameRun) {
+      // Runtime events use independent listeners. An ask_user event can reach
+      // the local listener just before chat-run-started initializes the live
+      // stream. Preserve that request so the form is not erased by startup.
+      const pendingItems = initializeStreamItems(chatStreams.itemsByConversation[convId]);
+      chatStreams.itemsByConversation = {
+        ...chatStreams.itemsByConversation,
+        [convId]: pendingItems,
+      };
+      chatStreams.assistantMessageIds = {
+        ...chatStreams.assistantMessageIds,
+        [convId]: assistantMessageId,
+      };
+      chatStreams.startTiming(convId, startedAt);
+    }
+    chatStreams.streamingConversationIds = {
+      ...chatStreams.streamingConversationIds,
+      [convId]: true,
+    };
+    chatStreams.awaitingOutput = { ...chatStreams.awaitingOutput, [convId]: true };
     // Usage is persisted on the preceding checkpoint. Refresh it when a new
     // stream starts so the composer can keep showing the latest known context
     // size while the next response is still in flight.
@@ -1973,31 +2021,75 @@
     }
   }
 
-  const applyExternalChatRunStarted = createChatRunStart({
-    get workspacePath() {
-      return workspacePath || "";
-    },
-    get conversations() {
-      return conversations;
-    },
-    set conversations(value) {
-      conversations = value;
-    },
-    loadedConvIds,
-    now: () => Date.now(),
-    newConversationLabel: () => $t("newConv"),
-    promoteConversation: promoteConversationInRecents,
-    selectRole: (convId, roleId) => {
-      const eventRoleKey = roleId ?? defaultRoleKey;
-      if (convId === activeConvId && eventRoleKey !== roleController.selectedRoleKey) {
-        roleController.selectedRoleKey = eventRoleKey;
-        window.localStorage.setItem(roleSelectionStorageKey(), eventRoleKey);
-        void refreshRecentConversations();
-      }
-    },
-    startStream: startProjectedChatStream,
-    loadMessages: loadMessagesForConv,
-  });
+  function applyExternalChatRunStarted(event: ChatRunStartedEvent): void {
+    if (event.workspace !== (workspacePath || "")) return;
+    const startedAt = Date.now();
+    const userMessage: ChatMessage | undefined =
+      event.user_visible === false
+        ? undefined
+        : {
+            id: event.msg_id,
+            role: "user",
+            content: event.message,
+            timestamp: startedAt,
+          };
+    const insertUserMessage = () => {
+      if (userMessage) insertExternalUserMessage(event.conv_id, userMessage, event.asst_msg_id);
+    };
+    const incoming: Conversation = {
+      id: event.conv_id,
+      title: event.title || $t("newConv"),
+      messages: userMessage ? [userMessage] : [],
+      createdAt: event.created_at * 1000,
+      updatedAt: startedAt,
+      pinned: event.pinned,
+      parentConvId: event.parent_conv_id ?? undefined,
+      compactedFromConvId: event.compacted_from_conv_id ?? undefined,
+      flowKind: event.flow_kind ?? undefined,
+      flowStatus: event.flow_status ?? undefined,
+      roleId: event.role_id ?? undefined,
+    };
+    const existingIndex = conversations.findIndex(
+      (conversation) => conversation.id === event.conv_id,
+    );
+    if (existingIndex === -1) {
+      conversations = [incoming, ...conversations];
+    } else {
+      const existing = conversations[existingIndex];
+      conversations[existingIndex] = {
+        ...existing,
+        title: event.title || existing.title,
+        pinned: event.pinned,
+        parentConvId: event.parent_conv_id ?? undefined,
+        compactedFromConvId: event.compacted_from_conv_id ?? undefined,
+        flowKind: event.flow_kind ?? undefined,
+        flowStatus:
+          event.flow_status ??
+          (existing.flowStatus === "pending" ? "running" : existing.flowStatus),
+        roleId: event.role_id ?? undefined,
+        updatedAt: startedAt,
+      };
+      insertUserMessage();
+    }
+    promoteConversationInRecents(existingIndex === -1 ? incoming : conversations[existingIndex]);
+
+    const eventRoleKey = event.role_id ?? defaultRoleKey;
+    if (event.conv_id === activeConvId && eventRoleKey !== roleController.selectedRoleKey) {
+      roleController.selectedRoleKey = eventRoleKey;
+      window.localStorage.setItem(roleSelectionStorageKey(), eventRoleKey);
+      void refreshRecentConversations();
+    }
+    startProjectedChatStream(event.conv_id, event.asst_msg_id, startedAt);
+
+    if (event.is_new) {
+      loadedConvIds.add(event.conv_id);
+      return;
+    }
+    if (!loadedConvIds.has(event.conv_id)) {
+      void loadMessagesForConv(event.conv_id, false).finally(insertUserMessage);
+    }
+  }
+
   function recoverUnannouncedChatStream(convId: string): void {
     const startedAt = Date.now();
     const assistantMessageId = crypto.randomUUID();
@@ -2241,7 +2333,7 @@
       loadedConvIds.delete(conv_id);
       // Reconcile the optimistic turn with its durable checkpoint without
       // replacing the visible transcript with the conversation-loading skeleton.
-      duringIndependentFrontendAction(() => void loadMessagesForConv(conv_id, false));
+      void loadMessagesForConv(conv_id, false);
     }
   }
 
@@ -2327,58 +2419,150 @@
     void conv_id;
   }
 
-  const finalizeStreamedMessage = createChatFinalizer({
-    get chatStreams() {
-      return chatStreams;
-    },
-    get pendingCheckpointIds() {
-      return pendingCheckpointIds;
-    },
-    set pendingCheckpointIds(value) {
-      pendingCheckpointIds = value;
-    },
-    get pendingParentCk() {
-      return pendingParentCk;
-    },
-    set pendingParentCk(value) {
-      pendingParentCk = value;
-    },
-    get pendingForkMessageId() {
-      return pendingForkMessageId;
-    },
-    set pendingForkMessageId(value) {
-      pendingForkMessageId = value;
-    },
-    get pendingForkSourceCheckpointId() {
-      return pendingForkSourceCheckpointId;
-    },
-    set pendingForkSourceCheckpointId(value) {
-      pendingForkSourceCheckpointId = value;
-    },
-    get pendingForkUserMessageIds() {
-      return pendingForkUserMessageIds;
-    },
-    set pendingForkUserMessageIds(value) {
-      pendingForkUserMessageIds = value;
-    },
-    get liveFileChangesPerConv() {
-      return liveFileChangesPerConv;
-    },
-    notifyInactiveWindowOfAgentCompletion,
-    beginStreamCompletionTailAnchor,
-    loadFileChangesForConv,
-    reconcileLiveFileChanges,
-    clearPendingForkState,
-    dispatchNextQueuedMessage,
-    findConversationLocation,
-    promoteConversationInRecents,
-    saveAssistantMessage,
-    attachNewTurnToTree,
-    refreshTaskUsagesForConversation,
-    now: () => Date.now(),
-    newId: () => crypto.randomUUID(),
-    interruptedLabel: () => tr("agentRunInterrupted"),
-  });
+  function finalizeStreamedMessage(
+    conv_id: string,
+    status: CheckpointTurnStatus,
+    asstMsgId?: string,
+    turnId?: string,
+    error?: string | null,
+  ): boolean {
+    const activeAssistantMessageId = chatStreams.assistantMessageIds[conv_id];
+    const recoveredStream = !!chatStreams.recoveredConversationIds[conv_id];
+    if (!terminalEventMatchesActiveStream(activeAssistantMessageId, asstMsgId, recoveredStream)) {
+      return false;
+    }
+    const assistantMessageId = asstMsgId ?? activeAssistantMessageId;
+    const responseMessageId = turnId ?? assistantMessageId;
+    notifyInactiveWindowOfAgentCompletion(
+      assistantMessageId,
+      status,
+      !!chatStreams.streamingConversationIds[conv_id],
+    );
+    beginStreamCompletionTailAnchor(conv_id);
+    let items = chatStreams.itemsByConversation[conv_id] ?? [];
+    if (error) {
+      items = [...items, { type: "runtime_notice", kind: "error", reason: error }];
+    } else if (status === "cancelled") {
+      items = [
+        ...items,
+        {
+          type: "runtime_notice",
+          kind: "interrupted",
+          reason: tr("agentRunInterrupted"),
+        },
+      ];
+    }
+    const fullText = collapseStreamText(items);
+    const hasContent = fullText.length > 0 || items.some((i) => i.type !== "text");
+    if (!hasContent) {
+      const finalizedLiveChangeIds = new Set(
+        (liveFileChangesPerConv[conv_id] ?? []).map((change) => change.id),
+      );
+      void loadFileChangesForConv(conv_id).then((durableChanges) => {
+        if (durableChanges) {
+          reconcileLiveFileChanges(conv_id, durableChanges, finalizedLiveChangeIds);
+        }
+      });
+      // A cancelled/empty turn has no checkpoint to attach to the optimistic
+      // fork. Clear the one-shot fork markers before the next ordinary send,
+      // otherwise it is incorrectly submitted as another sibling branch.
+      clearPendingForkState(conv_id);
+      chatStreams.cleanup(conv_id);
+      void dispatchNextQueuedMessage(conv_id);
+      return true;
+    }
+
+    const checkpointId = pendingCheckpointIds[conv_id] ?? null;
+
+    // The live divider is a streaming affordance: once this turn is durable the
+    // reconciled compaction replay renders the same boundary, so persisting the
+    // marker as well would mount it twice.
+    const durableItems = items.filter((item) => item.type !== "compaction_boundary");
+
+    const finalizedAt = Date.now();
+    const assistantMsg: ChatMessage = {
+      id: assistantMessageId ?? crypto.randomUUID(),
+      role: "assistant",
+      content: fullText,
+      timestamp: finalizedAt,
+      items: durableItems.length > 0 ? [...durableItems] : undefined,
+      aborted: status === "cancelled" || undefined,
+      checkpointId: checkpointId ?? undefined,
+      firstTokenAt: chatStreams.firstTokenAt[conv_id],
+      completedAt: status === "interrupted" ? undefined : finalizedAt,
+      transientTurnStatus: status,
+    };
+
+    const location = findConversationLocation(conv_id);
+    if (!location) {
+      // Conv was deleted while streaming — drop the in-flight message instead of saving an orphan row.
+      const { [conv_id]: _items, ...restItems } = chatStreams.itemsByConversation;
+      const { [conv_id]: _streaming, ...restStreaming } = chatStreams.streamingConversationIds;
+      const { [conv_id]: _ck, ...restCk } = pendingCheckpointIds;
+      const { [conv_id]: _pp, ...restPp } = pendingParentCk;
+      const { [conv_id]: _pf, ...restPf } = pendingForkMessageId;
+      const { [conv_id]: _pfs, ...restPfs } = pendingForkSourceCheckpointId;
+      const { [conv_id]: _pfu, ...restPfu } = pendingForkUserMessageIds;
+      const { [conv_id]: _asstId, ...restAsstIds } = chatStreams.assistantMessageIds;
+      const { [conv_id]: _recovered, ...restRecovered } = chatStreams.recoveredConversationIds;
+      chatStreams.itemsByConversation = restItems;
+      chatStreams.streamingConversationIds = restStreaming;
+      pendingCheckpointIds = restCk;
+      pendingParentCk = restPp;
+      pendingForkMessageId = restPf;
+      pendingForkSourceCheckpointId = restPfs;
+      pendingForkUserMessageIds = restPfu;
+      chatStreams.assistantMessageIds = restAsstIds;
+      chatStreams.recoveredConversationIds = restRecovered;
+      return true;
+    }
+
+    const reconciliation = reconcileTerminalAssistantMessage(
+      location.conversations[location.index].messages,
+      assistantMsg,
+      responseMessageId ?? assistantMsg.id,
+    );
+    location.conversations[location.index] = {
+      ...location.conversations[location.index],
+      messages: reconciliation.messages,
+      updatedAt: Date.now(),
+    };
+    promoteConversationInRecents(location.conversations[location.index]);
+
+    // Rust persists completed responses, but the client is the source of the
+    // stream timing. Save every final message so firstTokenAt/completedAt are
+    // merged into that persisted record before a refresh.
+    if (reconciliation.appended) {
+      saveAssistantMessage(conv_id, assistantMsg, checkpointId);
+    }
+
+    // Keep the temporary records visible until the durable terminal records
+    // have actually loaded. This avoids a blank banner when IPC refresh is
+    // delayed or fails, and does not clear changes from a queued next turn.
+    const finalizedLiveChangeIds = new Set(
+      (liveFileChangesPerConv[conv_id] ?? []).map((change) => change.id),
+    );
+    void loadFileChangesForConv(conv_id).then((durableChanges) => {
+      if (durableChanges) {
+        reconcileLiveFileChanges(conv_id, durableChanges, finalizedLiveChangeIds);
+      }
+    });
+
+    // Attach the just-completed turn to the conversation tree.
+    if (checkpointId) {
+      attachNewTurnToTree(conv_id, checkpointId, assistantMsg);
+    }
+    void refreshTaskUsagesForConversation(conv_id);
+
+    // Clean up pending checkpoint id and any re-execution hint for this conv
+    const { [conv_id]: _ck, ...restCk } = pendingCheckpointIds;
+    pendingCheckpointIds = restCk;
+    clearPendingForkState(conv_id);
+
+    chatStreams.cleanup(conv_id);
+    void dispatchNextQueuedMessage(conv_id);
+    return true;
+  }
 
   function notifyInactiveWindowOfAgentCompletion(
     replyId: string | undefined,
@@ -2801,44 +2985,6 @@
 
   // ─── Chat ─────────────────────────────────────────────────────────────────────
 
-  onMount(() => {
-    if (!import.meta.env.DEV || !tauriAvailable || standaloneDevPreview) return;
-    let dispose: (() => void) | undefined;
-    let mounted = true;
-    void import("$lib/replay/developerCapture").then(({ registerFrontendCaptureContext }) => {
-      if (!mounted) return;
-      dispose = registerFrontendCaptureContext({
-        idle: (ids) =>
-          ids.length > 0 &&
-          ids.every(
-            (id) =>
-              !chatStreams.streamingConversationIds[id] &&
-              !pendingUserInputs[id] &&
-              !loadingConversationIds[id],
-          ),
-        snapshot: (ids) =>
-          JSON.parse(
-            JSON.stringify({
-              active_conversation: activeConvId,
-              workspace: workspacePath || "",
-              loaded_conversations: ids.filter((id) => loadedConvIds.has(id)),
-              interrupted_label: tr("agentRunInterrupted"),
-              conversations: ids.map((id) => {
-                const conversation = conversations.find((item) => item.id === id);
-                if (!conversation) throw new Error("Unknown capture conversation");
-                return conversation;
-              }),
-              streams: [],
-            }),
-          ),
-      });
-    });
-    return () => {
-      mounted = false;
-      dispose?.();
-    };
-  });
-
   async function dispatchChatMessage(
     rawText: string,
     targetConvId: string | null = activeConvId,
@@ -2928,13 +3074,6 @@
     };
     const location = findConversationLocation(convId);
     if (!location) return;
-    const assistantMsgId = crypto.randomUUID();
-    observeFrontendAction({
-      action: "insert-user",
-      conversation: convId,
-      assistant: assistantMsgId,
-      message: userMsg,
-    });
     const existingConversation = location.conversations[location.index];
     const priorMessages = existingConversation.messages;
     const isFirstUserMsg = !priorMessages.some((m) => m.role === "user");
@@ -2972,11 +3111,7 @@
         .catch(() => {});
     }
 
-    observeFrontendAction({
-      action: "start-stream",
-      conversation: convId,
-      assistant: assistantMsgId,
-    });
+    const assistantMsgId = crypto.randomUUID();
     chatStreams.startTiming(convId, userMsg.timestamp);
     chatStreams.streamingConversationIds = {
       ...chatStreams.streamingConversationIds,

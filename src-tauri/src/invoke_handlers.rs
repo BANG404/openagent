@@ -1,7 +1,7 @@
 //! IPC registration uses the defining adapter module and preserves command names.
 use crate::{
     component_updates, cua_driver, desktop_exit, desktop_windows, diagnostics, native_commands,
-    replay_capture, runtime_proxy_commands,
+    runtime_proxy_commands,
 };
 #[cfg(feature = "embedded-runtime")]
 use crate::{embedded_commands, embedding_adapter};
@@ -39,9 +39,6 @@ pub(crate) fn register(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<ta
         embedded_commands::settings::get_wechat_channel_status,
         embedded_commands::settings::reset_wechat_channel,
         diagnostics::report_frontend_diagnostic,
-        replay_capture::begin_frontend_capture,
-        replay_capture::append_frontend_capture,
-        replay_capture::finish_frontend_capture,
         embedded_commands::models::set_default_chat_model,
         embedded_commands::models::set_model_reasoning_effort,
         embedded_commands::models::test_provider_connection,
@@ -207,9 +204,6 @@ pub(crate) fn register(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<ta
         component_updates::frontend::confirm_frontend_activation,
         diagnostics::report_component_update_event,
         diagnostics::report_frontend_diagnostic,
-        replay_capture::begin_frontend_capture,
-        replay_capture::append_frontend_capture,
-        replay_capture::finish_frontend_capture,
         native_commands::list_wsl_distributions,
         native_commands::get_wsl_home,
         native_commands::resolve_wsl_workspace,

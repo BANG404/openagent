@@ -9,49 +9,10 @@ import {
   attachToolResult,
 } from "$lib/chatStream";
 import type { PageEventOptions } from "./context";
-import type { OpenAgentClient } from "$lib/openagent";
-
-export type PageChatEventOptions = Pick<
-  PageEventOptions,
-  | "activeBranchIds"
-  | "applyExternalChatRunStarted"
-  | "applyStreamMutation"
-  | "approvalResumeQueues"
-  | "attachApprovedToolResult"
-  | "chatStreams"
-  | "clearLiveFileChanges"
-  | "compactionOnlyConvIds"
-  | "compactionProgressRevisions"
-  | "config"
-  | "deferredApprovalCheckpointIds"
-  | "discardPersistedStreamDraft"
-  | "finalizeStreamedMessage"
-  | "findConversationLocation"
-  | "finishCompactionProgress"
-  | "followUpSuggestionsByMessageId"
-  | "interruptTerminalHandoffs"
-  | "liveContextUsageByConversation"
-  | "liveFileChangesPerConv"
-  | "loadAvailableRoles"
-  | "loadMessagesForConv"
-  | "newConversationSuggestions"
-  | "normalizeSuggestions"
-  | "pendingCheckpointIds"
-  | "pendingExternalUserRecoveries"
-  | "pendingUserInputs"
-  | "persistStreamDraft"
-  | "reconcileCompletedCompaction"
-  | "recoverUnannouncedChatStream"
-  | "refreshLiveCheckpointTip"
-  | "workspacePath"
->;
 
 /** Projects the shared SDK chat event stream into the existing page state. */
-export function subscribePageChatEvents(
-  options: PageChatEventOptions,
-  client: Pick<OpenAgentClient, "subscribeToChatEvents"> = openAgent,
-) {
-  return client.subscribeToChatEvents({
+export function subscribePageChatEvents(options: PageEventOptions) {
+  return openAgent.subscribeToChatEvents({
     onRunStarted: (event) => {
       options.applyExternalChatRunStarted(event);
     },
