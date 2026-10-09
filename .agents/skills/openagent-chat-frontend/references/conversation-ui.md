@@ -8,6 +8,13 @@ in-place editor unchanged by rendering. Both editable and read-only bubbles use
 the same projection. Long messages clip by an eight-body-line height, rather
 than CSS line-clamp, so block formatting survives collapse and expansion.
 Leaving the whole user-message editing surface restores Markdown rendering.
+Check the settled document focus after Svelte's update, rather than cancelling
+on the focused bubble's removal event: clicking or keyboard-activating the bubble
+must hand focus to the newly mounted textarea. Exercise focused triggers in
+native scenarios; an unfocused DOM `.click()` alone misses this transition.
+Bring the native window forward before each focus scenario, including after
+navigation/reload; background WebViews can update `activeElement` without
+dispatching focus events.
 An unchanged edit ends; a changed draft (including staged attachment/quote
 removals) stays rendered with Send/Cancel until explicitly submitted or discarded.
 Reopening that message retains the draft. Moving focus to its editing actions

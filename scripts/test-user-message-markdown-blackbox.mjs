@@ -40,12 +40,16 @@ try {
       pilot(["navigate", preview.href]);
       pilot(["wait", ".user-markdown-preview [contenteditable=true]"]);
       pilot(["snapshot", "-i"]);
+      // A background WebView updates activeElement without dispatching focus
+      // events. Bring the native window forward before testing focus transfers.
+      captureBlackboxScreenshot(pilot, join(artifacts, `${theme}-${locale}-before.png`));
       pilot(["run", scenario]);
       captureBlackboxScreenshot(pilot, join(artifacts, `${theme}-${locale}.png`));
       pilot(["eval", "setTimeout(() => location.reload(), 100); true"]);
       await new Promise((resolve) => setTimeout(resolve, 1000));
       pilot(["wait", ".user-markdown-preview [contenteditable=true]"]);
       pilot(["snapshot", "-i"]);
+      captureBlackboxScreenshot(pilot, join(artifacts, `${theme}-${locale}-reload.png`));
       pilot(["run", scenario]);
     }
   }

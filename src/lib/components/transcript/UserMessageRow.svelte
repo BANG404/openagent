@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import Tooltip from "../Tooltip.svelte";
   import AttachmentPreview from "../AttachmentPreview.svelte";
   import UserQuote from "../UserQuote.svelte";
@@ -75,11 +76,12 @@
   class="user-msg message-record"
   id={`message-${msg.id}`}
   data-message-id={msg.id}
-  onfocusout={(event) => {
-    if (
-      !(event.relatedTarget instanceof Node) ||
-      !event.currentTarget.contains(event.relatedTarget)
-    ) {
+  onfocusout={async (event) => {
+    const surface = event.currentTarget;
+    // Replacing the focused bubble also emits focusout. Let startEdit mount and
+    // focus the textarea before deciding whether focus left the message.
+    await tick();
+    if (!surface.contains(surface.ownerDocument.activeElement)) {
       edit.blurEdit(msg);
     }
   }}
