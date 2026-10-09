@@ -119,13 +119,13 @@
             }
           }}
         >
-          <span
+          <div
             class="user-content-text composer-md"
             use:renderUserContent={{
               content: msg.content,
               references: contentReferences,
             }}
-          ></span>
+          ></div>
           <span class="user-edit-hint" aria-hidden="true">
             <svg
               viewBox="0 0 16 16"
@@ -149,10 +149,10 @@
       class="user-content readonly bg-conversation-component"
       class:collapsed={edit.isUserMessageCollapsed(msg)}
     >
-      <span
+      <div
         class="user-content-text composer-md"
         use:renderUserContent={{ content: msg.content, references: contentReferences }}
-      ></span>
+      ></div>
     </div>
   {/if}
   {#if attachments.length > 0}
@@ -343,10 +343,7 @@
     overflow-wrap: anywhere;
   }
   .user-content.collapsed .user-content-text {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: var(--user-message-collapse-lines);
-    line-clamp: var(--user-message-collapse-lines);
+    max-height: calc(var(--user-message-collapse-lines) * 1.47em);
     overflow: hidden;
   }
   .user-content.collapsed::after {

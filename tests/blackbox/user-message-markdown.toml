@@ -1,0 +1,58 @@
+[scenario]
+name = "user Markdown survives sending, collapsing and editing"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "composer and editable/read-only bubbles share block formatting"
+action = "eval"
+script = '''(async () => {
+  const root = document.querySelector('.user-markdown-preview');
+  const editor = root.querySelector('[contenteditable="true"]');
+  const settle = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const assert = (condition, message) => { if (!condition) throw new Error(message); };
+  const source = '# 你调用终端试试\n\n> quoted **bold**\n- item\n2. second\n- [ ] todo\n- [x] done\n**bold** *italic* ~~gone~~ `code` [link](https://example.com) [Image #1] @agent #file.ts\n```md\n# **literal**\n```\n<script>window.__userMarkdownExecuted = true</script>\n' + 'long wrapped text '.repeat(60);
+  editor.focus();
+  const range = document.createRange(); range.selectNodeContents(editor);
+  const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
+  editor.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: source, bubbles: true, cancelable: true }));
+  await settle();
+  assert(editor.querySelector('.composer-block-heading').textContent === '你调用终端试试', 'composer title missing');
+  const projection = editor.innerHTML;
+  root.querySelector('.send-btn').click(); await settle();
+  const bubble = () => root.querySelector('.user-content');
+  const content = () => root.querySelector('.user-content-text');
+  assert(content().innerHTML === projection, 'sending changed the Markdown projection');
+  assert(content().querySelectorAll('.composer-block-listItem').length === 4, 'list/task blocks missing');
+  assert(content().querySelector('.composer-block-quote strong').textContent === 'bold', 'quoted formatting missing');
+  assert([...content().querySelectorAll('.composer-block-codeBlock')].some(line => line.textContent === '# **literal**'), 'fenced code parsed as Markdown');
+  assert(content().querySelector('.composer-chip-attachment').textContent === '[Image #1]', 'attachment reference split');
+  assert(content().querySelectorAll('.composer-chip-token').length === 2, 'mention/file tokens changed');
+  assert(!content().querySelector('script,img,iframe') && !window.__userMarkdownExecuted, 'raw HTML executed');
+  assert(bubble().classList.contains('collapsed') && content().scrollHeight > content().clientHeight, 'long blocks failed to collapse');
+  const collapsedHeight = content().clientHeight;
+  root.querySelector('.user-collapse-btn').click(); await settle();
+  assert(!bubble().classList.contains('collapsed') && content().clientHeight > collapsedHeight, 'expand failed');
+  root.querySelector('.user-collapse-btn').click(); await settle();
+  assert(bubble().classList.contains('collapsed'), 'collapse failed');
+  bubble().click(); await settle();
+  let textarea = root.querySelector('.user-content-edit');
+  assert(textarea.value === source, 'editing lost raw Markdown');
+  textarea.value = '# discarded'; textarea.dispatchEvent(new Event('input', { bubbles: true })); await settle();
+  root.querySelector('.edit-cancel-btn').click(); await settle();
+  assert(content().innerHTML === projection, 'cancel changed the message');
+  bubble().click(); await settle();
+  textarea = root.querySelector('.user-content-edit');
+  textarea.value = source.replace('你调用终端试试', 'Updated 标题');
+  textarea.dispatchEvent(new Event('input', { bubbles: true })); await settle();
+  root.querySelector('.edit-confirm-btn').click(); await settle();
+  assert(content().querySelector('.composer-block-heading').textContent === 'Updated 标题', 'edit did not refresh the block projection');
+  const updated = content().innerHTML;
+  root.querySelector('.preview-readonly').click(); await settle();
+  assert(bubble().classList.contains('readonly') && content().innerHTML === updated, 'read-only formatting differs');
+  bubble().click(); await settle();
+  assert(!root.querySelector('.user-content-edit'), 'read-only bubble became editable');
+  root.querySelector('.user-collapse-btn').click(); await settle();
+  assert(content().clientHeight > collapsedHeight, 'read-only expansion failed');
+  return 'send, block/inline formatting, literal code/HTML, chips, collapse, edit/cancel and read-only passed';
+})()'''

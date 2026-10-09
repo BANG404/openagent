@@ -21,6 +21,7 @@ export type StandaloneDevPreview =
   | "streaming-transcript"
   | "tool-status"
   | "tool-diff"
+  | "user-message-markdown"
   | "wsl-workspace-dialog"
   | "workspace-switcher";
 
@@ -47,6 +48,7 @@ const PREVIEW_QUERIES: ReadonlyArray<[string, StandaloneDevPreview]> = [
   ["streaming-transcript-preview", "streaming-transcript"],
   ["tool-status-preview", "tool-status"],
   ["tool-diff-preview", "tool-diff"],
+  ["user-message-markdown-preview", "user-message-markdown"],
   ["wsl-workspace-dialog-preview", "wsl-workspace-dialog"],
   ["attachment-composer-preview", "attachment-composer"],
 ];

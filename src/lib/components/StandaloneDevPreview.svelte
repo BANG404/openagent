@@ -38,6 +38,9 @@
 
   import type { AgentBookTurn } from "$lib/components/AgentBookReader.svelte";
   let BookReader = $state<typeof import("./AgentBookReader.svelte").default | null>(null);
+  let UserMarkdownPreview = $state<
+    typeof import("./UserMessageMarkdownPreview.svelte").default | null
+  >(null);
   import BackgroundTerminalToggleButton from "$lib/components/BackgroundTerminalToggleButton.svelte";
   import CheckpointFlowStatus from "$lib/components/CheckpointFlowStatus.svelte";
   import CheckpointFlowToggleButton from "$lib/components/CheckpointFlowToggleButton.svelte";
@@ -987,6 +990,11 @@
   }
 
   onMount(() => {
+    if (preview === "user-message-markdown") {
+      void import("./UserMessageMarkdownPreview.svelte").then((module) => {
+        UserMarkdownPreview = module.default;
+      });
+    }
     if (preview === "book-mode") {
       void import("./AgentBookReader.svelte").then((module) => {
         BookReader = module.default;
@@ -1568,6 +1576,8 @@
   <FaultReplayPreview {theme} />
 {:else if preview === "streaming-transcript" && query.has("streaming-transcript-preview-runtime-status")}
   <RuntimeStatusPreview {theme} />
+{:else if preview === "user-message-markdown"}
+  {#if UserMarkdownPreview}<UserMarkdownPreview {locale} />{/if}
 {:else if preview === "streaming-transcript" && query.has("streaming-transcript-preview-thinking")}
   <ThinkingPreview {theme} {locale} />
 {:else if preview === "streaming-transcript"}
