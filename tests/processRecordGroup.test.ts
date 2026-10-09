@@ -20,7 +20,9 @@ describe("process record group", () => {
     expect(source).toContain('class="process-record-summary"');
     expect(source).toContain("aria-expanded={open}");
     expect(source).toContain("onclick={() => (open = !open)}");
-    expect(source).toContain('class="process-record-content" hidden={grouped && !open}');
+    expect(source).toContain(
+      'class="process-record-content" hidden={!running && grouped && !open}',
+    );
     expect(source).not.toContain("<details");
     expect(source).not.toContain("<summary");
   });
@@ -45,9 +47,7 @@ describe("process record group", () => {
     expect(messageSource).toContain(
       "const turnStatus = assistantTurnStatus(turnMessages, assistantIsStreaming)",
     );
-    expect(messageSource).toContain(
-      "<ProcessRecordGroup grouped={showProcessRecords} duration={timing?.total}>",
-    );
+    expect(messageSource).toContain("grouped={showProcessRecords}");
   });
 
   test("keeps final rich output mounted while completion reveals the process disclosure", async () => {
@@ -56,7 +56,7 @@ describe("process record group", () => {
       transcriptSource(),
     ]);
 
-    expect(groupSource).toContain("{#if grouped}");
+    expect(groupSource).toContain("{:else if grouped}");
     expect(groupSource).toContain('data-grouped={grouped ? "true" : undefined}');
     expect(messageSource).toContain("{@render renderAssistantSegments(finalSegments)}");
     expect(messageSource).not.toContain(

@@ -890,6 +890,7 @@ const en: Record<TranslationKeys, string> = {
   noCacheActivity: "No cache activity reported",
   working: "Working…",
   workedFor: "Worked for",
+  agentRunning: "Agent running",
   workDetails: "Work details",
   thinking: "Thinking",
   yes: "Yes",

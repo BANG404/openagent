@@ -73,12 +73,10 @@
   following based on the actual viewport position, even if a programmatic pin
   was scheduled in the same frame.
 - Drive awaiting-output from the SDK's model-request lifecycle rather than from
-  an empty transcript or a timer. Every Rig completion request, including a
-  follow-up request after tool results, uses the same active stream state as the
-  composer: the thinking indicator appears immediately while the running turn
-  awaits model output and disappears when that state clears or the turn ends.
-  Earlier records in the same logical turn must not suppress the indicator for
-  a later agent-loop request.
+  an empty transcript or a timer. Keep every Rig completion request, including
+  follow-up requests after tool results, in the transport's active request state.
+  The transcript's logical Turn presentation below decides which waiting or
+  running status the user sees; provider rounds do not create new Turn clocks.
 - Completed messages and the active response share one keyed, fully mounted
   transcript list. Do not reintroduce viewport virtualization or row-height
   estimation: restored and live rows stay mounted so loading and scrolling do
@@ -175,8 +173,21 @@
   the selected branch rather than create an unintended sibling.
 - Reduce logical Turn metadata from checkpoints on the selected branch and
   attach it to the backend-preallocated response message. A tool interrupt and
-  its resume keep that Turn key; only terminal Turn states expose duration,
-  regenerate, copy, and book-mode actions. Treat the compatibility field
+  its resume keep that Turn key; only terminal Turn states expose final timing,
+  regenerate, copy, and book-mode actions. Before the first observable model
+  response, show the thinking status (memory retrieval retains its own status).
+  Once non-empty text, thinking, or a tool call arrives, show a non-interactive
+  `ProcessRecordGroup` header above the live records with localized running copy
+  and a once-per-second elapsed timer. Reuse the completed disclosure's typography
+  and divider without a chevron or collapse behavior; live records remain visible.
+  Later provider rounds must never append another thinking status. Use the
+  transport's conversation-scoped start timestamp, with durable Turn metadata
+  or the authored user timestamp for paired clients; switching conversations
+  must not restart the clock. Dispose the interval at completion or unmount.
+  Completed turns retain their collapsed process disclosure; cancelled/failed
+  turns retain visible records without a live timer. Verify these transitions
+  with `bun run test:blackbox:runtime-status` against an isolated debug window
+  in light/dark and English/Chinese. Treat the compatibility field
   `first_token_at` as the first observable model response, not only the first
   text token: non-empty text, thinking, or a tool call starts it, while stream
   connection alone does not. Keep the transient stream timer and durable

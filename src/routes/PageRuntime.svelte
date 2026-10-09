@@ -755,7 +755,10 @@
     activeConvId ? (chatStreams.assistantMessageIds[activeConvId] ?? null) : null,
   );
   let isCurrentAwaitingStreamOutput = $derived(
-    activeConvId ? !!chatStreams.awaitingOutput[activeConvId] : false,
+    activeConvId
+      ? !!chatStreams.awaitingOutput[activeConvId] &&
+          chatStreams.firstTokenAt[activeConvId] === undefined
+      : false,
   );
   let currentMemoryRetrievalStage = $derived(
     activeConvId ? (chatStreams.memoryRetrievalStages[activeConvId] ?? null) : null,
@@ -4030,6 +4033,7 @@
     // durable, the transcript must remain where the reader left it.
     followTail: isCurrentStreaming && followStreamToBottom,
     isAwaitingStreamOutput: isCurrentAwaitingStreamOutput,
+    streamStartedAt: activeConvId ? (chatStreams.startedAt[activeConvId] ?? null) : null,
     isPaused: isCurrentStreamPaused,
     isStreaming: isCurrentStreaming,
     mainContentLoading,

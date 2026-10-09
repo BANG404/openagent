@@ -1,0 +1,76 @@
+[scenario]
+name = "initial thinking, live elapsed runtime, and terminal process records"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "first response replaces thinking and later model waits retain the live clock"
+action = "eval"
+script = '''(async () => {
+  const assert = (condition, message) => { if (!condition) throw new Error(message); };
+  const settle = () => new Promise(resolve => setTimeout(resolve, 80));
+  const phase = async name => {
+    document.querySelector(`[data-runtime-phase=${name}]`).click();
+    await settle();
+  };
+  const running = () => document.querySelector('.process-record-running');
+  const thinking = () => document.querySelectorAll('.thinking-status');
+  const timer = () => running().querySelector('[role=timer]').textContent;
+  await phase('initial');
+  assert(thinking().length === 1, 'initial request has no thinking status');
+  assert(!running(), 'initial request already shows running header');
+  await phase('response');
+  assert(thinking().length === 0, 'first response left thinking at the tail');
+  assert(running(), 'running header is missing');
+  assert(/Agent running|Agent 运行中/.test(running().textContent), 'running label is not localized');
+  assert(!running().querySelector('button, svg'), 'live header is collapsible');
+  const tool = document.querySelector('.tool-call-card .tool-toggle');
+  assert(tool && tool.getBoundingClientRect().height > 0, 'live tool record is hidden');
+  if (tool.getAttribute('aria-expanded') !== 'true') { tool.click(); await settle(); }
+  assert(document.body.innerText.includes('Loaded the requested file.'), 'live tool result cannot be inspected');
+  assert(document.body.innerText.includes('Runtime status fixture answer.'), 'live output is hidden');
+  const initial = timer();
+  assert(parseFloat(initial) >= 12, 'timer discarded the transport start time');
+  await phase('waiting');
+  assert(thinking().length === 0, 'later model wait appended thinking');
+  assert(running(), 'later model wait lost running header');
+  await new Promise(resolve => setTimeout(resolve, 1200));
+  assert(timer() !== initial, 'elapsed clock did not advance');
+  return 'live runtime stays expanded through later model requests';
+})()'''
+
+[[step]]
+name = "completed work collapses, failed and cancelled records remain inspectable, and a new turn thinks again"
+action = "eval"
+script = '''(async () => {
+  const assert = (condition, message) => { if (!condition) throw new Error(message); };
+  const phase = async name => {
+    document.querySelector(`[data-runtime-phase=${name}]`).click();
+    await new Promise(resolve => setTimeout(resolve, 100));
+  };
+  await phase('completed');
+  assert(!document.querySelector('.process-record-running'), 'completed work retained live timer');
+  const disclosure = document.querySelector('button.process-record-summary');
+  assert(disclosure && disclosure.getAttribute('aria-expanded') === 'false', 'completed work is not collapsed');
+  assert(disclosure.textContent.includes('15s'), 'completed work lost its final duration');
+  assert(document.body.innerText.includes('Runtime status fixture answer.'), 'final answer collapsed with process records');
+  disclosure.click();
+  await new Promise(resolve => setTimeout(resolve, 100));
+  const completedTool = document.querySelector('.tool-call-card .tool-toggle');
+  assert(completedTool && completedTool.getBoundingClientRect().height > 0, 'completed tool record is hidden');
+  if (completedTool.getAttribute('aria-expanded') !== 'true') {
+    completedTool.click(); await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  assert(document.body.innerText.includes('Loaded the requested file.'), 'completed disclosure cannot reveal tool records');
+  for (const name of ['cancelled', 'failed']) {
+    await phase('response');
+    await phase(name);
+    assert(!document.querySelector('.process-record-running, .thinking-status'), name + ' retained live status');
+    const tool = document.querySelector('.tool-call-card .tool-toggle');
+    assert(tool && tool.getBoundingClientRect().height > 0, name + ' hid tool records');
+  }
+  await phase('initial');
+  assert(document.querySelectorAll('.thinking-status').length === 1, 'new turn did not reset initial thinking');
+  assert(!document.querySelector('.process-record-running'), 'new turn retained old running header');
+  return 'terminal states and a fresh request verified';
+})()'''

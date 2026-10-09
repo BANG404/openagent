@@ -859,6 +859,7 @@ export const zh = {
   noCacheActivity: "未报告缓存活动",
   working: "处理中…",
   workedFor: "处理了",
+  agentRunning: "Agent 运行中",
   thinking: "思考中",
   yes: "是",
   no: "否",

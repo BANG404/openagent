@@ -46,6 +46,7 @@
     scrollElement: HTMLElement | null;
     isStreaming: boolean;
     isAwaitingStreamOutput: boolean;
+    streamStartedAt?: number | null;
     memoryRetrievalStage?: ChatMemoryRetrievalStage | null;
     memoryRetrievalCanSkip?: boolean;
     currentStreamItems: StreamItem[];
@@ -98,6 +99,7 @@
     scrollElement,
     isStreaming,
     isAwaitingStreamOutput,
+    streamStartedAt = null,
     memoryRetrievalStage = null,
     memoryRetrievalCanSkip = false,
     currentStreamItems,
@@ -383,6 +385,7 @@
           {memoryRetrievalStage}
           {memoryRetrievalCanSkip}
           {isAwaitingStreamOutput}
+          {streamStartedAt}
           {followUpSuggestionsByMessageId}
           {suggestionHostMessageId}
           {copiedAssistantMessageId}

@@ -48,6 +48,7 @@
   import type { SlashCommand } from "$lib/composer/types";
   import MessageDivider from "$lib/components/MessageDivider.svelte";
   import MessageList from "$lib/components/MessageList.svelte";
+  import RuntimeStatusPreview from "$lib/components/RuntimeStatusPreview.svelte";
   import MediaSourcePreview from "$lib/components/MediaSourcePreview.svelte";
   import NewConversationContext from "$lib/components/NewConversationContext.svelte";
   import PermissionSettings from "$lib/components/PermissionSettings.svelte";
@@ -1560,6 +1561,8 @@
       />
     </section>
   </main>
+{:else if preview === "streaming-transcript" && query.has("streaming-transcript-preview-runtime-status")}
+  <RuntimeStatusPreview {theme} />
 {:else if preview === "streaming-transcript"}
   <main
     class="streaming-transcript-preview-stage bg-conversation-surface"

@@ -223,7 +223,7 @@ describe("conversation transition rendering", () => {
     );
     expect(surfaceSource).toContain("showNewConversationContext={false}");
     expect(messageListSource).toContain(
-      "{:else if assistantIsStreaming && isAwaitingStreamOutput}",
+      "{:else if assistantIsStreaming && isAwaitingStreamOutput && !hasModelResponse}",
     );
     expect(messageListSource).not.toContain("showAwaitingStreamOutput");
   });

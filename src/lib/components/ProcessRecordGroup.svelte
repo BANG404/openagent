@@ -5,21 +5,30 @@
   interface Props {
     duration?: string | null;
     grouped?: boolean;
+    running?: boolean;
     children: Snippet;
   }
 
-  let { duration = null, grouped = true, children }: Props = $props();
+  let { duration = null, grouped = true, running = false, children }: Props = $props();
   let open = $state(false);
 
-  let label = $derived(duration ? `${$t("workedFor")} ${duration}` : $t("workDetails"));
+  let label = $derived(
+    running ? $t("agentRunning") : duration ? `${$t("workedFor")} ${duration}` : $t("workDetails"),
+  );
 </script>
 
 <div
   class="process-records"
   data-grouped={grouped ? "true" : undefined}
+  data-running={running ? "true" : undefined}
   data-open={grouped && open ? "true" : undefined}
 >
-  {#if grouped}
+  {#if running}
+    <div class="process-record-summary process-record-running" role="status">
+      <span>{label}</span>
+      <span class="process-duration" role="timer">{duration}</span>
+    </div>
+  {:else if grouped}
     <button
       type="button"
       class="process-record-summary"
@@ -42,7 +51,7 @@
       </svg>
     </button>
   {/if}
-  <div class="process-record-content" hidden={grouped && !open}>
+  <div class="process-record-content" hidden={!running && grouped && !open}>
     {@render children()}
   </div>
 </div>
@@ -53,7 +62,7 @@
     margin: 0 0 14px;
   }
 
-  .process-records:not([data-grouped="true"]),
+  .process-records:not([data-grouped="true"]):not([data-running="true"]),
   .process-records:not([data-grouped="true"]) .process-record-content {
     display: contents;
   }
@@ -82,6 +91,16 @@
   .process-record-summary:focus-visible {
     border-radius: 4px;
     box-shadow: var(--focus-ring);
+  }
+
+  .process-record-running {
+    cursor: default;
+    gap: 12px;
+  }
+
+  .process-duration {
+    flex: none;
+    font-variant-numeric: tabular-nums;
   }
 
   .process-chevron {

@@ -26,6 +26,7 @@
     formatTime,
     formatTokens,
     formatPercent,
+    formatDuration,
   } from "$lib/transcript/assistantContent";
   import type { ConvTree } from "$lib/checkpointTree";
   import type { ChatMemoryRetrievalStage } from "$lib/openagent";
@@ -49,6 +50,7 @@
     memoryRetrievalStage: ChatMemoryRetrievalStage | null;
     memoryRetrievalCanSkip: boolean;
     isAwaitingStreamOutput: boolean;
+    streamStartedAt: number | null;
     followUpSuggestionsByMessageId: Record<string, string[]>;
     suggestionHostMessageId: string | null;
     copiedAssistantMessageId: string | null;
@@ -78,6 +80,7 @@
     memoryRetrievalStage,
     memoryRetrievalCanSkip,
     isAwaitingStreamOutput,
+    streamStartedAt,
     followUpSuggestionsByMessageId,
     suggestionHostMessageId,
     copiedAssistantMessageId,
@@ -90,6 +93,25 @@
     onSkipMemoryRetrieval,
     onSelectSuggestion,
   }: Props = $props();
+
+  let liveNow = $state(Date.now());
+  let liveStart = $state(Date.now());
+  $effect(() => {
+    if (entry.kind !== "live_stream") return;
+    // The transport's clock survives switching conversations and model rounds.
+    // Paired clients can instead recover the logical Turn clock from history.
+    liveStart =
+      streamStartedAt ??
+      messages.findLast((message) => message.turn?.response_message_id === entry.key)?.turn
+        ?.started_at ??
+      messages.findLast(
+        (message) => message.role === "user" && !message.tags?.includes("context_compaction"),
+      )?.timestamp ??
+      Date.now();
+    liveNow = Date.now();
+    const timer = window.setInterval(() => (liveNow = Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  });
 
   function memoryRetrievalLabel(stage: ChatMemoryRetrievalStage): string {
     switch (stage) {
@@ -123,6 +145,13 @@
     activeBranchId,
   )}
   {@const assistantIsStreaming = entry.kind === "live_stream"}
+  {@const hasModelResponse = renderedAssistantItems.some(
+    (item) =>
+      item.type === "tool_call" ||
+      ((item.type === "text" || item.type === "thinking") && item.content.length > 0),
+  )}
+  {@const showRunningStatus =
+    assistantIsStreaming && !memoryRetrievalStage && (!isAwaitingStreamOutput || hasModelResponse)}
   {@const turnMetadata = latestTurnMetadata(turnMessages)}
   {@const turnStatus = assistantTurnStatus(turnMessages, assistantIsStreaming)}
   {@const turnSuggestionHostMessageId =
@@ -201,7 +230,11 @@
       {/if}
     {/each}
   {/snippet}
-  <ProcessRecordGroup grouped={showProcessRecords} duration={timing?.total}>
+  <ProcessRecordGroup
+    grouped={showProcessRecords}
+    running={showRunningStatus}
+    duration={showRunningStatus ? formatDuration(Math.max(0, liveNow - liveStart)) : timing?.total}
+  >
     {@render renderAssistantSegments(processSegments)}
   </ProcessRecordGroup>
   {@render renderAssistantSegments(finalSegments)}
@@ -215,7 +248,7 @@
         >
       {/if}
     </div>
-  {:else if assistantIsStreaming && isAwaitingStreamOutput}
+  {:else if assistantIsStreaming && isAwaitingStreamOutput && !hasModelResponse}
     <div class="thinking-status" role="status" aria-live="polite">
       <span class="thinking-dot"></span>
       <span>{$t("awaitingStreamOutput")}</span>

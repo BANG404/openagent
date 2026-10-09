@@ -43,6 +43,7 @@
     "test:blackbox:memory": "bun scripts/test-memory-blackbox.mjs",
     "test:blackbox:composer-editor": "bun scripts/test-composer-editor-blackbox.mjs",
     "test:blackbox:book-reader": "bun scripts/test-book-reader-blackbox.mjs",
+    "test:blackbox:runtime-status": "bun scripts/test-runtime-status-blackbox.mjs",
     "test:blackbox:remote-page": "bun scripts/test-remote-page-blackbox.mjs",
     "test:blackbox:plugins": "bun scripts/test-plugin-blackbox.mjs",
     "test:blackbox:chat-groups-sidebar": "bun scripts/test-chat-groups-sidebar-blackbox.mjs",

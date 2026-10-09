@@ -53,6 +53,7 @@
     fileChanges: FileChange[];
     followTail: boolean;
     isAwaitingStreamOutput: boolean;
+    streamStartedAt: number | null;
     isPaused: boolean;
     isStreaming: boolean;
     mainContentLoading: boolean;
@@ -286,6 +287,7 @@
               scrollElement={messagesElement}
               isStreaming={view.isStreaming}
               isAwaitingStreamOutput={view.isAwaitingStreamOutput}
+              streamStartedAt={view.streamStartedAt}
               memoryRetrievalStage={view.memoryRetrievalStage}
               memoryRetrievalCanSkip={view.memoryRetrievalCanSkip}
               currentStreamItems={view.currentStreamItems}
