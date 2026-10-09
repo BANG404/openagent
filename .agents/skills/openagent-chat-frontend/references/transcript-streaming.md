@@ -305,17 +305,22 @@
   primary indicator at the same hover, focus, and active opacity. Clear focus
   acquired by a pointer drag when it finishes so the active affordance cannot
   stick; preserve visible focus for keyboard resizing.
-- Finalization updates the existing row instead of replacing its DOM subtree,
-  preserving open thinking sections. Restored historical thinking starts
-  collapsed.
-- Thinking follows an auto-collapse rule instead of staying open for the whole
-  turn: only the trailing record of a turn that can still append records
-  (`running`, or `interrupted` and therefore resumable) is expanded, and a
-  block closes as soon as any later rendered record follows it. An explicit
-  reader toggle overrides the rule for that block's remaining lifetime, so a
-  collapsed record never reopens on its own. Carry only the record the live
-  stream left open across finalization; records that already collapsed during
-  streaming must not reopen when the live row hands off to its durable row.
+- Finalization updates the existing row instead of replacing its DOM subtree.
+  Restored historical thinking starts collapsed.
+- Thinking starts collapsed in every turn state and expands only on a reader
+  click. Its header shows the localized label and latest non-empty content line
+  in one row, updates partial lines as chunks arrive, and truncates overflow
+  with an ellipsis. Trailing blank lines retain the preceding non-empty line;
+  empty content uses the label alone. Expanded thinking shows the complete plain
+  text. Strip only a leading `analysis:` or `reasoning:` label from both views.
+  New chunks, following records, interruption, resume, and finalization must not
+  automatically expand thinking. Reader toggles own the mounted record state;
+  remove stream-to-durable auto-open handoff state. Collapsed thinking reserves
+  a single-row intrinsic size rather than a full message placeholder.
+  Run `bun run test:blackbox:thinking-preview` against an isolated Tauri window
+  with explicit `TAURI_PILOT_SOCKET`; the deterministic streaming preview covers
+  partial/blank/long lines, click and keyboard disclosure, following text,
+  interrupted/resumed and completed turns in light/dark and English/Chinese.
 - Keep every failed model attempt as its own ordered retry record and divider
   inside the same logical assistant turn. The turn-level process disclosure may
   contain several retries because automatic recovery must still produce one

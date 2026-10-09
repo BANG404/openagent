@@ -9,7 +9,6 @@
     assistantTurnStatus,
     latestTurnMetadata,
     shouldShowProcessRecords,
-    thinkingRecordOpen,
   } from "$lib/processRecordState";
   import {
     groupStreamItems,
@@ -42,7 +41,6 @@
     activeTree: ConvTree | undefined;
     debugMode: boolean;
     pendingCheckpointId: string | null;
-    streamedOpenThinkingItemKey: string | null;
     shikiTheme: string;
     mermaidConfig: MermaidConfig;
     fileChanges: FileChange[];
@@ -72,7 +70,6 @@
     activeTree,
     debugMode,
     pendingCheckpointId,
-    streamedOpenThinkingItemKey,
     shikiTheme,
     mermaidConfig,
     fileChanges,
@@ -185,7 +182,7 @@
     ? (followUpSuggestionsByMessageId[turnSuggestionHostMessageId] ?? [])
     : []}
   {#snippet renderAssistantSegments(segments: StreamItemSegment[])}
-    {#each segments as segment, segmentIndex (`${entry.key}-${segment.startIndex}`)}
+    {#each segments as segment (`${entry.key}-${segment.startIndex}`)}
       {#if segment.kind === "tool_group"}
         <div
           class="stream-item message-record"
@@ -216,11 +213,6 @@
             ? (assistantMsg?.checkpointId ??
               (assistantIsStreaming ? (pendingCheckpointId ?? undefined) : undefined))
             : undefined}
-          thinkingOpen={thinkingRecordOpen(
-            segmentIndex === segments.length - 1,
-            turnStatus,
-            streamedOpenThinkingItemKey === `${entry.key}-${segment.startIndex}`,
-          )}
           {shikiTheme}
           {mermaidConfig}
           {fileChanges}

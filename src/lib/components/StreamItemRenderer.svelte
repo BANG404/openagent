@@ -18,6 +18,7 @@
   import CustomToken from "$lib/streamdown/CustomToken.svelte";
   import { externalLinks } from "$lib/streamdown/externalLink";
   import { useOpenAgentUiCapabilities } from "$lib/openagent";
+  import { latestThinkingLine, normalizeThinkingContent } from "$lib/transcript/thinkingContent";
 
   interface Props {
     item: StreamItem;
@@ -27,7 +28,6 @@
     isLastText?: boolean;
     debugCheckpointId?: string;
     isStreaming?: boolean;
-    thinkingOpen?: boolean;
     shikiTheme: string;
     mermaidConfig: MermaidConfig;
     fileChanges?: FileChange[];
@@ -43,7 +43,6 @@
     isLastText = false,
     debugCheckpointId,
     isStreaming = false,
-    thinkingOpen = false,
     shikiTheme,
     mermaidConfig,
     fileChanges = [],
@@ -53,7 +52,10 @@
 
   let expanded = $state(false);
   let thinkingExpanded = $state(false);
-  let thinkingToggled = $state(false);
+  const thinkingContent = $derived(
+    item.type === "thinking" ? normalizeThinkingContent(item.content) : "",
+  );
+  const thinkingPreview = $derived(latestThinkingLine(thinkingContent));
   const capabilities = useOpenAgentUiCapabilities();
   const streamingTextAnimation = {
     enabled: true,
@@ -64,14 +66,6 @@
     animateOnMount: false,
   };
 
-  // The transcript owns the auto-collapse rule while a turn produces records:
-  // a thinking block closes as soon as a later record follows it. A reader
-  // toggle is the only thing that overrides that rule for good.
-  $effect.pre(() => {
-    if (thinkingToggled) return;
-    thinkingExpanded = thinkingOpen;
-  });
-
   function toolArgHint(args: string): string {
     try {
       const first = Object.values(JSON.parse(args))[0];
@@ -81,10 +75,6 @@
       }
     } catch {}
     return "";
-  }
-
-  function renderThinkingContent(content: string): string {
-    return content.replace(/^\s*(analysis|reasoning)\s*[:：]\s*/i, "");
   }
 </script>
 
@@ -127,6 +117,7 @@
 {:else if item.type === "thinking"}
   <div
     class="thinking-block stream-item message-record"
+    class:thinking-expanded={thinkingExpanded}
     id={messageId ? `message-${messageId}` : undefined}
     data-message-id={messageId}
     data-stream-item={itemKey}
@@ -135,15 +126,15 @@
       type="button"
       class="thinking-summary"
       aria-expanded={thinkingExpanded}
-      onclick={() => {
-        thinkingToggled = true;
-        thinkingExpanded = !thinkingExpanded;
-      }}
+      onclick={() => (thinkingExpanded = !thinkingExpanded)}
     >
       <span class="thinking-marker" aria-hidden="true">{thinkingExpanded ? "▾" : "▸"}</span>
-      <span>{$t("thinking")}</span>
+      <span class="thinking-label">{$t("thinking")}</span>
+      {#if !thinkingExpanded && thinkingPreview}
+        <span class="thinking-preview">{thinkingPreview}</span>
+      {/if}
     </button>
-    {#if thinkingExpanded}<pre>{renderThinkingContent(item.content)}</pre>{/if}
+    {#if thinkingExpanded}<pre>{thinkingContent}</pre>{/if}
   </div>
 {:else if item.type === "tool_call"}
   <div
@@ -274,6 +265,8 @@
     content-visibility: visible;
   }
   .thinking-block {
+    min-width: 0;
+    contain-intrinsic-size: auto 24px;
     margin: 0 0 4px;
     border-left: 2px solid var(--border);
     padding: 4px 0 4px 10px;
@@ -281,8 +274,13 @@
     font-size: 13px;
     letter-spacing: 0;
   }
+  .thinking-block.thinking-expanded {
+    contain-intrinsic-size: auto 120px;
+  }
   .thinking-summary {
-    display: inline-flex;
+    display: flex;
+    width: 100%;
+    min-width: 0;
     align-items: center;
     gap: 4px;
     padding: 0;
@@ -295,6 +293,7 @@
     font: inherit;
     font-size: 12px;
     line-height: 1.3;
+    text-align: left;
   }
   .thinking-summary:focus-visible {
     border-radius: 3px;
@@ -304,6 +303,15 @@
     width: 9px;
     flex: none;
     text-align: center;
+  }
+  .thinking-label {
+    flex: none;
+  }
+  .thinking-preview {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
   .thinking-block pre {
     margin: 6px 0 0;

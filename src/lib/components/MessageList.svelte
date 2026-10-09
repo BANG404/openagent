@@ -37,7 +37,6 @@
     appendLiveStreamEntry,
     groupAssistantTurns,
     groupMessageToolCalls,
-    groupStreamItems,
     isAssistantTurnEntry,
   } from "$lib/toolCallGroups";
 
@@ -139,7 +138,6 @@
     onSelectSuggestion = () => {},
   }: Props = $props();
 
-  let streamedOpenThinkingItemKey = $state<string | null>(null);
   let copiedAssistantMessageId = $state<string | null>(null);
   let readingTurnKey = $state<string | null>(null);
   let loadingBookTurnKey = $state<string | null>(null);
@@ -200,7 +198,6 @@
   let transcriptEntries = $derived(
     appendLiveStreamEntry(renderEntries, isStreaming ? currentStreamMessageId : null),
   );
-  let currentSegments = $derived(groupStreamItems(currentStreamItems));
   // The live row carries its own divider while the running stream reports
   // compaction. A replay that reaches the transcript without a durable
   // continuation is the live row's own boundary, so it yields to the marker
@@ -245,21 +242,6 @@
       observer.disconnect();
       window.removeEventListener("resize", update);
     };
-  });
-
-  // A live row and its finalized durable message intentionally share the same
-  // assistant ID. Capture the thinking record the stream leaves open — the
-  // trailing one — by stable item key, but do not let toggle events from the
-  // outgoing live DOM mutate this handoff snapshot. The durable component
-  // consumes it only as its initial state, so records that already collapsed
-  // during streaming must not reopen when the live row hands off.
-  $effect(() => {
-    if (!isStreaming || !currentStreamMessageId) return;
-    const trailing = currentSegments.at(-1);
-    streamedOpenThinkingItemKey =
-      trailing?.kind === "item" && trailing.item.type === "thinking"
-        ? `${currentStreamMessageId}-${trailing.startIndex}`
-        : null;
   });
 
   function userIndexTitle(content: string) {
@@ -377,7 +359,6 @@
           {activeTree}
           {debugMode}
           {pendingCheckpointId}
-          {streamedOpenThinkingItemKey}
           {shikiTheme}
           {mermaidConfig}
           {fileChanges}

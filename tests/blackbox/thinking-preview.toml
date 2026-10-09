@@ -1,0 +1,123 @@
+[scenario]
+name = "single-line thinking previews and reader-owned disclosure"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "latest partial, blank and long lines remain collapsed"
+action = "eval"
+script = '''(async () => {
+  const assert = (condition, message) => { if (!condition) throw new Error(message); };
+  const settle = () => new Promise(resolve => setTimeout(resolve, 80));
+  const phase = async name => { document.querySelector(`[data-thinking-phase=${name}]`).click(); await settle(); };
+  const block = () => document.querySelector('.thinking-block');
+  const summary = () => block().querySelector('.thinking-summary');
+  const preview = () => block().querySelector('.thinking-preview');
+  const collapsed = () => {
+    assert(summary().getAttribute('aria-expanded') === 'false', 'thinking expanded without a reader click');
+    assert(!block().querySelector('pre'), 'collapsed thinking mounted the full content');
+    assert(block().getBoundingClientRect().height < 40, 'collapsed thinking wasted tail space');
+  };
+  await phase('first');
+  const first = preview().textContent;
+  assert(/Inspect the component|先检查组件/.test(first), 'first content line is missing');
+  collapsed();
+  await phase('partial');
+  const partial = preview().textContent;
+  assert(partial !== first && partial.length === 6, 'new partial line did not replace the previous line');
+  collapsed();
+  await phase('latest');
+  const latest = preview().textContent;
+  assert(latest.startsWith(partial) && latest.length > partial.length, 'partial line did not grow with streamed content');
+  assert(!latest.includes(first), 'preview includes earlier lines');
+  collapsed();
+  await phase('blank');
+  assert(preview().textContent === latest, 'blank chunks cleared the latest non-empty line');
+  collapsed();
+  await phase('long');
+  collapsed();
+  assert(preview().scrollWidth > preview().clientWidth, 'long-line fixture did not overflow');
+  const style = getComputedStyle(preview());
+  assert(style.whiteSpace === 'nowrap' && style.textOverflow === 'ellipsis', 'long preview wraps or has no ellipsis');
+  assert(block().getBoundingClientRect().right <= document.documentElement.clientWidth, 'long preview widened the transcript');
+  await phase('empty');
+  collapsed();
+  assert(!preview(), 'provider prefix became an empty preview');
+  assert(/Thinking|思考中/.test(summary().textContent), 'empty thinking has no localized fallback');
+  await phase('latest');
+  return 'streaming preview and constrained layout verified';
+})()'''
+
+[[step]]
+name = "reader expands full thinking"
+action = "click"
+target = ".thinking-summary"
+
+[[step]]
+name = "full content stays open while later records arrive"
+action = "eval"
+script = '''(async () => {
+  const assert = (condition, message) => { if (!condition) throw new Error(message); };
+  const settle = () => new Promise(resolve => setTimeout(resolve, 80));
+  const phase = async name => { document.querySelector(`[data-thinking-phase=${name}]`).click(); await settle(); };
+  const summary = () => document.querySelector('.thinking-summary');
+  const content = () => document.querySelector('.thinking-block pre');
+  assert(summary().getAttribute('aria-expanded') === 'true', 'reader click did not expand thinking');
+  assert(content().textContent.split('\n').length === 2, 'expanded view lost earlier lines');
+  assert(!document.querySelector('.thinking-preview'), 'expanded thinking duplicates the preview');
+  await phase('blank');
+  assert(content().textContent.endsWith('\n \t\n'), 'expanded content dropped original whitespace');
+  await phase('answer');
+  assert(summary().getAttribute('aria-expanded') === 'true', 'following text overrode the reader expansion');
+  assert(document.body.innerText.includes('Thinking fixture answer.'), 'following answer is missing');
+  return 'reader expansion and complete content verified';
+})()'''
+
+[[step]]
+name = "reader collapses thinking"
+action = "click"
+target = ".thinking-summary"
+
+[[step]]
+name = "interruption, resume, finalization and restoration never auto-expand"
+action = "eval"
+script = '''(async () => {
+  const assert = (condition, message) => { if (!condition) throw new Error(message); };
+  const settle = () => new Promise(resolve => setTimeout(resolve, 80));
+  const phase = async name => { document.querySelector(`[data-thinking-phase=${name}]`).click(); await settle(); };
+  const collapsed = () => {
+    assert(document.querySelector('.thinking-summary').getAttribute('aria-expanded') === 'false', 'lifecycle reopened thinking');
+    assert(!document.querySelector('.thinking-block pre'), 'lifecycle mounted full thinking');
+  };
+  collapsed();
+  await phase('latest');
+  collapsed();
+  await phase('interrupted');
+  collapsed();
+  await phase('latest');
+  collapsed();
+  await phase('completed');
+  const group = document.querySelector('.process-records[data-grouped=true]');
+  assert(group && !group.hasAttribute('data-open'), 'completed process group is not initially collapsed');
+  group.querySelector('button.process-record-summary').click();
+  await settle();
+  collapsed();
+  assert(document.querySelector('.thinking-preview').getBoundingClientRect().height > 0, 'completed preview is hidden');
+  document.querySelector('.thinking-summary').focus();
+  return 'lifecycle disclosure and keyboard focus verified';
+})()'''
+
+[[step]]
+name = "keyboard expands thinking"
+action = "press"
+key = "Enter"
+
+[[step]]
+name = "keyboard expansion is visible"
+action = "eval"
+script = '''(() => {
+  const summary = document.querySelector('.thinking-summary');
+  const content = document.querySelector('.thinking-block pre');
+  if (summary.getAttribute('aria-expanded') !== 'true' || !content || content.getBoundingClientRect().height === 0) throw new Error('keyboard did not expand thinking');
+  return 'keyboard disclosure verified';
+})()'''
