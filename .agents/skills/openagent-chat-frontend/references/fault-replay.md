@@ -22,7 +22,13 @@ An SDK journal's committed prefix supports private diagnosis; an incomplete
 prefix cannot become a complete Runtime case. Desktop arming still requires its
 own qualification. Runtime target version 2 carries
 qualified durable history and observed input/Stop; unsupported versions or
-capabilities refuse validation. The common `replay:extract` command dispatches
+capabilities refuse validation. Runtime target version 3 adds automatically
+recorded, explicitly scheduled tool outcomes for the SDK's qualified adapter
+subset. It preserves typed success/error/refusal results and the canonical
+validation/retry/persistence path. General effects, approval/resume and nonzero
+retry-delay clocks still require separate capabilities and qualification; a
+passing subset is not coverage of an ordinary fully configured desktop Runtime.
+The common `replay:extract` command dispatches
 Runtime captures to the current private SDK, verifies its source fingerprint,
 and replays with independently authored assertions before writing a private case.
 Provider-only Runtime captures do not imply general tool/effect coverage.

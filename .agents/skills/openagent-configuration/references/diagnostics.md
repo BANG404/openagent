@@ -20,7 +20,7 @@ console output. Workflow and supported coverage belong to
 [frontend fault replay](../../openagent-chat-frontend/references/fault-replay.md).
 
 The embedded SDK capture controller also accepts an explicitly selected existing
-private root. Its qualified provider-only journals use a 16 MiB async queue and
+private root. Its qualified provider and tool-outcome journals use a 16 MiB async queue and
 a five-second model-writer drain deadline; its local 16-directory limit refuses
 start without deleting evidence. A separate Runtime completion marker joins the
 durable anchor and observed action journal. Desktop SDK arming is still pending;

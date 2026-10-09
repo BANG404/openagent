@@ -324,6 +324,59 @@ Frontend cases join Bun tests/preflight and existing frontend CI classification;
 SDK cases join SDK tests. No recording or model call is needed in default CI.
 Native runners retain the existing theme/locale and isolated-instance rules.
 
+## Complex Runtime trajectories: implementation order and acceptance
+
+Runtime work prioritizes automatically recorded tool outcomes, approval and retry
+trajectories before desktop arming. Target version 3 implements the qualified
+tool-outcome subset; approval/resume, retry clocks and general adapters remain
+proposed. Model-only tests with manually supplied effect outcomes do not prove
+automatic effect capture. Private recording seams and payload codecs belong to
+the SDK conversation-runtime owner.
+
+Treat a tool's externally observed outcome and Runtime's approval decision as
+different records. Replay substitutes only the declared external effect. Current
+code still validates arguments, decides approval, creates and resolves interrupts,
+matches tool identities, projects history and persists checkpoints. A skipped or
+denied call is never inferred to have executed. An execution error retains its
+typed classification and model-visible content; rendered text is insufficient
+to reconstruct typed text/JSON/image blocks or refusal semantics.
+
+Each new capability receives a target-schema version and named qualification.
+An adapter declares its recorded boundary, supported input/output/error shapes,
+resource restrictions and causal release gates. Unknown adapters, missing
+outcomes, undeclared metadata and unmatched calls fail qualification. An adapter
+cannot claim filesystem, process, plugin or network replay merely because a
+model received the recorded tool-result text.
+
+| Delivery slice | Required observed trajectory | Independent behavior assertions |
+| --- | --- | --- |
+| Tool effect recording | Invalid call identity, protocol rewind, valid tool dispatch, follow-up completion | Invalid call executes zero effects; valid call executes once; a later retry never repeats a completed effect; results retain their own call IDs |
+| Tool errors and argument recovery | Invalid arguments, typed execution error/refusal, corrected call | Invalid arguments enter neither approval nor execution; exact feedback is retained; failure/refusal/success stay distinct; the correction consumes only its own recorded outcome |
+| Approval and resume | Approval required, allow/deny, persisted interrupt, canonical resume, batched decisions | Denial executes zero effects; allow executes once; duplicate/stale responses cannot consume another pending call; logical Turn identity and selected branch survive resume |
+| Retry clock and cancellation | Failure, recovery checkpoint, delay entered, retry release or Stop | Retry budget resets per distinct request; exhausted retries restore clean provider history; Stop during delay issues zero further provider requests and persists one interruption |
+| Combined isolation | Successful tool round, later failed request, approval/cancel, unaffected sibling | Earlier tool results survive rewind; sibling tip/history/interrupts remain unchanged; all released work drains and run locks are released |
+
+For approval, include both an answer submitted before the previous run releases
+and an answer after release. Gate on the observed interrupt and persisted state,
+not a guessed delay. Multiple pending approvals need exact identities; a recorder
+must preserve duplicates or blank IDs as evidence rather than repair them.
+
+Retry delay is a scoped Runtime dependency with explicit enter/release/cancel
+observations. Replay does not shorten a configured delay or patch global time.
+Model-queue switches retain distinct request, attempt and binding identities.
+Zero-delay tests remain qualified only for their existing subset until the clock
+and queue capabilities have their own recordings and fixtures.
+
+Every slice must record through canonical execution, finalize the original
+private journal, and extract its external outcomes automatically. Tests cannot
+fill the replay result from the expected answer. Acceptance requires twenty
+replays with zero source-provider/effect calls, a deliberately wrong independent
+assertion that fails, and an attempted undeclared effect that fails before access.
+Where available, the affected revision must fail the same behavior assertion;
+otherwise report coverage-only. Interrupted/unsupported captures remain evidence
+and never become passing full cases. Desktop or UI qualification is additional
+and is not inferred from these Runtime results.
+
 Before milestone 2, the configuration owner must define retention/byte budgets,
 local permissions and the opt-in lifecycle; the host and SDK owners must agree
 on anchor/correlation contracts. Before milestone 3, each effect adapter must
