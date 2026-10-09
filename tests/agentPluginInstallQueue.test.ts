@@ -37,6 +37,42 @@ function fixture() {
 }
 
 describe("concurrent plugin installation", () => {
+  test("an update shares install duplicate protection and survives reopening through failure and retry", async () => {
+    const f = fixture();
+    const pending = deferred<string>();
+    const start = (install: () => Promise<string>) =>
+      f.queue.run({
+        key: "graph",
+        pluginId: "graph",
+        label: "Graph",
+        operation: "update",
+        subscribe: f.subscribe,
+        install,
+        activate: async () => {},
+      });
+    const run = start(() => pending.promise);
+    await Promise.resolve();
+    let visible: PluginInstallTask[] = [];
+    const reopen = f.queue.subscribe((tasks) => {
+      visible = tasks;
+    });
+    expect(visible[0].operation).toBe("update");
+    expect(f.queue.isInstalling("graph")).toBe(true);
+    await f.start("graph", async () => {
+      throw new Error("duplicate install");
+    });
+    expect(f.task("graph").status).toBe("running");
+    pending.reject(new Error("update download failed"));
+    await run;
+    expect(visible[0].error).toContain("update download failed");
+    expect(f.listeners.size).toBe(0);
+    await start(async () => "graph");
+    expect(visible[0].operation).toBe("update");
+    expect(visible[0].status).toBe("success");
+    expect(visible[0].error).toBeUndefined();
+    reopen();
+  });
+
   test("dismissing a result preserves running work and notifies reopened surfaces", async () => {
     const f = fixture();
     const pending = deferred<string>();

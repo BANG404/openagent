@@ -160,8 +160,11 @@ Plugin control clarity and installation-result dismissal use the process-free
 that instance, and run `bun run test:blackbox:plugin-settings`. The runner covers
 independent enablement/host authorization, always-visible localized permission
 copy, completed/error result dismissal, background task preservation, and
-Settings reopening in light/English and dark/Chinese. It seeds only transient
-queue results, requires no provider or network, and restores appearance and
+Settings reopening in every light/dark and English/Chinese combination. Update
+coverage controls typed catalog/update responses while driving the real buttons
+and shared queue: assert card/summary progress, filtering, duplicate/removal
+guards, reopening, failure and retry. It requires no provider or network and
+restores appearance and
 window size. Set `BLACKBOX_NATIVE_WINDOW_HANDLE` for native Windows captures;
 artifacts default to a system temporary directory.
 

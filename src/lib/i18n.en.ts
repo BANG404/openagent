@@ -357,6 +357,8 @@ const en: Record<TranslationKeys, string> = {
   pluginEmpty: "No third-party plugins are installed.",
   pluginInstalled: "Plugin installed.",
   pluginUpdated: "Plugin updated.",
+  pluginUpdating: "Updating plugin…",
+  pluginUpdateSuccess: "Updated {name}",
   pluginUninstalled: "Plugin uninstalled.",
   pluginOperationFailed: "Plugin operation failed",
   pluginUpdate: "Update",

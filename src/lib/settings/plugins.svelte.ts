@@ -51,7 +51,6 @@ export function createPluginSettings(
   let agentPluginMarketplaces = $state<AgentPluginMarketplaceSummary[]>([]);
   let agentPluginUpdates = $state<AgentPluginUpdateSummary[]>([]);
   let agentPluginUpdatesLoading = $state(false);
-  let agentPluginUpdating = $state<string | null>(null);
   let agentPluginRemoveId = $state<string | null>(null);
   let agentPluginRemoving = $state(false);
   let agentPluginsLoading = $state(false);
@@ -65,6 +64,10 @@ export function createPluginSettings(
   let pluginManagementView = $state<"marketplace" | "installed">("marketplace");
   const pluginInstallQueue = desktopPluginInstallQueue;
   let agentPluginInstallTasks = $state<PluginInstallTask[]>(pluginInstallQueue.snapshot());
+  const agentPluginUpdating = $derived(
+    agentPluginInstallTasks.find((task) => task.operation === "update" && task.status === "running")
+      ?.pluginId ?? null,
+  );
   const pluginHostAccessQueue = desktopPluginHostAccessQueue;
   let agentPluginHostAccessRequests = $state<AgentPluginSummary[]>(
     pluginHostAccessQueue.snapshot(),
@@ -88,7 +91,14 @@ export function createPluginSettings(
     if (task.hostAccessRequired && !agentPluginHostAccess(task.progress.plugin_id)) {
       return tr("pluginInstalledHostAccessRequired").replace("{name}", task.label);
     }
-    if (task.status === "success") return tr("pluginInstallSuccess").replace("{name}", task.label);
+    if (task.status === "success")
+      return tr(
+        task.operation === "update" ? "pluginUpdateSuccess" : "pluginInstallSuccess",
+      ).replace("{name}", task.label);
+    // Updates currently expose no intermediate Runtime phases. Keep the same
+    // indeterminate indicator active for the whole request without inventing a percentage.
+    if (task.operation === "update" && task.progress.stage === "preparing")
+      return tr("pluginUpdating");
     return tr(pluginInstallStageKeys[task.progress.stage]);
   }
   const officialPluginCards = $derived.by<OfficialPluginCatalogItem[]>(() =>
@@ -383,19 +393,31 @@ export function createPluginSettings(
   }
 
   async function updateAgentPlugin(pluginId: string): Promise<void> {
-    if (!isTauri() || agentPluginUpdating || pluginInstallQueue.isInstalling(pluginId)) return;
-    agentPluginUpdating = pluginId;
+    if (
+      !isTauri() ||
+      agentPluginRemoveId === pluginId ||
+      pluginInstallQueue
+        .snapshot()
+        .some((task) => task.operation === "update" && task.status === "running") ||
+      pluginInstallQueue.isInstalling(pluginId)
+    )
+      return;
     agentPluginStatus = "";
-    try {
-      await desktopOpenAgent.updateAgentPlugin(pluginId);
-      await refreshAgentPlugins();
-      await emit("agent-plugins-changed").catch(() => {});
-      agentPluginStatus = tr("pluginUpdated");
-    } catch (error: unknown) {
-      agentPluginStatus = `${tr("pluginOperationFailed")}: ${String(error)}`;
-    } finally {
-      agentPluginUpdating = null;
-    }
+    await pluginInstallQueue.run({
+      key: pluginId,
+      pluginId,
+      label: agentPlugins.find((plugin) => plugin.id === pluginId)?.name ?? pluginId,
+      operation: "update",
+      subscribe: (receive) => desktopOpenAgent.onAgentPluginInstallProgress(receive),
+      install: () => desktopOpenAgent.updateAgentPlugin(pluginId),
+      activate: async (updated, progress) => {
+        ++agentPluginRefreshSequence;
+        agentPlugins = [...agentPlugins.filter((plugin) => plugin.id !== updated.id), updated];
+        progress({ plugin_id: updated.id, stage: "connecting" });
+        await refreshAgentPlugins();
+        await emit("agent-plugins-changed").catch(() => {});
+      },
+    });
   }
 
   function requestUninstallAgentPlugin(pluginId: string): void {

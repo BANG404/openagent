@@ -6,11 +6,12 @@ export type PluginInstallTask = {
   label: string;
   progress: AgentPluginInstallProgress;
   status: "running" | "success" | "error";
+  operation: "install" | "update";
   error?: string;
   hostAccessRequired?: boolean;
 };
 
-/** Independent installs share no busy flag, result, or progress subscription. */
+/** Installs and updates retain per-package progress and duplicate protection. */
 export class AgentPluginInstallQueue {
   private tasks: Record<string, PluginInstallTask> = {};
   private readonly observers = new Set<(tasks: PluginInstallTask[]) => void>();
@@ -52,6 +53,7 @@ export class AgentPluginInstallQueue {
     key: string;
     pluginId: string | null;
     label: string;
+    operation?: "install" | "update";
     subscribe: (receive: (progress: AgentPluginInstallProgress) => void) => Promise<() => void>;
     install: () => Promise<T>;
     activate: (
@@ -64,6 +66,7 @@ export class AgentPluginInstallQueue {
       key: options.key,
       pluginId: options.pluginId,
       label: options.label,
+      operation: options.operation ?? "install",
       progress: { plugin_id: options.pluginId ?? "", stage: "preparing" },
       status: "running",
     };

@@ -173,7 +173,9 @@
                       icon="download"
                       tone="primary"
                       onclick={() => plugins.updateAgentPlugin(plugin.id)}
-                      disabled={plugins.agentPluginUpdating !== null}
+                      disabled={plugins.agentPluginUpdating !== null ||
+                        plugins.agentPluginInstalling(plugin.id) ||
+                        plugins.agentPluginRemoveId === plugin.id}
                     />
                   {:else if plugin.installed}
                     <span class="official-plugin-installed-copy"

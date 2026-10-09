@@ -85,6 +85,14 @@ subscriptions and data directories.
 The committed plugin-install scenario checks their localized names, stable IDs
 and independent repository links before installing either source.
 
+Update requests use the same window-wide task queue, card indicator and summary
+as installs, keyed by plugin ID. The current update command provides no intermediate
+phases: show localized Updating text and an indeterminate bar throughout the request,
+then retain it through catalog refresh. Update tasks and duplicate/update/removal
+guards survive Settings closure; success names the updated package and errors remain
+dismissible and retryable. Keep install and update result wording distinct.
+Verify update progress, failure/retry and reopening with `test:blackbox:plugin-settings`.
+
 Installation shows the Runtime's current phase with an indeterminate progress
 indicator beside the corresponding official card's download button. Keep it
 visible during connection even if the package already appears installed. If

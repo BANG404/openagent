@@ -353,6 +353,8 @@ export const zh = {
   pluginEmpty: "尚未安装第三方插件。",
   pluginInstalled: "插件已安装。",
   pluginUpdated: "插件已更新。",
+  pluginUpdating: "正在更新插件…",
+  pluginUpdateSuccess: "已更新 {name}",
   pluginUninstalled: "插件已卸载。",
   pluginOperationFailed: "插件操作失败",
   pluginUpdate: "更新",

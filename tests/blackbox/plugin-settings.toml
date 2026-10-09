@@ -93,3 +93,91 @@ script = '''(async () => {
   if (document.querySelector('.plugin-install-notice[data-plugin-id^="settings-"]')) throw new Error('dismissed results returned');
   return 'dismissal survived reopening';
 })()'''
+
+[[step]]
+name = "update buttons show progress and preserve guards after reopening, failure and retry"
+action = "eval"
+script = '''(async () => {
+  const {desktopOpenAgent: client} = await import('/src/lib/openagent/tauriClient.ts');
+  const {desktopPluginInstallQueue: queue} = await import('/src/lib/agentPluginInstallQueue.ts');
+  const probe = window.__pluginSettingsProbe;
+  const original = {list: client.listAgentPlugins, check: client.checkAgentPluginUpdates, update: client.updateAgentPlugin};
+  const installed = await client.listAgentPlugins();
+  const fixture = installed.find(plugin => plugin.id === 'openagent-settings-probe');
+  const graph = {...fixture, id:'graph', name:'Graph', version:'1.0.0', capabilities:[]};
+  let calls = 0;
+  let finish;
+  let fail;
+  const tick = () => new Promise(resolve => setTimeout(resolve, 30));
+  const wait = async (check) => {
+    for (let i=0;i<100;i++) {if (check()) return; await tick();}
+    throw new Error('update UI timed out');
+  };
+  const open = async () => {
+    document.querySelector('#application-integrations-menu').click();
+    await tick();
+    [...document.querySelectorAll('[role=menuitem]')].find(item => /Plugins|插件/.test(item.textContent)).click();
+    await wait(() => document.querySelector('.official-plugin-card[data-plugin-id="graph"] button'));
+  };
+  const close = () => document.querySelector('[role=dialog] button[aria-label="Close"], [role=dialog] button[aria-label="关闭"]').click();
+  const updateButton = () => [...document.querySelectorAll('.official-plugin-card[data-plugin-id="graph"] button')].find(button => button.textContent.trim() === probe.update);
+  const progress = () => document.querySelector('.official-plugin-card[data-plugin-id="graph"] .plugin-install-progress');
+  try {
+    // Only typed product responses are controlled; the real Settings handlers,
+    // shared queue, subscriptions and user controls remain in the native window.
+    client.listAgentPlugins = async () => [...installed.filter(plugin => plugin.id !== 'graph'), graph];
+    client.checkAgentPluginUpdates = async () => ({updates:[{id:'graph',current_version:'1.0.0',latest_version:'2.0.0',update_available:true,asset_url:'https://example.invalid/graph.zip'}]});
+    client.updateAgentPlugin = async () => {
+      calls++;
+      return new Promise((resolve,reject) => {finish = () => resolve({...graph,version:'2.0.0'});fail = reject;});
+    };
+    close();
+    await tick();
+    await open();
+    await wait(() => updateButton());
+    updateButton().click();
+    await wait(() => calls === 1 && progress());
+    if (!progress().querySelector('progress') || progress().querySelector('progress').hasAttribute('value') || !progress().textContent.includes(probe.updating)) throw new Error('update lost localized indeterminate progress');
+    updateButton().click();
+    if (calls !== 1 || !updateButton().disabled) throw new Error('duplicate update was allowed');
+    close();
+    await tick();
+    await open();
+    await wait(() => progress() && updateButton());
+    if (!updateButton().disabled || !queue.isInstalling('graph')) throw new Error('reopening lost update protection');
+    const search = document.querySelector('.official-plugin-search input');
+    search.value = 'no-matching-update-card';
+    search.dispatchEvent(new Event('input', {bubbles:true}));
+    await wait(() => !document.querySelector('.official-plugin-card[data-plugin-id="graph"]'));
+    if (!document.querySelector('.plugin-install-progress[data-plugin-id="graph"] progress')) throw new Error('filtering hides running update');
+    search.value = '';
+    search.dispatchEvent(new Event('input', {bubbles:true}));
+    await wait(() => progress());
+    document.querySelector('.plugin-management-tabs button:nth-of-type(2)').click();
+    await wait(() => document.querySelector('.plugin-install-progress[data-plugin-id="graph"]') && document.querySelector('.plugin-accordion-item[data-plugin-id="graph"]'));
+    const card = document.querySelector('.plugin-accordion-item[data-plugin-id="graph"]');
+    card.querySelector('.plugin-accordion-trigger').click();
+    await tick();
+    if ([...card.querySelectorAll('.plugin-footer-actions button')].some(button => !button.disabled)) throw new Error('running update allows update or removal');
+    fail(new Error('update fixture download failed'));
+    await wait(() => queue.snapshot().find(task => task.key === 'graph')?.status === 'error');
+    await wait(() => document.querySelector('.plugin-install-notice[data-plugin-id="graph"]'));
+    if (!document.querySelector('.plugin-install-notice[data-plugin-id="graph"]').textContent.includes('update fixture download failed')) throw new Error('update failure is invisible');
+    document.querySelector('.plugin-management-tabs button:nth-of-type(1)').click();
+    await wait(() => updateButton() && !updateButton().disabled);
+    updateButton().click();
+    await wait(() => calls === 2 && progress());
+    finish();
+    await wait(() => queue.snapshot().find(task => task.key === 'graph')?.status === 'success');
+    await wait(() => document.querySelector('.plugin-install-notice[data-plugin-id="graph"]'));
+    if (document.querySelector('.plugin-install-notice[data-plugin-id="graph"]').querySelector('.notice-copy').textContent.trim() !== probe.updated) throw new Error('update result uses install wording');
+    document.querySelector('.plugin-install-notice[data-plugin-id="graph"] button').click();
+    return 'update progress, reopening, duplicate/removal protection, failure and retry passed';
+  } finally {
+    if (queue.isInstalling('graph')) {fail?.(new Error('fixture cleanup'));await tick();}
+    queue.dismiss('graph');
+    client.listAgentPlugins = original.list;
+    client.checkAgentPluginUpdates = original.check;
+    client.updateAgentPlugin = original.update;
+  }
+})()'''

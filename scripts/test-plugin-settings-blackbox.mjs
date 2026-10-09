@@ -82,6 +82,8 @@ evaluate(`window.__pluginSettingsWindow = (async () => {
 try {
   for (const [theme, language] of /** @type {const} */ [
     ["light", "en"],
+    ["light", "zh"],
+    ["dark", "en"],
     ["dark", "zh"],
   ]) {
     const catalog = language === "en" ? en : zh;
@@ -103,7 +105,7 @@ try {
     })()`);
     await openPlugins();
     evaluate(
-      `window.__pluginSettingsProbe = ${JSON.stringify({ enable: catalog.pluginEnable, access: catalog.pluginHostAccess, hint: catalog.pluginHostAccessHint, success: catalog.pluginInstallSuccess.replace("{name}", "Graph") })}; true`,
+      `window.__pluginSettingsProbe = ${JSON.stringify({ enable: catalog.pluginEnable, access: catalog.pluginHostAccess, hint: catalog.pluginHostAccessHint, success: catalog.pluginInstallSuccess.replace("{name}", "Graph"), update: catalog.pluginUpdate, updating: catalog.pluginUpdating, updated: catalog.pluginUpdateSuccess.replace("{name}", "Graph") })}; true`,
     );
     pilot(["snapshot", "-i"]);
     pilot(["run", join(repo, "tests/blackbox/plugin-settings.toml")]);
@@ -111,7 +113,7 @@ try {
     pilot(["click", ".plugin-management-tabs button:nth-of-type(2)"]);
     evaluate(`(async () => {
       const {desktopPluginInstallQueue:queue} = await import('/src/lib/agentPluginInstallQueue.ts');
-      await queue.run({key:'settings-capture',pluginId:'settings-capture',label:'Graph',subscribe:async()=>()=>{},install:async()=>true,activate:async()=>{}});
+      void queue.run({key:'settings-capture',pluginId:'settings-capture',label:'Graph',operation:'update',subscribe:async()=>()=>{},install:()=>new Promise(resolve=>{window.__pluginSettingsCaptureFinish=resolve;}),activate:async()=>{}});
       return true;
     })()`);
     pilot([
@@ -136,7 +138,7 @@ try {
         throw new Error(capture.stderr, { cause: capture.error });
     }
     evaluate(
-      `(async () => {const {desktopPluginInstallQueue:queue} = await import('/src/lib/agentPluginInstallQueue.ts');queue.dismiss('settings-capture');return true;})()`,
+      `(async () => {const {desktopPluginInstallQueue:queue} = await import('/src/lib/agentPluginInstallQueue.ts');window.__pluginSettingsCaptureFinish(true);await new Promise(resolve=>setTimeout(resolve,0));queue.dismiss('settings-capture');return true;})()`,
     );
     close();
   }
