@@ -97,6 +97,16 @@ Run package-owned validation and the applicable native black-box scenario;
 retain report paths and record tested Git revisions. Index validation alone
 does not prove Runtime functionality or qualify a published release.
 
+For Graph, select `BLACKBOX_PLUGIN_IDS=graph` with the functionality runner.
+Start the isolated instance with its existing `<fixture>/workspace` directory
+as the configured workspace. The runner temporarily enables networking for
+the local model and plugin bridge, then restores the original settings.
+Its deterministic child turns each take 16 seconds, exceeding the package's
+15-second bridge request timeout. Graph must submit with `wait: false`, poll
+the recorded child branch until terminal, and complete dependent nodes before
+the runner checks restored parent/child projections in light/English and
+dark/Chinese. Keep the delay: instant child turns conceal HTTP timeout failures.
+
 Chat Groups creates role-bound participants through the generic conversation
 bridge, linking them to its real owner conversation. Runtime task delegation
 is separate: group sends require existing membership and cannot auto-enroll a

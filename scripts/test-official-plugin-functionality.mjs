@@ -114,6 +114,11 @@ const model = createServer(async (request, response) => {
     .reverse()
     .find((/** @type {any} */ message) => message.role === "user");
   const prompt = JSON.stringify(lastUser?.content || "");
+  // Exercise Graph scheduling beyond its bridge client's 15-second timeout.
+  if (prompt.includes("You are executing one node from an OpenAgent Graph plugin run.")) {
+    await new Promise((done) => setTimeout(done, 16000));
+    if (response.destroyed) return;
+  }
   if (prompt.includes("Stop the active Goal")) {
     await new Promise((done) => setTimeout(done, 5000));
     if (response.destroyed) return;
@@ -237,6 +242,7 @@ try {
   config.defaults.chat_model = { provider_id: provider.id, model: "test-model" };
   config.defaults.flash_model = { provider_id: provider.id, model: "test-model" };
   config.approval_mode = "off";
+  config.permission_profile.network = "enabled";
   config.memory_retrieval_enabled = false;
   for (const agent of Object.values(config.flash_agents)) {
     if (agent && typeof agent === "object" && "enabled" in agent) agent.enabled = false;
