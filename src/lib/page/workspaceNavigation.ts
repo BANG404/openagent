@@ -10,7 +10,6 @@ import type {
   UserInputRequest,
   AgentRole,
   FileChange,
-  ChatMessage,
 } from "$lib/types";
 import type { CachedRestoreSurface } from "$lib/startupRestoreCache";
 import type { ChatStreamState } from "$lib/chatStreamState.svelte";
@@ -62,11 +61,7 @@ interface WorkspaceOptions {
   storedRoleSelection: (workspace?: string) => string;
   roleSelectionStorageKey: (workspace?: string) => string;
   mergeDurableFollowUpSuggestions: (checkpoints: StartupConversationBundle["checkpoints"]) => void;
-  syncAgentHistoryToActivePath: (
-    convId: string,
-    tree?: ConvTree,
-    projectedPath?: ChatMessage[],
-  ) => Promise<void>;
+  syncAgentHistoryToActivePath: (convId: string, tree?: ConvTree) => Promise<void>;
   scrollToBottom: (behavior?: ScrollBehavior) => Promise<void>;
   cacheRestoreSurface: (
     surface: CachedRestoreSurface,

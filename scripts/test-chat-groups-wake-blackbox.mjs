@@ -2,7 +2,15 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:http";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { resolveBlackboxHome } from "./tauri-test-environment.mjs";
@@ -59,6 +67,9 @@ async function until(expression) {
 }
 /** @type {string[]} */
 const providerPrompts = [];
+let holdStartupWakes = false;
+/** @type {Array<() => void>} */
+const startupWakeReleases = [];
 const model = createServer(async (request, response) => {
   let raw = "";
   for await (const chunk of request) raw += chunk;
@@ -79,6 +90,8 @@ const model = createServer(async (request, response) => {
     return;
   }
   const hidden = prompt.includes("[chat_group:");
+  if (hidden && holdStartupWakes)
+    await new Promise((done) => startupWakeReleases.push(() => done(null)));
   await new Promise((done) => setTimeout(done, 300));
   response.writeHead(200, { "content-type": "application/x-ndjson" });
   response.end(
@@ -250,6 +263,7 @@ try {
         await evaluate("document.querySelectorAll('.sub-conv-item.streaming').length"),
         "0",
       );
+      holdStartupWakes = true;
       const started = await call("chat_group_start", {
         group_id: group.id,
         title: group.title,
@@ -283,6 +297,28 @@ try {
         children.every((/** @type {any} */ child) => child.parent_conv_id === id && child.role_id),
         "role or parent binding missing",
       );
+      const startupDeadline = Date.now() + 30000;
+      while (startupWakeReleases.length < childIds.length && Date.now() < startupDeadline)
+        await new Promise((done) => setTimeout(done, 100));
+      assert.equal(
+        startupWakeReleases.length,
+        childIds.length,
+        "startup wakes never reached provider",
+      );
+      await evaluate(`window.__groupHistoryProbe=${JSON.stringify({ childIds })}; true`);
+      await pilot(["snapshot", "-i"]);
+      await pilot(["run", join(repo, "tests/blackbox/chat-groups-wake-history.toml")]);
+      for (const childId of childIds) {
+        // Exercise an older surface that has not received live events too.
+        for (const checkpointId of [null, "stale-navigation-checkpoint"]) {
+          await assert.rejects(
+            invoke("restore_agent_history", { convId: childId, checkpointId }),
+            /chat run is active/,
+          );
+        }
+      }
+      holdStartupWakes = false;
+      for (const release of startupWakeReleases.splice(0)) release();
       await until(`(async()=>{
         const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
         for(const id of ${JSON.stringify(childIds)}){
@@ -294,7 +330,16 @@ try {
         return true;
       })()`);
       console.log(`Joined roles and startup wakes passed: ${theme}/${language}`);
+      await evaluate(
+        `(async()=>{const {emitTo}=await import('/node_modules/@tauri-apps/api/event.js');await emitTo('main','settings-open-conversation',{conversationId:${JSON.stringify(id)}});return true;})()`,
+      );
+      await until(`document.body.textContent.includes('conversation: ${id}')`);
+      console.log(`Navigation preserves hidden startup snapshots: ${theme}/${language}`);
       const beforeHandoff = await invoke("get_renderable_checkpoints", { convId: childIds[0] });
+      await invoke("restore_agent_history", {
+        convId: childIds[0],
+        checkpointId: beforeHandoff.at(-1).meta.checkpoint_id,
+      });
       const roleReply = await call(
         "chat_group_send_message",
         {
@@ -437,6 +482,35 @@ try {
       await pilot(["run", join(repo, "tests/blackbox/chat-groups-wake-idle.toml")]);
       console.log(`Stop and resume running members passed: ${theme}/${language}`);
     }
+  const runtimeLogs = readdirSync(join(home, "logs"))
+    .filter((name) => name.startsWith("openagent.") && name.endsWith(".jsonl"))
+    .flatMap((name) =>
+      readFileSync(join(home, "logs", name), "utf8")
+        .trim()
+        .split(/\r?\n/),
+    )
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
+  assert(
+    runtimeLogs.some((entry) => entry.reason === "active_run"),
+    "restore rejection log missing",
+  );
+  assert(
+    runtimeLogs.some((entry) => entry.message === "agent history restore applied"),
+    "restore application log missing",
+  );
+  assert(
+    runtimeLogs.some(
+      (entry) => entry.message === "chat terminal snapshot persisted" && entry.message_count > 0,
+    ),
+    "terminal snapshot counts missing",
+  );
+  assert(
+    !runtimeLogs.some((entry) =>
+      ["missing_live_snapshot", "empty_terminal_snapshot"].includes(entry.reason),
+    ),
+    "navigation lost a live snapshot",
+  );
   writeFileSync(
     join(artifacts, "wake-report.json"),
     JSON.stringify(
@@ -453,6 +527,8 @@ try {
   );
   console.log(`Chat Groups hidden wake passed: ${artifacts}`);
 } finally {
+  holdStartupWakes = false;
+  for (const release of startupWakeReleases.splice(0)) release();
   writeFileSync(join(artifacts, "provider-prompts.json"), JSON.stringify(providerPrompts, null, 2));
   for (const id of conversations) await invoke("delete_conversation", { convId: id });
   for (const role of discussionRoles) await invoke("delete_agent_role", { id: role.id });
