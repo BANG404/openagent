@@ -49,6 +49,7 @@
   import MessageDivider from "$lib/components/MessageDivider.svelte";
   import MessageList from "$lib/components/MessageList.svelte";
   import RuntimeStatusPreview from "$lib/components/RuntimeStatusPreview.svelte";
+  import ThinkingPreview from "$lib/components/ThinkingPreview.svelte";
   import MediaSourcePreview from "$lib/components/MediaSourcePreview.svelte";
   import NewConversationContext from "$lib/components/NewConversationContext.svelte";
   import PermissionSettings from "$lib/components/PermissionSettings.svelte";
@@ -717,9 +718,7 @@
       },
     );
   }
-  // The live turn also demonstrates the thinking auto-collapse rule: the
-  // trailing thinking record stays expanded until the interval starts emitting
-  // the text that follows it, which collapses the block.
+  // Thinking stays in its single-line preview until the reader expands it.
   let streamingThinkingDone = $state(false);
   const streamingThinking = $derived<StreamItem>({
     type: "thinking",
@@ -1563,6 +1562,8 @@
   </main>
 {:else if preview === "streaming-transcript" && query.has("streaming-transcript-preview-runtime-status")}
   <RuntimeStatusPreview {theme} />
+{:else if preview === "streaming-transcript" && query.has("streaming-transcript-preview-thinking")}
+  <ThinkingPreview {theme} {locale} />
 {:else if preview === "streaming-transcript"}
   <main
     class="streaming-transcript-preview-stage bg-conversation-surface"

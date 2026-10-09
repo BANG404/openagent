@@ -42,8 +42,9 @@ preview query routing and book-open actions load the same checked components.
   keeps process records separate from the final output without adding a DOM
   wrapper that changes pagination. `assistantContent.ts` supplies the same
   items, compaction boundaries, timing and usage to the row and book reader.
-  The list retains the stream-to-durable thinking handoff, book selection and
-  one copy-feedback timer; dispose that timer with the list. Source contract
+  The list retains book selection and one copy-feedback timer; dispose that
+  timer with the list. Thinking disclosure belongs to its mounted renderer.
+  Source contract
   checks use `transcriptSource()` to read the composition and row owners.
 
 - Shared interactive controls are not text-selectable. The application
