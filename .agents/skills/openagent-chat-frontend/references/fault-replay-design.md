@@ -3,7 +3,10 @@
 Status: frontend replay foundation implemented with a bounded inline case bundle;
 see [the actual workflow and capability limits](fault-replay.md).
 Initial developer frontend recording and extraction are implemented for the
-foundation's limited capabilities. SDK/adapter replay, reload continuation and
+foundation's limited capabilities. The private SDK also implements bounded
+model-boundary recording and a constrained Runtime case runner; `bun run replay`
+dispatches Runtime cases to that current private checkout. SDK live arming and
+durable-anchor qualification, general adapter cases, reload continuation and
 configuration switches remain proposed.
 The chat owner maintains the shared host-facing contract. SDK recording and
 execution details must be designed and implemented in the private SDK repository.
@@ -53,9 +56,10 @@ transport traffic alone cannot reproduce optimistic messages or reloads.
 Transport observation precedes the normal consumer callback without awaiting
 disk writes. Native/remote adapters retain their existing ownership.
 
-SDK recording attaches to the canonical execution boundaries. Model recording
-captures normalized response chunks and structured errors; wire-level failures
-need the later adapter target. Replay substitutes a model backend and supported
+SDK recording attaches to the canonical execution boundaries. The current
+private SDK records model HTTP bodies/frames below its existing provider decoder
+and compatibility layer, preserving their decoding semantics. Runtime replay
+substitutes that recorded IO and supported
 effect adapters while retaining the production execution path. A frontend replay
 can demonstrate a display race without proving runtime correctness; reports
 must name the target and cannot infer cross-layer coverage.
@@ -210,7 +214,7 @@ Reload destroys the old consumer, retains only recorded persisted state, creates
 the new consumer and releases its recorded bootstrap. Avoid testing only a copy
 of reducer logic or invoking handlers with a hand-built final state.
 
-Runtime replay uses the SDK's registered backend path and normal input route.
+Runtime replay uses the normal SDK input route and its declared model IO boundary.
 Supported tools/effects run with isolated state and deterministic dependencies;
 recorded external outcomes replace only the relevant effect boundary. Retain
 argument validation, approvals, cancellation and persistence. Every adapter
