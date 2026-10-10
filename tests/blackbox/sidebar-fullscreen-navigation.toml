@@ -1,0 +1,30 @@
+[scenario]
+name = "Navigate from a fullscreen right sidebar through the conversation list"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "open the selected conversation through its sidebar row"
+action = "eval"
+script = '''(async()=>{
+  const title=window.__sidebarNavigationTitle;
+  const deadline=Date.now()+15000;
+  while(Date.now()<deadline){
+    const row=[...document.querySelectorAll('.conv-item,.workspace-conversation-row')].find(e=>e.textContent.includes(title));
+    if(row){row.click();return true;}
+    await new Promise(r=>setTimeout(r,100));
+  }
+  throw new Error('navigation conversation missing: '+title);
+})()'''
+
+[[step]]
+name = "the conversation list selects the requested conversation"
+action = "eval"
+script = '''(async()=>{
+  const deadline=Date.now()+15000;
+  while(Date.now()<deadline){
+    if([...document.querySelectorAll('.conv-item.active,.workspace-conversation-row.active')].some(e=>e.textContent.includes(window.__sidebarNavigationTitle)))return true;
+    await new Promise(r=>setTimeout(r,100));
+  }
+  throw new Error('conversation navigation did not settle');
+})()'''

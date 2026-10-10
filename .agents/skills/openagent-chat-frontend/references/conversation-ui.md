@@ -1,5 +1,22 @@
 # Conversation components
 
+Sidebar-only mode hides the transcript only while the active conversation branch
+has an available right-sidebar view. Project the saved conversation collapse
+request against sidebar availability for both the title bar and conversation
+surface; never hide both workspace surfaces. Switching to a plain conversation,
+an empty sibling branch, or New Chat must immediately reveal the transcript and
+composer. Keep the saved request so returning to a branch with sidebar content
+restores sidebar-only mode. Verify these transitions with
+`bun run test:blackbox:sidebar-fullscreen` in an isolated Tauri instance.
+Its fullscreen navigation scenarios cover plain conversations, New Chat,
+persisted startup, returning to sidebar content, and losing the active plugin
+view while its sidebar occupies the workspace.
+Start `bun tauri dev --multi-instance sidebar-fullscreen` with a fresh temporary
+`OPENAGENT_HOME`, then select that same home and its explicit `TAURI_PILOT_SOCKET`
+for the runner. It installs the local Chat Groups fixture, uses a loopback model,
+and removes its conversations and package in `finally`. On Windows, set
+`BLACKBOX_NATIVE_WINDOW_ID` to the verified main HWND for native captures.
+
 Authored user bubbles reuse `composerMarkdown.parseBlocks` and
 `composerDom.renderBlocks`, including headings, quotes, lists, tasks, fenced
 code and inline formatting. Attachments and mention tokens retain their chip

@@ -1,0 +1,27 @@
+[scenario]
+name = "A scope without a right sidebar reveals the conversation and composer"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "the transcript and composer fill the available workspace"
+action = "eval"
+script = '''(async()=>{
+  const deadline=Date.now()+15000;
+  while(Date.now()<deadline){
+    const stage=document.querySelector('#conversation-stage');
+    const composer=stage?.querySelector('[contenteditable=true][role=textbox]');
+    const panel=document.querySelector('#checkpoint-flow-panel');
+    const workspace=stage?.parentElement.getBoundingClientRect();
+    const bounds=stage?.getBoundingClientRect();
+    if(stage&&composer&&panel?.classList.contains('collapsed')&&bounds?.width>0&&composer.getBoundingClientRect().height>0){
+      if(stage.classList.contains('conversation-collapsed'))throw new Error('conversation remains hidden without a sidebar');
+      if(Math.abs(bounds.width-workspace.width)>2)throw new Error('conversation does not fill the workspace');
+      if(document.querySelector('.conversation-toggle'))throw new Error('title bar projects a hidden conversation despite missing sidebar');
+      if(localStorage.getItem('openagent.conversation-panel-collapsed')!=='true')throw new Error('automatic recovery overwrote fullscreen preference');
+      return true;
+    }
+    await new Promise(r=>setTimeout(r,100));
+  }
+  throw new Error('conversation and composer never became visible without a sidebar');
+})()'''

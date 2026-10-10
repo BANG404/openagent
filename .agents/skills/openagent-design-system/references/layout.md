@@ -19,6 +19,9 @@ the sole workspace surface and must occupy the full workspace width. The
 sidebar's saved collapse preference remains available when the conversation
 pane is restored; it must not leave the workspace empty while the conversation
 pane is hidden.
+When the active scope has no available sidebar, the conversation pane fills the
+workspace even if its saved preference requests collapse. The chat frontend
+owner documents the availability projection and native navigation coverage.
 
 ### Spacing System
 
