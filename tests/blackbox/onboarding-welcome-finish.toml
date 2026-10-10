@@ -14,6 +14,12 @@ script = '''(async () => {
     button.click();
     await new Promise(resolve => setTimeout(resolve, 100));
     if (!panel.querySelector(`nav [aria-current="step"][aria-label^="${step + 1}."]`)) throw new Error('wizard did not advance');
+    if (step === 2 && new URLSearchParams(location.search).has('onboarding-preview')) {
+      const name = panel.querySelector('.form-grid .two input');
+      if (!name) throw new Error('preview service name cannot be edited');
+      name.value = 'Unsaved preview service';
+      name.dispatchEvent(new Event('input', {bubbles: true}));
+    }
   }
   if (panel.querySelector('.embedding-card')) throw new Error('resource preparation remains in Ready');
   const finish = [...panel.querySelectorAll('footer button')].find(button => ['Start using OpenAgent', '开始使用 OpenAgent'].includes(button.textContent.trim()));

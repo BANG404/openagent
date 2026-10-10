@@ -130,7 +130,7 @@ try {
       pilot(["snapshot", "-i"]);
       pilot([
         "eval",
-        "window.__welcomeReload = true; setTimeout(() => location.reload(), 100); true",
+        "window.__welcomeReload = true; const url = new URL(location.href); url.searchParams.delete('onboarding-preview'); setTimeout(() => location.replace(url.href), 100); true",
       ]);
       await until(
         `!window.__welcomeReload && document.documentElement.classList.contains('dark') === ${theme === "dark"} && document.querySelector('h1')?.textContent.includes(${JSON.stringify(language === "en" ? "Welcome" : "欢迎")}) && document.querySelector('.embedding-meter')?.getAttribute('aria-valuenow') === '100'`,
@@ -156,11 +156,46 @@ try {
         (args) => pilot(args),
         path.join(directory, `${theme}-${language}.png`),
       );
+      pilot(["run", path.join(root, "tests/blackbox/onboarding-workspace-preferences.toml")]);
       pilot(["run", path.join(root, "tests/blackbox/onboarding-welcome-finish.toml")]);
       await until(
         "window.__TAURI_INTERNALS__.invoke('plugin:window|is_visible', {label:'onboarding'}).then(visible => !visible)",
       );
       assert.equal(invoke("get_settings", {}, "main").onboarding_completed, true);
+
+      const saved = invoke("get_settings", {}, "main");
+      await until(
+        "[...document.querySelectorAll('button')].some(button => button.textContent.trim() === 'Temporary UI')",
+        "debug",
+      );
+      pilot(
+        [
+          "eval",
+          "(async () => { await window.__TAURI_INTERNALS__.invoke('plugin:window|show', {label:'debug'}); await window.__TAURI_INTERNALS__.invoke('plugin:window|set_focus', {label:'debug'}); return true; })()",
+        ],
+        "debug",
+      );
+      pilot(["snapshot", "-i"], "debug");
+      pilot(["run", path.join(root, "tests/blackbox/onboarding-inspector-preview.toml")], "debug");
+      await until(
+        `location.search.includes('onboarding-preview=1') && document.querySelectorAll('.onboarding-nav-item').length === 5 && document.documentElement.classList.contains('dark') === ${theme === "dark"} && document.querySelector('h1')?.textContent.includes(${JSON.stringify(language === "en" ? "Welcome" : "欢迎")}) && document.querySelector('.embedding-meter')?.getAttribute('aria-valuenow') === '100'`,
+      );
+      pilot(["snapshot", "-i"]);
+      pilot(["run", path.join(root, "tests/blackbox/onboarding-welcome.toml")]);
+      captureBlackboxScreenshot(
+        (args) => pilot(args),
+        path.join(directory, `inspector-${theme}-${language}.png`),
+      );
+      pilot(["run", path.join(root, "tests/blackbox/onboarding-workspace-preferences.toml")]);
+      pilot(["run", path.join(root, "tests/blackbox/onboarding-welcome-finish.toml")]);
+      await until(
+        "window.__TAURI_INTERNALS__.invoke('plugin:window|is_visible', {label:'onboarding'}).then(visible => !visible)",
+      );
+      assert.deepEqual(
+        invoke("get_settings", {}, "main"),
+        saved,
+        "Inspector preview must not save configuration",
+      );
     }
   }
   assert(desktop.pid);

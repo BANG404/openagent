@@ -419,7 +419,7 @@
   }
 
   async function openOnboardingPreview(): Promise<void> {
-    await invoke("reveal_onboarding_window");
+    await invoke("reveal_onboarding_window", { preview: true });
   }
 
   onMount(async () => {
@@ -706,8 +706,8 @@
           <div>
             <h3>Onboarding flow / 新手引导</h3>
             <p>
-              Open the real onboarding flow in its setup window without clearing saved settings. /
-              在独立配置窗口中打开真实引导流程，不清除已保存设置。
+              Preview all five onboarding steps without saving changes. /
+              预览完整五步引导流程，完成预览不会保存修改。
             </p>
           </div>
           <button onclick={openOnboardingPreview}>Open onboarding</button>

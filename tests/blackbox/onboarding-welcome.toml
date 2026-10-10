@@ -9,6 +9,10 @@ action = "eval"
 script = '''(() => {
   const panel = document.querySelector('[data-module="onboarding"]');
   if (!panel?.querySelector('nav [aria-current="step"][aria-label^="1."]')) throw new Error('setup skipped Welcome');
+  if (panel.querySelectorAll('.onboarding-nav-item').length !== 5) throw new Error('full wizard does not show all five steps');
+  if (panel.querySelector('.workspace-card')) throw new Error('workspace picker crowds Welcome');
+  const viewport = panel.querySelector('.ui-scroll-area-viewport');
+  if (viewport.scrollTop !== 0 || panel.querySelector('h1').getBoundingClientRect().top < viewport.getBoundingClientRect().top) throw new Error('Welcome heading is scrolled out of view');
   const card = panel.querySelector('.embedding-card');
   if (!card || card.getBoundingClientRect().bottom > panel.querySelector('footer').getBoundingClientRect().top) throw new Error('resource status is not visible in Welcome');
   const image = panel.querySelector('.onboarding-brand-icon');

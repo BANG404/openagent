@@ -1,0 +1,18 @@
+[scenario]
+name = "developer Inspector opens a fresh full onboarding preview"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "open the onboarding demonstration from Inspector"
+action = "eval"
+script = '''(async () => {
+  const previews = [...document.querySelectorAll('button')].find(button => button.textContent.trim() === 'Temporary UI');
+  if (!previews) throw new Error('Inspector preview tab is unavailable');
+  previews.click();
+  await new Promise(resolve => setTimeout(resolve, 150));
+  const button = [...document.querySelectorAll('button')].find(button => button.textContent.trim() === 'Open onboarding');
+  if (!button || button.disabled) throw new Error('Inspector onboarding action is unavailable');
+  button.click();
+  return true;
+})()'''

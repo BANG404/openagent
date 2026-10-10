@@ -3866,6 +3866,10 @@
 
   async function completeOnboarding() {
     if (!tauriAvailable) return;
+    if (isOnboardingPreview) {
+      await getCurrentWindow().hide();
+      return;
+    }
     if (new URLSearchParams(window.location.search).has("onboarding-inline")) {
       const url = new URL(window.location.href);
       url.searchParams.delete("onboarding-inline");
@@ -4243,12 +4247,16 @@
       <OnboardingFlow
         runtimeClient={openAgent}
         listenToResources={listen}
-        config={onboardingResourcePreview ? { ...config, onboarding_completed: true } : config}
+        config={onboardingResourcePreview
+          ? { ...config, onboarding_completed: true }
+          : isOnboardingPreview
+            ? { ...config, onboarding_completed: false }
+            : config}
         embeddingPreviewState={onboardingResourcePreview === "downloading"
           ? "downloading"
           : "ready"}
         {workspacePath}
-        onSave={saveSettings}
+        onSave={isOnboardingPreview ? async (draft) => draft : saveSettings}
         onPickWorkspace={pickOnboardingWorkspace}
         onComplete={completeOnboarding}
         onThemePreview={applyTheme}

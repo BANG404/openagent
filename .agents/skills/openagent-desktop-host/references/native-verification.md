@@ -360,4 +360,9 @@ application with a fresh temporary home. It verifies local model status in
 Welcome, a loaded brand icon, four themes/locales, the complete provider/model
 wizard using saved fixture models, and a configured restart with setup hidden.
 It asserts that Ready has no resource preparation card and records Welcome
-screenshots. The runner owns its Vite/Tauri processes and never uses developer data.
+screenshots. It also opens the wizard through the Inspector's Open onboarding
+button with completed configuration, checks the full five-step preview, verifies
+workspace selection in Preferences and heading visibility after Back, and proves
+that finishing the preview leaves persisted settings unchanged in all four
+theme/locale combinations. The runner owns its Vite/Tauri processes and never
+uses developer data.

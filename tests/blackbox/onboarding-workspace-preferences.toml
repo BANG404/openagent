@@ -1,0 +1,27 @@
+[scenario]
+name = "workspace selection belongs in Preferences and returning to Welcome shows the heading"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "advance to Preferences, inspect the workspace picker, and return"
+action = "eval"
+script = '''(async () => {
+  const panel = document.querySelector('[data-module="onboarding"]');
+  const next = [...panel.querySelectorAll('footer button')].find(button => ['Continue', '继续'].includes(button.textContent.trim()));
+  next.click();
+  await new Promise(resolve => setTimeout(resolve, 150));
+  if (!panel.querySelector('nav [aria-current="step"][aria-label^="2."]')) throw new Error('Preferences did not open');
+  const workspace = panel.querySelector('.workspace-card');
+  const picker = workspace?.querySelector('button');
+  if (!picker || picker.disabled) throw new Error('Preferences has no available workspace picker');
+  if (workspace.getBoundingClientRect().bottom > panel.querySelector('footer').getBoundingClientRect().top) throw new Error('workspace picker is outside the visible Preferences page');
+  panel.querySelector('.ui-scroll-area-viewport').scrollTop = 999;
+  const back = [...panel.querySelectorAll('footer button')].find(button => ['Back', '上一步'].includes(button.textContent.trim()));
+  back.click();
+  await new Promise(resolve => setTimeout(resolve, 150));
+  const viewport = panel.querySelector('.ui-scroll-area-viewport');
+  if (viewport.scrollTop !== 0 || panel.querySelector('h1').getBoundingClientRect().top < viewport.getBoundingClientRect().top) throw new Error('returning to Welcome hides the heading');
+  if (panel.querySelector('.workspace-card')) throw new Error('workspace picker returned to Welcome');
+  return true;
+})()'''

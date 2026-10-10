@@ -12,6 +12,10 @@ Both product development and production put the local embedding card in Welcome;
 Ready is only a settings summary. A configured app's unknown resource status must
 not interrupt chat startup by revealing setup. The design owner documents the
 welcome and public-asset boundary.
+The development onboarding preview passes an incomplete configuration draft to
+the wizard without modifying persisted completion. Its save callback accepts
+only the local draft, and completion hides the preview without notifying the
+main chat window. The desktop owner documents the Inspector entry point.
 
 Child conversations keep their own saved role identity. After restoring the
 active conversation or switching to it, load its children independently of

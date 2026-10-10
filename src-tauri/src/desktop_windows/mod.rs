@@ -37,7 +37,27 @@ fn show_onboarding_window(app: &tauri::AppHandle) -> Result<(), String> {
 pub(crate) fn reveal_onboarding_window(
     app: tauri::AppHandle,
     windows: State<'_, DesktopWindowState>,
+    preview: Option<bool>,
 ) -> Result<(), String> {
+    if preview == Some(true) {
+        #[cfg(not(debug_assertions))]
+        return Err("Onboarding preview is only available in development".to_string());
+        #[cfg(debug_assertions)]
+        {
+            let window = app
+                .get_webview_window("onboarding")
+                .ok_or_else(|| "Onboarding window is unavailable".to_string())?;
+            let mut url = window.url().map_err(|error| error.to_string())?;
+            let mut query: Vec<(String, String)> = url
+                .query_pairs()
+                .into_owned()
+                .filter(|(key, _)| key != "onboarding-preview")
+                .collect();
+            query.push(("onboarding-preview".to_string(), "1".to_string()));
+            url.query_pairs_mut().clear().extend_pairs(query);
+            window.navigate(url).map_err(|error| error.to_string())?;
+        }
+    }
     show_onboarding_window(&app)?;
     windows
         .startup_window_revealed

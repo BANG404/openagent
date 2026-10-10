@@ -74,7 +74,10 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   development and installed applications. Query its status before preparing;
   prepare only missing or corrupt resources, and enable Continue after readiness.
   Failures retain retry in that card. Welcome content can scroll while the footer
-  stays fixed. Ready contains the configuration summary, without a resource card.
+  stays fixed. Workspace selection belongs in Preferences beside language and
+  theme; Welcome contains the introduction and resource status. Remount the
+  scroll area on step changes so both forward and back navigation start at the
+  heading. Ready contains the configuration summary, without a resource card.
   A configured installation needing repair uses this Welcome step with a single
   step rail and the Start action, preserving existing provider configuration.
   Product onboarding uses `/app-icon.png`, served by SvelteKit in development

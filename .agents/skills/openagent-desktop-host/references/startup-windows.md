@@ -98,6 +98,14 @@ window's first reveal. Keep their labels, URLs, and singleton lookup behavior
 unchanged so shortcut and inspector flows can use the same windows once they
 have been created.
 
+The Inspector's Open onboarding action explicitly requests a development-only
+preview. Navigate the existing setup WebView with `onboarding-preview=1`,
+preserving its product origin and query, before showing it. The page displays
+all five steps even when configuration is complete; finishing hides the preview
+without saving settings or emitting the ordinary completion handoff. Reopening
+the action starts a fresh Welcome page. Ordinary startup retains its configured
+resource-repair behavior.
+
 - Reveal each desktop window's main shell as soon as Tauri setup owns the
   runtime host. Let the frontend's layout-stable loading state remain visible
   while startup bootstrap restores durable conversation data, including for

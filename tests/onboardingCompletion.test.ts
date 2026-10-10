@@ -42,4 +42,12 @@ describe("onboarding completion", () => {
     );
     expect(onboardingFlow).toContain("-webkit-app-region: drag;");
   });
+
+  test("places workspace selection in Preferences and resets each step viewport", async () => {
+    const flow = await readFile(onboardingFlowUrl, "utf8");
+    const workspaceCard = flow.indexOf('class="application-settings-surface workspace-card"');
+    expect(workspaceCard).toBeGreaterThan(flow.indexOf("{:else if step === 1}"));
+    expect(workspaceCard).toBeLessThan(flow.indexOf("{:else if step === 2}"));
+    expect(flow).toContain("{#key step}");
+  });
 });
