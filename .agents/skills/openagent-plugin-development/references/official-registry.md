@@ -75,10 +75,10 @@ package implementation bindings or package flows. A contract migration must
 increment the manifest version even when only an extension field is removed,
 so installed packages receive a release update.
 
-The bundled registry is discovery metadata, not a live release feed. Pages
-publishes `plugin-releases.json` from the registry repositories' latest 100
+The bundled registry is discovery metadata, not a live release feed. A dedicated
+workflow publishes `plugin-releases.json` from the registry repositories' latest 100
 releases; workflow, artifact and authentication are owned by
-[GitHub Pages](../../openagent-release-engineering/references/github-pages.md).
+[plugin release index](../../openagent-release-engineering/references/plugin-release-index.md).
 Runtime checks and explicit updates use this static feed for covered repositories.
 Retain stable release protocol metadata, archive URLs and SHA-256 digests; a source
 manifest version alone must never advertise a release update. Unlisted third-party

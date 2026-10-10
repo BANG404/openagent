@@ -7,5 +7,6 @@ metadata:
 
 # OpenAgent release engineering
 
-Read matching references for CI and releases, [Pages](references/github-pages.md),
-or [public development](references/public-development.md). Deliver via OWT.
+Read CI/release references, [Pages](references/github-pages.md),
+[index](references/plugin-release-index.md), [dev](references/public-development.md).
+Deliver via OWT.

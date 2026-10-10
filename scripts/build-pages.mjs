@@ -73,10 +73,6 @@ await cp("website", output, {
 });
 await cp("website/docs/dist", `${output}/docs`, { recursive: true });
 await cp("assets", `${output}/assets`, { recursive: true });
-const pluginReleaseManifest = process.env.OPENAGENT_PLUGIN_RELEASE_MANIFEST;
-if (pluginReleaseManifest) {
-  await cp(pluginReleaseManifest, `${output}/plugin-releases.json`);
-}
 const indexPath = `${output}/index.html`;
 const index = await readFile(indexPath, "utf8");
 await writeFile(indexPath, index.replaceAll("../assets/", "./assets/"));
