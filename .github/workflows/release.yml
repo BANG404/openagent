@@ -167,7 +167,6 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           RUNTIME: ${{ steps.release.outputs.runtime }}
           PRERELEASE: ${{ steps.release.outputs.prerelease }}
-          NATIVE_SHELL: ${{ steps.release.outputs.native_shell }}
           AZURE_AD_APPLICATION_CLIENT_ID: ${{ secrets.AZURE_AD_APPLICATION_CLIENT_ID }}
           AZURE_AD_APPLICATION_SECRET: ${{ secrets.AZURE_AD_APPLICATION_SECRET }}
           AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
@@ -194,7 +193,7 @@ jobs:
             exit 1
           fi
 
-          if [[ "$PRERELEASE" == "false" && "$NATIVE_SHELL" == "true" ]]; then
+          if [[ "$PRERELEASE" == "false" ]]; then
             required_store_secrets=(
               AZURE_AD_APPLICATION_CLIENT_ID
               AZURE_AD_APPLICATION_SECRET
@@ -313,9 +312,9 @@ jobs:
       && needs.detect.outputs.active == 'true'
       && needs.sdk-release.result == 'success'
       && needs.qualify.result == 'success'
-      && (needs.build.result == 'success' || needs.build.result == 'skipped')
-      && (needs.runtime-components.result == 'success' || needs.runtime-components.result == 'skipped')
-      && (needs.frontend-components.result == 'success' || needs.frontend-components.result == 'skipped')
+      && (needs.detect.outputs.published == 'true' || needs.build.result == 'success')
+      && (needs.detect.outputs.published == 'true' || needs.runtime-components.result == 'success')
+      && (needs.detect.outputs.published == 'true' || needs.frontend-components.result == 'success')
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -396,9 +395,8 @@ jobs:
       - detect
       - sdk-release
       - distribution-resources
-    if: >-
-      needs.detect.outputs.published != 'true'
-      && needs.detect.outputs.native_shell == 'true'
+    # Component flags select update channels; every product version needs installers.
+    if: needs.detect.outputs.published != 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -477,8 +475,7 @@ jobs:
 
       - name: Set up WinApp CLI
         if: >-
-          needs.detect.outputs.native_shell == 'true'
-          && matrix.runner_os == 'Windows'
+          matrix.runner_os == 'Windows'
           && needs.detect.outputs.prerelease != 'true'
         uses: microsoft/setup-WinAppCli@v0.1
 
@@ -581,7 +578,6 @@ jobs:
         run: bun run tauri:bundle -- --config src-tauri/tauri.full.conf.json ${{ matrix.args }}
 
       - name: Stage full first-install candidate
-        if: needs.detect.outputs.native_shell == 'true'
         shell: bash
         run: >-
           node scripts/release-candidate-artifacts.mjs stage-full
@@ -591,7 +587,6 @@ jobs:
           --version "${{ needs.detect.outputs.version }}"
 
       - name: Bind native candidate to release source
-        if: needs.detect.outputs.native_shell == 'true'
         shell: bash
         run: >-
           node scripts/release-candidate-artifacts.mjs manifest
@@ -601,7 +596,6 @@ jobs:
           --sdk-sha "${{ steps.sdk.outputs.sha }}"
 
       - name: Upload native release candidate
-        if: needs.detect.outputs.native_shell == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: native-release-${{ matrix.runtime_target }}
@@ -611,8 +605,7 @@ jobs:
 
       - name: Build Microsoft Store package
         if: >-
-          needs.detect.outputs.native_shell == 'true'
-          && matrix.runner_os == 'Windows'
+          matrix.runner_os == 'Windows'
           && needs.detect.outputs.prerelease != 'true'
         shell: pwsh
         env:
@@ -724,8 +717,7 @@ jobs:
 
       - name: Upload Microsoft Store package
         if: >-
-          needs.detect.outputs.native_shell == 'true'
-          && matrix.runner_os == 'Windows'
+          matrix.runner_os == 'Windows'
           && needs.detect.outputs.prerelease != 'true'
         uses: actions/upload-artifact@v4
         with:
@@ -737,7 +729,7 @@ jobs:
   distribution-helpers:
     name: Qualify distribution helpers (${{ matrix.os }})
     needs: [detect, sdk-release]
-    if: needs.detect.outputs.published != 'true' && (needs.detect.outputs.runtime == 'true' || needs.detect.outputs.native_shell == 'true')
+    if: needs.detect.outputs.published != 'true'
     strategy:
       matrix:
         include:
@@ -790,7 +782,7 @@ jobs:
   distribution-resources:
     name: Bind complete signed resource distribution
     needs: [detect, sdk-release, runtime-components, frontend-components, distribution-helpers]
-    if: needs.detect.outputs.published != 'true' && needs.detect.outputs.native_shell == 'true'
+    if: needs.detect.outputs.published != 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -861,9 +853,7 @@ jobs:
       - detect
       - sdk-release
       - distribution-helpers
-    if: >-
-      needs.detect.outputs.published != 'true'
-      && (needs.detect.outputs.runtime == 'true' || needs.detect.outputs.native_shell == 'true')
+    if: needs.detect.outputs.published != 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -920,9 +910,7 @@ jobs:
   frontend-components:
     name: Prepare signed frontend candidate
     needs: detect
-    if: >-
-      needs.detect.outputs.published != 'true'
-      && (needs.detect.outputs.frontend == 'true' || needs.detect.outputs.native_shell == 'true')
+    if: needs.detect.outputs.published != 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -1009,7 +997,6 @@ jobs:
       && needs.build.result == 'success'
       && needs.sdk-release.result == 'success'
       && needs.create-draft.outputs.published != 'true'
-      && needs.detect.outputs.native_shell == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -1061,7 +1048,6 @@ jobs:
       && (needs.publish-runtime-components.result == 'success' || needs.publish-runtime-components.result == 'skipped')
       && (needs.publish-frontend-components.result == 'success' || needs.publish-frontend-components.result == 'skipped')
       && needs.detect.outputs.published != 'true'
-      && needs.detect.outputs.native_shell == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/download-artifact@v4
@@ -1144,7 +1130,6 @@ jobs:
       && needs.detect.result == 'success'
       && needs.create-draft.result == 'success'
       && needs.build.result == 'success'
-      && needs.detect.outputs.native_shell == 'true'
       && needs.detect.outputs.prerelease != 'true'
       && needs.create-draft.outputs.published != 'true'
     runs-on: windows-2025
@@ -1222,11 +1207,11 @@ jobs:
       && needs.create-draft.result == 'success'
       && needs.sdk-release.result == 'success'
       && (needs.detect.outputs.runtime != 'true' || needs.publish-plugins.result == 'success')
-      && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.native_shell != 'true' || needs.publish-native-assets.result == 'success')
-      && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.native_shell != 'true' || needs.publish-distribution-resources.result == 'success')
+      && (needs.create-draft.outputs.published == 'true' || needs.publish-native-assets.result == 'success')
+      && (needs.create-draft.outputs.published == 'true' || needs.publish-distribution-resources.result == 'success')
       && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.runtime != 'true' || needs.publish-runtime-components.result == 'success')
       && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.frontend != 'true' || needs.publish-frontend-components.result == 'success')
-      && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.native_shell != 'true' || needs.detect.outputs.prerelease == 'true' || needs.publish-store.result == 'success')
+      && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.prerelease == 'true' || needs.publish-store.result == 'success')
     runs-on: ubuntu-24.04
     timeout-minutes: 95
     steps:
@@ -1282,11 +1267,11 @@ jobs:
       always()
       && needs.detect.result == 'success'
       && needs.create-draft.result == 'success'
-      && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.native_shell != 'true' || needs.publish-native-assets.result == 'success')
-      && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.native_shell != 'true' || needs.publish-distribution-resources.result == 'success')
+      && (needs.create-draft.outputs.published == 'true' || needs.publish-native-assets.result == 'success')
+      && (needs.create-draft.outputs.published == 'true' || needs.publish-distribution-resources.result == 'success')
       && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.runtime != 'true' || needs.publish-runtime-components.result == 'success')
       && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.frontend != 'true' || needs.publish-frontend-components.result == 'success')
-      && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.native_shell != 'true' || needs.detect.outputs.prerelease == 'true' || needs.publish-store.result == 'success')
+      && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.prerelease == 'true' || needs.publish-store.result == 'success')
       && needs.publish-sdk-release.result == 'success'
     runs-on: ubuntu-24.04
     steps:
@@ -1481,7 +1466,7 @@ jobs:
           exit 1
 
       - name: Update prerelease updater channel
-        if: needs.detect.outputs.native_shell == 'true' && needs.detect.outputs.prerelease == 'true'
+        if: needs.detect.outputs.prerelease == 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}

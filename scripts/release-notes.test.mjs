@@ -101,23 +101,46 @@ describe("release notes", () => {
     ).toThrow("Expected one windows-standard release asset, found 0");
   });
 
-  test("explains component-only releases without inventing installer links", () => {
+  test.each([
+    [{ frontend: true, runtime: false, nativeShell: false }, "frontend"],
+    [{ frontend: false, runtime: true, nativeShell: false }, "Agent Runtime"],
+  ])("links current installers when only %s changes", (components, updated) => {
     const notes = createReleaseNotes({
       manifest: {
         version: "1.2.3",
         tag: "v1.2.3-beta.1",
         channel: "beta",
         previousTag: "v1.2.2",
-        components: { frontend: true, runtime: false, nativeShell: false },
+        components,
       },
       changelog,
-      assetNames: ["openagent-frontend.tar.gz"],
+      assetNames: nativeAssets,
       repository: "BANG404/openagent",
     });
 
-    expect(notes).toContain("Updated components: frontend.");
-    expect(notes).toContain("Desktop installers are unchanged");
-    expect(notes).not.toContain("| Platform | Architecture |");
+    expect(notes).toContain(`Updated components: ${updated}.`);
+    expect(notes.match(/\| \[Download\]\(/g)).toHaveLength(10);
+    expect(notes).toContain("/v1.2.3-beta.1/openagent_1.2.3_x64-setup.exe)");
+  });
+
+  test("blocks a component release that has only resources or older installers", () => {
+    expect(() =>
+      createReleaseNotes({
+        manifest: {
+          version: "1.2.3",
+          tag: "v1.2.3-beta.1",
+          channel: "beta",
+          previousTag: "v1.2.2",
+          components: { frontend: true, runtime: false, nativeShell: false },
+        },
+        changelog,
+        assetNames: [
+          "openagent-frontend.tar.gz",
+          ...nativeAssets.map((name) => name.replace("1.2.3", "1.2.2")),
+        ],
+        repository: "BANG404/openagent",
+      }),
+    ).toThrow("Expected one windows-standard release asset, found 0");
   });
 
   test("fails native publication when a quick-download asset is missing", () => {

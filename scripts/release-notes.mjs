@@ -146,7 +146,7 @@ export function createReleaseNotes({ manifest, changelog, assetNames, repository
   const updated = [];
   if (components.frontend) updated.push("frontend");
   if (components.runtime) updated.push("Agent Runtime");
-  if (components.nativeShell) updated.push("desktop app and installers");
+  if (components.nativeShell) updated.push("desktop shell");
   if (updated.length === 0) throw new Error("Release manifest selects no components");
 
   const changes = currentReleaseChanges(changelog, manifest.version);
@@ -165,34 +165,28 @@ export function createReleaseNotes({ manifest, changelog, assetNames, repository
     "",
   ];
 
-  if (components.nativeShell) {
-    const installerPrefix = new RegExp(
-      String.raw`^openagent[_-]${escapeRegExp(manifest.version)}[_-]`,
-      "i",
-    );
-    const installerNames = assetNames.filter((name) => installerPrefix.test(name));
-    const rows = DOWNLOADS.map((download) => {
-      const matches = installerNames.filter((name) => download.pattern.test(name));
-      if (matches.length !== 1) {
-        throw new Error(
-          `Expected one ${download.id} release asset, found ${matches.length}: ${matches.join(", ")}`,
-        );
-      }
-      const name = matches[0];
-      return `| ${download.platform} | ${download.architecture} | ${download.package} | [Download](${assetUrl(repository, manifest.tag, name)}) | ${download.description} |`;
-    });
-    lines.push(
-      "Standard packages are online shells that download verified application resources after launch. Full packages include Runtime, frontend, embedding, and platform helpers for offline first setup. Model providers may still require a network connection.",
-      "",
-      "| Platform | Architecture | Package | Link | Description |",
-      "| --- | --- | --- | --- | --- |",
-      ...rows,
-    );
-  } else {
-    lines.push(
-      "Desktop installers are unchanged in this component release. Existing installations receive the selected component updates through the application update channels.",
-    );
-  }
+  const installerPrefix = new RegExp(
+    String.raw`^openagent[_-]${escapeRegExp(manifest.version)}[_-]`,
+    "i",
+  );
+  const installerNames = assetNames.filter((name) => installerPrefix.test(name));
+  const rows = DOWNLOADS.map((download) => {
+    const matches = installerNames.filter((name) => download.pattern.test(name));
+    if (matches.length !== 1) {
+      throw new Error(
+        `Expected one ${download.id} release asset, found ${matches.length}: ${matches.join(", ")}`,
+      );
+    }
+    const name = matches[0];
+    return `| ${download.platform} | ${download.architecture} | ${download.package} | [Download](${assetUrl(repository, manifest.tag, name)}) | ${download.description} |`;
+  });
+  lines.push(
+    "Standard packages are online shells that download verified application resources after launch. Full packages include Runtime, frontend, embedding, and platform helpers for offline first setup. Model providers may still require a network connection.",
+    "",
+    "| Platform | Architecture | Package | Link | Description |",
+    "| --- | --- | --- | --- | --- |",
+    ...rows,
+  );
 
   lines.push(
     "",
