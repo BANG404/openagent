@@ -66,8 +66,8 @@ impl DesktopWindowState {
         DesktopExitPhase::from_bits(self.desktop_exit.load(std::sync::atomic::Ordering::Acquire))
     }
 
-    /// Record that the bounded teardown has run and the process may now be
-    /// ended by the shell installer.
+    /// Claim shell teardown before another update or exit can race it. The
+    /// command reports readiness only once the bounded teardown succeeds.
     pub(crate) fn prepare_shell_install(&self) -> Result<(), String> {
         self.desktop_exit
             .compare_exchange(
@@ -134,9 +134,9 @@ pub(crate) fn restart_app(app: tauri::AppHandle) {
 ///
 /// On Windows the updater plugin terminates the application inside
 /// `install()`, so nothing after that call can run and the bounded teardown
-/// has to happen before it. This never restarts anything: it reports `false`
-/// while the Runtime still has active work, and the caller defers the update
-/// as it does for every other component.
+/// has to happen before it. Active Runtime work reports `false` and defers the
+/// update before teardown. A failure after teardown starts rejects installation
+/// and restarts the host to restore its Runtime and hidden windows.
 #[tauri::command]
 pub(crate) async fn begin_shell_install(
     app: tauri::AppHandle,
@@ -148,17 +148,29 @@ pub(crate) async fn begin_shell_install(
         return Ok(false);
     }
     app.state::<DesktopWindowState>().prepare_shell_install()?;
-    tracing::info!(
-        target: "openagent::component_update",
-        component = "shell",
-        stage = "install_prepared",
-        "shell install preparation stopped the desktop's children"
-    );
     if let Err(error) = request_child_workspace_window_shutdown() {
         tracing::warn!(%error, "failed to signal child workspace processes before the shell install");
     }
     hide_desktop_surfaces(&app);
-    stop_desktop_children(&app).await;
+    if let Err(error) = stop_desktop_children(&app).await {
+        tracing::error!(
+            target: "openagent::component_update",
+            component = "shell",
+            stage = "install_preparation_failed",
+            %error,
+            "refusing the shell installer because desktop teardown did not finish"
+        );
+        // Preparation hid the windows and may have stopped the Runtime. Restore
+        // a usable desktop through a fresh process; never hand off to NSIS.
+        request_desktop_exit(app, DesktopExitAction::Restart);
+        return Err(error);
+    }
+    tracing::info!(
+        target: "openagent::component_update",
+        component = "shell",
+        stage = "install_prepared",
+        "shell install preparation confirmed the desktop's children exited"
+    );
     Ok(true)
 }
 
@@ -187,15 +199,16 @@ fn hide_desktop_surfaces(app: &tauri::AppHandle) {
 /// Runtime, the event proxy, child workspace processes, and the Cua Driver
 /// daemon. Every step is bounded and idempotent, so a shell install may run
 /// this before an exit request runs it again.
-async fn stop_desktop_children(app: &tauri::AppHandle) {
+async fn stop_desktop_children(app: &tauri::AppHandle) -> Result<(), String> {
+    let mut failures = Vec::new();
     let supervisor = app.state::<Arc<RuntimeProcessSupervisor>>();
     match tokio::time::timeout(DESKTOP_RUNTIME_STOP_TIMEOUT, supervisor.stop()).await {
         Ok(Ok(())) => {}
         Ok(Err(error)) => {
-            tracing::warn!(%error, "failed to stop supervised Runtime during quit");
+            failures.push(format!("failed to stop supervised Runtime: {error}"));
         }
         Err(_) => {
-            tracing::warn!("timed out stopping supervised Runtime during quit");
+            failures.push("timed out stopping supervised Runtime".to_string());
         }
     }
     let proxy = app.state::<RuntimeEventProxy>();
@@ -203,7 +216,7 @@ async fn stop_desktop_children(app: &tauri::AppHandle) {
         .await
         .is_err()
     {
-        tracing::warn!("timed out stopping Runtime event proxy during quit");
+        failures.push("timed out stopping Runtime event proxy".to_string());
     }
     let child_cleanup = tauri::async_runtime::spawn_blocking(|| {
         finish_child_workspace_window_shutdown(DESKTOP_CHILD_PROCESS_GRACE_TIMEOUT)
@@ -211,16 +224,23 @@ async fn stop_desktop_children(app: &tauri::AppHandle) {
     match tokio::time::timeout(DESKTOP_CHILD_PROCESS_STOP_TIMEOUT, child_cleanup).await {
         Ok(Ok(Ok(()))) => {}
         Ok(Ok(Err(error))) => {
-            tracing::warn!(%error, "failed to stop child workspace processes during quit");
+            failures.push(format!("failed to stop child workspace processes: {error}"));
         }
         Ok(Err(error)) => {
-            tracing::warn!(%error, "child workspace process cleanup task failed during quit");
+            failures.push(format!(
+                "child workspace process cleanup task failed: {error}"
+            ));
         }
         Err(_) => {
-            tracing::warn!("timed out stopping child workspace processes during quit");
+            failures.push("timed out stopping child workspace processes".to_string());
         }
     }
     stop_cua_driver_serve();
+    if failures.is_empty() {
+        Ok(())
+    } else {
+        Err(failures.join("; "))
+    }
 }
 
 async fn finish_desktop_exit(
@@ -229,7 +249,9 @@ async fn finish_desktop_exit(
     step: DesktopExitStep,
 ) {
     if step == DesktopExitStep::Start {
-        stop_desktop_children(&app).await;
+        if let Err(error) = stop_desktop_children(&app).await {
+            tracing::warn!(%error, "desktop child teardown did not finish during exit");
+        }
     }
     shutdown_host_tracing();
     match action {
