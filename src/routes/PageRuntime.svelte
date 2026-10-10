@@ -403,7 +403,7 @@
   // renders projects this against availability, so a branch whose last view
   // empties collapses without anything having to write state again.
   let rightSidebarCollapseRequested = $state(rightSidebarPreferenceDefault);
-  let conversationPanelCollapsed = $state(
+  let conversationPanelCollapseRequested = $state(
     typeof window === "undefined" ? false : loadConversationPanelCollapsed(window.localStorage),
   );
   let rightSidebarPanel = $state<RightSidebarPanel>("status");
@@ -876,6 +876,11 @@
     conversationDetailsAvailable(currentCheckpointFlow, currentFileChanges.length) ||
       terminalSessionCount > 0 ||
       pluginSidebarViews.length > 0,
+  );
+  // Sidebar-only mode requires a surface to replace the transcript. Keep the
+  // preference, but show the conversation immediately when its scope has none.
+  let conversationPanelCollapsed = $derived(
+    conversationPanelCollapseRequested && rightSidebarAvailable,
   );
   // The one value the title bar and the sidebar render. Deriving it keeps the
   // "no views, no panel" invariant true at every moment, including the flush
@@ -4349,8 +4354,8 @@
           saveCheckpointFlowPanelCollapsed(window.localStorage, rightSidebarPreference);
         }}
         onToggleConversationPanel={() => {
-          conversationPanelCollapsed = !conversationPanelCollapsed;
-          saveConversationPanelCollapsed(window.localStorage, conversationPanelCollapsed);
+          conversationPanelCollapseRequested = !conversationPanelCollapsed;
+          saveConversationPanelCollapsed(window.localStorage, conversationPanelCollapseRequested);
         }}
         onMinimize={winMinimize}
         onMaximize={winMaximize}
@@ -4368,7 +4373,7 @@
           {checkpointFlowPanelCollapsed}
           {conversationPanelCollapsed}
           onConversationCollapse={(collapsed) => {
-            conversationPanelCollapsed = collapsed;
+            conversationPanelCollapseRequested = collapsed;
             saveConversationPanelCollapsed(window.localStorage, collapsed);
           }}
           bind:rightSidebarPanel
