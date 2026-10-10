@@ -206,18 +206,16 @@ silently. A card keeps its content mounted while it is collapsed, so the step
 waits for the expanded state rather than for the text to exist: a card that
 toggled closed would still carry the reason in its DOM.
 
-Every package the check walks that declares a `github.com` repository spends the
-machine's shared anonymous GitHub quota, and one rate-limited row makes the whole
-check report the quota condition — which names no package and would hide the
-per-package reasons this scenario exists to pin. The wrapper therefore seeds the
-Runtime's derived release-metadata cache at each package's installed version
-before the check runs, so the check answers those from the cache and the fixture
-is the only package it still has to explain. The seeded repositories are the ones
-the page renders plus the ones the builtin registry declares, read out of the
-pinned SDK source, because the Cua Driver card renders no repository link and is
-invisible to a DOM-only discovery. The cache is a derived file the Runtime
-documents as deletable, and no seeded release outranks an installed package, so
-the run stays offline, deterministic, and free of updates or failures of its own.
+The wrapper seeds `plugin-release-index-cache.json` with a complete, fresh
+snapshot for the public official registry and repositories rendered on installed
+cards. No seeded release outranks its installed package. Both update checks and
+explicit updates resolve through this static feed; the scenario stays offline
+and deterministic without reading private SDK source. Keep all four light/dark
+and English/Chinese passes. Feed failures use source-neutral update-information
+wording; reserve GitHub-quota wording for direct third-party API failures.
+The same runner uses `plugin-update-source.toml` to project deterministic feed
+failure and unpublished-release responses through the typed client, assert the
+localized summary and row labels, then retry against the real cached Runtime.
 
 Each pass is captured twice into `BLACKBOX_ARTIFACT_DIR`: the settings surface,
 which carries the summary line, and the fixture card, which is the last row of a

@@ -9,6 +9,9 @@ on:
       - "scripts/build-pages.mjs"
       - "scripts/check-pages.mjs"
       - "scripts/check-pages.test.mjs"
+      - "scripts/plugin-release-index.mjs"
+      - "scripts/plugin-release-index.test.mjs"
+      - "src/lib/officialPluginRegistry.json"
       - ".github/workflows/pages.yml"
   pull_request:
     paths:
@@ -17,7 +20,12 @@ on:
       - "scripts/build-pages.mjs"
       - "scripts/check-pages.mjs"
       - "scripts/check-pages.test.mjs"
+      - "scripts/plugin-release-index.mjs"
+      - "scripts/plugin-release-index.test.mjs"
+      - "src/lib/officialPluginRegistry.json"
       - ".github/workflows/pages.yml"
+  schedule:
+    - cron: "23 2 * * *"
   workflow_dispatch:
     inputs:
       release_tag:
@@ -75,13 +83,20 @@ jobs:
               cp published-release.json stable-release.json
             fi
           fi
+      - name: Generate the public plugin release index
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bun scripts/plugin-release-index.mjs
       - name: Build and verify the landing page and Starlight tutorials
         env:
           OPENAGENT_STABLE_RELEASE_MANIFEST: ${{ github.event_name != 'pull_request' && 'stable-release.json' || '' }}
           OPENAGENT_RC_RELEASE_MANIFEST: ${{ github.event_name != 'pull_request' && 'rc-release.json' || '' }}
           OPENAGENT_BETA_RELEASE_MANIFEST: ${{ github.event_name != 'pull_request' && 'beta-release.json' || '' }}
+          OPENAGENT_PLUGIN_RELEASE_MANIFEST: ${{ github.event_name != 'pull_request' && 'plugin-releases.json' || '' }}
         run: |
           bun test scripts/check-pages.test.mjs
+          bun test scripts/plugin-release-index.test.mjs
           bun scripts/build-pages.mjs
       - uses: actions/upload-pages-artifact@v3
         with:

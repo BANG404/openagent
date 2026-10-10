@@ -75,9 +75,16 @@ package implementation bindings or package flows. A contract migration must
 increment the manifest version even when only an extension field is removed,
 so installed packages receive a release update.
 
-Plugin release metadata is read from GitHub's public release endpoint without a
-user credential. The registry and marketplace installer likewise accept only
-credential-free HTTPS URLs without a query or fragment.
+The bundled registry is discovery metadata, not a live release feed. Pages
+publishes `plugin-releases.json` from the registry repositories' latest 100
+releases; workflow, artifact and authentication are owned by
+[GitHub Pages](../../openagent-release-engineering/references/github-pages.md).
+Runtime checks and explicit updates use this static feed for covered repositories.
+Retain stable release protocol metadata, archive URLs and SHA-256 digests; a source
+manifest version alone must never advertise a release update. Unlisted third-party
+repositories use public GitHub metadata only after the feed is readable. An index
+failure must not trigger per-package API fallback. The registry and marketplace
+installer accept credential-free HTTPS URLs without a query or fragment.
 
 Update the bundled catalog and this contract together when an official plugin is
 published, renamed, withdrawn, or moved. Keep private provider credentials out

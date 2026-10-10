@@ -512,7 +512,19 @@ stated, and a per-plugin error never leaves the button claiming the plugins are
 current. `update` is explicit: it downloads, validates, stages, and atomically
 activates that candidate without executing it during validation.
 
-Release metadata comes from the GitHub REST API, which without credentials
+For repositories covered by the official store, checks and explicit updates
+read the static Pages feed described in [official-registry.md](official-registry.md).
+Runtime caches a complete feed for ten minutes in the derived
+`<OPENAGENT_HOME>/plugin-release-index-cache.json`. A feed generated more than
+48 hours ago fails refresh; the last complete snapshot may still show reminders
+marked stale for up to seven days, but cannot authorize installation. Invalid or
+unreachable feeds report a network failure without querying GitHub per package.
+A covered entry with no compatible stable release reports release unavailable,
+including repositories that have never published a release.
+Network and unavailable-release labels describe update information rather than
+assuming the source is GitHub; direct API quota failures retain their GitHub label.
+
+Unlisted third-party repositories use the GitHub REST API, which without credentials
 allows only 60 requests per hour for the whole originating IP — a quota every
 other program on that connection also spends. A check therefore does not
 request per plugin every time. It answers from
@@ -544,8 +556,8 @@ marked `stale` rather than discarding it, for at most seven days, so a badge
 does not flicker on a transient error — the envelope already states the global
 condition, so a stale value is never shown as current. `update` re-resolves
 metadata before installing and refuses to activate from a stale or otherwise
-unconfirmable release. Release metadata and archive downloads use public
-endpoints and never carry a user credential.
+unconfirmable release. Client metadata requests and archive downloads use public
+endpoints and never carry a user credential. Only the Pages collector authenticates.
 
 ## Built-in capabilities and packages
 
