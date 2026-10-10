@@ -7,7 +7,10 @@ and keeps event registration single-attempt. The page supplies its existing
 configuration, loading state, restore surface, and conversation selection
 through writable typed dependencies; startup never creates another transcript
 or stream owner. Window reveal still waits for rendering and distinguishes
-an unknown embedding status from an explicitly non-ready resource.
+an unknown embedding status from an explicitly non-ready resource. A configured
+installation never opens onboarding solely because a resource query failed,
+including when its main window is initially hidden. First use or an explicit
+missing/corrupt status opens the Welcome preparation step.
 
 `src/lib/page/workspaceNavigation.ts` owns preparation and application of a
 workspace switch. It resolves roles, the selected durable conversation, its

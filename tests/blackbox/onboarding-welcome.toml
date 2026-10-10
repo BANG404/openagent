@@ -1,0 +1,20 @@
+[scenario]
+name = "development welcomes users with local resource status and a working logo"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "resource preparation belongs to visible Welcome"
+action = "eval"
+script = '''(() => {
+  const panel = document.querySelector('[data-module="onboarding"]');
+  if (!panel?.querySelector('nav [aria-current="step"][aria-label^="1."]')) throw new Error('setup skipped Welcome');
+  const card = panel.querySelector('.embedding-card');
+  if (!card || card.getBoundingClientRect().bottom > panel.querySelector('footer').getBoundingClientRect().top) throw new Error('resource status is not visible in Welcome');
+  const image = panel.querySelector('.onboarding-brand-icon');
+  if (!image?.complete || !image.naturalWidth) throw new Error('development logo failed to load');
+  if (panel.querySelector('.embedding-meter')?.getAttribute('aria-valuenow') !== '100') throw new Error('prepared model is not ready');
+  const next = [...panel.querySelectorAll('footer button')].find(button => ['Continue', '继续'].includes(button.textContent.trim()));
+  if (!next || next.disabled) throw new Error('Welcome cannot continue');
+  return true;
+})()'''

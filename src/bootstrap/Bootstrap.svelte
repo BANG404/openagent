@@ -6,6 +6,7 @@
   import OnboardingFlow from "../lib/components/OnboardingFlow.svelte";
   import { DEFAULT_APP_CONFIG } from "../lib/settingsDefaults";
   import { bootstrapText } from "../lib/bootstrapI18n";
+  import appIcon from "../../static/app-icon.png";
 
   type Status = {
     phase: string;
@@ -75,6 +76,7 @@
 </script>
 
 <OnboardingFlow
+  brandIconUrl={appIcon}
   config={{ ...DEFAULT_APP_CONFIG, language, theme }}
   workspacePath=""
   onSave={async (config) => config}

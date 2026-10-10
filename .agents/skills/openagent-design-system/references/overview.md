@@ -70,12 +70,17 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   columns. Dense provider content scrolls inside the form column without changing
   the native window geometry, and its scrollbar stays flush with the trailing
   edge of the inset canvas while the content keeps its reading inset.
-  Embedding preparation begins in the background as soon as this window mounts.
-  The final step keeps the primary action disabled and presents a layout-stable
-  progress card until the local model is installed and verified; failures keep
-  an actionable retry in the same card. A configured installation that needs
-  resource repair opens directly on this final step instead of repeating model-
-  provider configuration.
+  The local embedding status card belongs near the top of Welcome in both
+  development and installed applications. Query its status before preparing;
+  prepare only missing or corrupt resources, and enable Continue after readiness.
+  Failures retain retry in that card. Welcome content can scroll while the footer
+  stays fixed. Ready contains the configuration summary, without a resource card.
+  A configured installation needing repair uses this Welcome step with a single
+  step rail and the Start action, preserving existing provider configuration.
+  Product onboarding uses `/app-icon.png`, served by SvelteKit in development
+  and the frontend bundle in production. The embedded shell supplies its bundled
+  asset URL through `brandIconUrl`; do not import a public-directory asset in the
+  product component, where Vite's development URL would include `/static/`.
   Every native window canvas, including onboarding, Settings, and role editing,
   remains fully transparent over the native window material without a theme-
   color tint: Windows prefers Mica with Acrylic and Blur fallbacks, while macOS

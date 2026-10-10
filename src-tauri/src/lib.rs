@@ -355,7 +355,7 @@ fn run_with_mode(agent_server: bool) {
                 );
             }
 
-            if !agent_server {
+            if !agent_server && !shell_provisioning {
                 let startup_app = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
                     tokio::time::sleep(std::time::Duration::from_secs(10)).await;

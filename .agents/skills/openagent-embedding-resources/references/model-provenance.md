@@ -18,8 +18,9 @@ copies its seed, while a lightweight installation downloads the exact GitHub
 files. Download or copy output stays in a staging directory until every size
 and SHA-256 matches, then activates through an atomic directory rename. The
 main window remains hidden while the resource is missing or corrupt. A
-configured user enters only the setup window's resource-repair step rather than
-repeating provider configuration.
+configured user repairs resources in the setup window's Welcome step with the
+existing Start action; provider configuration is preserved. The design owner
+documents the status card's placement and startup's unknown-status behavior.
 
 The supervised `openagent-server` owns status inspection, seed installation or
 download, verification, progress events, and loading the verified model into its

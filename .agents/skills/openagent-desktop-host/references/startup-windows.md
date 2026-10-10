@@ -106,6 +106,9 @@ have been created.
   verified installed resources start; reveal it only for initial welcome
   preparation or recovery. Its resource selection and continuation contract
   belongs to the modular-update owner's independent shell provisioning section.
+  The ordinary ten-second reveal fallback must not run during shell provisioning:
+  Runtime startup can exceed that delay, and revealing its hidden bootstrap would
+  flash Welcome on configured launches. Provisioning owns failure/recovery reveal.
 - Render Settings management domains and the saved-role editor inside the
   requesting window. Application-menu activation and its shortcuts must not
   construct another WebView; the frontend owns that fullscreen surface, its

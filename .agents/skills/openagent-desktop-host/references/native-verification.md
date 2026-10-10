@@ -356,3 +356,10 @@ control coverage. Test signing-key and loopback-source overrides are compiled on
 in debug builds and require `OPENAGENT_BOOTSTRAP_TEST=1`. Installed release data
 and the developer's running app are never used. Run preflight first to materialize
 the production frontend and bootstrap assets.
+
+`bun run test:blackbox:onboarding-welcome` starts the ordinary development
+application with a fresh temporary home. It verifies local model status in
+Welcome, a loaded brand icon, four themes/locales, the complete provider/model
+wizard using saved fixture models, and a configured restart with setup hidden.
+It asserts that Ready has no resource preparation card and records Welcome
+screenshots. The runner owns its Vite/Tauri processes and never uses developer data.

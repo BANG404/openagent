@@ -174,11 +174,6 @@ export function createPageStartup(options: StartupOptions) {
     } finally {
       let embeddingResourceReady = !options.tauriAvailable;
       let embeddingResourceStatusKnown = !options.tauriAvailable;
-      const mainWindowWasVisible = options.tauriAvailable
-        ? await getCurrentWindow()
-            .isVisible()
-            .catch(() => false)
-        : false;
       if (options.tauriAvailable) {
         embeddingResourceReady = await openAgent
           .invokeProduct("get_embedding_resource_status", {})
@@ -194,14 +189,11 @@ export function createPageStartup(options: StartupOptions) {
         !options.isAgentsSettingsPreview &&
         !options.isMcpSettingsPreview
       ) {
-        // A Runtime restart can briefly make the resource-status IPC unavailable
-        // while Vite HMR remounts this shell. Treat that as unknown so a reload
-        // of an already configured app cannot reveal the hidden onboarding
-        // window; an explicit non-ready status still opens the repair flow.
+        // An unavailable status is unknown, including on a hidden cold-start
+        // window. Only first use or an explicit non-ready resource opens setup.
         requiresOnboarding =
           !options.config.onboarding_completed ||
-          (embeddingResourceStatusKnown && !embeddingResourceReady) ||
-          (!embeddingResourceStatusKnown && !mainWindowWasVisible);
+          (embeddingResourceStatusKnown && !embeddingResourceReady);
       }
       const uiReadyAt = performance.now();
       options.initialLoading = false;

@@ -1,0 +1,23 @@
+[scenario]
+name = "Welcome resource preparation leads to the existing wizard and summary"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "finish the configured wizard through its visible controls"
+action = "eval"
+script = '''(async () => {
+  const panel = document.querySelector('[data-module="onboarding"]');
+  for (let step = 1; step < 5; step++) {
+    const button = [...panel.querySelectorAll('footer button')].find(button => ['Continue', '继续'].includes(button.textContent.trim()));
+    if (!button || button.disabled) throw new Error(`step ${step} cannot continue`);
+    button.click();
+    await new Promise(resolve => setTimeout(resolve, 100));
+    if (!panel.querySelector(`nav [aria-current="step"][aria-label^="${step + 1}."]`)) throw new Error('wizard did not advance');
+  }
+  if (panel.querySelector('.embedding-card')) throw new Error('resource preparation remains in Ready');
+  const finish = [...panel.querySelectorAll('footer button')].find(button => ['Start using OpenAgent', '开始使用 OpenAgent'].includes(button.textContent.trim()));
+  if (!finish || finish.disabled) throw new Error('prepared wizard cannot finish');
+  finish.click();
+  return true;
+})()'''

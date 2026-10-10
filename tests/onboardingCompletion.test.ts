@@ -14,13 +14,24 @@ describe("onboarding completion", () => {
     ]);
 
     expect(route).toContain("embeddingResourceStatusKnown");
-    expect(route).toContain("!embeddingResourceStatusKnown && !mainWindowWasVisible");
+    expect(route).not.toContain("!embeddingResourceStatusKnown && !mainWindowWasVisible");
     expect(route).toContain("embeddingResourceStatusKnown && !embeddingResourceReady");
     expect(route).toContain('"get_embedding_resource_status"');
     expect(route).not.toContain("hasLegacyOnboardingCompletion");
     expect(route).not.toContain("clearLegacyOnboardingCompletion");
     expect(onboarding).not.toContain("localStorage");
     expect(onboardingFlow).toContain("workspace: workspacePath");
+  });
+
+  test("prepares local resources in Welcome and leaves Ready as a summary", async () => {
+    const flow = await readFile(onboardingFlowUrl, "utf8");
+    const welcomeEnd = flow.indexOf("{:else if step === 1}");
+    const embeddingCard = flow.indexOf('class="application-settings-surface embedding-card"');
+    expect(embeddingCard).toBeGreaterThan(0);
+    expect(embeddingCard).toBeLessThan(welcomeEnd);
+    expect(flow).toContain("let step = $state(0)");
+    expect(flow).toContain('embeddingStatus.state !== "ready"');
+    expect(flow).toContain("resourceOnly ? copy.steps.slice(0, 1) : copy.steps");
   });
 
   test("keeps the frameless setup window draggable", async () => {

@@ -5,7 +5,6 @@
   import { normalizeConfigShape } from "$lib/config";
   import { applyDocumentTheme } from "$lib/appTheme";
   import { bootstrapText } from "$lib/bootstrapI18n";
-  import appIcon from "../../../static/app-icon.png";
   import type { AppConfig, DefaultModelBinding } from "$lib/types";
   import {
     createProviderConfig,
@@ -34,6 +33,7 @@
     listenToResources,
     resourcePreparation,
     onLanguagePreview,
+    brandIconUrl = "/app-icon.png",
   }: {
     config: AppConfig;
     workspacePath: string;
@@ -54,13 +54,14 @@
       onImport: () => void;
     };
     onLanguagePreview?: (language: "en" | "zh") => void;
+    brandIconUrl?: string;
   } = $props();
 
   let draft = $state<AppConfig>(
     normalizeConfigShape($state.snapshot(untrack(() => config)) as AppConfig),
   );
   const resourceOnly = Boolean(draft.onboarding_completed);
-  let step = $state(resourceOnly ? 4 : 0);
+  let step = $state(0);
   let selectedProviderId = $state(draft.providers[0]?.id ?? "");
   let connectionStatus = $state<"idle" | "loading" | "success" | "error">("idle");
   let connectionMessage = $state("");
@@ -143,7 +144,14 @@
       } catch (error) {
         console.warn("Failed to listen for embedding resource progress:", error);
       }
-      if (!disposed) await prepareEmbeddingResource();
+      if (!disposed && runtimeClient) {
+        try {
+          embeddingStatus = await runtimeClient.invokeProduct("get_embedding_resource_status", {});
+          if (!disposed && embeddingStatus.state !== "ready") await prepareEmbeddingResource();
+        } catch (error) {
+          embeddingError = `${error}`;
+        }
+      }
     })();
     return () => {
       disposed = true;
@@ -229,8 +237,7 @@
           chatModel: "Chat model",
           flashModel: "Flash model",
           readyTitle: "You’re ready",
-          readyBody:
-            "OpenAgent can start after its local semantic-memory model is installed and verified.",
+          readyBody: "Your workspace and model settings are ready. Start using OpenAgent.",
           embeddingTitle: "Local embedding model",
           embeddingReady: "Installed and verified",
           embeddingPreparing: "Preparing in the background…",
@@ -309,7 +316,7 @@
           chatModel: "对话模型",
           flashModel: "Flash 模型",
           readyTitle: "一切就绪",
-          readyBody: "本地语义记忆模型安装并校验完成后，即可开始使用 OpenAgent。",
+          readyBody: "工作区和模型设置已就绪，可以开始使用 OpenAgent。",
           embeddingTitle: "本地 Embedding 模型",
           embeddingReady: "已安装并通过校验",
           embeddingPreparing: "正在后台准备…",
@@ -355,6 +362,7 @@
   ]);
   let canContinue = $derived(
     !resourcePreparation &&
+      embeddingReady &&
       (step < 2 ||
         (step === 2
           ? Boolean(selectedProvider?.enabled && selectedProvider.models.length)
@@ -481,7 +489,7 @@
   <div class="onboarding-body">
     <aside class="onboarding-visual">
       <div class="onboarding-brand">
-        <img class="onboarding-brand-icon" src={appIcon} alt="" aria-hidden="true" />
+        <img class="onboarding-brand-icon" src={brandIconUrl} alt="" aria-hidden="true" />
         <div>
           <strong>OpenAgent</strong>
           <span>{copy.brandTagline}</span>
@@ -492,12 +500,12 @@
           <p>
             {copy.stepProgress
               .replace("{current}", String(step + 1))
-              .replace("{total}", String(copy.steps.length))}
+              .replace("{total}", String(resourceOnly ? 1 : copy.steps.length))}
           </p>
           <span>{String(step + 1).padStart(2, "0")}</span>
         </div>
         <nav aria-label={draft.language === "en" ? "Setup steps" : "设置步骤"}>
-          {#each copy.steps as label, index (index)}
+          {#each resourceOnly ? copy.steps.slice(0, 1) : copy.steps as label, index (index)}
             <div
               class="onboarding-step"
               class:active={index === step}
@@ -537,6 +545,41 @@
             <h1 class="welcome-title">{copy.welcomeTitle}</h1>
             <p class="lead">{copy.welcomeBody}</p>
             <p class="setup-description">{copy.setupBody}</p>
+            {#if !resourcePreparation}
+              <div class="application-settings-surface embedding-card" aria-live="polite">
+                <div class="embedding-heading">
+                  <span>{copy.embeddingTitle}</span>
+                  <strong>{embeddingReady ? copy.embeddingReady : `${embeddingPercent}%`}</strong>
+                </div>
+                <div
+                  class="embedding-meter"
+                  role="progressbar"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow={embeddingPercent}
+                >
+                  <span style={`width: ${embeddingPercent}%`}></span>
+                </div>
+                {#if !embeddingReady}
+                  <div class="embedding-detail">
+                    <p>
+                      {embeddingPreparing ? copy.embeddingPreparing : copy.embeddingWaiting}
+                      {#if embeddingProgress?.current_file}
+                        · {embeddingProgress.current_file}
+                      {/if}
+                    </p>
+                    {#if !embeddingPreparing}
+                      <SettingsActionButton
+                        label={copy.embeddingRetry}
+                        onclick={() => void prepareEmbeddingResource()}
+                      />
+                    {/if}
+                  </div>
+                {/if}
+                {#if embeddingError}<p class="error">{embeddingError}</p>{/if}
+              </div>
+            {/if}
+            {#if saveError}<p class="error">{saveError}</p>{/if}
             <div class="welcome-features">
               {#each copy.welcomeFeatures as feature, index (feature.title)}
                 <div class="welcome-feature">
@@ -777,38 +820,6 @@
               <span>{copy.workspace}</span>
               <strong>{workspacePath || copy.noWorkspace}</strong>
             </div>
-            <div class="application-settings-surface embedding-card" aria-live="polite">
-              <div class="embedding-heading">
-                <span>{copy.embeddingTitle}</span>
-                <strong>{embeddingReady ? copy.embeddingReady : `${embeddingPercent}%`}</strong>
-              </div>
-              <div
-                class="embedding-meter"
-                role="progressbar"
-                aria-valuemin="0"
-                aria-valuemax="100"
-                aria-valuenow={embeddingPercent}
-              >
-                <span style={`width: ${embeddingPercent}%`}></span>
-              </div>
-              {#if !embeddingReady}
-                <div class="embedding-detail">
-                  <p>
-                    {embeddingPreparing ? copy.embeddingPreparing : copy.embeddingWaiting}
-                    {#if embeddingProgress?.current_file}
-                      · {embeddingProgress.current_file}
-                    {/if}
-                  </p>
-                  {#if !embeddingPreparing}
-                    <SettingsActionButton
-                      label={copy.embeddingRetry}
-                      onclick={() => void prepareEmbeddingResource()}
-                    />
-                  {/if}
-                </div>
-              {/if}
-              {#if embeddingError}<p class="error">{embeddingError}</p>{/if}
-            </div>
             {#if saveError}<p class="error">{saveError}</p>{/if}
           {/if}
         </div>
@@ -841,7 +852,7 @@
             disabled={step === 0 || saving || resourceOnly}
           />
         {/if}
-        {#if step < 4}
+        {#if step < 4 && !resourceOnly}
           <SettingsActionButton
             label={copy.next}
             tone="primary"
@@ -1073,14 +1084,6 @@
     overflow-x: hidden;
   }
 
-  :global(.step-scroll.welcome-scroll .ui-scroll-area-viewport) {
-    overflow-y: hidden !important;
-    padding-bottom: 0;
-  }
-
-  :global(.step-scroll.welcome-scroll .ui-scroll-area-scrollbar) {
-    display: none;
-  }
   :global(.welcome-scroll .setup-description) {
     margin-bottom: 14px;
   }
@@ -1343,7 +1346,7 @@
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: var(--accent);
+    background: var(--primary);
     transition: width var(--motion-panel) var(--ease-enter);
   }
   .embedding-card > .error {
