@@ -289,7 +289,7 @@
       "category": "communication",
       "display_name": "Message Board",
       "description": "Durable channels, threads, search, subscriptions, and idempotent agent collaboration.",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "repository": "https://github.com/BANG404/message-board",
       "homepage": "https://github.com/BANG404/message-board",
       "source_url": "https://github.com/BANG404/message-board.git",

@@ -42,7 +42,7 @@ describe("Message board plugin", () => {
     const manifest = JSON.parse(await readFile(join(root, "plugin.json"), "utf8"));
     const mcp = JSON.parse(await readFile(join(root, "mcp.json"), "utf8"));
     expect(manifest.name).toBe("message-board");
-    expect(manifest.version).toBe("1.1.1");
+    expect(manifest.version).toBe("1.1.2");
     expect(manifest.repository).toBe("https://github.com/BANG404/message-board");
     expect(manifest.extensions.openagent.capabilities).toEqual(["workspace"]);
     expect(mcp.mcpServers["message-board"].command).toBe("node");
