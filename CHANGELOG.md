@@ -27,6 +27,7 @@ All notable changes to this project will be documented in this file.
 - **chat**: Add deterministic incident replay foundation
 
 ### Bug Fixes
+- **plugins**: Sync the message-board catalog version to the 1.1.2 pin
 - Preserve plugin installation focus and intentional tooltips
 - **dev**: Reuse worktree Cargo cache and stage Runtime validation
 - **chat**: Retain focus when opening user message editor
