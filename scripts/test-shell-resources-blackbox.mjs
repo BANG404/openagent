@@ -366,6 +366,15 @@ try {
           throw new Error("Repeat launch revealed resource preparation");
       } else if (url.includes("openagent-ui")) {
         pilot(["run", path.join(root, "tests/blackbox/shell-installed-startup.toml")]);
+        if (
+          !pilot([
+            "eval",
+            "window.__TAURI_INTERNALS__.invoke('plugin:window|is_visible', {label: 'main'})",
+          ]).includes("true")
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          continue;
+        }
         ordinaryStarted = true;
         break;
       }
