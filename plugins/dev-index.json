@@ -4,5 +4,19 @@
   "chat-groups": "chat-groups",
   "cua-driver": "cua-driver",
   "message-board": "message-board",
-  "openagent-plugin-kit": "openagent-plugin-kit"
+  "openagent-plugin-kit": "openagent-plugin-kit",
+  "asana": "asana",
+  "context7": "context7",
+  "discord": "discord",
+  "fakechat": "fakechat",
+  "firebase": "firebase",
+  "github": "github",
+  "gitlab": "gitlab",
+  "imessage": "imessage",
+  "laravel-boost": "laravel-boost",
+  "linear": "linear",
+  "playwright": "playwright",
+  "serena": "serena",
+  "telegram": "telegram",
+  "terraform": "terraform"
 }

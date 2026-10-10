@@ -18,6 +18,20 @@ describe("official plugin registry", () => {
       "cua-driver",
       "message-board",
       "openagent-plugin-kit",
+      "asana",
+      "context7",
+      "discord",
+      "fakechat",
+      "firebase",
+      "github",
+      "gitlab",
+      "imessage",
+      "laravel-boost",
+      "linear",
+      "playwright",
+      "serena",
+      "telegram",
+      "terraform",
     ]);
     expect(findOfficialPlugin(registry, "goal")?.sourceUrl).toBe(
       "https://github.com/BANG404/openagent-goal.git",
@@ -28,13 +42,27 @@ describe("official plugin registry", () => {
       "1.0.7",
       "1.3.0",
       "1.1.1",
-      "1.5.0",
+      "1.6.1",
+      "0.1.1",
+      "0.1.1",
+      "0.1.1",
+      "0.1.1",
+      "0.1.2",
+      "0.1.1",
+      "0.1.0",
+      "0.1.0",
+      "0.1.0",
+      "0.1.0",
+      "0.1.1",
+      "0.1.1",
+      "0.1.0",
+      "0.1.0",
     ]);
     expect(findOfficialPlugin(registry, "message-board")?.sourceUrl).toBe(
       "https://github.com/BANG404/message-board.git",
     );
     expect(findOfficialPlugin(registry, "openagent-plugin-kit")?.sourceUrl).toBe(
-      "https://github.com/BANG404/openagent-plugin-kit.git",
+      "https://github.com/BANG404/openagent-plugin-kit/releases/download/v1.6.1/openagent-plugin-kit-1.6.1.zip",
     );
   });
 

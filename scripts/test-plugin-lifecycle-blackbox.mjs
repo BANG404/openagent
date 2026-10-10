@@ -239,7 +239,10 @@ if (plugins.some((plugin) => plugin.id === "cua-driver")) {
 for (const plugin of plugins) {
   evaluate(`window.__pluginLifecycleProbe.id = ${JSON.stringify(plugin.id)}`);
   await waitFor(
-    `document.querySelector('.official-plugin-card[data-plugin-id="${plugin.id}"]')?.dataset.installed === 'true' && document.querySelector('[data-plugin-id="${plugin.id}"][data-install-status="success"]') !== null`,
+    `(async () => {
+      const {desktopPluginInstallQueue} = await import('/src/lib/agentPluginInstallQueue.ts');
+      return document.querySelector('.official-plugin-card[data-plugin-id="${plugin.id}"]')?.dataset.installed === 'true' && desktopPluginInstallQueue.snapshot().some(task => task.pluginId === '${plugin.id}' && task.status === 'success');
+    })()`,
     `${plugin.id} installation did not finish`,
   );
   const phases = evaluate(
@@ -304,13 +307,14 @@ for (const plugin of plugins) {
   const sentinel = join(data, "lifecycle-preserved.txt");
   writeFileSync(sentinel, "preserved plugin data\n");
   if (!installationOnly && plugin.id !== "cua-driver") {
-    const tool = {
-      goal: "read_goal",
-      graph: "graph_read",
-      "chat-groups": "chat_group_list",
-      "message-board": "get_channels",
-      "openagent-plugin-kit": "development_status",
-    }[plugin.id];
+    const tool =
+      {
+        goal: "read_goal",
+        graph: "graph_read",
+        "chat-groups": "chat_group_list",
+        "message-board": "get_channels",
+        "openagent-plugin-kit": "development_status",
+      }[plugin.id] ?? "integration_status";
     const args =
       plugin.id === "message-board"
         ? { agent_id: "/root/lifecycle" }
@@ -323,7 +327,7 @@ for (const plugin of plugins) {
       const { desktopOpenAgent } = await import('/src/lib/openagent/tauriClient.ts');
       try {
         const result = await desktopOpenAgent.invokeProduct('call_agent_plugin_tool', ${JSON.stringify({ plugin_id: plugin.id, tool_name: tool, arguments: args })});
-        return Array.isArray(result.content);
+        return Array.isArray(result.content) && (${JSON.stringify(tool)} !== 'integration_status' || (result.isError === false && result.structuredContent?.plugin === ${JSON.stringify(plugin.id)}));
       } catch (error) { window.__pluginLifecycleProbe.error = String(error); return false; }
     })()`,
       `${plugin.id} MCP did not serve a tool call`,

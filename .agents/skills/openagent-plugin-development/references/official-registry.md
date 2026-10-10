@@ -8,6 +8,9 @@ OpenAgent keeps the official plugin source list in a small registry contract so
 clients can discover package addresses without querying the GitHub API. The
 bundled reference is `src/lib/officialPluginRegistry.json`; its parser and
 marketplace projection live in `src/lib/officialPluginRegistry.ts`.
+Vite emits the reviewed JSON as a dedicated catalog chunk. Settings keeps its
+existing synchronous projection and bundle budget while the growing catalog
+remains in the main route's transitive dependency budget.
 
 Each entry requires a lowercase plugin id, a display name, an HTTPS repository,
 and an HTTPS `source_url`. The checked-in `version` is copied from that
@@ -130,6 +133,23 @@ the explicit socket to avoid mutating another running development window.
 The runner checks actual progress, MCP availability, enabled uninstall, preserved
 plugin data, and the immediately restored Install action. Repeat with the native
 window in light/dark and English/Chinese.
+Use a separate fixture workspace outside the source and Runtime executable
+directories. Managed Windows confinement refuses a writable-policy sandbox
+wrapper; making the development executable's directory writable invalidates
+the launch before a plugin can connect.
+Completed install success is recorded by the window queue and rendered through
+the installed card and completion toast; `data-install-status` belongs to the
+running progress surface. The lifecycle runner combines authoritative queue
+completion with the actual installed card rather than waiting for a success
+attribute on a progress node that has already been removed.
+
+The fourteen independently maintained Claude external adaptations use immutable
+release archive URLs and SHA-256 catalog entries. Lifecycle qualification calls
+their `integration_status` setup tool so missing external accounts cannot be
+mistaken for broken package installation. Fakechat additionally requires Plugin
+Kit's production receive/Host Bridge/Agent/reply scenario; authenticated services
+and macOS permissions require their own prerequisites. See each README and
+provenance.json for upstream authorship and the immutable import revision.
 
 Cua display probes retry transient disconnected-server responses within their
 existing time limits. A successful Settings connection test can precede the

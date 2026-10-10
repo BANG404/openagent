@@ -122,5 +122,14 @@ export default defineConfig(async () => ({
   // keep Vite's generic warning aligned with that enforced limit.
   build: {
     chunkSizeWarningLimit: 1400,
+    rollupOptions: {
+      output: {
+        /** @param {string} id */
+        manualChunks(id) {
+          if (id.replaceAll("\\", "/").endsWith("/src/lib/officialPluginRegistry.json"))
+            return "official-plugin-catalog";
+        },
+      },
+    },
   },
 }));

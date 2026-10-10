@@ -105,6 +105,20 @@ describe("tracked plugin development index", () => {
       "cua-driver",
       "message-board",
       "openagent-plugin-kit",
+      "asana",
+      "context7",
+      "discord",
+      "fakechat",
+      "firebase",
+      "github",
+      "gitlab",
+      "imessage",
+      "laravel-boost",
+      "linear",
+      "playwright",
+      "serena",
+      "telegram",
+      "terraform",
     ]);
     expect(result.stdout).not.toContain("absent.env");
     const path = spawnSync(process.execPath, [cli, "--path", "message-board"], {

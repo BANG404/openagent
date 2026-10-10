@@ -49,6 +49,18 @@ git submodule update --init --recursive -- plugins
 bun run plugin:dev
 ```
 
+The reviewed Claude external adaptations follow the same ownership: Asana,
+Context7, Discord, Fakechat, Firebase, GitHub, GitLab, iMessage, Laravel Boost,
+Linear, Playwright, Serena, Telegram and Terraform live at `plugins/<id>` and
+publish independently as `BANG404/openagent-<id>`. Their immutable upstream
+revision, source digest and bundled adapter hashes are recorded in each
+`provenance.json`; retain upstream licenses. Plugin Kit's
+`development_import_claude` creates these candidates through the ordinary
+creation workflow. Its explicit host publication CLI requires accepted,
+byte-bound validation/test/Runtime evidence and prior naming/visibility
+authorization. Account-backed service operations and macOS access remain
+separate qualification requirements; setup status alone does not prove them.
+
 The tracked `plugins/dev-index.json` maps manifest plugin IDs to directories
 relative to that file. Paths must remain inside its directory, including through
 symlinks or junctions. The index is explicit: unrelated folders are never scanned

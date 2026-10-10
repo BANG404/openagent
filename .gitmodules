@@ -19,3 +19,45 @@
 [submodule "plugins/openagent-plugin-kit"]
 	path = plugins/openagent-plugin-kit
 	url = https://github.com/BANG404/openagent-plugin-kit.git
+[submodule "plugins/asana"]
+	path = plugins/asana
+	url = https://github.com/BANG404/openagent-asana.git
+[submodule "plugins/context7"]
+	path = plugins/context7
+	url = https://github.com/BANG404/openagent-context7.git
+[submodule "plugins/discord"]
+	path = plugins/discord
+	url = https://github.com/BANG404/openagent-discord.git
+[submodule "plugins/fakechat"]
+	path = plugins/fakechat
+	url = https://github.com/BANG404/openagent-fakechat.git
+[submodule "plugins/firebase"]
+	path = plugins/firebase
+	url = https://github.com/BANG404/openagent-firebase.git
+[submodule "plugins/github"]
+	path = plugins/github
+	url = https://github.com/BANG404/openagent-github.git
+[submodule "plugins/gitlab"]
+	path = plugins/gitlab
+	url = https://github.com/BANG404/openagent-gitlab.git
+[submodule "plugins/imessage"]
+	path = plugins/imessage
+	url = https://github.com/BANG404/openagent-imessage.git
+[submodule "plugins/laravel-boost"]
+	path = plugins/laravel-boost
+	url = https://github.com/BANG404/openagent-laravel-boost.git
+[submodule "plugins/linear"]
+	path = plugins/linear
+	url = https://github.com/BANG404/openagent-linear.git
+[submodule "plugins/playwright"]
+	path = plugins/playwright
+	url = https://github.com/BANG404/openagent-playwright.git
+[submodule "plugins/serena"]
+	path = plugins/serena
+	url = https://github.com/BANG404/openagent-serena.git
+[submodule "plugins/telegram"]
+	path = plugins/telegram
+	url = https://github.com/BANG404/openagent-telegram.git
+[submodule "plugins/terraform"]
+	path = plugins/terraform
+	url = https://github.com/BANG404/openagent-terraform.git
