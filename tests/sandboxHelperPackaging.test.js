@@ -70,6 +70,22 @@ describe("sandbox helper packaging", () => {
     expect(nativeWorkflow).toContain('$env:CARGO_TARGET_DIR = (Resolve-Path "sdk\\target").Path');
   });
 
+  test("materializes the Windows private target before the sandbox steps resolve it", () => {
+    const helperStep = nativeWorkflow.indexOf("- name: Build pinned Windows sandbox helpers");
+    const resolvedTarget = nativeWorkflow.indexOf(
+      '$env:CARGO_TARGET_DIR = (Resolve-Path "sdk\\target").Path',
+    );
+
+    expect(helperStep).toBeGreaterThan(-1);
+    expect(resolvedTarget).toBeGreaterThan(helperStep);
+    expect(
+      nativeWorkflow.slice(
+        helperStep,
+        nativeWorkflow.indexOf("- name: Check all Rust targets on Windows"),
+      ),
+    ).toContain("CARGO_TARGET_DIR: sdk/target");
+  });
+
   test("packages Windows helpers only in the NSIS Windows bundle", () => {
     expect(baseTauriConfig.bundle.resources).not.toHaveProperty("resources/codex-resources/");
     expect(windowsTauriConfig.bundle.targets).toEqual(["nsis"]);

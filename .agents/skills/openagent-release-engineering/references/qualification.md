@@ -24,7 +24,11 @@
 - Treat the private SDK gitlink as release-relevant input. Private SDK output
   must not leak into public logs or public caches, and do not configure a
   compiler cache. Compile Runtime servers, embedded diagnostics, and sandbox
-  helpers cold under `sdk/target` with `cache-targets: false`. The ordinary
+  helpers cold under `sdk/target` with `cache-targets: false`. The Windows
+  helper build pins `CARGO_TARGET_DIR` to `sdk/target` explicitly, because its
+  `dev` profile otherwise defaults to the shared private source cache while
+  every Windows sandbox boundary step resolves `sdk\target` before it runs
+  cargo. The ordinary
   Tauri graph must contain no private SDK crates, so only its separate
   `src-tauri/target` may use GitHub target caching. Release Runtime artifacts
   may leave public jobs only through the documented exact-run publication path.

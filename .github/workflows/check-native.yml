@@ -188,6 +188,12 @@ jobs:
       - name: Build pinned Windows sandbox helpers
         if: runner.os == 'Windows'
         shell: pwsh
+        env:
+          # Release qualification compiles private sandbox output under the
+          # checkout's sdk/target. The development profile otherwise defaults to
+          # the shared openagent-source-target cache, which every Windows
+          # sandbox boundary step below resolves and must not consume.
+          CARGO_TARGET_DIR: sdk/target
         run: |
           $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
           bun run prepare:windows-sandbox:dev *> $log
