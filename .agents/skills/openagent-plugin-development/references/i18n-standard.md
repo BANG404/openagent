@@ -93,7 +93,10 @@ declarations or key parity alone do not prove usable translated UI.
 Declare `extensions.openagent.i18n` with `supported_locales`, `default_locale`,
 and `translations`. Each locale maps flat keys to non-empty strings:
 `display_name`, `description` when present, `commands.<id>.label`,
-`commands.<id>.description`, `sidebar.<id>.title`, and package `notice.<key>`.
+`commands.<id>.description`, `sidebar.<id>.title`,
+`configuration.<key>.label` / `configuration.<key>.description`, and package
+`notice.<key>`. Configuration labels and declared descriptions are required in
+every locale; the SDK, Plugin Kit and frontend catalog parser admit these keys.
 `display_name` is the only universally required metadata key; require a
 translated readable plugin name for each advertised locale. Root `name` stays
 the stable package ID, and must never be replaced with translated text.

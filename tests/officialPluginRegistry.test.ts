@@ -42,27 +42,27 @@ describe("official plugin registry", () => {
       "1.0.7",
       "1.3.0",
       "1.1.1",
-      "1.6.1",
+      "1.7.0",
+      "0.2.0",
       "0.1.1",
-      "0.1.1",
-      "0.1.1",
-      "0.1.1",
+      "0.2.0",
+      "0.2.0",
       "0.1.2",
+      "0.2.0",
+      "0.2.0",
+      "0.1.0",
+      "0.1.0",
+      "0.2.0",
       "0.1.1",
-      "0.1.0",
-      "0.1.0",
-      "0.1.0",
-      "0.1.0",
       "0.1.1",
-      "0.1.1",
-      "0.1.0",
-      "0.1.0",
+      "0.2.0",
+      "0.2.0",
     ]);
     expect(findOfficialPlugin(registry, "message-board")?.sourceUrl).toBe(
       "https://github.com/BANG404/message-board.git",
     );
     expect(findOfficialPlugin(registry, "openagent-plugin-kit")?.sourceUrl).toBe(
-      "https://github.com/BANG404/openagent-plugin-kit/releases/download/v1.6.1/openagent-plugin-kit-1.6.1.zip",
+      "https://github.com/BANG404/openagent-plugin-kit/releases/download/v1.7.0/openagent-plugin-kit-1.7.0.zip",
     );
   });
 

@@ -65,11 +65,20 @@ export function pluginProtocolRange(compatibility, id) {
     !compatibility ||
     typeof compatibility !== "object" ||
     Array.isArray(compatibility) ||
-    Object.keys(compatibility).length !== 1 ||
+    Object.keys(compatibility).some((key) => !["plugin_protocol", "features"].includes(key)) ||
     !Object.hasOwn(compatibility, "plugin_protocol")
   )
     throw new Error(`Invalid plugin compatibility for ${id}`);
-  const range = /** @type {Record<string, unknown>} */ (compatibility).plugin_protocol;
+  const declaration = /** @type {Record<string, unknown>} */ (compatibility);
+  if (
+    declaration.features !== undefined &&
+    (!Array.isArray(declaration.features) ||
+      declaration.features.some(
+        (feature) => !["configuration-v1", "plugin-oauth-v1"].includes(feature),
+      ))
+  )
+    throw new Error(`Invalid plugin compatibility features for ${id}`);
+  const range = declaration.plugin_protocol;
   if (
     !range ||
     typeof range !== "object" ||

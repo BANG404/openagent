@@ -17,6 +17,13 @@ contracts such as Agent Plugin update summaries. Extending those contracts
 must preserve the existing message, checkpoint, and streaming fields so chat
 projection code continues to receive the same shapes.
 
+Plugin summaries may also expose the additive `configuration` declaration,
+reusing the pinned SDK type. The installed-settings controller owns its values,
+secret-presence projection and OAuth actions through typed product operations;
+never carry credential drafts or OAuth token bytes into transcript state.
+Configuration and authorization invariants belong to the plugin development
+owner's `configuration-authorization.md` reference.
+
 `AgentMessageTag` reuses the pinned SDK's type rather than duplicating its union.
 Keep checkpoint tags assignable across desktop and remote transports when the
 Runtime gitlink advances; transcript visibility remains a separate projection rule.

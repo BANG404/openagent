@@ -183,24 +183,25 @@ than the host's.
 
 ### Configuration and external authorization
 
-The current portable format does not define a shared plugin configuration
-schema or generated settings form. Plugins own parameter validation and their
-setup tools, commands, or files under `PLUGIN_DATA`. Document required values,
-defaults, persistent locations, missing-value diagnostics, and how a changed
-value takes effect. Do not add manifest fields and assume the host renders or
-validates them. Credentials are user state and must never be included in
-package source, release archives, or acceptance reports.
+OpenAgent's optional `extensions.openagent.configuration` extension declares
+version 1 fields rendered in the installed plugin's settings. Read
+[configuration and authorization](configuration-authorization.md) for types,
+bindings, storage, repair and qualification. Packages using it must require
+`configuration-v1` in `compatibility.features`; older Runtimes reject that
+compatibility declaration instead of silently omitting setup. The portable
+format remains unchanged. Credentials must never enter package source,
+release archives or acceptance reports.
 
 HTTP MCP entries accept the string hints `oauth_resource`,
 `oauth_authorization_server`, `oauth_client_id`, and `oauth_scope`. These
 describe discovery and public client configuration; they are not credentials
 or authorization grants. The Runtime owns discovery, browser callback, token
 storage and refresh; see [the OAuth contract](openai-compatibility.md).
-The current desktop authorization action belongs to user-configured MCP
-servers in MCP settings. Installed plugin cards do not yet expose that action
-for package-owned HTTP servers. Therefore transport-level OAuth support does
-not establish a complete per-plugin setup experience. Qualify installation,
-configuration, authorization and an authenticated primary tool separately.
+Installed plugin settings expose connection testing, browser authorization and
+local disconnection for the HTTP servers owned by the validated package.
+The Runtime resolves endpoints; clients submit plugin and server identities.
+Qualify installation, configuration, authorization and an authenticated primary
+tool separately. Local disconnection does not revoke the provider's account grant.
 
 ### Installed state and updates
 

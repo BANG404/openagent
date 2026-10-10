@@ -55,7 +55,7 @@ describe("external Runtime transport boundary", () => {
     );
     const dispatch = router.slice(router.indexOf("async fn desktop_product_operation("));
     const implemented = new Set(
-      [...dispatch.matchAll(/^\s+"([a-z_]+)"\s*=>/gm)].map((match) => match[1]),
+      [...dispatch.matchAll(/"([a-z_]+)"(?=\s*(?:=>|\|))/g)].map((match) => match[1]),
     );
 
     expect(DESKTOP_PRODUCT_COMMANDS.filter((command) => !implemented.has(command))).toEqual([]);

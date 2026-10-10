@@ -734,6 +734,7 @@ export interface AgentPluginAuthorSummary {
 export type { AgentPluginInstallProgress } from "@openagent/client/types";
 
 export interface AgentPluginSummary {
+  configuration?: import("@openagent/client/types").PluginConfiguration | null;
   ui_components?: import("@openagent/client/types").ConversationUiComponent[];
   mcp_tool_mode?: "direct" | "relay";
   i18n?: import("@openagent/client/types").AgentPluginI18n | null;

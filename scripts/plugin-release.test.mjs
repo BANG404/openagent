@@ -110,6 +110,12 @@ afterAll(() => rmSync(fixtureTemplateRoot, { recursive: true, force: true }));
 describe("source-owned plugin release versions", () => {
   test("matches Runtime range validation without relaxing malformed declarations", () => {
     expect(pluginProtocolRange(undefined, "demo")).toEqual({ min: 1, max: 1 });
+    expect(
+      pluginProtocolRange(
+        { plugin_protocol: { min: 1, max: 1 }, features: ["configuration-v1", "plugin-oauth-v1"] },
+        "demo",
+      ),
+    ).toEqual({ min: 1, max: 1 });
     expect(pluginProtocolRange({ plugin_protocol: { min: 1, max: 2 } }, "demo")).toEqual({
       min: 1,
       max: 2,
@@ -118,6 +124,8 @@ describe("source-owned plugin release versions", () => {
       null,
       {},
       { plugin_protocol: null },
+      { plugin_protocol: { min: 1, max: 1 }, features: "configuration-v1" },
+      { plugin_protocol: { min: 1, max: 1 }, features: ["unknown-feature"] },
       { plugin_protocol: { min: 1, max: 1 }, typo: true },
       { plugin_protocol: { min: 0, max: 1 } },
       { plugin_protocol: { min: 2, max: 1 } },

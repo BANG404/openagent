@@ -26,6 +26,17 @@ test("message board declares complete platform metadata before installation", ()
   expect(cards[0].description).toContain("持久化频道");
   expect(pluginLanguageName("zh")).toBe("中文");
 });
+test("configuration presentation keys are admitted and localized", () => {
+  const i18n = parsePluginI18n({
+    supported_locales: ["en", "zh"],
+    default_locale: "en",
+    translations: {
+      en: { display_name: "Fixture", "configuration.client-id.label": "Client ID" },
+      zh: { display_name: "配置", "configuration.client-id.label": "客户端 ID" },
+    },
+  });
+  expect(pluginText(i18n, "zh", "configuration.client-id.label", "fallback")).toBe("客户端 ID");
+});
 test("every official package source and marketplace entry declares the complete platform locale set", () => {
   for (const entry of BUNDLED_OFFICIAL_PLUGIN_REGISTRY.plugins) {
     const manifest = JSON.parse(

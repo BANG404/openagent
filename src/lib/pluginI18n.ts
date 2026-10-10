@@ -13,7 +13,7 @@ const GRANDFATHERED = new Set(
 const UTF8 = new TextEncoder();
 const METADATA_TRANSLATION_KEYS = new Set(["display_name", "description"]);
 const COMPONENT_TRANSLATION_KEY =
-  /^(commands\.[a-z0-9.-]+\.(label|description)|sidebar\.[a-z0-9.-]+\.title)$/;
+  /^(commands\.[a-z0-9.-]+\.(label|description)|sidebar\.[a-z0-9.-]+\.title|configuration\.[a-z0-9_-]+\.(label|description))$/;
 const LANGUAGE_NAMES = new Map<string, Intl.DisplayNames | null>();
 
 export function normalizePluginLocale(value: unknown): string {

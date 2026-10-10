@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-10T05:54:15.073Z",
+  "generated_at": "2026-10-10T08:10:27.074Z",
   "plugins": [
     {
       "id": "chat-groups",
@@ -365,10 +365,10 @@
       "id": "openagent-plugin-kit",
       "display_name": "Plugin Developer",
       "description": "Create plugins from Skills and templates, implement, test and qualify them with the production Runtime.",
-      "version": "1.6.1",
+      "version": "1.7.0",
       "repository": "https://github.com/BANG404/openagent-plugin-kit",
       "homepage": "https://github.com/BANG404/openagent-plugin-kit",
-      "source_url": "https://github.com/BANG404/openagent-plugin-kit/releases/download/v1.6.1/openagent-plugin-kit-1.6.1.zip",
+      "source_url": "https://github.com/BANG404/openagent-plugin-kit/releases/download/v1.7.0/openagent-plugin-kit-1.7.0.zip",
       "i18n": {
         "supported_locales": ["en", "zh"],
         "default_locale": "en",
@@ -403,16 +403,16 @@
           }
         }
       },
-      "sha256": "sha256:3e6bf19be9a145d3e4f3b97b88350f600033b6451adae3ce1b95d337b3338ca9"
+      "sha256": "sha256:e2a25274fe4bc81a90c58d49bfe50c73f9f7054c46081cd915f209ef098185c4"
     },
     {
       "id": "asana",
       "display_name": "asana",
       "description": "Asana tasks and projects through the V2 MCP server.",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "repository": "https://github.com/BANG404/openagent-asana",
       "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/asana",
-      "source_url": "https://github.com/BANG404/openagent-asana/releases/download/v0.1.1/asana-0.1.1.zip",
+      "source_url": "https://github.com/BANG404/openagent-asana/releases/download/v0.2.0/asana-0.2.0.zip",
       "i18n": {
         "supported_locales": ["en", "zh"],
         "default_locale": "en",
@@ -421,17 +421,25 @@
             "display_name": "asana",
             "description": "Asana tasks and projects through the V2 MCP server.",
             "commands.setup.label": "Setup",
-            "commands.setup.description": "Review connection prerequisites"
+            "commands.setup.description": "Review connection prerequisites",
+            "configuration.client-id.label": "OAuth client ID",
+            "configuration.client-id.description": "Optional registered public client ID; leave blank for dynamic registration.",
+            "configuration.scope.label": "OAuth scope",
+            "configuration.scope.description": "Optional scopes accepted by the provider. Changing this disconnects the existing local authorization."
           },
           "zh": {
             "display_name": "asana",
             "description": "通过 V2 MCP 服务管理 Asana 任务和项目。",
             "commands.setup.label": "配置",
-            "commands.setup.description": "查看连接要求"
+            "commands.setup.description": "查看连接要求",
+            "configuration.client-id.label": "OAuth 客户端 ID",
+            "configuration.client-id.description": "可选的已注册公共客户端 ID；留空时尝试动态注册。",
+            "configuration.scope.label": "OAuth 权限范围",
+            "configuration.scope.description": "可选的服务提供方支持的权限范围；修改后会断开已有的本地授权。"
           }
         }
       },
-      "sha256": "sha256:1143d948d6ce133e1773ab0b8d8624cef79b4618cc0fced50c4fe3d9457e8d32"
+      "sha256": "sha256:fc2dc57f3dee232bfd87a7bc8a9c4a28c599d77213abf5604ff2c3947887daa2"
     },
     {
       "id": "context7",
@@ -465,10 +473,10 @@
       "id": "discord",
       "display_name": "discord",
       "description": "Discord messaging connected to OpenAgent conversations.",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "repository": "https://github.com/BANG404/openagent-discord",
       "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/discord",
-      "source_url": "https://github.com/BANG404/openagent-discord/releases/download/v0.1.1/discord-0.1.1.zip",
+      "source_url": "https://github.com/BANG404/openagent-discord/releases/download/v0.2.0/discord-0.2.0.zip",
       "i18n": {
         "supported_locales": ["en", "zh"],
         "default_locale": "en",
@@ -481,7 +489,9 @@
             "commands.start.label": "Start channel",
             "commands.start.description": "Bind this channel to the desktop owner",
             "commands.access.label": "Access policy",
-            "commands.access.description": "Inspect or change pairing and allowed senders"
+            "commands.access.description": "Inspect or change pairing and allowed senders",
+            "configuration.token.label": "Bot token",
+            "configuration.token.description": "Saved privately for this plugin. Leave the password field blank to keep its saved value."
           },
           "zh": {
             "display_name": "discord",
@@ -491,20 +501,22 @@
             "commands.start.label": "启动通道",
             "commands.start.description": "将通道绑定到本机管理会话",
             "commands.access.label": "访问策略",
-            "commands.access.description": "查看或调整配对和允许发送者"
+            "commands.access.description": "查看或调整配对和允许发送者",
+            "configuration.token.label": "访问令牌",
+            "configuration.token.description": "此插件的密钥私有保存；密码框留空表示保留已保存的密钥。"
           }
         }
       },
-      "sha256": "sha256:d65ffe4579965d935c955d67352a8235e5864b26ee70d190f4c2196d5d41700f"
+      "sha256": "sha256:83c4da567a2350d2886460853576f3852ab3dbd103fd3163f23fd66660e58d40"
     },
     {
       "id": "fakechat",
       "display_name": "fakechat",
       "description": "Local web chat for exercising OpenAgent message channels.",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "repository": "https://github.com/BANG404/openagent-fakechat",
       "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/fakechat",
-      "source_url": "https://github.com/BANG404/openagent-fakechat/releases/download/v0.1.1/fakechat-0.1.1.zip",
+      "source_url": "https://github.com/BANG404/openagent-fakechat/releases/download/v0.2.0/fakechat-0.2.0.zip",
       "i18n": {
         "supported_locales": ["en", "zh"],
         "default_locale": "en",
@@ -517,7 +529,8 @@
             "commands.start.label": "Start channel",
             "commands.start.description": "Bind this channel to the desktop owner",
             "commands.access.label": "Access policy",
-            "commands.access.description": "Inspect or change pairing and allowed senders"
+            "commands.access.description": "Inspect or change pairing and allowed senders",
+            "configuration.port.label": "Local chat port"
           },
           "zh": {
             "display_name": "fakechat",
@@ -527,11 +540,12 @@
             "commands.start.label": "启动通道",
             "commands.start.description": "将通道绑定到本机管理会话",
             "commands.access.label": "访问策略",
-            "commands.access.description": "查看或调整配对和允许发送者"
+            "commands.access.description": "查看或调整配对和允许发送者",
+            "configuration.port.label": "本地聊天端口"
           }
         }
       },
-      "sha256": "sha256:14d3a2ac60c5aa834f5fe168b8bd5f6b884f83af524369acb3c390b486df94f3"
+      "sha256": "sha256:8f4a2f0eaac05671462466d1791562b235c4b6f4be9b7b75439e5920f98144f8"
     },
     {
       "id": "firebase",
@@ -565,10 +579,10 @@
       "id": "github",
       "display_name": "github",
       "description": "GitHub repositories through the official GitHub MCP server.",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "repository": "https://github.com/BANG404/openagent-github",
       "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/github",
-      "source_url": "https://github.com/BANG404/openagent-github/releases/download/v0.1.1/github-0.1.1.zip",
+      "source_url": "https://github.com/BANG404/openagent-github/releases/download/v0.2.0/github-0.2.0.zip",
       "i18n": {
         "supported_locales": ["en", "zh"],
         "default_locale": "en",
@@ -577,26 +591,30 @@
             "display_name": "github",
             "description": "GitHub repositories through the official GitHub MCP server.",
             "commands.setup.label": "Setup",
-            "commands.setup.description": "Review connection prerequisites"
+            "commands.setup.description": "Review connection prerequisites",
+            "configuration.token.label": "GitHub token",
+            "configuration.token.description": "Saved privately for this plugin. Leave the password field blank to keep its saved value."
           },
           "zh": {
             "display_name": "github",
             "description": "通过官方 GitHub MCP 服务操作仓库。",
             "commands.setup.label": "配置",
-            "commands.setup.description": "查看连接要求"
+            "commands.setup.description": "查看连接要求",
+            "configuration.token.label": "访问令牌",
+            "configuration.token.description": "此插件的密钥私有保存；密码框留空表示保留已保存的密钥。"
           }
         }
       },
-      "sha256": "sha256:1284f98b92cc27615ec09255bf7328e0a06796cfbaade65c38874468bd60cedd"
+      "sha256": "sha256:7ee576224724995c04203396bbbca2a35b526f56843c5a0916462801c05c2d07"
     },
     {
       "id": "gitlab",
       "display_name": "gitlab",
       "description": "GitLab repositories, issues and pipelines through MCP.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "repository": "https://github.com/BANG404/openagent-gitlab",
       "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/gitlab",
-      "source_url": "https://github.com/BANG404/openagent-gitlab/releases/download/v0.1.0/gitlab-0.1.0.zip",
+      "source_url": "https://github.com/BANG404/openagent-gitlab/releases/download/v0.2.0/gitlab-0.2.0.zip",
       "i18n": {
         "supported_locales": ["en", "zh"],
         "default_locale": "en",
@@ -605,17 +623,25 @@
             "display_name": "gitlab",
             "description": "GitLab repositories, issues and pipelines through MCP.",
             "commands.setup.label": "Setup",
-            "commands.setup.description": "Review connection prerequisites"
+            "commands.setup.description": "Review connection prerequisites",
+            "configuration.client-id.label": "OAuth client ID",
+            "configuration.client-id.description": "Optional registered public client ID; leave blank for dynamic registration.",
+            "configuration.scope.label": "OAuth scope",
+            "configuration.scope.description": "Optional scopes accepted by the provider. Changing this disconnects the existing local authorization."
           },
           "zh": {
             "display_name": "gitlab",
             "description": "通过 MCP 操作 GitLab 仓库、议题和流水线。",
             "commands.setup.label": "配置",
-            "commands.setup.description": "查看连接要求"
+            "commands.setup.description": "查看连接要求",
+            "configuration.client-id.label": "OAuth 客户端 ID",
+            "configuration.client-id.description": "可选的已注册公共客户端 ID；留空时尝试动态注册。",
+            "configuration.scope.label": "OAuth 权限范围",
+            "configuration.scope.description": "可选的服务提供方支持的权限范围；修改后会断开已有的本地授权。"
           }
         }
       },
-      "sha256": "sha256:34681308e0e8d10bd699203322e57026ede84e29c867460b6382623d14f1c4a2"
+      "sha256": "sha256:9ff1329a9442d74e0e8d96e63206d1f654fa13e41dfe08d04d653c2fd4e9dd36"
     },
     {
       "id": "imessage",
@@ -685,10 +711,10 @@
       "id": "linear",
       "display_name": "linear",
       "description": "Linear issues and projects through MCP.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "repository": "https://github.com/BANG404/openagent-linear",
       "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/linear",
-      "source_url": "https://github.com/BANG404/openagent-linear/releases/download/v0.1.0/linear-0.1.0.zip",
+      "source_url": "https://github.com/BANG404/openagent-linear/releases/download/v0.2.0/linear-0.2.0.zip",
       "i18n": {
         "supported_locales": ["en", "zh"],
         "default_locale": "en",
@@ -697,17 +723,25 @@
             "display_name": "linear",
             "description": "Linear issues and projects through MCP.",
             "commands.setup.label": "Setup",
-            "commands.setup.description": "Review connection prerequisites"
+            "commands.setup.description": "Review connection prerequisites",
+            "configuration.client-id.label": "OAuth client ID",
+            "configuration.client-id.description": "Optional registered public client ID; leave blank for dynamic registration.",
+            "configuration.scope.label": "OAuth scope",
+            "configuration.scope.description": "Optional scopes accepted by the provider. Changing this disconnects the existing local authorization."
           },
           "zh": {
             "display_name": "linear",
             "description": "通过 MCP 管理 Linear 议题和项目。",
             "commands.setup.label": "配置",
-            "commands.setup.description": "查看连接要求"
+            "commands.setup.description": "查看连接要求",
+            "configuration.client-id.label": "OAuth 客户端 ID",
+            "configuration.client-id.description": "可选的已注册公共客户端 ID；留空时尝试动态注册。",
+            "configuration.scope.label": "OAuth 权限范围",
+            "configuration.scope.description": "可选的服务提供方支持的权限范围；修改后会断开已有的本地授权。"
           }
         }
       },
-      "sha256": "sha256:f4e10654b3cc7bf7139e6f0b1396d0ca817854a6743629cb566e5ce004f2b9a6"
+      "sha256": "sha256:a16f3729ec958ef0de91e26e4af9dcd28a39b3521f145291cdadc72951d3d5f2"
     },
     {
       "id": "playwright",
@@ -769,10 +803,10 @@
       "id": "telegram",
       "display_name": "telegram",
       "description": "Telegram messaging connected to OpenAgent conversations.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "repository": "https://github.com/BANG404/openagent-telegram",
       "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/telegram",
-      "source_url": "https://github.com/BANG404/openagent-telegram/releases/download/v0.1.0/telegram-0.1.0.zip",
+      "source_url": "https://github.com/BANG404/openagent-telegram/releases/download/v0.2.0/telegram-0.2.0.zip",
       "i18n": {
         "supported_locales": ["en", "zh"],
         "default_locale": "en",
@@ -785,7 +819,9 @@
             "commands.start.label": "Start channel",
             "commands.start.description": "Bind this channel to the desktop owner",
             "commands.access.label": "Access policy",
-            "commands.access.description": "Inspect or change pairing and allowed senders"
+            "commands.access.description": "Inspect or change pairing and allowed senders",
+            "configuration.token.label": "Bot token",
+            "configuration.token.description": "Saved privately for this plugin. Leave the password field blank to keep its saved value."
           },
           "zh": {
             "display_name": "telegram",
@@ -795,20 +831,22 @@
             "commands.start.label": "启动通道",
             "commands.start.description": "将通道绑定到本机管理会话",
             "commands.access.label": "访问策略",
-            "commands.access.description": "查看或调整配对和允许发送者"
+            "commands.access.description": "查看或调整配对和允许发送者",
+            "configuration.token.label": "访问令牌",
+            "configuration.token.description": "此插件的密钥私有保存；密码框留空表示保留已保存的密钥。"
           }
         }
       },
-      "sha256": "sha256:8dd38332dccceab31f859f3e4c0dd3e3bde968f0a5a2934675fd73c5e80b6309"
+      "sha256": "sha256:031d6df36f943ea8b9fda4dca396d9439a63dc6fc51125ae0b3e3168eb75c436"
     },
     {
       "id": "terraform",
       "display_name": "terraform",
       "description": "Terraform registry and workspace tools through the HashiCorp MCP server.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "repository": "https://github.com/BANG404/openagent-terraform",
       "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/terraform",
-      "source_url": "https://github.com/BANG404/openagent-terraform/releases/download/v0.1.0/terraform-0.1.0.zip",
+      "source_url": "https://github.com/BANG404/openagent-terraform/releases/download/v0.2.0/terraform-0.2.0.zip",
       "i18n": {
         "supported_locales": ["en", "zh"],
         "default_locale": "en",
@@ -817,17 +855,21 @@
             "display_name": "terraform",
             "description": "Terraform registry and workspace tools through the HashiCorp MCP server.",
             "commands.setup.label": "Setup",
-            "commands.setup.description": "Review connection prerequisites"
+            "commands.setup.description": "Review connection prerequisites",
+            "configuration.token.label": "Terraform Enterprise token",
+            "configuration.token.description": "Saved privately for this plugin. Leave the password field blank to keep its saved value."
           },
           "zh": {
             "display_name": "terraform",
             "description": "通过 HashiCorp MCP 服务使用 Terraform 注册表和工作区工具。",
             "commands.setup.label": "配置",
-            "commands.setup.description": "查看连接要求"
+            "commands.setup.description": "查看连接要求",
+            "configuration.token.label": "访问令牌",
+            "configuration.token.description": "此插件的密钥私有保存；密码框留空表示保留已保存的密钥。"
           }
         }
       },
-      "sha256": "sha256:07d9b32e1b23759ca10ef6592489adbbbbe05bb1da1be1ab1e093f102903c0f4"
+      "sha256": "sha256:e8e18454dda8f3ac915b87d472f9a6a4ad75644e8db4c127cf906afd92bc3a78"
     }
   ]
 }

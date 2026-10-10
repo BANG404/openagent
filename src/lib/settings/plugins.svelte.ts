@@ -41,12 +41,14 @@ import {
 import { pluginSidebarLifecycle, type PluginSidebarLifecycle } from "$lib/pluginSidebar";
 import type { SettingsOptions } from "./types";
 import type { SettingsDraft } from "./draft.svelte";
+import { createPluginSetup } from "./pluginSetup.svelte";
 
 export function createPluginSettings(
   draft: SettingsDraft,
   options: Pick<SettingsOptions, "pluginSidebarContext" | "visibleSections">,
 ) {
   const language = fromStore(locale);
+  const setup = createPluginSetup();
   let agentPlugins = $state<AgentPluginSummary[]>([]);
   let agentPluginMarketplaces = $state<AgentPluginMarketplaceSummary[]>([]);
   let agentPluginUpdates = $state<AgentPluginUpdateSummary[]>([]);
@@ -534,6 +536,7 @@ export function createPluginSettings(
   });
 
   return {
+    setup,
     get agentPluginRemoveId() {
       return agentPluginRemoveId;
     },

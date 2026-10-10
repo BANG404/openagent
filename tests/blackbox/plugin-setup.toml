@@ -1,0 +1,15 @@
+[scenario]
+name = "typed plugin parameters and private credential controls"
+fail_fast = true
+global_timeout_ms = 20000
+
+[[step]]
+name = "all field types and private-token controls are visible"
+action = "eval"
+script = '''(() => {
+  const form = document.querySelector('[data-plugin-setup="setup-fixture"]');
+  if (!form || form.querySelectorAll('[data-config-field]').length !== 4) throw new Error('typed configuration form missing');
+  if (!form.querySelector('input[type=password]') || !form.querySelector('input[type=number]') || !form.querySelector('[role=switch]') || !form.querySelector('[data-select-trigger]')) throw new Error('typed shared controls missing');
+  if (!form.querySelector('[data-plugin-connector="primary"] [data-plugin-authorize] button')) throw new Error('package OAuth entry missing');
+  return true;
+})()'''

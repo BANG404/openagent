@@ -41,6 +41,7 @@
     "test:sonar": "bun scripts/test-sonar.mjs",
     "test:browser:preview": "bun scripts/test-browser-preview.mjs",
     "test:blackbox:memory": "bun scripts/test-memory-blackbox.mjs",
+    "test:blackbox:plugin-setup": "bun scripts/test-plugin-setup-blackbox.mjs",
     "test:blackbox:composer-editor": "bun scripts/test-composer-editor-blackbox.mjs",
     "test:blackbox:user-message-markdown": "bun scripts/test-user-message-markdown-blackbox.mjs",
     "test:blackbox:book-reader": "bun scripts/test-book-reader-blackbox.mjs",

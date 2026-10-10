@@ -3,6 +3,73 @@
 use super::*;
 
 #[tauri::command]
+pub(crate) async fn get_agent_plugin_configuration(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    plugin_id: String,
+) -> Result<openagent_runtime::agent_plugins::configuration::PluginConfigurationStatus, String> {
+    openagent_runtime::commands::get_agent_plugin_configuration(runtime.state(), plugin_id).await
+}
+#[tauri::command]
+pub(crate) async fn save_agent_plugin_configuration(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    plugin_id: String,
+    values: std::collections::BTreeMap<String, serde_json::Value>,
+    revision: String,
+) -> Result<openagent_runtime::agent_plugins::configuration::PluginConfigurationStatus, String> {
+    openagent_runtime::commands::save_agent_plugin_configuration(
+        runtime.state(),
+        plugin_id,
+        values,
+        revision,
+    )
+    .await
+}
+#[tauri::command]
+pub(crate) async fn test_agent_plugin_connector(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    plugin_id: String,
+    server_name: String,
+) -> Result<openagent_runtime::mcp::McpProbeOutcome, String> {
+    openagent_runtime::commands::test_agent_plugin_connector(
+        runtime.state(),
+        plugin_id,
+        server_name,
+    )
+    .await
+}
+#[tauri::command]
+pub(crate) async fn begin_agent_plugin_oauth(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    plugin_id: String,
+    server_name: String,
+) -> Result<openagent_runtime::mcp_oauth::OAuthAuthorizationStart, String> {
+    openagent_runtime::commands::begin_agent_plugin_oauth(runtime.state(), plugin_id, server_name)
+        .await
+}
+#[tauri::command]
+pub(crate) async fn get_agent_plugin_oauth_status(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    plugin_id: String,
+    server_name: String,
+) -> Result<openagent_runtime::mcp_oauth::OAuthAuthorizationStatus, String> {
+    openagent_runtime::commands::get_agent_plugin_oauth_status(
+        runtime.state(),
+        plugin_id,
+        server_name,
+    )
+    .await
+}
+#[tauri::command]
+pub(crate) async fn revoke_agent_plugin_oauth(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    plugin_id: String,
+    server_name: String,
+) -> Result<(), String> {
+    openagent_runtime::commands::revoke_agent_plugin_oauth(runtime.state(), plugin_id, server_name)
+        .await
+}
+
+#[tauri::command]
 pub(crate) async fn list_skills(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
 ) -> Result<Vec<SkillMetadata>, String> {

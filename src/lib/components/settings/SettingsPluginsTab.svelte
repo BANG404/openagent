@@ -13,6 +13,7 @@
   import SettingsActionButton from "../ui/SettingsActionButton.svelte";
   import ScrollArea from "../ui/ScrollArea.svelte";
   import { useSettingsContext } from "$lib/settings/context";
+  import PluginSetup from "./PluginSetup.svelte";
   const { plugins, options } = useSettingsContext();
 </script>
 
@@ -373,6 +374,13 @@
               </div>
             {/if}
             <Accordion.Content class="plugin-accordion-content">
+              {#if plugin.configuration || plugin.mcp_servers.some((server) => server.transport === "streamable-http")}
+                <PluginSetup
+                  {plugin}
+                  setup={plugins.setup}
+                  enabled={plugins.agentPluginEnabled(plugin.id)}
+                />
+              {/if}
               {#if plugin.mcp_servers.length > 0}
                 <div class="plugin-mcp-mode-row">
                   <div class="plugin-mcp-mode-copy">
