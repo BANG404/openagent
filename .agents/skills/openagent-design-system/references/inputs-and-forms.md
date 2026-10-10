@@ -81,7 +81,9 @@ desktop process owns a separate centered 856 × 246px always-on-top transparent
 launcher canvas containing a 760px-wide card;
 workspace windows never resize or change visibility when it opens. The launcher
 is one continuous raised surface with a 14px radius: a large borderless composer
-followed by a 48px footer for model, role, and workspace selectors. It has no
+followed by one compact toolbar for formatting, attachments, model, role,
+workspace, and send. Selector controls participate in the editor toolbar's
+normal flex flow and share the send button's vertical center. It has no
 title bar, shortcut hint, or window-action row; non-interactive card space remains
 draggable. Each shortcut reveal returns keyboard focus to the composer
 so typing can begin immediately even though the hidden launcher window and its

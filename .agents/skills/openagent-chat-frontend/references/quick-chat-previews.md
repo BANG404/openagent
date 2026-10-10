@@ -100,8 +100,15 @@
   composer; the compact card begins directly with input. Flatten the embedded
   `MessageInput` perimeter so it does not create a second card, and place the
   attachment, model, role, workspace, and send controls together in the same
-  bottom toolbar as the ordinary conversation composer. Preserve native
-  dragging from non-interactive card space and keep a dedicated 12px top-edge
+  bottom toolbar as the ordinary conversation composer. Preserve
+  toolbar flow by passing the selector snippet into `MessageInput`'s
+  `toolbarContent` slot after formatting and attachments. Never overlay an
+  absolutely positioned selector footer: it can cover the attachment target
+  and drift from the send control. Keep the toolbar in one flex row, allow
+  selector labels to shrink, and reserve the send control's trailing inset.
+  When attachments are present, subtract their strip height from the editor's
+  maximum so the bottom controls remain inside the bounded card.
+  Preserve native dragging from non-interactive card space and keep a dedicated 12px top-edge
   drag strip inside the rounded perimeter without covering editable text. Open
   selectors below and visually outside the card,
   aligned to their trigger start edge, without collision-based side flipping.
@@ -127,6 +134,13 @@
   glyph before the quick-chat editor. Treat the native attachment dialog
   like the workspace picker: suppress focus-close for its full lifetime and
   restore launcher focus after it closes.
+- Verify the quick-chat toolbar with `bun run test:blackbox:quick-chat` against
+  an isolated `quick-chat` development instance and its explicit
+  `OPENAGENT_HOME` and `TAURI_PILOT_SOCKET`. The scenario checks actual control
+  bounds and hit targets in light/dark and Chinese/English, expanded formatting,
+  clamped long input with attachment add/remove, long model labels, narrower
+  card width, and selector placement below the card. The runner restores settings
+  and launcher visibility; it never submits a provider turn.
 - General settings owns the persisted quick-chat accelerator. Capturing a new
   accelerator requires at least one modifier and stores the portable Tauri
   representation. Capture keydown events at the window level while recording;
