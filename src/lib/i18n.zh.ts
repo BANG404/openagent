@@ -379,12 +379,11 @@ export const zh = {
   pluginUpdateRateLimited:
     "GitHub 公共请求限额已用尽，有 {count} 个插件因此未能完成更新检查。请在限额重置后重试。",
   pluginUpdateRateLimitedUntil: "限额将于 {time} 重置。",
-  pluginUpdateNetworkFailed: "无法连接 GitHub，插件本身可能没有问题，请检查网络后重试。",
-  pluginUpdateErrorReleaseUnavailable:
-    "GitHub 上没有可读取的 Release，或该 Release 没有可验证的压缩包",
+  pluginUpdateNetworkFailed: "无法刷新插件更新信息，请检查网络连接后重试。",
+  pluginUpdateErrorReleaseUnavailable: "没有兼容的稳定版本或可验证的压缩包",
   pluginUpdateErrorRepositoryUnsupported: "插件声明的仓库地址不是受支持的 GitHub 地址",
   pluginUpdateErrorRateLimited: "GitHub 请求限额已用尽",
-  pluginUpdateErrorNetworkFailed: "无法连接 GitHub",
+  pluginUpdateErrorNetworkFailed: "无法刷新更新信息",
   pluginUpdateDescriptionPartial: "另有 {count} 个插件未能完成检查：{plugins}。",
   pluginUpdateFailureEntry: "{name}（{reason}）",
   pluginUpdateFailureSeparator: "、",

@@ -1,0 +1,81 @@
+[scenario]
+name = "plugin release source failure and retry"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "a feed failure describes update information"
+action = "eval"
+script = '''(async () => {
+  const {desktopOpenAgent} = await import('/src/lib/openagent/tauriClient.ts');
+  const original = desktopOpenAgent.checkAgentPluginUpdates;
+  const probe = window.__pluginUpdateProbe;
+  const control = [...document.querySelectorAll('.plugin-directory-actions button')]
+    .find(node => node.textContent.trim() === probe.checkLabel);
+  if (!control || control.disabled) throw new Error('update check control is unavailable');
+  try {
+    desktopOpenAgent.checkAgentPluginUpdates = async () => ({
+      check: {status: 'network_failed', checked: 1, cached: 0, rate_limit_reset: null},
+      updates: [{id: probe.name, current_version: '1.0.0', latest_version: '2.0.0',
+        update_available: true, stale: true, error: 'plugin release index unavailable', error_kind: 'network_failed'}],
+    });
+    control.click();
+    const deadline = Date.now() + 5000;
+    while (Date.now() < deadline) {
+      const status = [...document.querySelectorAll('.settings-tab-panel .provider-status')]
+        .find(node => node.textContent.trim() === probe.networkSummary);
+      const card = document.querySelector(`.plugin-accordion-item[data-plugin-id="${probe.name}"]`);
+      if (status && card?.textContent.includes(probe.networkReason)) return true;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    throw new Error('feed failure did not render source-neutral summary and row reason');
+  } finally {
+    desktopOpenAgent.checkAgentPluginUpdates = original;
+  }
+})()'''
+
+[[step]]
+name = "a covered unpublished release explains its failure"
+action = "eval"
+script = '''(async () => {
+  const {desktopOpenAgent} = await import('/src/lib/openagent/tauriClient.ts');
+  const original = desktopOpenAgent.checkAgentPluginUpdates;
+  const probe = window.__pluginUpdateProbe;
+  const control = [...document.querySelectorAll('.plugin-directory-actions button')]
+    .find(node => node.textContent.trim() === probe.checkLabel);
+  try {
+    desktopOpenAgent.checkAgentPluginUpdates = async () => ({
+      check: {status: 'partial', checked: 1, cached: 0, rate_limit_reset: null},
+      updates: [{id: probe.name, current_version: '1.0.0', latest_version: null,
+        update_available: false, stale: false, error: 'no compatible stable plugin release', error_kind: 'release_unavailable'}],
+    });
+    control.click();
+    const deadline = Date.now() + 5000;
+    while (Date.now() < deadline) {
+      const status = [...document.querySelectorAll('.settings-tab-panel .provider-status')]
+        .find(node => node.textContent.includes(probe.name) && node.textContent.includes(probe.unavailableReason));
+      if (status) return true;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    throw new Error('missing release did not render the localized reason');
+  } finally {
+    desktopOpenAgent.checkAgentPluginUpdates = original;
+  }
+})()'''
+
+[[step]]
+name = "retry reads the real cached feed again"
+action = "eval"
+script = '''(async () => {
+  const probe = window.__pluginUpdateProbe;
+  [...document.querySelectorAll('.plugin-directory-actions button')]
+    .find(node => node.textContent.trim() === probe.checkLabel).click();
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    const status = [...document.querySelectorAll('.settings-tab-panel .provider-status')]
+      .find(node => node.textContent.includes(probe.name) && node.textContent.includes(probe.reason));
+    if (status) return true;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  throw new Error('retry failed to restore the Runtime result');
+})()'''

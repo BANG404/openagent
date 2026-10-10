@@ -385,12 +385,12 @@ const en: Record<TranslationKeys, string> = {
     "The public GitHub request quota is used up, so {count} plugin update check(s) could not complete. Try again after the quota resets.",
   pluginUpdateRateLimitedUntil: "The quota resets at {time}.",
   pluginUpdateNetworkFailed:
-    "GitHub could not be reached. The plugins themselves may be fine; check the connection and try again.",
+    "Plugin update information could not be refreshed. Check the connection and try again.",
   pluginUpdateErrorReleaseUnavailable:
-    "GitHub has no readable release for it, or that release has no verified archive",
+    "no compatible stable release or verified archive is available",
   pluginUpdateErrorRepositoryUnsupported: "its declared repository is not a supported GitHub URL",
   pluginUpdateErrorRateLimited: "the GitHub request quota is used up",
-  pluginUpdateErrorNetworkFailed: "GitHub could not be reached",
+  pluginUpdateErrorNetworkFailed: "update information could not be refreshed",
   pluginUpdateDescriptionPartial:
     "{count} more plugin update check(s) did not complete: {plugins}.",
   pluginUpdateFailureEntry: "{name} ({reason})",

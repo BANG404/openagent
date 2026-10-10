@@ -18,16 +18,9 @@
 //   bun tauri dev --multi-instance plugin-blackbox
 //   bun run test:blackbox:plugin-update
 //
-// Every other package the Runtime checks — the builtins and the other two
-// fixtures — declares a `github.com` repository, so an uncached check spends the
-// machine's shared public GitHub quota and a machine that has spent it makes
-// the whole check report the quota condition instead of the per-plugin reasons
-// this scenario asserts. The runner therefore seeds the Runtime's release
-// metadata cache with builtin and official repositories, plus any repository
-// rendered on installed cards, at the installed version before the check runs.
-// The check answers those from the cache, and the only installed plugin it still
-// has to explain is the fixture. That cache is a derived file the Runtime
-// documents as deletable, and every seeded release offers no update.
+// The runner seeds a complete static release-index snapshot for official and
+// rendered repositories at their installed versions. Update checks reuse this
+// fresh derived cache without reaching Pages or the GitHub API.
 //
 // Each pass is captured twice: the settings surface, which carries the summary
 // line, and the fixture card itself, which is the last row of a list the panel
@@ -58,7 +51,6 @@ const windowLabel = "main";
 const rawDiagnostic = "repository is not a supported GitHub URL";
 // The shape of the Runtime's derived release-metadata cache, and the version
 // every package in this catalog declares, used when a card reports none.
-const updateCacheVersion = 1;
 const fallbackInstalledVersion = "1.0.0";
 const isolatedHome = resolveBlackboxHome(process.env, { instanceName: "plugin-blackbox" });
 const artifactRoot =
@@ -94,7 +86,9 @@ function pilot(args, capture = false) {
   });
   if (result.error) throw result.error;
   if (result.status !== 0) {
-    throw new Error(`tauri-pilot ${args.join(" ")} failed with exit code ${result.status}`);
+    throw new Error(
+      `tauri-pilot ${args[0]} failed with exit code ${result.status}: ${result.stderr || result.stdout || "see command output"}`,
+    );
   }
   return capture ? (result.stdout ?? "") : "";
 }
@@ -156,6 +150,9 @@ function injectProbe(language) {
     officialSearchPlaceholder: catalog.pluginOfficialSearchPlaceholder,
     languagesLabel: catalog.pluginSupportedLanguages,
     languageNames: "English · 中文",
+    networkSummary: catalog.pluginUpdateNetworkFailed,
+    networkReason: catalog.pluginUpdateErrorNetworkFailed,
+    unavailableReason: catalog.pluginUpdateErrorReleaseUnavailable,
   };
   evaluate(`window.__pluginUpdateProbe = ${JSON.stringify(payload)}; true`);
 }
@@ -180,27 +177,6 @@ function githubRepositoryPath(repository) {
   return `${owner}/${repositoryName.replace(/\.git$/, "")}`;
 }
 
-/**
- * Every repository the Runtime's builtin plugin registry declares. The page
- * renders a link for all but one of them — the Cua Driver card carries no
- * repository — so the catalog the check walks is not fully visible in the DOM
- * and the registry itself is the only complete list. It lives in product source
- * in the pinned SDK submodule.
- */
-function builtinRegistryRepositories() {
-  const registry = readFileSync(
-    join(workspaceRoot, "sdk", "rust", "openagent-runtime", "src", "agent_plugins.rs"),
-    "utf8",
-  );
-  const found = [...registry.matchAll(/repository: "(https:\/\/github\.com\/[^"]+)"/g)].map(
-    (match) => match[1],
-  );
-  if (found.length === 0) {
-    throw new Error("the Runtime's builtin plugin registry declared no GitHub repository");
-  }
-  return found;
-}
-
 /** The public source addresses rendered in the official plugin store. */
 function officialRegistryRepositories() {
   const registry = JSON.parse(
@@ -217,7 +193,7 @@ function officialRegistryRepositories() {
 
 /**
  * Any `github.com` repository and installed version rendered in the installed
- * plugin list. Builtin and official catalog repositories are seeded separately.
+ * plugin list. Official catalog repositories are seeded separately.
  */
 function discoverRepositories() {
   const observed = evaluate(
@@ -237,8 +213,8 @@ function discoverRepositories() {
 
 /**
  * Remember every rendered repository as answered at its installed version, so
- * the check takes its cached path for all of them instead of spending the
- * machine's public GitHub quota. A seeded release is never newer than the
+ * the check takes its cached static-feed path without network requests.
+ * A seeded release is never newer than the
  * package it stands for, so it offers no update and fails nothing.
  *
  * @param {string[]} repositories every repository the check may walk
@@ -247,26 +223,25 @@ function discoverRepositories() {
 function seedUpdateCache(repositories, versions = new Map()) {
   /** @type {Record<string, unknown>} */
   const entries = {};
+  const now = Math.floor(Date.now() / 1000);
   for (const repository of repositories) {
     const path = githubRepositoryPath(repository);
     if (path === null) continue;
     const version = versions.get(repository) ?? "";
     const tag = version === "" ? fallbackInstalledVersion : version;
-    entries[path] = {
-      etag: null,
-      fetched_at: Math.floor(Date.now() / 1000),
-      release: {
+    entries[path.toLowerCase()] = [
+      {
         tag_name: tag,
         html_url: `${repository}/releases/tag/${tag}`,
         assets: [],
       },
-    };
+    ];
   }
   const seeded = Object.keys(entries).length;
   if (seeded === 0) throw new Error("the plugins page rendered no cacheable repository");
   writeFileSync(
-    join(isolatedHome, "plugin-update-cache.json"),
-    `${JSON.stringify({ version: updateCacheVersion, entries }, null, 2)}\n`,
+    join(isolatedHome, "plugin-release-index-cache.json"),
+    `${JSON.stringify({ fetched_at: now, index: { schema_version: 1, generated_at: now, repositories: entries } }, null, 2)}\n`,
   );
   process.stderr.write(`seeded ${seeded} release metadata cache entr(ies)\n`);
 }
@@ -288,9 +263,14 @@ function openPluginSurface() {
     if (!item) throw new Error("plugins menu item is missing");
     item.click();
     await new Promise((resolve) => setTimeout(resolve, 0));
-    const installedTab = [...document.querySelectorAll('[role="tab"]')].find((candidate) =>
+    const findInstalledTab = () => [...document.querySelectorAll('.plugin-management-tabs [role="tab"]')].find((candidate) =>
       /Installed|已安装/.test(candidate.textContent ?? "")
     );
+    const deadline = Date.now() + 7000;
+    while (!findInstalledTab() && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    const installedTab = findInstalledTab();
     if (!(installedTab instanceof HTMLElement)) throw new Error("installed plugins tab is missing");
     installedTab.click();
     return true;
@@ -504,11 +484,7 @@ openPluginSurface();
 sleepSync(2000);
 const rendered = discoverRepositories();
 seedUpdateCache(
-  [
-    ...builtinRegistryRepositories(),
-    ...officialRegistryRepositories(),
-    ...rendered.map((card) => card.repository),
-  ],
+  [...officialRegistryRepositories(), ...rendered.map((card) => card.repository)],
   new Map(rendered.map((card) => [card.repository, card.version])),
 );
 dismissSettingsSurface();
@@ -516,6 +492,8 @@ dismissSettingsSurface();
 for (const [theme, language] of /** @type {const} */ [
   ["light", "en"],
   ["dark", "zh"],
+  ["light", "zh"],
+  ["dark", "en"],
   ["light", "en"],
 ]) {
   setVisualState(theme, language);
@@ -524,6 +502,12 @@ for (const [theme, language] of /** @type {const} */ [
   openPluginSurface();
   checkForUpdates();
   captureSurface(theme, language);
+  pilot([
+    "run",
+    join(workspaceRoot, "tests", "blackbox", "plugin-update-source.toml"),
+    "--window",
+    windowLabel,
+  ]);
   dismissSettingsSurface();
 }
 
