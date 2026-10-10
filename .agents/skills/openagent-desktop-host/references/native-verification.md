@@ -366,3 +366,8 @@ workspace selection in Preferences and heading visibility after Back, and proves
 that finishing the preview leaves persisted settings unchanged in all four
 theme/locale combinations. The runner owns its Vite/Tauri processes and never
 uses developer data.
+The resource summary asserts all three groups, development provenance and feature
+placement above the card. Its transient local-command failure fixture checks
+that completion and Continue remain blocked until Check again succeeds. The
+shell runner additionally asserts the same three groups during preparation and
+their verified results after importing the signed offline distribution.

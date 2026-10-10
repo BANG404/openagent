@@ -2,7 +2,7 @@
   import { isTauri } from "@tauri-apps/api/core";
   import { desktopOpenAgent } from "$lib/openagent/tauriClient";
   import { createAttachmentController } from "$lib/composer/attachments.svelte";
-  import { onMount, tick } from "svelte";
+  import { onMount, tick, type Snippet } from "svelte";
   import { createEditorController } from "$lib/composer/editor.svelte";
   import { getMarkdownSelection } from "$lib/composerDom";
   import type {
@@ -45,6 +45,7 @@
     showGlobalDraftsInMentions?: boolean;
     showAttachments?: boolean;
     showFormatting?: boolean;
+    toolbarContent?: Snippet;
     allowImageAttachments?: boolean;
     attachmentDisplay?: "cards" | "strip";
     showModelSelector?: boolean;
@@ -104,6 +105,7 @@
     showGlobalDraftsInMentions = true,
     showAttachments = true,
     showFormatting = true,
+    toolbarContent,
     allowImageAttachments = false,
     attachmentDisplay = "cards",
     showModelSelector = true,
@@ -423,7 +425,7 @@
         data-placeholder={placeholder}
       ></div>
     </div>
-    {#if showFormatting || showAttachments || showModelSelector || showReasoningEffort || showApprovalMode || showWorkspaceSwitcher}
+    {#if showFormatting || showAttachments || showModelSelector || showReasoningEffort || showApprovalMode || showWorkspaceSwitcher || toolbarContent}
       <div class="composer-toolbar">
         <Tooltip text={formatToolbarOpen ? $t("composerFormattingHide") : $t("composerFormatting")}>
           {#snippet trigger(props)}
@@ -538,6 +540,7 @@
               </button>
             {/snippet}
           </Tooltip>{/if}
+        {@render toolbarContent?.()}
         {#if showModelSelector && modelOptions.length === 0}
           <Tooltip text={$t("modelSetupHint")}>
             {#snippet trigger(props)}

@@ -34,7 +34,7 @@
     selectedWorkspace: string;
     workspaceOptions: SelectItem[];
     workspaceLoading?: boolean;
-    composer: Snippet;
+    composer: Snippet<[Snippet]>;
     onModelChange: (value: string) => void;
     onRoleChange: (value: string) => void;
     onWorkspaceChange: (value: string) => void;
@@ -53,11 +53,11 @@
 
   <div class="quick-composer">
     <div class="composer-slot">
-      {@render composer()}
+      {@render composer(selectors)}
     </div>
   </div>
 
-  <footer class="quick-footer">
+  {#snippet selectors()}
     <div class="quick-selectors">
       <div class="quick-select model-select">
         <Select
@@ -132,7 +132,7 @@
         </button>
       </Tooltip>
     </div>
-  </footer>
+  {/snippet}
 </section>
 
 <style>
@@ -160,16 +160,9 @@
     cursor: grabbing;
   }
 
-  .quick-composer,
-  .quick-footer {
+  .quick-composer {
     position: relative;
     z-index: 1;
-  }
-
-  .quick-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
   }
 
   .pick-workspace {
@@ -254,27 +247,22 @@
 
   .composer-slot :global(.composer:has(.attachment-list) .input) {
     min-height: 42px;
+    max-height: 119px;
     padding-top: 8px;
   }
 
-  .quick-footer {
-    position: absolute;
-    right: 48px;
-    bottom: 6px;
-    left: 45px;
-    z-index: 4;
-    gap: 10px;
-    height: 30px;
-    background: transparent;
-    pointer-events: none;
+  .composer-slot :global(.composer-toolbar) {
+    height: 44px;
+    flex-wrap: nowrap;
+    padding: 0 48px 4px 9px;
   }
 
   .quick-selectors {
     display: flex;
+    flex: 1 1 0;
     min-width: 0;
     align-items: center;
     gap: 3px;
-    pointer-events: auto;
   }
 
   .quick-select {

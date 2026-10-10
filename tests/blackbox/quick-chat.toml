@@ -1,0 +1,107 @@
+[scenario]
+name = "quick chat toolbar alignment and overflow"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "all controls share a row without covering adjacent targets"
+action = "eval"
+script = '''(async () => {
+  const card = document.querySelector('.quick-chat');
+  const editor = card.querySelector('[contenteditable="true"]');
+  const toolbar = card.querySelector('.composer-toolbar');
+  const format = toolbar.querySelector('.format-toggle');
+  const send = card.querySelector('.send-btn');
+  const settle = () => new Promise(resolve => setTimeout(resolve, 100));
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const check = () => {
+    const bounds = card.getBoundingClientRect();
+    const controls = [...toolbar.querySelectorAll('button'), send];
+    const center = send.getBoundingClientRect().y + send.clientHeight / 2;
+    let previousRight = bounds.left;
+    for (const control of controls) {
+      const rect = control.getBoundingClientRect();
+      assert(rect.width > 0 && rect.left >= previousRight - 1, 'toolbar hit targets overlap: ' + control.getAttribute('aria-label'));
+      assert(Math.abs(rect.y + rect.height / 2 - center) <= 1, 'toolbar vertical centers differ');
+      assert(rect.bottom <= bounds.bottom && rect.right <= bounds.right, 'toolbar target is clipped');
+      const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+      assert(control.contains(hit), 'toolbar target is covered: ' + control.getAttribute('aria-label'));
+      previousRight = rect.right;
+    }
+    assert(bounds.height <= 193, 'card exceeded its compact height limit');
+  };
+  const fill = async text => {
+    editor.focus();
+    const range = document.createRange(); range.selectNodeContents(editor);
+    const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
+    editor.dispatchEvent(new InputEvent('beforeinput', {inputType: text ? 'insertText' : 'deleteContentBackward', data: text || null, bubbles: true, cancelable: true}));
+    await settle();
+  };
+  check();
+  assert(toolbar.contains(card.querySelector('.model-select')), 'selectors are outside the composer toolbar');
+  format.click(); await settle(); check();
+  assert(toolbar.querySelectorAll('.format-btn').length === 4, 'formatting actions did not open');
+  await fill('A long paragraph wraps naturally in the launcher. '.repeat(70));
+  check();
+  assert(editor.scrollHeight > editor.clientHeight, 'long input must scroll inside its clamp');
+  format.click(); await settle();
+  const clipboard = new DataTransfer();
+  clipboard.items.add(new File(['fixture'], 'toolbar-attachment.txt', {type: 'text/plain'}));
+  editor.dispatchEvent(new ClipboardEvent('paste', {clipboardData: clipboard, bubbles: true, cancelable: true}));
+  for (let i = 0; i < 100 && !card.querySelector('.attachment-list'); i++) await settle();
+  assert(card.querySelector('.attachment-list'), 'attachment did not render');
+  check();
+  card.querySelector('.attachment-list .remove-button').click(); await settle();
+  assert(!card.querySelector('.attachment-list'), 'attachment strip did not collapse on removal');
+  await fill('');
+  check();
+  window.__quickChatCheck = check;
+  return true;
+})()'''
+
+[[step]]
+name = "model menu opens below the toolbar"
+action = "click"
+target = ".model-select button"
+
+[[step]]
+name = "menu remains outside the compact card"
+action = "eval"
+script = '''(async () => {
+  await new Promise(resolve => setTimeout(resolve, 150));
+  const menu = document.querySelector('.quick-select-content');
+  if (!menu || menu.getBoundingClientRect().top < document.querySelector('.quick-chat').getBoundingClientRect().bottom) throw new Error('model menu overlaps the card');
+  return true;
+})()'''
+
+[[step]]
+name = "select a long model label"
+action = "click"
+target = ".quick-select-content [data-value*='Long-model-name-for-toolbar-width-regression']"
+
+[[step]]
+name = "long labels and narrower card preserve target separation"
+action = "eval"
+script = '''(async () => {
+  const card = document.querySelector('.quick-chat');
+  const label = card.querySelector('.model-select .ui-select-value-label');
+  if (!label.textContent.includes('Long-model-name')) throw new Error('long model was not selected');
+  const originalWidth = card.style.width;
+  for (const width of [760, 560]) {
+    card.style.width = `${width}px`;
+    await new Promise(resolve => setTimeout(resolve, 100));
+    window.__quickChatCheck();
+  }
+  card.style.width = originalWidth;
+  return true;
+})()'''
+
+[[step]]
+name = "restore the compact model"
+action = "click"
+target = ".model-select button"
+
+[[step]]
+name = "choose original model"
+action = "click"
+target = ".quick-select-content [data-value*='MiniMax-M3']"

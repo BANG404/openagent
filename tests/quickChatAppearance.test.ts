@@ -20,9 +20,6 @@ describe("quick chat appearance", () => {
     );
     expect(quickChat).not.toContain('class="quick-selector-space"');
     expect(quickChat).not.toMatch(/\.quick-footer\s*{[^}]*border-(?:top|bottom):/s);
-    expect(quickChat).toMatch(
-      /\.quick-footer\s*{[^}]*position: absolute;[^}]*bottom: 6px;[^}]*left: 45px;/s,
-    );
     expect(quickChat).toMatch(/\.composer-slot :global\(\.input\)\s*{[^}]*font-size: 14px;/s);
   });
 });

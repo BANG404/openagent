@@ -70,11 +70,15 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   columns. Dense provider content scrolls inside the form column without changing
   the native window geometry, and its scrollbar stays flush with the trailing
   edge of the inset canvas while the content keeps its reading inset.
-  The local embedding status card belongs near the top of Welcome in both
-  development and installed applications. Query its status before preparing;
-  prepare only missing or corrupt resources, and enable Continue after readiness.
-  Failures retain retry in that card. Welcome content can scroll while the footer
-  stays fixed. Workspace selection belongs in Preferences beside language and
+  Welcome shows its three introduction features before one compact application
+  resource card. The card summarizes interface, Runtime/SDK and local embedding
+  readiness, with development sources explicitly labeled as development rather
+  than signed installations. Query embedding status before preparing; prepare
+  only missing or corrupt resources. Continue and Finish require all resource
+  results. Failures retain retry in that card. Compact introduction type and
+  spacing keep the ready card visible at the default window size in both locales.
+  Welcome content can scroll while the footer stays fixed. Workspace selection
+  belongs in Preferences beside language and
   theme; Welcome contains the introduction and resource status. Remount the
   scroll area on step changes so both forward and back navigation start at the
   heading. Ready contains the configuration summary, without a resource card.

@@ -338,6 +338,22 @@ native process state and validated URL inputs; Runtime persists them on Finish.
 Missing or invalid resources and startup failures reveal the same surface with
 retry and offline import. Keep this decision independent of onboarding completion:
 Runtime alone persists configuration and validates the local embedding model.
+The product welcome reads `get_onboarding_resource_status` through its page
+container and combines frontend and Runtime results with SDK embedding status.
+This local host command checks the selected frontend's signed manifest and usable
+entry point using its startup owner, and probes the supervised Runtime's health
+before checking its selected binary and sandbox helpers through its resource
+owner. Runtime selection must match the running binary. Frontend copy says
+signature verified: this admission boundary does not rehash extracted frontend
+files. Normal Vite development reports a development frontend and a healthy
+local Runtime; it does not claim distribution signature verification. Missing
+or failed installed selections and failed health/status reads block Continue
+and Finish; retry repeats the local checks without checking release channels.
+Finish repeats status checks before saving. These checks belong to setup and
+must not introduce a new preparation reveal during configured startup.
+Before Runtime starts, the embedded welcome lists these three resource groups
+as pending beside aggregate distribution progress. Navigation to the product
+welcome replaces that pending summary with actual resource-owner results.
 The cached distribution's model seed may be passed to Runtime for model repair.
 `desktop_bootstrap/provisioning.rs` owns downloading, bounded signed resource
 admission, progress, retry and offline-directory import. A versioned,

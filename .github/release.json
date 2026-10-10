@@ -3,7 +3,7 @@
   "version": "0.78.0-beta.1",
   "tag": "v0.78.0-beta.1",
   "channel": "beta",
-  "sourceSha": "16dbbe1c096812bfa83f21c1e9dcb73766a21029",
+  "sourceSha": "0ee069ce59b4ef47535d9227767e2a49a9739007",
   "previousTag": "v0.77.0-beta.1",
   "components": {
     "frontend": true,
