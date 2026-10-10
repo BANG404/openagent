@@ -4246,6 +4246,7 @@
     {#if config}
       <OnboardingFlow
         runtimeClient={openAgent}
+        readResourceStatus={() => invoke("get_onboarding_resource_status")}
         listenToResources={listen}
         config={onboardingResourcePreview
           ? { ...config, onboarding_completed: true }

@@ -12,9 +12,15 @@ script = '''(() => {
   if (panel.querySelectorAll('.onboarding-nav-item').length !== 5) throw new Error('full wizard does not show all five steps');
   if (panel.querySelector('.workspace-card')) throw new Error('workspace picker crowds Welcome');
   const viewport = panel.querySelector('.ui-scroll-area-viewport');
-  if (viewport.scrollTop !== 0 || panel.querySelector('h1').getBoundingClientRect().top < viewport.getBoundingClientRect().top) throw new Error('Welcome heading is scrolled out of view');
+  if (viewport.scrollTop !== 0 || panel.querySelector('h1').getBoundingClientRect().top < viewport.getBoundingClientRect().top) throw new Error(`Welcome heading is scrolled out of view: ${JSON.stringify({scrollTop: viewport.scrollTop, height: viewport.clientHeight, contentHeight: viewport.scrollHeight, headingTop: panel.querySelector('h1').getBoundingClientRect().top, viewportTop: viewport.getBoundingClientRect().top})}`);
   const card = panel.querySelector('.embedding-card');
   if (!card || card.getBoundingClientRect().bottom > panel.querySelector('footer').getBoundingClientRect().top) throw new Error('resource status is not visible in Welcome');
+  const features = panel.querySelector('.welcome-features');
+  if (features.getBoundingClientRect().bottom > card.getBoundingClientRect().top) throw new Error('features must appear above application resources');
+  for (const id of ['frontend', 'runtime']) {
+    if (card.querySelector(`[data-resource="${id}"]`)?.getAttribute('data-state') !== 'development') throw new Error(`${id} development provenance is missing`);
+  }
+  if (card.querySelectorAll('[data-resource]').length !== 3) throw new Error('Welcome does not summarize all application resources');
   const image = panel.querySelector('.onboarding-brand-icon');
   if (!image?.complete || !image.naturalWidth) throw new Error('development logo failed to load');
   if (panel.querySelector('.embedding-meter')?.getAttribute('aria-valuenow') !== '100') throw new Error('prepared model is not ready');

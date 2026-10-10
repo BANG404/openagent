@@ -129,6 +129,17 @@ impl FrontendResourceManager {
             .unwrap_or_else(|| self.embedded_version.to_string())
     }
 
+    /// Inspect the installed selection using the same signed-manifest boundary
+    /// as startup. This does not download, activate, or change the selection.
+    pub(crate) fn verify_active_selection(&self) -> Result<Option<String>, String> {
+        let Some(active) = read_active(&self.resources_dir)? else {
+            return Ok(None);
+        };
+        self.verified_version_root(&active.version)
+            .ok_or_else(|| "Frontend signature or entry point is invalid".to_string())?;
+        Ok(Some(active.version))
+    }
+
     /// The version a previous process selected but never saw confirmed.
     ///
     /// `restore_startup_selection` has already removed or replaced an
@@ -767,7 +778,7 @@ mod tests {
     use super::{
         extract_archive, requested_asset, safe_version, serve, validate_manifest, FrontendArtifact,
         FrontendCompatibility, FrontendManifest, FrontendProtocolRange, FrontendResourceManager,
-        FrontendResourceSource,
+        FrontendResourceSource, INSTALLED_SIGNATURE_FILE,
     };
     use base64::{engine::general_purpose::STANDARD, Engine as _};
     use http::{Request, StatusCode};
@@ -849,6 +860,17 @@ mod tests {
         assert!(!manager.confirm(&installed.version).await.unwrap());
         assert_eq!(manager.active_version().as_deref(), Some("9.9.9-test.1"));
         assert_eq!(manager.current_version(), "9.9.9-test.1");
+        assert_eq!(
+            manager.verify_active_selection().unwrap().as_deref(),
+            Some("9.9.9-test.1")
+        );
+        let signature_path = installed.root.join(INSTALLED_SIGNATURE_FILE);
+        let signature = std::fs::read(&signature_path).unwrap();
+        std::fs::write(&signature_path, b"corrupt signature").unwrap();
+        assert!(manager.verify_active_selection().is_err());
+        std::fs::write(&signature_path, signature).unwrap();
+        std::fs::remove_file(installed.root.join("index.html")).unwrap();
+        assert!(manager.verify_active_selection().is_err());
         server.join().unwrap();
         std::fs::remove_dir_all(home).unwrap();
 

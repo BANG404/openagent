@@ -212,6 +212,15 @@ impl RuntimeProcessSupervisor {
             .map(|runtime| process_status(&runtime.ready))
     }
 
+    pub(crate) async fn verified_status(&self) -> Result<Option<RuntimeProcessStatus>, String> {
+        let running = self.running.lock().await;
+        let Some(runtime) = running.as_ref() else {
+            return Ok(None);
+        };
+        self.probe_health(&runtime.ready, &runtime.token).await?;
+        Ok(Some(process_status(&runtime.ready)))
+    }
+
     pub async fn launch_spec(&self) -> Option<RuntimeLaunchSpec> {
         self.running
             .lock()

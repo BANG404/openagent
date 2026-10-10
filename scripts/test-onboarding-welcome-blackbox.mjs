@@ -49,6 +49,8 @@ function pilot(args, window = "onboarding") {
 async function until(expression, window = "onboarding", timeout = 30000) {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
+    if (desktop && desktop.exitCode !== null)
+      throw new Error(`Fixture desktop exited: ${logs.join("").slice(-6000)}`);
     try {
       if (pilot(["eval", expression], window) === "true") return;
     } catch {
@@ -187,6 +189,7 @@ try {
         path.join(directory, `inspector-${theme}-${language}.png`),
       );
       pilot(["run", path.join(root, "tests/blackbox/onboarding-workspace-preferences.toml")]);
+      pilot(["run", path.join(root, "tests/blackbox/onboarding-resource-retry.toml")]);
       pilot(["run", path.join(root, "tests/blackbox/onboarding-welcome-finish.toml")]);
       await until(
         "window.__TAURI_INTERNALS__.invoke('plugin:window|is_visible', {label:'onboarding'}).then(visible => !visible)",

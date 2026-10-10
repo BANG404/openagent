@@ -15,6 +15,7 @@ const nativeCommands = new Set([
   "cua_driver_endpoint",
   "get_embedding_resource_status",
   "get_component_versions",
+  "get_onboarding_resource_status",
   "get_system_locale",
   "get_wsl_home",
   "is_desktop_window_active",

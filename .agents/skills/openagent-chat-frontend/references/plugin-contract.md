@@ -8,7 +8,8 @@ windows retain the existing event/hide handoff. Preserve the frontend-version
 parameter, remove temporary setup appearance inputs, and leave chat restore and
 event ownership in the ordinary page startup. The update-delivery owner documents
 the resource preparation and same-window wizard contract.
-Both product development and production put the local embedding card in Welcome;
+The page also supplies the native resource-status reader to the product wizard.
+Both product development and production put the application resource summary in Welcome;
 Ready is only a settings summary. A configured app's unknown resource status must
 not interrupt chat startup by revealing setup. The design owner documents the
 welcome and public-asset boundary.

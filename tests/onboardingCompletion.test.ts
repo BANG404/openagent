@@ -26,12 +26,16 @@ describe("onboarding completion", () => {
   test("prepares local resources in Welcome and leaves Ready as a summary", async () => {
     const flow = await readFile(onboardingFlowUrl, "utf8");
     const welcomeEnd = flow.indexOf("{:else if step === 1}");
-    const embeddingCard = flow.indexOf('class="application-settings-surface embedding-card"');
+    const embeddingCard = flow.indexOf(
+      'class="application-settings-surface embedding-card resource-card"',
+    );
     expect(embeddingCard).toBeGreaterThan(0);
     expect(embeddingCard).toBeLessThan(welcomeEnd);
     expect(flow).toContain("let step = $state(0)");
     expect(flow).toContain('embeddingStatus.state !== "ready"');
     expect(flow).toContain("resourceOnly ? copy.steps.slice(0, 1) : copy.steps");
+    expect(embeddingCard).toBeGreaterThan(flow.indexOf('class="welcome-features"'));
+    expect(flow).toContain("resourcesReady &&");
   });
 
   test("keeps the frameless setup window draggable", async () => {

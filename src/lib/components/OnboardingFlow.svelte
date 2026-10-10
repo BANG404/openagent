@@ -5,6 +5,10 @@
   import { normalizeConfigShape } from "$lib/config";
   import { applyDocumentTheme } from "$lib/appTheme";
   import { bootstrapText } from "$lib/bootstrapI18n";
+  import {
+    onboardingResourcesReady,
+    type OnboardingResourceStatus,
+  } from "$lib/onboardingResources";
   import type { AppConfig, DefaultModelBinding } from "$lib/types";
   import {
     createProviderConfig,
@@ -34,6 +38,7 @@
     resourcePreparation,
     onLanguagePreview,
     brandIconUrl = "/app-icon.png",
+    readResourceStatus,
   }: {
     config: AppConfig;
     workspacePath: string;
@@ -55,6 +60,7 @@
     };
     onLanguagePreview?: (language: "en" | "zh") => void;
     brandIconUrl?: string;
+    readResourceStatus?: () => Promise<OnboardingResourceStatus>;
   } = $props();
 
   let draft = $state<AppConfig>(
@@ -83,6 +89,39 @@
   let embeddingProgress = $state<EmbeddingResourceProgress | null>(null);
   let embeddingPreparing = $state(false);
   let embeddingError = $state("");
+  let resources = $state<OnboardingResourceStatus | null>(null);
+  let resourcesChecking = $state(false);
+  let resourcesError = $state(false);
+  let resourcesReady = $derived(onboardingResourcesReady(resources));
+  function resourceLabel(
+    state: OnboardingResourceStatus["frontend"] | undefined,
+    frontend = false,
+  ) {
+    if (state === "development") return copy.resourceDevelopment;
+    if (state === "verified") return frontend ? copy.frontendVerified : copy.resourceVerified;
+    if (state === "bundled") return copy.resourceBundled;
+    if (state === "failed" || resourcesError) return copy.resourceFailed;
+    return copy.resourceChecking;
+  }
+
+  async function checkResources() {
+    saveError = "";
+    resourcesChecking = true;
+    resourcesError = false;
+    resources = null;
+    try {
+      resources = !isTauri()
+        ? { frontend: "development", runtime: "development" }
+        : readResourceStatus
+          ? await readResourceStatus()
+          : null;
+      resourcesError = !onboardingResourcesReady(resources);
+    } catch {
+      resourcesError = true;
+    } finally {
+      resourcesChecking = false;
+    }
+  }
   let embeddingReady = $derived(embeddingStatus?.state === "ready");
   let embeddingPercent = $derived(
     embeddingReady
@@ -93,6 +132,15 @@
             Math.round((embeddingProgress.downloaded_bytes / embeddingProgress.total_bytes) * 100),
           )
         : 0,
+  );
+  let resourcePercent = $derived(
+    Math.floor(
+      (((resources && resources.frontend !== "failed" ? 1 : 0) +
+        (resources && resources.runtime !== "failed" ? 1 : 0) +
+        embeddingPercent / 100) /
+        3) *
+        100,
+    ),
   );
 
   async function prepareEmbeddingResource() {
@@ -113,6 +161,7 @@
 
   onMount(() => {
     if (resourcePreparation) return;
+    void checkResources();
     if (!isTauri()) {
       embeddingStatus = {
         state: embeddingPreviewState === "downloading" ? "missing" : "ready",
@@ -239,6 +288,18 @@
           readyTitle: "You’re ready",
           readyBody: "Your workspace and model settings are ready. Start using OpenAgent.",
           embeddingTitle: "Local embedding model",
+          resourcesTitle: "Application resources",
+          frontendTitle: "Application interface",
+          runtimeTitle: "Runtime / SDK",
+          resourceChecking: "Checking…",
+          resourcePending: "Waiting for readiness",
+          resourceVerified: "Verified and ready",
+          frontendVerified: "Signature verified",
+          resourceDevelopment: "Development environment · ready",
+          resourceBundled: "Provided with the application",
+          resourceFailed: "Check failed",
+          resourcesRetry: "Check again",
+          resourcesHelp: "Resources are unavailable. Check again or restart to repair them.",
           embeddingReady: "Installed and verified",
           embeddingPreparing: "Preparing in the background…",
           embeddingWaiting: "Waiting to start download",
@@ -318,6 +379,18 @@
           readyTitle: "一切就绪",
           readyBody: "工作区和模型设置已就绪，可以开始使用 OpenAgent。",
           embeddingTitle: "本地 Embedding 模型",
+          resourcesTitle: "应用资源",
+          frontendTitle: "应用界面",
+          runtimeTitle: "Runtime / SDK",
+          resourceChecking: "检查中…",
+          resourcePending: "待就绪",
+          resourceVerified: "已校验并就绪",
+          frontendVerified: "签名已校验",
+          resourceDevelopment: "开发环境 · 已就绪",
+          resourceBundled: "随应用提供",
+          resourceFailed: "检查失败",
+          resourcesRetry: "重新检查",
+          resourcesHelp: "资源不可用，请重新检查，或重启应用进行修复。",
           embeddingReady: "已安装并通过校验",
           embeddingPreparing: "正在后台准备…",
           embeddingWaiting: "等待开始下载",
@@ -362,6 +435,7 @@
   ]);
   let canContinue = $derived(
     !resourcePreparation &&
+      resourcesReady &&
       embeddingReady &&
       (step < 2 ||
         (step === 2
@@ -458,6 +532,8 @@
     saving = true;
     saveError = "";
     try {
+      await checkResources();
+      if (!resourcesReady) throw new Error(copy.resourcesHelp);
       const currentResource =
         isTauri() && runtimeClient
           ? await runtimeClient.invokeProduct("get_embedding_resource_status", {})
@@ -546,9 +622,45 @@
               <h1 class="welcome-title">{copy.welcomeTitle}</h1>
               <p class="lead">{copy.welcomeBody}</p>
               <p class="setup-description">{copy.setupBody}</p>
+              {#if saveError}<p class="error">{saveError}</p>{/if}
+              <div class="welcome-features">
+                {#each copy.welcomeFeatures as feature, index (feature.title)}
+                  <div class="welcome-feature">
+                    <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+                    <div>
+                      <strong>{feature.title}</strong>
+                      <p>{feature.body}</p>
+                    </div>
+                  </div>
+                {/each}
+              </div>
               {#if !resourcePreparation}
-                <div class="application-settings-surface embedding-card" aria-live="polite">
-                  <div class="embedding-heading">
+                <div
+                  class="application-settings-surface embedding-card resource-card"
+                  aria-live="polite"
+                  aria-label={copy.resourcesTitle}
+                >
+                  <div
+                    class="embedding-heading"
+                    data-resource="frontend"
+                    data-state={resources?.frontend ?? (resourcesError ? "failed" : "checking")}
+                  >
+                    <span>{copy.frontendTitle}</span>
+                    <strong>{resourceLabel(resources?.frontend, true)}</strong>
+                  </div>
+                  <div
+                    class="embedding-heading"
+                    data-resource="runtime"
+                    data-state={resources?.runtime ?? (resourcesError ? "failed" : "checking")}
+                  >
+                    <span>{copy.runtimeTitle}</span>
+                    <strong>{resourceLabel(resources?.runtime)}</strong>
+                  </div>
+                  <div
+                    class="embedding-heading"
+                    data-resource="embedding"
+                    data-state={embeddingReady ? "verified" : "checking"}
+                  >
                     <span>{copy.embeddingTitle}</span>
                     <strong>{embeddingReady ? copy.embeddingReady : `${embeddingPercent}%`}</strong>
                   </div>
@@ -557,9 +669,10 @@
                     role="progressbar"
                     aria-valuemin="0"
                     aria-valuemax="100"
-                    aria-valuenow={embeddingPercent}
+                    aria-valuenow={resourcePercent}
+                    aria-label={copy.resourcesTitle}
                   >
-                    <span style={`width: ${embeddingPercent}%`}></span>
+                    <span style={`width: ${resourcePercent}%`}></span>
                   </div>
                   {#if !embeddingReady}
                     <div class="embedding-detail">
@@ -578,22 +691,28 @@
                     </div>
                   {/if}
                   {#if embeddingError}<p class="error">{embeddingError}</p>{/if}
+                  {#if resourcesError}
+                    <p class="error" role="alert">{copy.resourcesHelp}</p>
+                    <SettingsActionButton
+                      label={copy.resourcesRetry}
+                      disabled={resourcesChecking}
+                      onclick={() => void checkResources()}
+                    />
+                  {/if}
                 </div>
               {/if}
-              {#if saveError}<p class="error">{saveError}</p>{/if}
-              <div class="welcome-features">
-                {#each copy.welcomeFeatures as feature, index (feature.title)}
-                  <div class="welcome-feature">
-                    <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
-                    <div>
-                      <strong>{feature.title}</strong>
-                      <p>{feature.body}</p>
-                    </div>
-                  </div>
-                {/each}
-              </div>
               {#if resourcePreparation}
-                <div class="application-settings-surface preparation-card" aria-live="polite">
+                <div
+                  class="application-settings-surface preparation-card resource-card"
+                  aria-live="polite"
+                  aria-label={copy.resourcesTitle}
+                >
+                  {#each [["frontend", copy.frontendTitle], ["runtime", copy.runtimeTitle], ["embedding", copy.embeddingTitle]] as [id, label] (id)}
+                    <div class="embedding-heading" data-resource={id} data-state="pending">
+                      <span>{label}</span>
+                      <strong>{copy.resourcePending}</strong>
+                    </div>
+                  {/each}
                   <p>
                     {bootstrapText(
                       draft.language,
@@ -865,7 +984,7 @@
             label={saving ? "…" : copy.finish}
             tone="primary"
             onclick={finish}
-            disabled={saving || !embeddingReady}
+            disabled={saving || !embeddingReady || !resourcesReady}
           />
         {/if}
       </footer>
@@ -875,6 +994,8 @@
 
 <style>
   .preparation-card {
+    display: grid;
+    gap: 6px;
     padding: 12px 14px;
     border-radius: 8px;
     font-size: 12px;
@@ -1085,10 +1206,19 @@
     overflow-x: hidden;
   }
 
-  :global(.welcome-scroll .setup-description) {
-    margin-bottom: 14px;
+  :global(.welcome-scroll) .setup-description {
+    margin-bottom: 12px;
+    font-size: 12px;
+    line-height: 1.5;
   }
-  :global(.welcome-scroll .welcome-features) {
+  :global(.welcome-scroll) .lead {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  :global(.welcome-scroll .ui-scroll-area-viewport) {
+    padding-top: 24px;
+  }
+  :global(.welcome-scroll) .welcome-features {
     gap: 7px;
     margin-bottom: 10px;
   }
@@ -1110,7 +1240,7 @@
   .welcome-title {
     max-width: 430px;
     margin-bottom: 12px;
-    font-size: 32px;
+    font-size: 28px;
     letter-spacing: -0.045em;
     line-height: 1.1;
   }
@@ -1316,9 +1446,9 @@
   }
   .embedding-card {
     display: grid;
-    gap: 10px;
-    margin-block: 14px;
-    padding: 14px;
+    gap: 6px;
+    margin-block: 10px;
+    padding: 10px 14px;
     border-radius: 8px;
     background: var(--mica-surface);
   }
