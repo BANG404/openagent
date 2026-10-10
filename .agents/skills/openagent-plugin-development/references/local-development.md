@@ -155,6 +155,15 @@ continues unfinished successful turns with a bounded budget. Status turns never
 continue; approval, cancellation, failure and qualified candidates stop.
 Qualification waits for `:accept`; `:resume` and `:stop` control recovery.
 Read the kit's `docs/development-workflow.md` for arguments and reports.
+Package acceptance and external-service readiness are separate results. A setup
+or `integration_status` tool proves that the package can explain its state;
+it does not prove that a provider is authenticated or that its primary tools
+work. Record required parameters, their persistent storage, missing-credential
+behavior, supported platforms, and the exact primary tool tested. Record a
+provider authorization flow as untested when no account is available. Never
+publish a credential in a manifest, archive, test report, or repository.
+Follow the [configuration and authorization boundaries](package-format.md#configuration-and-external-authorization)
+when recording these results; installation does not complete provider setup.
 Resolve the final candidate directory before collecting gate evidence. If the
 scaffolder stages a package elsewhere in the workspace, place it at the chosen
 project plugin path without overwriting existing files and select that path with
@@ -188,6 +197,13 @@ permission-required notice, persisted authorization, daemon readiness, MCP
 tool discovery, revocation, and Settings reopening in light/English and
 dark/Chinese. Use a fresh fixture without a pre-existing Cua package or grant;
 the runner retains package data while uninstalling its own test package.
+The catalog lifecycle runner defers host access requested by other selected
+packages and checks that no grant was persisted before calling their setup
+tools. Wait for every selected installation queue task to finish, including
+authorization prompts, before testing tools. Poll a browser-owned tool promise
+instead of awaiting a long tool call inside one tauri-pilot evaluation, whose
+RPC timeout is shorter than MCP connection refresh. Native captures must use
+the fixture's main HWND, not its onboarding or quick-chat window.
 
 Finish implementation, package validation, related OpenAgent integration tests,
 and the repository-owned local delivery workflow before handing back a candidate.

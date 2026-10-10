@@ -236,6 +236,35 @@ if (plugins.some((plugin) => plugin.id === "cua-driver")) {
     );
   }
 }
+// Resolve every installation prompt before invoking tools. A package such as
+// iMessage can request host access even when Cua is outside the selected set.
+// This fixture declines those requests; package installation must still finish.
+await waitFor(
+  `(async () => {
+    const prompt = document.querySelector('[data-plugin-host-access]');
+    if (prompt) {
+      const id = prompt.getAttribute('data-plugin-host-access');
+      if (id !== 'cua-driver') {
+        window.__pluginLifecycleProbe.deferredHostAccess ??= [];
+        if (!window.__pluginLifecycleProbe.deferredHostAccess.includes(id))
+          window.__pluginLifecycleProbe.deferredHostAccess.push(id);
+        prompt.querySelector('[data-plugin-host-access-defer] button')?.click();
+      }
+      return false;
+    }
+    const {desktopPluginInstallQueue} = await import('/src/lib/agentPluginInstallQueue.ts');
+    return window.__pluginLifecycleProbe.ids.every(id =>
+      desktopPluginInstallQueue.snapshot().some(task => task.pluginId === id && task.status === 'success'));
+  })()`,
+  "selected installations did not settle after authorization choices",
+);
+const deferredGrants = evaluate(`(async () => {
+  const {desktopOpenAgent} = await import('/src/lib/openagent/tauriClient.ts');
+  const config = await desktopOpenAgent.invokeProduct('get_settings', {});
+  return (window.__pluginLifecycleProbe.deferredHostAccess ?? []).every(id =>
+    !config.agent_plugins_host_access?.[id]);
+})()`);
+if (deferredGrants !== "true") throw new Error("Deferred installation granted host access");
 for (const plugin of plugins) {
   evaluate(`window.__pluginLifecycleProbe.id = ${JSON.stringify(plugin.id)}`);
   await waitFor(
@@ -322,16 +351,25 @@ for (const plugin of plugins) {
             run: "lifecycle-missing-run",
             _openagent: { conversation_id: "lifecycle-fixture", branch_id: null },
           };
+    evaluate("window.__pluginLifecycleProbe.toolProbe = {running:false, success:false}; true");
     await waitFor(
-      `(async () => {
-      const { desktopOpenAgent } = await import('/src/lib/openagent/tauriClient.ts');
-      try {
-        const result = await desktopOpenAgent.invokeProduct('call_agent_plugin_tool', ${JSON.stringify({ plugin_id: plugin.id, tool_name: tool, arguments: args })});
-        return Array.isArray(result.content) && (${JSON.stringify(tool)} !== 'integration_status' || (result.isError === false && result.structuredContent?.plugin === ${JSON.stringify(plugin.id)}));
-      } catch (error) { window.__pluginLifecycleProbe.error = String(error); return false; }
-    })()`,
+      `(() => {
+        const probe = window.__pluginLifecycleProbe.toolProbe;
+        if (!probe.running && !probe.success) {
+          probe.running = true;
+          (async () => {
+            try {
+              const {desktopOpenAgent} = await import('/src/lib/openagent/tauriClient.ts');
+              const result = await desktopOpenAgent.invokeProduct('call_agent_plugin_tool', ${JSON.stringify({ plugin_id: plugin.id, tool_name: tool, arguments: args })});
+              probe.success = Array.isArray(result.content) && (${JSON.stringify(tool)} !== 'integration_status' || (result.isError === false && result.structuredContent?.plugin === ${JSON.stringify(plugin.id)}));
+            } catch (error) { window.__pluginLifecycleProbe.error = String(error); }
+            finally { probe.running = false; }
+          })();
+        }
+        return probe.success;
+      })()`,
       `${plugin.id} MCP did not serve a tool call`,
-      30000,
+      120000,
     );
   } else if (!installationOnly) {
     pilot(["snapshot", "-i"]);

@@ -23,8 +23,8 @@ manifest has no inline OpenAI extension, the overlay is used. A package with
 only `.codex-plugin/plugin.json` is also accepted for compatibility.
 
 Portable packages always prefer root `mcp.json`. Legacy `.mcp.json` accepts the
-OpenAI examples' `type: "http"` alias and ignores the informational
-`oauth_resource` field after validating the HTTPS endpoint. Hook commands are
+OpenAI examples' `type: "http"` alias and preserves the OAuth discovery hints
+described below after validating the HTTPS endpoint. Hook commands are
 loaded from `hooks/hooks.json` (or the configured relative path) only when the
 command resolves to a file under the installed package through
 `${PLUGIN_ROOT}`. Connector IDs in `.app.json` are presentation metadata; the
@@ -180,6 +180,29 @@ loopback endpoints, and configured headers are not forwarded across an origin
 change. The stdio child runs under the plugin process policy described below,
 so its writable roots and inherited environment are the resolved policy rather
 than the host's.
+
+### Configuration and external authorization
+
+The current portable format does not define a shared plugin configuration
+schema or generated settings form. Plugins own parameter validation and their
+setup tools, commands, or files under `PLUGIN_DATA`. Document required values,
+defaults, persistent locations, missing-value diagnostics, and how a changed
+value takes effect. Do not add manifest fields and assume the host renders or
+validates them. Credentials are user state and must never be included in
+package source, release archives, or acceptance reports.
+
+HTTP MCP entries accept the string hints `oauth_resource`,
+`oauth_authorization_server`, `oauth_client_id`, and `oauth_scope`. These
+describe discovery and public client configuration; they are not credentials
+or authorization grants. The Runtime owns discovery, browser callback, token
+storage and refresh; see [the OAuth contract](openai-compatibility.md).
+The current desktop authorization action belongs to user-configured MCP
+servers in MCP settings. Installed plugin cards do not yet expose that action
+for package-owned HTTP servers. Therefore transport-level OAuth support does
+not establish a complete per-plugin setup experience. Qualify installation,
+configuration, authorization and an authenticated primary tool separately.
+
+### Installed state and updates
 
 Installed packages live at `<OPENAGENT_HOME>/plugins/<plugin-name>/`. Writable
 state lives separately at `<OPENAGENT_HOME>/plugin-data/<plugin-name>/` and is
