@@ -10,6 +10,43 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.78.0-beta.1] - 2026-10-10
+
+### Features
+- **plugins**: Add categories and align marketplace loading skeleton
+- Add plugin configuration and OAuth setup
+- **plugins**: Publish reviewed external adaptations and close creation delivery
+- **replay**: Qualify captured chat retry clocks
+- **replay**: Qualify recorded approval and resume trajectories
+- **replay**: Qualify recorded tool outcomes and complex trajectory design
+- **replay**: Extract anchored Runtime incidents through the common CLI
+- **replay**: Pin live SDK model journal support
+- **replay**: Dispatch Runtime cases to qualified SDK source
+- **chat**: Qualify real frontend fault recording and replay
+- **chat**: Record private frontend fault journals and extract replay cases
+- **chat**: Add deterministic incident replay foundation
+
+### Bug Fixes
+- Preserve plugin installation focus and intentional tooltips
+- **dev**: Reuse worktree Cargo cache and stage Runtime validation
+- **chat**: Retain focus when opening user message editor
+- **plugins**: Allow concurrent updates and use standard notifications
+- **chat**: Render user message drafts after editor blur
+- **chat**: Preserve composer markdown in user messages
+- **ui**: Fit terminal output and highlight file diffs
+- **chat**: Preserve running history during conversation navigation
+- **graph**: Qualify long-running nodes and pin timeout fix
+
+### Performance
+- **runtime**: Pin optimized standalone SDK release builds
+
+### Documentation
+- Remove message board examples from plugin developer
+
+### Miscellaneous
+- Default the repository branch to main
+- **plugins**: Pin the published kit 1.8.0 archive
+
 ## [0.77.0-beta.1] - 2026-10-09
 
 ### Features
