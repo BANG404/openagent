@@ -32,6 +32,7 @@ const nativeCommands = new Set([
   "prepare_shell_handoff",
   "prepare_release_resources",
   "shell_resource_status",
+  "set_shell_setup_appearance",
   "retry_shell_resources",
   "quit_app",
   "read_text_file",

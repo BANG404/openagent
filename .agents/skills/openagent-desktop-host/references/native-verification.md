@@ -347,7 +347,8 @@ an empty temporary home and an explicit pilot socket. It drives Retry after a
 refused loopback resource connection, asserts offline import availability, and
 covers light/dark and English/Chinese. It then builds an ephemeral signed offline
 fixture using the exact prepared Runtime and production frontend and verifies
-native import, startup and frontend navigation. It then removes the offline source,
+native import, startup and frontend navigation. It asserts that the same main
+window advances from the shared Welcome step to Preferences. It then removes the offline source,
 restarts against the refused endpoint, and verifies cache-only startup and removal
 of a durable shell continuation after frontend confirmation. The picker uses the shared native
 dialog plugin; fixture import directly invokes its native command after the visible

@@ -191,6 +191,19 @@ fn run_with_mode(agent_server: bool) {
             window.url = tauri::WebviewUrl::App("bootstrap".into());
         }
     }
+    if shell_provisioning {
+        if let Some(window) = context
+            .config_mut()
+            .app
+            .windows
+            .iter_mut()
+            .find(|window| window.label == "main")
+        {
+            // Installed resources start behind this window. Only first-use
+            // preparation or an actionable failure may reveal the bootstrap.
+            window.visible = false;
+        }
+    }
     if agent_server {
         context.config_mut().app.windows.clear();
     }
@@ -278,11 +291,6 @@ fn run_with_mode(agent_server: bool) {
                 )?;
             } else if let Some(window) = app.get_webview_window("main") {
                 desktop_windows::apply_native_window_material(&window);
-                window.show()?;
-                window.set_focus()?;
-                app.state::<DesktopWindowState>()
-                    .startup_window_revealed
-                    .store(true, std::sync::atomic::Ordering::Release);
                 let provisioning_app = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
                     if let Err(error) =
@@ -319,7 +327,9 @@ fn run_with_mode(agent_server: bool) {
                 }
             }
 
-            if should_reveal_workspace_shell_early(agent_server, is_workspace_window) {
+            if !shell_provisioning
+                && should_reveal_workspace_shell_early(agent_server, is_workspace_window)
+            {
                 if let Some(window) = app.get_webview_window("main") {
                     window.show()?;
                     window.set_focus()?;

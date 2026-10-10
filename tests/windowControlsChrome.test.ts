@@ -45,7 +45,8 @@ describe("Windows window controls", () => {
     expect(onboarding).not.toContain("canMaximize");
     expect(onboarding).not.toContain("onboarding-illustration");
     expect(onboarding).toContain('class="onboarding-brand"');
-    expect(onboarding).toContain('src="/app-icon.png"');
+    expect(onboarding).toContain('import appIcon from "../../../static/app-icon.png"');
+    expect(onboarding).toContain("src={appIcon}");
     expect(onboarding).toMatch(
       /\.onboarding-body\s*{[^}]*grid-template-columns: 34% minmax\(0, 66%\);/s,
     );

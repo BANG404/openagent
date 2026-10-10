@@ -2683,6 +2683,13 @@
       );
       if (!loaded) return;
       config = normalizeConfigShape(loaded);
+      const setupQuery = new URLSearchParams(window.location.search);
+      if (setupQuery.has("onboarding-inline")) {
+        const language = setupQuery.get("setup-language");
+        const theme = setupQuery.get("setup-theme");
+        if (language === "en" || language === "zh") config.language = language;
+        if (theme === "light" || theme === "dark") config.theme = theme;
+      }
       applyTheme(config.theme ?? "system");
       await initI18n(config.language);
       if (config.workspace) workspacePath = config.workspace;
@@ -3859,6 +3866,15 @@
 
   async function completeOnboarding() {
     if (!tauriAvailable) return;
+    if (new URLSearchParams(window.location.search).has("onboarding-inline")) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("onboarding-inline");
+      url.searchParams.delete("onboarding-window");
+      url.searchParams.delete("setup-language");
+      url.searchParams.delete("setup-theme");
+      window.location.replace(url.href);
+      return;
+    }
     await emit(ONBOARDING_COMPLETE_EVENT, { workspace_path: workspacePath });
     await getCurrentWindow().hide();
   }
@@ -4225,6 +4241,8 @@
   {:else if isOnboardingSurface}
     {#if config}
       <OnboardingFlow
+        runtimeClient={openAgent}
+        listenToResources={listen}
         config={onboardingResourcePreview ? { ...config, onboarding_completed: true } : config}
         embeddingPreviewState={onboardingResourcePreview === "downloading"
           ? "downloading"

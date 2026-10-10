@@ -3,7 +3,8 @@ use crate::component_updates::sources::update_public_key;
 use crate::frontend_resource::FrontendResourceManager;
 use crate::runtime_process::RuntimeProcessSupervisor;
 use crate::runtime_resource::{
-    current_runtime_resource_target, RuntimeResourceArtifact, RuntimeResourceManager,
+    current_runtime_resource_target, InstalledRuntimeResource, RuntimeResourceArtifact,
+    RuntimeResourceManager,
 };
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use serde::{Deserialize, Serialize};
@@ -25,6 +26,7 @@ pub(crate) struct ProvisioningState {
     operation: Mutex<()>,
     status: std::sync::Mutex<ProvisioningStatus>,
     pub(crate) embedding_seed: std::sync::Mutex<Option<PathBuf>>,
+    appearance: std::sync::Mutex<Option<(String, String)>>,
 }
 
 impl Default for ProvisioningState {
@@ -38,6 +40,7 @@ impl Default for ProvisioningState {
                 total_bytes: 0,
             }),
             embedding_seed: std::sync::Mutex::new(None),
+            appearance: std::sync::Mutex::new(None),
         }
     }
 }
@@ -188,6 +191,28 @@ pub(crate) fn frontend_failed(app: &tauri::AppHandle) {
         "failed",
         Some("Frontend startup was not confirmed; retry or import verified resources".into()),
     );
+    let _ = reveal_preparation(app);
+}
+
+fn reveal_preparation(app: &tauri::AppHandle) -> Result<(), String> {
+    tracing::info!(target: "openagent::startup", "showing shell resource preparation");
+    crate::desktop_windows::reveal_main_window(
+        app.clone(),
+        app.state::<crate::desktop_exit::DesktopWindowState>(),
+    )
+}
+
+#[tauri::command]
+pub(crate) fn set_shell_setup_appearance(
+    state: State<'_, ProvisioningState>,
+    language: String,
+    theme: String,
+) -> Result<(), String> {
+    if !matches!(language.as_str(), "en" | "zh") || !matches!(theme.as_str(), "light" | "dark") {
+        return Err("Invalid setup appearance".into());
+    }
+    *state.appearance.lock().map_err(|error| error.to_string())? = Some((language, theme));
+    Ok(())
 }
 
 #[tauri::command]
@@ -396,10 +421,10 @@ pub(crate) async fn provision(
     {
         return Ok(());
     }
-    update(&app, "downloading", None);
     let result = provision_inner(&app, offline_directory).await;
     if let Err(error) = &result {
         update(&app, "failed", Some(error.clone()));
+        let _ = reveal_preparation(&app);
     }
     result
 }
@@ -408,6 +433,17 @@ async fn provision_inner(
     app: &tauri::AppHandle,
     offline_directory: Option<PathBuf>,
 ) -> Result<(), String> {
+    if offline_directory.is_none() {
+        if let Some(runtime) = installed_startup_resource(app).await? {
+            tracing::info!(
+                target: "openagent::startup",
+                "starting installed resources without the preparation surface"
+            );
+            return start_installed_resources(app, &runtime, None).await;
+        }
+    }
+    reveal_preparation(app)?;
+    update(app, "downloading", None);
     let home = &app.state::<crate::DesktopDataDir>().0;
     let directory = stage_distribution(
         app,
@@ -443,10 +479,64 @@ async fn provision_inner(
         }
         _ => runtime,
     };
+    start_installed_resources(app, &selected_runtime, Some(&frontend.version)).await
+}
+
+/// Resource owners reverify their selected bytes. A shell update must still
+/// consume its exact distribution before ordinary installed-resource startup.
+async fn installed_startup_resource(
+    app: &tauri::AppHandle,
+) -> Result<Option<InstalledRuntimeResource>, String> {
+    let home = &app.state::<crate::DesktopDataDir>().0;
+    if crate::component_updates::handoff::read(home)?.is_some() {
+        return Ok(None);
+    }
+    let frontend_manager = app.state::<FrontendResourceManager>();
+    let Some(version) = frontend_manager.active_version() else {
+        return Ok(None);
+    };
+    if semver::Version::parse(&version).map_err(|error| error.to_string())?
+        < semver::Version::parse(env!("CARGO_PKG_VERSION")).map_err(|error| error.to_string())?
+    {
+        return Ok(None);
+    }
+    let runtime = app
+        .state::<RuntimeResourceManager>()
+        .active_resource()
+        .await;
+    match runtime {
+        Ok(runtime) => {
+            // Runtime validates and installs this seed only if its durable local
+            // model needs repair. Normal startup never recopies the distribution.
+            let seed = home
+                .join("resources")
+                .join("distributions")
+                .join(env!("CARGO_PKG_VERSION"))
+                .join("models");
+            if seed.is_dir() {
+                *app.state::<ProvisioningState>()
+                    .embedding_seed
+                    .lock()
+                    .map_err(|error| error.to_string())? = Some(seed);
+            }
+            Ok(runtime)
+        }
+        Err(error) => {
+            tracing::warn!(%error, "installed Runtime needs resource repair");
+            Ok(None)
+        }
+    }
+}
+
+async fn start_installed_resources(
+    app: &tauri::AppHandle,
+    runtime: &InstalledRuntimeResource,
+    frontend_candidate: Option<&str>,
+) -> Result<(), String> {
     update(app, "starting", None);
     let supervisor = app.state::<Arc<RuntimeProcessSupervisor>>();
     supervisor.stop().await?;
-    let inspection_binary = selected_runtime.binary_path.clone();
+    let inspection_binary = runtime.binary_path.clone();
     let launch = tokio::task::spawn_blocking(move || {
         super::persistence::prepare_interactive_persistence_with_binary(&inspection_binary)
     })
@@ -454,7 +544,8 @@ async fn provision_inner(
     .map_err(|error| error.to_string())?
     .map_err(|error| error.to_string())?
     .ok_or("Application data upgrade was cancelled")?;
-    runtime_manager.activate(&selected_runtime).await?;
+    let runtime_manager = app.state::<RuntimeResourceManager>();
+    runtime_manager.activate(runtime).await?;
     super::start_external_desktop_runtime(
         app,
         app.state::<Arc<RuntimeProcessSupervisor>>().inner().clone(),
@@ -467,8 +558,11 @@ async fn provision_inner(
         ),
     )
     .await?;
-    if frontend_manager.is_newer_than_active(&frontend.version)? {
-        frontend_manager.activate(&frontend.version).await?;
+    let frontend_manager = app.state::<FrontendResourceManager>();
+    if let Some(version) = frontend_candidate {
+        if frontend_manager.is_newer_than_active(version)? {
+            frontend_manager.activate(version).await?;
+        }
     }
     let (sender, receiver) = tokio::sync::oneshot::channel();
     let windows_app = app.clone();
@@ -490,7 +584,40 @@ async fn provision_inner(
         .get_webview_window("main")
         .ok_or("Main window is unavailable")?;
     let active_frontend_version = frontend_manager.current_version();
-    let url = crate::component_updates::external_frontend_url("", &active_frontend_version)?;
+    let bootstrap = crate::runtime_transport::proxy_runtime_request(
+        supervisor.inner(),
+        crate::runtime_transport::RuntimeProxyRequest {
+            method: "GET".into(),
+            path: "/api/desktop/bootstrap".into(),
+            body: None,
+        },
+    )
+    .await?;
+    if bootstrap.status != 200 {
+        return Err("Runtime startup settings are unavailable".into());
+    }
+    let bootstrap: serde_json::Value =
+        serde_json::from_str(&bootstrap.body).map_err(|error| error.to_string())?;
+    let onboarding_completed = bootstrap["config"]["onboarding_completed"]
+        .as_bool()
+        .ok_or("Runtime startup settings omit onboarding completion")?;
+    let mut query = if onboarding_completed {
+        String::new()
+    } else {
+        "?onboarding-window=1&onboarding-inline=1".into()
+    };
+    if !onboarding_completed {
+        if let Some((language, theme)) = app
+            .state::<ProvisioningState>()
+            .appearance
+            .lock()
+            .map_err(|error| error.to_string())?
+            .as_ref()
+        {
+            query.push_str(&format!("&setup-language={language}&setup-theme={theme}"));
+        }
+    }
+    let url = crate::component_updates::external_frontend_url(&query, &active_frontend_version)?;
     window.navigate(url).map_err(|error| error.to_string())?;
     update(app, "ready", None);
     crate::component_updates::arm_frontend_confirmation_deadline(

@@ -1,5 +1,14 @@
 # Shared Runtime Types
 
+The product page injects its shared SDK client and resource event listener into
+`OnboardingFlow`. The embedded first-run welcome uses that same component with
+native provisioning props and has no SDK transport. Inline onboarding completion
+navigates the current main WebView to its ordinary product URL; utility setup
+windows retain the existing event/hide handoff. Preserve the frontend-version
+parameter, remove temporary setup appearance inputs, and leave chat restore and
+event ownership in the ordinary page startup. The update-delivery owner documents
+the resource preparation and same-window wizard contract.
+
 Child conversations keep their own saved role identity. After restoring the
 active conversation or switching to it, load its children independently of
 the sidebar's role filter and merge their metadata without replacing live

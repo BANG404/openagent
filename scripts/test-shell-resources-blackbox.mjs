@@ -164,7 +164,7 @@ try {
     for (const language of ["en", "zh"]) {
       pilot(["snapshot", "-i"]);
       const heading = pilot(["text", "h1"]);
-      const currentLanguage = heading.includes("资源") ? "zh" : "en";
+      const currentLanguage = heading.includes("欢迎") ? "zh" : "en";
       if (currentLanguage !== language) clickLabel(currentLanguage === "en" ? "中文" : "English");
       const themeClass = pilot(["eval", "document.documentElement.classList.contains('dark')"]);
       if (themeClass.includes("true") !== (theme === "dark"))
@@ -284,6 +284,20 @@ try {
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   if (!imported) throw new Error("Verified offline resources did not open the product interface");
+  const setupDeadline = Date.now() + 30000;
+  let preferencesOpened = false;
+  while (Date.now() < setupDeadline) {
+    try {
+      pilot(["run", path.join(root, "tests/blackbox/shell-welcome-continue.toml")]);
+      preferencesOpened = true;
+      break;
+    } catch {
+      /* Wait for the same window's welcome step to hydrate. */
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  if (!preferencesOpened)
+    throw new Error("Resource preparation did not continue in the welcome wizard");
   // Restart with no offline source and a refused network endpoint. The signed
   // cache and durable handoff must be enough to reopen and confirm the product.
   if (!desktop.pid) throw new Error("Fixture desktop has no process identity");
@@ -292,6 +306,14 @@ try {
     stdio: "ignore",
   });
   await rename(distributionDir, `${distributionDir}-unavailable`);
+  const configFile = path.join(home, "config.toml");
+  const savedConfig = await readFile(configFile, "utf8");
+  if (!savedConfig.includes("onboarding_completed = false"))
+    throw new Error("First-use fixture did not persist its onboarding state");
+  await writeFile(
+    configFile,
+    savedConfig.replace("onboarding_completed = false", "onboarding_completed = true"),
+  );
   const updatesDirectory = path.join(home, "resources", "updates");
   await mkdir(updatesDirectory, { recursive: true });
   await writeFile(
@@ -320,8 +342,94 @@ try {
   if (!continued)
     throw new Error("Cached restart did not confirm and clear its shell continuation");
   captureBlackboxScreenshot(pilot, path.join(directory, "product-after-restart.png"));
+  // An ordinary repeat launch needs only installed selections. Hide the entire
+  // distribution cache as well as the original source to prove it is not staged.
+  const cachedDistribution = path.join(home, "resources", "distributions", version);
+  await rename(cachedDistribution, `${cachedDistribution}-unavailable`);
+  spawnSync("taskkill", ["/PID", String(desktop.pid), "/T", "/F"], {
+    windowsHide: true,
+    stdio: "ignore",
+  });
+  const ordinaryLogStart = logs.length;
+  desktop = start(process.execPath, desktopArguments);
+  const ordinaryDeadline = Date.now() + 120000;
+  let ordinaryStarted = false;
+  while (Date.now() < ordinaryDeadline) {
+    try {
+      const url = pilot(["url"]);
+      if (url.includes("/bootstrap")) {
+        const visible = pilot([
+          "eval",
+          "(async () => { const visible = await window.__TAURI_INTERNALS__.invoke('plugin:window|is_visible', {label: 'main'}); return visible && location.pathname === '/bootstrap' && !!document.querySelector('[data-module=shell-resources]'); })()",
+        ]);
+        if (visible.includes("true"))
+          throw new Error("Repeat launch revealed resource preparation");
+      } else if (url.includes("openagent-ui")) {
+        pilot(["run", path.join(root, "tests/blackbox/shell-installed-startup.toml")]);
+        ordinaryStarted = true;
+        break;
+      }
+    } catch (error) {
+      if (String(error).includes("Repeat launch revealed")) throw error;
+      /* Wait for the replacement process and product hydration. */
+    }
+    if (desktop.exitCode !== null) throw new Error("Installed-resource startup exited");
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  if (!ordinaryStarted)
+    throw new Error("Repeat launch required the unavailable distribution cache");
+  if (logs.slice(ordinaryLogStart).join("").includes("showing shell resource preparation"))
+    throw new Error("Ordinary startup passed through the preparation surface");
+  if (
+    !pilot([
+      "eval",
+      "window.__TAURI_INTERNALS__.invoke('plugin:window|is_visible', {label: 'main'})",
+    ]).includes("true")
+  )
+    throw new Error("Configured repeat launch did not reveal the main window");
+  captureBlackboxScreenshot(pilot, path.join(directory, "ordinary-installed-startup.png"));
+
+  // Missing installed bytes must recover through the signed cache on next launch.
+  spawnSync("taskkill", ["/PID", String(desktop.pid), "/T", "/F"], {
+    windowsHide: true,
+    stdio: "ignore",
+  });
+  await rename(`${cachedDistribution}-unavailable`, cachedDistribution);
+  const runtimeSelection = JSON.parse(
+    await readFile(path.join(home, "resources", "runtime", "active.json"), "utf8"),
+  );
+  const installedBinary = path.join(
+    home,
+    "resources",
+    "runtime",
+    runtimeSelection.active.version,
+    runtimeSelection.active.target,
+    "openagent-server-windows-x64.exe",
+  );
+  await rename(installedBinary, `${installedBinary}-unavailable`);
+  const repairLogStart = logs.length;
+  desktop = start(process.execPath, desktopArguments);
+  const repairDeadline = Date.now() + 120000;
+  let repaired = false;
+  while (Date.now() < repairDeadline) {
+    try {
+      if (pilot(["url"]).includes("openagent-ui")) {
+        pilot(["run", path.join(root, "tests/blackbox/shell-installed-startup.toml")]);
+        repaired = true;
+        break;
+      }
+    } catch {
+      /* Wait for recovery through the signed cache and product hydration. */
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  if (
+    !repaired ||
+    !logs.slice(repairLogStart).join("").includes("showing shell resource preparation")
+  )
+    throw new Error("Missing installed Runtime did not recover through resource preparation");
   console.log(
-    `Shell resource black-box passed: retry, four themes/locales, verified offline install, cached restart and continuation confirmation. Artifacts: ${directory}`,
+    `Shell resource black-box passed: retry, four themes/locales, verified offline install, continuation, direct repeat startup and missing-resource repair. Artifacts: ${directory}`,
   );
 } finally {
   await writeFile(path.join(directory, "desktop.log"), logs.join(""));

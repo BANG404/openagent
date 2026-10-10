@@ -9,6 +9,7 @@ action = "eval"
 script = '''(() => {
   const root = document.querySelector('[data-module="shell-resources"]');
   if (!root || !root.querySelector('[role="alert"]')) throw new Error('resource failure recovery is missing');
+  if (!root.classList.contains('onboarding-panel') || !root.querySelector('nav [aria-current="step"][aria-label^="1."]')) throw new Error('resource preparation is not part of the welcome wizard');
   const buttons = [...root.querySelectorAll('button')];
   const retry = buttons.find(button => ['Retry', '重试'].includes(button.textContent.trim()));
   const offline = buttons.find(button => ['Import offline resources', '导入离线资源包'].includes(button.textContent.trim()));
