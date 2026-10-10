@@ -102,6 +102,10 @@ have been created.
   runtime host. Let the frontend's layout-stable loading state remain visible
   while startup bootstrap restores durable conversation data, including for
   the primary release process whose window is initially hidden in the bundle.
+  Independent release provisioning keeps the embedded bootstrap hidden while
+  verified installed resources start; reveal it only for initial welcome
+  preparation or recovery. Its resource selection and continuation contract
+  belongs to the modular-update owner's independent shell provisioning section.
 - Render Settings management domains and the saved-role editor inside the
   requesting window. Application-menu activation and its shortcuts must not
   construct another WebView; the frontend owns that fullscreen surface, its

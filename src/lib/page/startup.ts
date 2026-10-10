@@ -73,6 +73,13 @@ export function createPageStartup(options: StartupOptions) {
         console.error("Failed to load onboarding:", error);
       } finally {
         options.initialLoading = false;
+        if (
+          options.tauriAvailable &&
+          new URLSearchParams(window.location.search).has("onboarding-inline")
+        ) {
+          await tick();
+          await invoke("reveal_main_window");
+        }
       }
       return;
     }

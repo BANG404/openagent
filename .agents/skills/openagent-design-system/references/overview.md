@@ -59,7 +59,12 @@ Store and shop surfaces retain the same chassis but switch modes. The product co
   The welcome step first explains
   what OpenAgent does, what the setup will configure, and how the selected
   workspace scopes file and command activity, so a first-time user can make an
-  informed choice before continuing. The right-side setup canvas and its nested
+  informed choice before continuing. Initial resource preparation, retry and
+  offline import render inside this same welcome component and step rail.
+  Preparation enables Continue in that same window; preserve its footer and
+  layout across the resource-to-preferences handoff. The embedded welcome
+  receives native progress props, while the product page injects its SDK client.
+  The right-side setup canvas and its nested
   summary cards use the same bordered, shadowless Mica surface as grouped
   Settings cards, while spacing rather than divider lines separates the two
   columns. Dense provider content scrolls inside the form column without changing

@@ -320,10 +320,25 @@ manifests must include their exact SDK's helpers. Future-release download does
 not replace the running process's embedding seed. Bootstrap persistence inspection
 uses the verified candidate directly before committing its Runtime selection.
 
-The packaged application embeds only `src/bootstrap/`, built independently with
-`bootstrap.vite.config.js`. It imports Tauri IPC and shared UI/translation tokens,
-not SDK transport or product application state. Release startup creates the
-visible main window before downloading or inspecting Runtime resources.
+The packaged application embeds `src/bootstrap/`, built independently with
+`bootstrap.vite.config.js`. It renders the shared `OnboardingFlow` welcome step
+with native resource progress, retry and offline import. The component receives
+its SDK client only from the product page; the embedded welcome has no Runtime
+transport and cannot advance before resources are ready. Release startup creates a hidden
+main window and checks the installed selections through their resource owners.
+With a verified Runtime and a frontend at least as new as the shell, ordinary
+startup opens the product directly, without staging or recopying a distribution.
+An unfinished shell handoff still consumes its exact signed distribution.
+First installation keeps resource preparation inside the existing welcome step;
+after installation the same main WebView continues the full wizard through
+`onboarding-inline`, and completion returns that window to the ordinary product.
+Never replace this with a separate preparation screen or open a second setup
+window for this handoff. Temporary appearance choices cross the navigation through
+native process state and validated URL inputs; Runtime persists them on Finish.
+Missing or invalid resources and startup failures reveal the same surface with
+retry and offline import. Keep this decision independent of onboarding completion:
+Runtime alone persists configuration and validates the local embedding model.
+The cached distribution's model seed may be passed to Runtime for model repair.
 `desktop_bootstrap/provisioning.rs` owns downloading, bounded signed resource
 admission, progress, retry and offline-directory import. A versioned,
 Minisign-signed `openagent-distribution.json` binds all initial Runtime, frontend,
@@ -349,6 +364,12 @@ the embedding seed to Runtime, starts its inspected application data, then
 activates and confirms the frontend. Runtime alone owns backup/transition consent
 and embedding-model admission. Failure leaves the bootstrap window usable for
 retry or importing an exact-version resource directory.
+
+Run `bun run test:blackbox:shell-resources` to verify the shared welcome/recovery surface
+in all locales/themes, normal offline restart without a preparation reveal,
+missing-resource repair, and shell-handoff continuation. The runner uses its own
+temporary home, advances the same welcome window to Preferences, and records
+native window visibility during installed startup.
 
 Frontend-host protocol 2 requires shell provisioning and continuation commands.
 New frontend artifacts declare that protocol so older protocol-1 shells reject

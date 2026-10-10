@@ -1,9 +1,11 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
   import { isTauri } from "@tauri-apps/api/core";
-  import { desktopOpenAgent, listen } from "$lib/openagent/tauriClient";
+  import type { desktopOpenAgent, listen } from "$lib/openagent/tauriClient";
   import { normalizeConfigShape } from "$lib/config";
   import { applyDocumentTheme } from "$lib/appTheme";
+  import { bootstrapText } from "$lib/bootstrapI18n";
+  import appIcon from "../../../static/app-icon.png";
   import type { AppConfig, DefaultModelBinding } from "$lib/types";
   import {
     createProviderConfig,
@@ -28,6 +30,10 @@
     onComplete,
     onThemePreview,
     embeddingPreviewState,
+    runtimeClient,
+    listenToResources,
+    resourcePreparation,
+    onLanguagePreview,
   }: {
     config: AppConfig;
     workspacePath: string;
@@ -36,6 +42,18 @@
     onComplete: () => void;
     onThemePreview?: (theme: string) => void;
     embeddingPreviewState?: "ready" | "downloading";
+    runtimeClient?: typeof desktopOpenAgent;
+    listenToResources?: typeof listen;
+    resourcePreparation?: {
+      phase: string;
+      error: string | null;
+      downloaded_bytes: number;
+      total_bytes: number;
+      busy: boolean;
+      onRetry: () => void;
+      onImport: () => void;
+    };
+    onLanguagePreview?: (language: "en" | "zh") => void;
   } = $props();
 
   let draft = $state<AppConfig>(
@@ -77,13 +95,14 @@
   );
 
   async function prepareEmbeddingResource() {
+    if (!runtimeClient) return;
     embeddingPreparing = true;
     embeddingError = "";
     try {
-      embeddingStatus = await desktopOpenAgent.invokeProduct("prepare_embedding_resource", {});
+      embeddingStatus = await runtimeClient.invokeProduct("prepare_embedding_resource", {});
     } catch (error) {
       embeddingError = `${error}`;
-      embeddingStatus = await desktopOpenAgent
+      embeddingStatus = await runtimeClient
         .invokeProduct("get_embedding_resource_status", {})
         .catch(() => embeddingStatus);
     } finally {
@@ -92,6 +111,7 @@
   }
 
   onMount(() => {
+    if (resourcePreparation) return;
     if (!isTauri()) {
       embeddingStatus = {
         state: embeddingPreviewState === "downloading" ? "missing" : "ready",
@@ -114,7 +134,7 @@
     let stopListening: (() => void) | undefined;
     void (async () => {
       try {
-        stopListening = await listen<EmbeddingResourceProgress>(
+        stopListening = await listenToResources?.<EmbeddingResourceProgress>(
           "embedding-resource-progress",
           ({ payload }) => {
             if (!disposed) embeddingProgress = payload;
@@ -136,6 +156,7 @@
     if (onThemePreview) onThemePreview(theme);
     else applyDocumentTheme(theme);
   });
+  $effect(() => onLanguagePreview?.(draft.language));
 
   const copy = $derived(
     draft.language === "en"
@@ -333,17 +354,18 @@
     { value: "chat_completions", label: copy.chatCompletionsApi },
   ]);
   let canContinue = $derived(
-    step < 2 ||
-      (step === 2
-        ? Boolean(selectedProvider?.enabled && selectedProvider.models.length)
-        : step === 3
-          ? modelBindings.some(
-              (option) => option.value === bindingValue(draft.defaults.chat_model),
-            ) &&
-            modelBindings.some(
-              (option) => option.value === bindingValue(draft.defaults.flash_model),
-            )
-          : embeddingReady),
+    !resourcePreparation &&
+      (step < 2 ||
+        (step === 2
+          ? Boolean(selectedProvider?.enabled && selectedProvider.models.length)
+          : step === 3
+            ? modelBindings.some(
+                (option) => option.value === bindingValue(draft.defaults.chat_model),
+              ) &&
+              modelBindings.some(
+                (option) => option.value === bindingValue(draft.defaults.flash_model),
+              )
+            : embeddingReady)),
   );
 
   function addProvider() {
@@ -368,6 +390,7 @@
   }
 
   async function verifyProvider() {
+    if (!runtimeClient) return;
     if (
       !selectedProvider ||
       (providerRequiresApiKey(selectedProvider.provider) && !selectedProvider.api_key.trim())
@@ -376,7 +399,7 @@
     connectionStatus = "loading";
     connectionMessage = "";
     try {
-      const models = await desktopOpenAgent.invokeProduct("fetch_provider_models", {
+      const models = await runtimeClient.invokeProduct("fetch_provider_models", {
         request: { provider: $state.snapshot(selectedProvider) },
       });
       const normalized = Array.from(
@@ -427,9 +450,10 @@
     saving = true;
     saveError = "";
     try {
-      const currentResource = isTauri()
-        ? await desktopOpenAgent.invokeProduct("get_embedding_resource_status", {})
-        : embeddingStatus;
+      const currentResource =
+        isTauri() && runtimeClient
+          ? await runtimeClient.invokeProduct("get_embedding_resource_status", {})
+          : embeddingStatus;
       if (currentResource?.state !== "ready") {
         throw new Error(embeddingError || copy.embeddingPreparing);
       }
@@ -449,12 +473,15 @@
   }
 </script>
 
-<div class="application-settings-scope onboarding-panel">
+<div
+  class="application-settings-scope onboarding-panel"
+  data-module={resourcePreparation ? "shell-resources" : "onboarding"}
+>
   <div class="onboarding-drag-region" data-tauri-drag-region aria-hidden="true"></div>
   <div class="onboarding-body">
     <aside class="onboarding-visual">
       <div class="onboarding-brand">
-        <img class="onboarding-brand-icon" src="/app-icon.png" alt="" aria-hidden="true" />
+        <img class="onboarding-brand-icon" src={appIcon} alt="" aria-hidden="true" />
         <div>
           <strong>OpenAgent</strong>
           <span>{copy.brandTagline}</span>
@@ -521,17 +548,64 @@
                 </div>
               {/each}
             </div>
-            <div class="application-settings-surface workspace-card">
-              <div>
-                <span>{copy.workspace}</span>
-                <strong>{workspacePath || copy.noWorkspace}</strong>
-                <p>{copy.workspaceDescription}</p>
+            {#if resourcePreparation}
+              <div class="application-settings-surface preparation-card" aria-live="polite">
+                <p>
+                  {bootstrapText(
+                    draft.language,
+                    resourcePreparation.phase === "starting"
+                      ? "shellStarting"
+                      : resourcePreparation.phase === "installing"
+                        ? "shellInstalling"
+                        : resourcePreparation.phase === "failed"
+                          ? "shellFailed"
+                          : resourcePreparation.phase === "downloading"
+                            ? "shellDownloading"
+                            : "shellPreparing",
+                  )}
+                </p>
+                <progress
+                  max="100"
+                  value={resourcePreparation.total_bytes
+                    ? Math.min(
+                        100,
+                        (resourcePreparation.downloaded_bytes / resourcePreparation.total_bytes) *
+                          100,
+                      )
+                    : 0}
+                  aria-label={draft.language === "en" ? "Resource preparation" : "资源准备"}
+                ></progress>
+                {#if resourcePreparation.error}
+                  <p class="error" role="alert">
+                    {bootstrapText(draft.language, "shellErrorHelp")}
+                  </p>
+                  <div class="preparation-actions">
+                    <SettingsActionButton
+                      label={bootstrapText(draft.language, "shellRetry")}
+                      disabled={resourcePreparation.busy}
+                      onclick={resourcePreparation.onRetry}
+                    />
+                    <SettingsActionButton
+                      label={bootstrapText(draft.language, "shellImport")}
+                      disabled={resourcePreparation.busy}
+                      onclick={resourcePreparation.onImport}
+                    />
+                  </div>
+                {/if}
               </div>
-              <SettingsActionButton
-                label={copy.chooseWorkspace}
-                onclick={() => void onPickWorkspace()}
-              />
-            </div>
+            {:else}
+              <div class="application-settings-surface workspace-card">
+                <div>
+                  <span>{copy.workspace}</span>
+                  <strong>{workspacePath || copy.noWorkspace}</strong>
+                  <p>{copy.workspaceDescription}</p>
+                </div>
+                <SettingsActionButton
+                  label={copy.chooseWorkspace}
+                  onclick={() => void onPickWorkspace()}
+                />
+              </div>
+            {/if}
           {:else if step === 1}
             <h1>{copy.preferenceTitle}</h1>
             <p class="lead">{copy.preferenceBody}</p>
@@ -741,11 +815,32 @@
       </ScrollArea>
 
       <footer>
-        <SettingsActionButton
-          label={copy.back}
-          onclick={() => (step -= 1)}
-          disabled={step === 0 || saving || resourceOnly}
-        />
+        {#if resourcePreparation}
+          <div class="preparation-actions">
+            <SettingsActionButton
+              label={draft.language === "en" ? "中文" : "English"}
+              tone="quiet"
+              onclick={() => (draft.language = draft.language === "en" ? "zh" : "en")}
+            />
+            <SettingsActionButton
+              label={draft.language === "en"
+                ? draft.theme === "dark"
+                  ? "Light"
+                  : "Dark"
+                : draft.theme === "dark"
+                  ? "浅色"
+                  : "深色"}
+              tone="quiet"
+              onclick={() => (draft.theme = draft.theme === "dark" ? "light" : "dark")}
+            />
+          </div>
+        {:else}
+          <SettingsActionButton
+            label={copy.back}
+            onclick={() => (step -= 1)}
+            disabled={step === 0 || saving || resourceOnly}
+          />
+        {/if}
         {#if step < 4}
           <SettingsActionButton
             label={copy.next}
@@ -767,6 +862,28 @@
 </div>
 
 <style>
+  .preparation-card {
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+  }
+  .preparation-card p {
+    margin: 0 0 8px;
+  }
+  .preparation-card progress {
+    width: 100%;
+    height: 6px;
+    accent-color: var(--primary);
+  }
+  .preparation-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .preparation-card .error {
+    font-size: 11px;
+    margin-top: 8px;
+  }
   .onboarding-panel {
     position: relative;
     display: flex;

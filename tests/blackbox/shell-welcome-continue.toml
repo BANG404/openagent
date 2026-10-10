@@ -1,0 +1,19 @@
+[scenario]
+name = "resource preparation continues inside the welcome wizard"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "same main window keeps the welcome step and advances to preferences"
+action = "eval"
+script = '''(async () => {
+  if (!location.search.includes('onboarding-inline')) throw new Error('setup left the preparation window');
+  const panel = document.querySelector('[data-module="onboarding"]');
+  if (!panel || !panel.querySelector('nav [aria-current="step"][aria-label^="1."]')) throw new Error('welcome wizard did not remain on its first step');
+  const button = [...panel.querySelectorAll('footer button')].find(button => ['Continue', '继续'].includes(button.textContent.trim()));
+  if (!button || button.disabled) throw new Error('welcome cannot continue after preparation');
+  button.click();
+  await new Promise(resolve => setTimeout(resolve, 100));
+  if (!panel.querySelector('nav [aria-current="step"][aria-label^="2."]')) throw new Error('welcome did not advance to preferences');
+  return true;
+})()'''

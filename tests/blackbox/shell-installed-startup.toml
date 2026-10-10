@@ -1,0 +1,14 @@
+[scenario]
+name = "installed resources open the product without preparation"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "product replaces the independent preparation surface"
+action = "eval"
+script = '''(() => {
+  if (!location.href.includes('openagent-ui')) throw new Error('product frontend did not open');
+  if (document.querySelector('[data-module="shell-resources"]')) throw new Error('preparation surface remains mounted');
+  if (!document.querySelector('.app')) throw new Error('product shell has not mounted');
+  return true;
+})()'''
