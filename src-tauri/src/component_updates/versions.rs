@@ -5,6 +5,52 @@ use crate::runtime_resource::{InstalledRuntimeResource, RuntimeResourceManager};
 use std::sync::Arc;
 use tauri::State;
 
+#[derive(serde::Serialize)]
+pub(crate) struct OnboardingResourceStatus {
+    frontend: &'static str,
+    runtime: &'static str,
+}
+
+#[tauri::command]
+pub(crate) async fn get_onboarding_resource_status(
+    manager: State<'_, FrontendResourceManager>,
+    runtime_manager: State<'_, RuntimeResourceManager>,
+    supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
+) -> Result<OnboardingResourceStatus, String> {
+    let development = cfg!(debug_assertions)
+        && !std::env::var("OPENAGENT_BOOTSTRAP_TEST").is_ok_and(|value| value == "1");
+    let frontend = if development {
+        "development"
+    } else {
+        match manager.verify_active_selection() {
+            Ok(Some(_)) => "verified",
+            Ok(None) => "failed",
+            Err(_) => "failed",
+        }
+    };
+    let runtime = match supervisor.verified_status().await {
+        Ok(Some(_)) if development => "development",
+        Ok(Some(_)) => match runtime_manager.active_resource().await {
+            Ok(Some(resource)) => {
+                if supervisor
+                    .launch_spec()
+                    .await
+                    .is_some_and(|spec| spec.binary_path == resource.binary_path)
+                {
+                    "verified"
+                } else {
+                    "failed"
+                }
+            }
+            Ok(None) => "failed",
+            Err(_) => "failed",
+        },
+        Ok(None) if cfg!(feature = "embedded-runtime") => "bundled",
+        _ => "failed",
+    };
+    Ok(OnboardingResourceStatus { frontend, runtime })
+}
+
 /// Resolve the Runtime release identity reported as component detail.
 ///
 /// The supervised process only reports the crate version of the binary it runs,

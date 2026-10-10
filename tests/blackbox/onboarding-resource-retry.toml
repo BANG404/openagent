@@ -1,0 +1,50 @@
+[scenario]
+name = "resource status failure blocks completion and can be checked again"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "failed status read does not complete setup and retry restores readiness"
+action = "eval"
+script = '''(async () => {
+  const panel = document.querySelector('[data-module="onboarding"]');
+  const button = labels => [...panel.querySelectorAll('button')].find(button => labels.includes(button.textContent.trim()));
+  for (let step = 1; step < 5; step++) {
+    const next = button(['Continue', '继续']);
+    if (!next || next.disabled) throw new Error(`step ${step} cannot continue`);
+    next.click();
+    await new Promise(resolve => setTimeout(resolve, 100));
+    if (!panel.querySelector(`nav [aria-current="step"][aria-label^="${step + 1}."]`)) throw new Error('wizard did not advance');
+  }
+  const { desktopOpenAgent: client } = await import('/src/lib/openagent/tauriClient.ts');
+  const original = client.invokeLocal;
+  let failedRead = false;
+  try {
+    client.invokeLocal = (command, ...args) => {
+      if (command === 'get_onboarding_resource_status') {
+        failedRead = true;
+        return Promise.reject(new Error('fixture status read failure'));
+      }
+      return original.call(client, command, ...args);
+    };
+    button(['Start using OpenAgent', '开始使用 OpenAgent']).click();
+    await new Promise(resolve => setTimeout(resolve, 250));
+    if (!failedRead) throw new Error('status fault fixture did not intercept the resource read');
+    if (!panel.querySelector('.error')) throw new Error('resource failure was not reported');
+    if (!button(['Start using OpenAgent', '开始使用 OpenAgent']).disabled) throw new Error('failed resources allow completion');
+  } finally {
+    client.invokeLocal = original;
+  }
+  panel.querySelector('.onboarding-nav-item[aria-label^="1."]').click();
+  await new Promise(resolve => setTimeout(resolve, 100));
+  if (!button(['Continue', '继续']).disabled) throw new Error('failed resources allow Continue');
+  const retry = button(['Check again', '重新检查']);
+  if (!retry || retry.disabled) throw new Error('resource check cannot be retried');
+  retry.click();
+  const deadline = Date.now() + 10000;
+  while (Date.now() < deadline) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    if (!button(['Continue', '继续']).disabled && panel.querySelector('.embedding-meter').getAttribute('aria-valuenow') === '100') return true;
+  }
+  throw new Error('resource status retry did not restore readiness');
+})()'''

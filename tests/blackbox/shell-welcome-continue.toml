@@ -10,6 +10,9 @@ script = '''(async () => {
   if (!location.search.includes('onboarding-inline')) throw new Error('setup left the preparation window');
   const panel = document.querySelector('[data-module="onboarding"]');
   if (!panel || !panel.querySelector('nav [aria-current="step"][aria-label^="1."]')) throw new Error('welcome wizard did not remain on its first step');
+  for (const id of ['frontend', 'runtime', 'embedding']) {
+    if (panel.querySelector(`[data-resource="${id}"]`)?.getAttribute('data-state') !== 'verified') throw new Error(`${id} signed resource was not verified`);
+  }
   const button = [...panel.querySelectorAll('footer button')].find(button => ['Continue', '继续'].includes(button.textContent.trim()));
   if (!button || button.disabled) throw new Error('welcome cannot continue after preparation');
   button.click();
