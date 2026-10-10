@@ -140,7 +140,18 @@ try {
         "(async () => { await window.__TAURI_INTERNALS__.invoke('plugin:window|show', {label:'onboarding'}); await window.__TAURI_INTERNALS__.invoke('plugin:window|set_focus', {label:'onboarding'}); return true; })()",
       ]);
       pilot(["snapshot", "-i"]);
-      pilot(["run", path.join(root, "tests/blackbox/onboarding-welcome.toml")]);
+      const welcomeDeadline = Date.now() + 30000;
+      for (;;) {
+        try {
+          pilot(["run", path.join(root, "tests/blackbox/onboarding-welcome.toml")]);
+          break;
+        } catch (error) {
+          if (Date.now() >= welcomeDeadline) throw error;
+          // Cold dependency optimization can navigate after the hydration wait.
+          // This scenario only reads the DOM; keep its complete assertions on retry.
+          await new Promise((done) => setTimeout(done, 250));
+        }
+      }
       captureBlackboxScreenshot(
         (args) => pilot(args),
         path.join(directory, `${theme}-${language}.png`),
