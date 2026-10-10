@@ -21,6 +21,10 @@ describe("settings window skeleton layout", () => {
   });
 
   test("keeps content destinations distinct", () => {
+    expect(settingsWindowSkeletonSpec("integrations", "plugins")).toMatchObject({
+      layout: "plugins",
+      showNavigation: true,
+    });
     expect(settingsWindowSkeletonSpec("general", "general")).toMatchObject({
       section: "general",
       layout: "general",

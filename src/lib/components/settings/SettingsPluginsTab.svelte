@@ -5,6 +5,7 @@
   import type { PluginInstallTask } from "$lib/agentPluginInstallQueue";
   import PluginLanguageSupport from "../PluginLanguageSupport.svelte";
   import { pluginText } from "$lib/pluginI18n";
+  import { PLUGIN_CATEGORIES, pluginCategoryKeys, isPluginCategory } from "$lib/pluginCategories";
   import type { OfficialPluginCatalogItem } from "$lib/officialPluginRegistry";
   import { t, locale } from "$lib/i18n";
   import Select from "../ui/Select.svelte";
@@ -76,6 +77,20 @@
               {$t("pluginOfficialClearSearch")}
             </button>
           {/if}
+          <Select
+            id="official-plugin-category"
+            triggerClass="official-plugin-category-filter"
+            ariaLabel={$t("pluginCategoryFilter")}
+            bind:value={plugins.officialPluginCategory}
+            items={[
+              { value: "all", label: $t("pluginCategoryAll") },
+              ...PLUGIN_CATEGORIES.map((value) => ({
+                value,
+                label: $t(pluginCategoryKeys[value]),
+              })),
+              { value: "uncategorized", label: $t("pluginMarketplaceUncategorized") },
+            ]}
+          />
           <SegmentedControl
             class="official-plugin-filters"
             fitContent
@@ -125,6 +140,14 @@
                 {/if}
                 <PluginLanguageSupport i18n={plugin.i18n} />
                 <div class="official-plugin-meta">
+                  <span
+                    class="official-plugin-category"
+                    data-category={plugin.category ?? "uncategorized"}
+                  >
+                    {plugin.category
+                      ? $t(pluginCategoryKeys[plugin.category])
+                      : $t("pluginMarketplaceUncategorized")}
+                  </span>
                   <span>
                     {#if plugin.installed && plugin.currentVersion}
                       {$t("pluginOfficialInstalledVersion").replace(
@@ -327,6 +350,11 @@
                     )}</span
                   >
                   <span class="plugin-card-meta">
+                    <span class="detail-hint" data-category={plugin.category ?? "uncategorized"}>
+                      {isPluginCategory(plugin.category)
+                        ? $t(pluginCategoryKeys[plugin.category])
+                        : $t("pluginMarketplaceUncategorized")}
+                    </span>
                     <PluginLanguageSupport i18n={plugin.i18n} />
                     {#if plugin.license || plugin.homepage}
                       <span class="detail-hint"

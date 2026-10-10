@@ -4,6 +4,7 @@
   "plugins": [
     {
       "id": "chat-groups",
+      "category": "communication",
       "display_name": "Chat Groups",
       "description": "Mention-aware group conversations for OpenAgent.",
       "version": "3.0.2",
@@ -73,6 +74,7 @@
     },
     {
       "id": "goal",
+      "category": "automation",
       "display_name": "Goal",
       "description": "Persistent goal execution with an autonomous continuation loop.",
       "version": "2.2.2",
@@ -152,6 +154,7 @@
     },
     {
       "id": "graph",
+      "category": "automation",
       "display_name": "Graph",
       "description": "Dependency graph execution through OpenAgent checkpoints.",
       "version": "1.0.7",
@@ -221,6 +224,7 @@
     },
     {
       "id": "cua-driver",
+      "category": "automation",
       "display_name": "Cua Driver",
       "description": "Desktop control through the OpenAgent Cua Driver daemon.",
       "version": "1.3.0",
@@ -282,6 +286,7 @@
     },
     {
       "id": "message-board",
+      "category": "communication",
       "display_name": "Message Board",
       "description": "Durable channels, threads, search, subscriptions, and idempotent agent collaboration.",
       "version": "1.1.1",
@@ -363,9 +368,10 @@
     },
     {
       "id": "openagent-plugin-kit",
+      "category": "development",
       "display_name": "Plugin Developer",
       "description": "Create plugins from Skills and templates, implement, test and qualify them with the production Runtime.",
-      "version": "1.7.1",
+      "version": "1.8.0",
       "repository": "https://github.com/BANG404/openagent-plugin-kit",
       "homepage": "https://github.com/BANG404/openagent-plugin-kit",
       "source_url": "https://github.com/BANG404/openagent-plugin-kit",
@@ -406,6 +412,7 @@
     },
     {
       "id": "asana",
+      "category": "productivity",
       "display_name": "asana",
       "description": "Asana tasks and projects through the V2 MCP server.",
       "version": "0.2.0",
@@ -442,6 +449,7 @@
     },
     {
       "id": "context7",
+      "category": "data",
       "display_name": "context7",
       "description": "Current library documentation through Context7.",
       "version": "0.1.1",
@@ -470,6 +478,7 @@
     },
     {
       "id": "discord",
+      "category": "communication",
       "display_name": "discord",
       "description": "Discord messaging connected to OpenAgent conversations.",
       "version": "0.2.0",
@@ -510,6 +519,7 @@
     },
     {
       "id": "fakechat",
+      "category": "communication",
       "display_name": "fakechat",
       "description": "Local web chat for exercising OpenAgent message channels.",
       "version": "0.2.0",
@@ -548,6 +558,7 @@
     },
     {
       "id": "firebase",
+      "category": "development",
       "display_name": "firebase",
       "description": "Manage Firebase through the official Firebase MCP server.",
       "version": "0.1.2",
@@ -576,6 +587,7 @@
     },
     {
       "id": "github",
+      "category": "development",
       "display_name": "github",
       "description": "GitHub repositories through the official GitHub MCP server.",
       "version": "0.2.0",
@@ -608,6 +620,7 @@
     },
     {
       "id": "gitlab",
+      "category": "development",
       "display_name": "gitlab",
       "description": "GitLab repositories, issues and pipelines through MCP.",
       "version": "0.2.0",
@@ -644,6 +657,7 @@
     },
     {
       "id": "imessage",
+      "category": "communication",
       "display_name": "imessage",
       "description": "macOS iMessage connected to OpenAgent conversations.",
       "version": "0.1.0",
@@ -680,6 +694,7 @@
     },
     {
       "id": "laravel-boost",
+      "category": "development",
       "display_name": "laravel-boost",
       "description": "Laravel application tools through Laravel Boost.",
       "version": "0.1.0",
@@ -708,6 +723,7 @@
     },
     {
       "id": "linear",
+      "category": "productivity",
       "display_name": "linear",
       "description": "Linear issues and projects through MCP.",
       "version": "0.2.0",
@@ -744,6 +760,7 @@
     },
     {
       "id": "playwright",
+      "category": "development",
       "display_name": "playwright",
       "description": "Browser automation through the Microsoft Playwright MCP server.",
       "version": "0.1.1",
@@ -772,6 +789,7 @@
     },
     {
       "id": "serena",
+      "category": "development",
       "display_name": "serena",
       "description": "Semantic code navigation and editing through Serena.",
       "version": "0.1.1",
@@ -800,6 +818,7 @@
     },
     {
       "id": "telegram",
+      "category": "communication",
       "display_name": "telegram",
       "description": "Telegram messaging connected to OpenAgent conversations.",
       "version": "0.2.0",
@@ -840,6 +859,7 @@
     },
     {
       "id": "terraform",
+      "category": "development",
       "display_name": "terraform",
       "description": "Terraform registry and workspace tools through the HashiCorp MCP server.",
       "version": "0.2.0",

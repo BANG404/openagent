@@ -749,6 +749,15 @@ export interface AgentPluginSummary {
   homepage: string | null;
   license: string | null;
   author: AgentPluginAuthorSummary | null;
+  category?:
+    | "development"
+    | "productivity"
+    | "communication"
+    | "automation"
+    | "data"
+    | "design"
+    | "other"
+    | null;
   keywords: string[];
   capabilities: string[];
   commands: string[];

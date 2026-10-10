@@ -5,6 +5,7 @@
   "description": "Sidebar language fixture",
   "extensions": {
     "openagent": {
+      "category": "development",
       "sidebar": [
         {
           "id": "panel",

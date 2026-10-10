@@ -17,6 +17,7 @@ script = '''(async () => {
   const version = card.querySelector('.plugin-title-row .plugin-version');
   if (version?.textContent.trim() !== '1.0.0') throw new Error('installed version missing from title');
   if (!card.querySelector('.plugin-card-meta .plugin-languages')) throw new Error('language metadata missing');
+  if (!card.querySelector('.plugin-card-meta [data-category="development"]')?.textContent.match(/Development|开发工具/)) throw new Error('installed manifest category is missing');
   const control = card.querySelector('.plugin-mcp-mode-control');
   if (!control) throw new Error('fixture did not expose MCP mode');
   for (const width of [1100, 520]) {

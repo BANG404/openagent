@@ -29,6 +29,7 @@ project-notes/
   "repository": "https://github.com/you/project-notes",
   "extensions": {
     "openagent": {
+      "category": "productivity",
       "compatibility": { "plugin_protocol": { "min": 1, "max": 1 } },
       "capabilities": ["skills"],
       "i18n": {
@@ -54,9 +55,9 @@ project-notes/
 
 ## 代码与数据生命周期不同
 
-| 位置 | 用途 |
-| --- | --- |
-| `${PLUGIN_ROOT}` | 已安装的包文件，不作为可写数据库 |
+| 位置             | 用途                                 |
+| ---------------- | ------------------------------------ |
+| `${PLUGIN_ROOT}` | 已安装的包文件，不作为可写数据库     |
 | `${PLUGIN_DATA}` | 插件自己的持久状态，更新和卸载时保留 |
 
 使用导出的变量，不自行推导用户目录。插件进程遵守当前执行权限策略，并获得自己数据目录的写权限。需要访问真实电脑时，沿用宿主的明确授权流程，清单声明不会授予无限权限。
@@ -64,3 +65,7 @@ project-notes/
 包内路径不能通过 `..`、符号链接或目录联接越界。畸形的可选组件可能被单独禁用；清单被拒绝则不能加载。检查诊断并逐项验证声明的组件，不要把插件卡片可见当成工具已加载的证明。
 
 命令、自动化、守护进程和会话组件的完整字段见[公开规范](https://github.com/BANG404/openagent-plugin-kit/blob/main/docs/plugin-format.md)。
+
+## 分类
+
+可选字段 `extensions.openagent.category` 声明一个稳定分类 ID：`development`（开发工具）、`productivity`（效率工具）、`communication`（沟通协作）、`automation`（自动化）、`data`（数据与知识）、`design`（设计创作）或 `other`（其他）。省略时为“未分类”；空值、数组和未知 ID 会导致清单校验失败。界面负责翻译分类名称，ID 不随语言改变。商店分类筛选与搜索、安装状态筛选组合生效。分类只用于展示和发现，不授予权限，也不改变插件协议版本。

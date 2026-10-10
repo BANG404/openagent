@@ -111,6 +111,10 @@ try {
       );
       pilot(["wait", "--selector", ".official-plugin-card", "--timeout", "20000"]);
       pilot(["snapshot", "-i"]);
+      pilot(["run", join(repo, "tests/blackbox/plugin-categories.toml")]);
+      pilot(["snapshot", "-i"]);
+      pilot(["run", join(repo, "tests/blackbox/plugin-skeleton.toml")]);
+      pilot(["snapshot", "-i"]);
       pilot(["run", join(repo, "tests/blackbox/plugin-layout.toml")]);
       capture(join(artifacts, `${theme}-${language}-restored.png`));
       pilot(["snapshot", "-i"]);

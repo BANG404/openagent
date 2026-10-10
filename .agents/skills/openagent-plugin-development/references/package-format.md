@@ -392,3 +392,19 @@ The settings surface exposes the plugin enable switch, MCP tool-scope switches,
 and a generic real-computer-access switch for plugins whose declared
 capabilities request it. The switch is persisted per plugin and is the user
 authorization boundary.
+
+## Discovery categories
+
+`extensions.openagent.category` is optional presentation metadata with one stable
+ID: `development`, `productivity`, `communication`, `automation`, `data`, `design`
+or `other`. Omission means uncategorized; null, arrays, empty strings and unknown
+IDs reject the manifest with a category diagnostic. Keep names localized in the
+client; IDs never change with locale. Category grants no permissions and changes
+no component loading or process policy. Older Runtimes ignore the optional
+metadata and continue loading the package, so plugin protocol 1 is unchanged.
+
+Declare it inside the OpenAgent extension, for example:
+
+```json
+{"extensions":{"openagent":{"category":"development"}}}
+```

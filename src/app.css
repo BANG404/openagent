@@ -40,6 +40,16 @@
     --settings-nav-width: 172px;
     --settings-collection-width: 256px;
     --settings-content-max-width: 680px;
+    --plugin-content-max-width: 1440px;
+    --plugin-grid-min-width: 300px;
+    --plugin-grid-gap: 10px;
+    --plugin-store-gap: 14px;
+    --plugin-card-padding: 14px;
+    --plugin-card-radius: 12px;
+    --plugin-card-min-height: 234px;
+    --plugin-header-gap: 28px;
+    --plugin-header-height: 36px;
+    --plugin-control-height: 34px;
     --settings-content-padding: 24px;
     --settings-control-height: 34px;
     --settings-card-row-min-height: 42px;

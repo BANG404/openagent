@@ -42,6 +42,7 @@ import { pluginSidebarLifecycle, type PluginSidebarLifecycle } from "$lib/plugin
 import type { SettingsOptions } from "./types";
 import type { SettingsDraft } from "./draft.svelte";
 import { createPluginSetup } from "./pluginSetup.svelte";
+import { isPluginCategory, type PluginCategoryFilter } from "$lib/pluginCategories";
 
 export function createPluginSettings(
   draft: SettingsDraft,
@@ -62,6 +63,7 @@ export function createPluginSettings(
     message: string;
   } | null>(null);
   let officialPluginQuery = $state("");
+  let officialPluginCategory = $state<PluginCategoryFilter>("all");
   let officialPluginFilter = $state<OfficialPluginCatalogFilter>("all");
   let pluginManagementView = $state<"marketplace" | "installed">("marketplace");
   const pluginInstallQueue = desktopPluginInstallQueue;
@@ -109,6 +111,7 @@ export function createPluginSettings(
       ),
       query: officialPluginQuery,
       filter: officialPluginFilter,
+      category: officialPluginCategory,
     }),
   );
 
@@ -548,6 +551,13 @@ export function createPluginSettings(
     },
     get officialPluginCards() {
       return officialPluginCards;
+    },
+    get officialPluginCategory() {
+      return officialPluginCategory;
+    },
+    set officialPluginCategory(value: string) {
+      if (value === "all" || value === "uncategorized" || isPluginCategory(value))
+        officialPluginCategory = value;
     },
     get officialPluginQuery() {
       return officialPluginQuery;

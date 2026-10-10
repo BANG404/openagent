@@ -9,6 +9,66 @@ import {
 } from "../src/lib/officialPluginRegistry";
 
 describe("official plugin registry", () => {
+  test("category filtering intersects search and availability and preserves marketplace metadata", () => {
+    const registry = parseOfficialPluginRegistry(bundledRegistry);
+    const installed = new Map([["github", "0.2.0"]]);
+    const development = projectOfficialPluginCatalog(registry, {
+      installed,
+      category: "development",
+    });
+    expect(development.length).toBeGreaterThan(1);
+    expect(development.every((plugin) => plugin.category === "development")).toBe(true);
+    expect(
+      projectOfficialPluginCatalog(registry, {
+        installed,
+        category: "development",
+        query: "github",
+        filter: "installed",
+      }).map((plugin) => plugin.id),
+    ).toEqual(["github"]);
+    expect(
+      projectOfficialPluginCatalog(registry, {
+        installed,
+        category: "communication",
+        query: "github",
+      }),
+    ).toEqual([]);
+    expect(
+      projectOfficialPluginCatalog(registry, {
+        installed,
+        category: "development",
+        query: "github",
+        filter: "available",
+      }),
+    ).toEqual([]);
+    expect(
+      toOfficialMarketplaceDocument(registry).plugins.find((plugin) => plugin.name === "github")
+        ?.interface.category,
+    ).toBe("development");
+    const unclassified = {
+      ...registry,
+      plugins: [{ ...registry.plugins[0], category: undefined }],
+    };
+    expect(
+      projectOfficialPluginCatalog(unclassified, { installed, category: "uncategorized" }),
+    ).toHaveLength(1);
+    expect(
+      projectOfficialPluginCatalog(unclassified, { installed, category: "other" }),
+    ).toHaveLength(0);
+  });
+
+  test.each([[null], [""], ["unknown"], ["Development"], [["development"]], [1]])(
+    "rejects invalid category %j",
+    (category) => {
+      expect(() =>
+        parseOfficialPluginRegistry({
+          ...bundledRegistry,
+          plugins: [{ ...bundledRegistry.plugins[0], category }],
+        }),
+      ).toThrow("category");
+    },
+  );
+
   test("parses the bundled official sources", () => {
     const registry = parseOfficialPluginRegistry(bundledRegistry);
     expect(registry.plugins.map((plugin) => plugin.id)).toEqual([
@@ -42,7 +102,7 @@ describe("official plugin registry", () => {
       "1.0.7",
       "1.3.0",
       "1.1.1",
-      "1.7.1",
+      "1.8.0",
       "0.2.0",
       "0.1.1",
       "0.2.0",

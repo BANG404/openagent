@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { SettingsWindowKind } from "$lib/settingsWindows";
   import { settingsWindowSkeletonSpec } from "$lib/settingsWindowSkeleton";
+  import PluginMarketplaceSkeleton from "./PluginMarketplaceSkeleton.svelte";
 
   let {
     kind,
@@ -65,7 +66,9 @@
     </aside>
   {/if}
 
-  {#if spec.layout === "about"}
+  {#if spec.layout === "plugins"}
+    <PluginMarketplaceSkeleton />
+  {:else if spec.layout === "about"}
     <main class="about-skeleton" aria-hidden="true">
       <span class="block about-logo"></span>
       <span class="block about-title"></span>

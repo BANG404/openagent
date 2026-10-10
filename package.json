@@ -37,7 +37,7 @@
     "lint:frontend": "eslint src tests scripts *.js --max-warnings=0",
     "format": "prettier --write src tests scripts .github *.json *.js",
     "format:check": "prettier --check src tests scripts .github *.json *.js",
-    "test": "bun test",
+    "test": "bun test --timeout 30000",
     "test:sonar": "bun scripts/test-sonar.mjs",
     "test:browser:preview": "bun scripts/test-browser-preview.mjs",
     "test:blackbox:memory": "bun scripts/test-memory-blackbox.mjs",

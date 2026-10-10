@@ -50,7 +50,7 @@ the current projection preserves the field for that adapter.
 
 The Settings Plugins surface projects the bundled registry into the official
 plugin marketplace. Search and availability filters are pure client-side
-projections. The marketplace starts with search and availability filters, followed
+projections. The marketplace starts with search, category and availability filters, followed
 by plugin cards; omit the introductory heading, description, and catalog count.
 Place the Marketplace/Installed switch at the right of the
 Plugins page heading; let the heading row wrap on narrow surfaces while keeping
@@ -214,3 +214,21 @@ the real MCP App frame's first-mount and live locale while retaining input.
 The same scenario mounts a real sidebar fixture and asserts its first/live locale,
 translated title, stable iframe identity, and retained entered draft.
 The runner verifies both switch directions in all theme/language combinations.
+
+
+Catalog entries may carry an optional `category` matching the package discovery
+IDs in [package format](package-format.md#discovery-categories). Missing values
+remain uncategorized; invalid values reject the catalog. The marketplace
+projection retains the category as `interface.category`. Categories have localized
+labels on store and installed cards. The category selector combines with search
+and availability using intersection; clearing search retains both selected filters.
+Keep all choices available even when a combination has no matches so users can
+recover using the same controls. Installed cards use the installed manifest's
+category; catalog cards use reviewed discovery metadata independently of archives.
+
+`PluginMarketplaceSkeleton.svelte` supplies the Plugins loading silhouette: page
+heading and right-aligned tab switch, search/category/status controls, and a
+responsive card grid. It shares max width, column minimum, gap, insets and card
+surfaces through `--plugin-*` application tokens with the settled marketplace.
+The plugin-layout native scenario covers category filtering and loading/settled
+geometry in light/dark and English/Chinese at narrow and wide surface sizes.

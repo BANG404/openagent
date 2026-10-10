@@ -110,3 +110,6 @@ ConversationSurface also derives sidebar context from the resolved application
 locale store, rather than the raw configuration preference (`system` or a stale
 saved snapshot). Sidebar titles and first/live context must follow the same locale
 while preserving the mounted iframe and its draft.
+
+Plugin summary types carry optional discovery category metadata. Read the category
+IDs and validation rules in [package format](../../openagent-plugin-development/references/package-format.md#discovery-categories); consume them through the shared SDK descriptor and keep display labels localized.

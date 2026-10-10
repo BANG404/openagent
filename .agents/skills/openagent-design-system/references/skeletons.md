@@ -25,3 +25,8 @@ Review checklist:
   destination mapping changes.
 - Use the browser preview route or native debug surface to capture loading and
   settled states when the change affects visible geometry.
+
+Plugins is a marketplace destination. Route its window skeleton to
+`PluginMarketplaceSkeleton.svelte`, which mirrors the store header, controls and
+responsive cards using `--plugin-*` tokens; never render generic settings form
+rows or a collection sidebar for this destination.

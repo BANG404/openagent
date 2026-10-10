@@ -1,0 +1,100 @@
+[scenario]
+name = "plugin categories combine with search and availability"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "select a category through the store control"
+action = "click"
+target = "#official-plugin-category"
+
+[[step]]
+action = "press"
+key = "Home"
+
+[[step]]
+action = "press"
+key = "ArrowDown"
+
+[[step]]
+action = "press"
+key = "Enter"
+
+[[step]]
+action = "eval"
+script = '''(async () => {
+  await new Promise(resolve => setTimeout(resolve, 150));
+  const cards = [...document.querySelectorAll('.official-plugin-card')];
+  if (cards.length < 2 || cards.some(card => card.querySelector('[data-category]')?.dataset.category !== 'development')) throw new Error('development category was not applied');
+  return true;
+})()'''
+
+[[step]]
+action = "fill"
+target = ".official-plugin-search input"
+value = "github"
+
+[[step]]
+action = "eval"
+script = '''(async () => { await new Promise(resolve => setTimeout(resolve, 100)); if (!document.querySelector(".official-plugin-card[data-plugin-id=github]")) throw new Error("category and search did not match github"); return true; })()'''
+
+[[step]]
+name = "combined filters show a recoverable empty result"
+action = "click"
+target = ".official-plugin-filters [data-filter='installed']"
+
+[[step]]
+action = "eval"
+script = '''(async () => { await new Promise(resolve => setTimeout(resolve, 100)); if (!document.querySelector(".official-plugin-empty")) throw new Error("combined filters did not render the empty state"); return true; })()'''
+
+[[step]]
+action = "click"
+target = ".official-plugin-clear"
+
+[[step]]
+action = "eval"
+script = '''(() => {
+  if (!document.querySelector('.official-plugin-filters [data-filter="installed"].active')) throw new Error('clearing search changed availability');
+  if (!document.querySelector('#official-plugin-category').textContent.match(/Development|开发工具/)) throw new Error('clearing search changed category');
+  return true;
+})()'''
+
+[[step]]
+action = "click"
+target = ".official-plugin-filters [data-filter='all']"
+
+[[step]]
+action = "click"
+target = "#official-plugin-category"
+
+[[step]]
+action = "press"
+key = "End"
+
+[[step]]
+action = "press"
+key = "Enter"
+
+[[step]]
+action = "eval"
+script = '''(async () => { await new Promise(resolve => setTimeout(resolve, 100)); if (!document.querySelector(".official-plugin-empty")) throw new Error("combined filters did not render the empty state"); return true; })()'''
+
+[[step]]
+action = "click"
+target = "#official-plugin-category"
+
+[[step]]
+action = "press"
+key = "Home"
+
+[[step]]
+action = "press"
+key = "Enter"
+
+[[step]]
+action = "eval"
+script = '''(async () => {
+  await new Promise(resolve => setTimeout(resolve, 150));
+  if (document.querySelectorAll('.official-plugin-card').length !== 20) throw new Error('all categories did not restore the catalog');
+  return true;
+})()'''

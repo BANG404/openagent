@@ -29,6 +29,7 @@ The loader reads `plugin.json`, immediate Skill directories, and optional `mcp.j
   "repository": "https://github.com/you/project-notes",
   "extensions": {
     "openagent": {
+      "category": "productivity",
       "compatibility": { "plugin_protocol": { "min": 1, "max": 1 } },
       "capabilities": ["skills"],
       "i18n": {
@@ -54,9 +55,9 @@ Workflows that create conversations or wake Agents should use the shared [Host B
 
 ## Code and data have different lifetimes
 
-| Location | Purpose |
-| --- | --- |
-| `${PLUGIN_ROOT}` | Installed package files; do not use as a writable database |
+| Location         | Purpose                                                               |
+| ---------------- | --------------------------------------------------------------------- |
+| `${PLUGIN_ROOT}` | Installed package files; do not use as a writable database            |
 | `${PLUGIN_DATA}` | Package-owned persistent state; retained across updates and uninstall |
 
 Use the exported values rather than deriving user-home paths. Plugin processes follow the current execution permission profile and receive a write grant to their own data directory. Computer access, when needed, follows the host's explicit grant flow; a manifest declaration is not blanket permission.
@@ -64,3 +65,12 @@ Use the exported values rather than deriving user-home paths. Plugin processes f
 Package paths cannot escape through `..`, symlinks, or junctions. Malformed optional components can be disabled independently; a rejected manifest prevents admission. Check diagnostics and exercise every declared component, rather than treating a visible plugin card as proof that its tools loaded.
 
 See the [public field reference](https://github.com/BANG404/openagent-plugin-kit/blob/main/docs/plugin-format.md) for commands, automation, daemons, and conversation components.
+
+## Categories
+
+Optional `extensions.openagent.category` declares one stable discovery ID:
+`development`, `productivity`, `communication`, `automation`, `data`, `design`
+or `other`. Omission means uncategorized; null, arrays and unknown IDs fail
+manifest validation. Clients translate labels while IDs stay unchanged. Store
+category filtering intersects search and installation status. Categories grant
+no permissions and do not change the plugin protocol version.

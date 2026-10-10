@@ -1,0 +1,46 @@
+[scenario]
+name = "plugin loading silhouette matches the settled marketplace"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+action = "eval"
+script = '''(async () => {
+  const compiled = await (await fetch('/src/routes/remote/+page.svelte')).text();
+  const module = /import \{ onMount \} from "([^"]+)"/.exec(compiled)?.[1];
+  if (!module) throw new Error('Svelte runtime module missing');
+  const {mount, unmount} = await import(module);
+  const {default: Skeleton} = await import('/src/lib/components/SettingsWindowSkeleton.svelte');
+  const surface = document.querySelector('.fullscreen-surface');
+  const viewport = surface.querySelector('.plugin-management-content .ui-scroll-area-viewport');
+  const host = document.createElement('div');
+  host.style.cssText = 'position:absolute;inset:0;pointer-events:none';
+  viewport.style.position = 'relative';
+  viewport.append(host);
+  const skeleton = mount(Skeleton, {target:host, props:{kind:'integrations', initialSection:'plugins', label:'Loading plugins'}});
+  const settle = () => new Promise(resolve => setTimeout(resolve, 150));
+  try {
+    for (const width of [640, 950, 1250]) {
+      surface.style.width = `${width}px`;
+      await settle();
+      const realGrid = viewport.querySelector('.official-plugin-grid');
+      const loadingGrid = host.querySelector('.plugin-skeleton-grid');
+      if (host.querySelector('.content-card, .collection-skeleton')) throw new Error('plugin loading still renders generic settings');
+      const real = realGrid.getBoundingClientRect();
+      const loading = loadingGrid.getBoundingClientRect();
+      for (const field of ['x','width','y']) if (Math.abs(real[field] - loading[field]) > 2) throw new Error(`${width}px skeleton grid ${field}: ${loading[field]} vs ${real[field]}`);
+      if (getComputedStyle(realGrid).gridTemplateColumns !== getComputedStyle(loadingGrid).gridTemplateColumns) throw new Error('skeleton columns differ');
+      const realCard = realGrid.firstElementChild;
+      const loadingCard = loadingGrid.firstElementChild;
+      if (Math.abs(realCard.getBoundingClientRect().height - loadingCard.getBoundingClientRect().height) > 18) throw new Error('skeleton card height differs by more than one wrapped line');
+      for (const field of ['padding','borderRadius','backgroundColor','borderColor']) if (getComputedStyle(realCard)[field] !== getComputedStyle(loadingCard)[field]) throw new Error(`skeleton card ${field} differs`);
+      if (loadingGrid.scrollWidth > loadingGrid.clientWidth + 1) throw new Error('skeleton overflows');
+    }
+    return true;
+  } finally {
+    await unmount(skeleton);
+    host.remove();
+    viewport.style.position = '';
+    surface.style.width = '950px';
+  }
+})()'''

@@ -71,6 +71,12 @@ ahead of the Windows WSL launcher on PATH when running Windows preflight.
 Set `OPENAGENT_TEST_BASH` to an explicit Git Bash executable when a custom
 installation or PATH ordering requires it; this override takes precedence.
 
+The repository Bun suite uses a 30-second per-test timeout. SDK release
+exhaustion tests launch bounded Bash subprocess loops; on Windows their mocked
+180-attempt paths exceed Bun's five-second default even with network and sleep
+stubbed. Keep the assertions and subprocess bounds intact; do not shorten the
+release retry policy to satisfy the runner's default timeout.
+
 The WSL checkout and the native Windows checkout should remain separate Git
 working trees. Configure the existing Windows checkout as a local source remote
 from WSL once. Substitute the actual checkout locations and distribution in these
