@@ -1,0 +1,87 @@
+[scenario]
+name = "plugin installation keeps focus in content and preserves intentional tooltips"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "installing does not send focus to the surface chrome"
+action = "eval"
+script = '''(async () => {
+  const probe = window.__pluginTooltipProbe;
+  const panel = document.querySelector('[role=tabpanel][data-value=plugins]');
+  if (probe.available) {
+    document.querySelector('.official-plugin-filters [role=tab][data-filter=available]').click();
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+  const button = document.querySelector('.official-plugin-card[data-plugin-id=goal] button');
+  if (!button || button.disabled) throw new Error('fixture install button is unavailable');
+  // Establish the same modality/focus as an actual pointer or keyboard activation.
+  if (probe.keyboard) {
+    document.dispatchEvent(new KeyboardEvent('keydown', {key:'Tab', bubbles:true}));
+  } else {
+    button.dispatchEvent(new PointerEvent('pointerdown', {bubbles:true, pointerType:'mouse'}));
+  }
+  button.focus();
+  button.click();
+  await new Promise(resolve => setTimeout(resolve, 100));
+  if (!document.querySelector('[data-plugin-id=goal][data-install-status=running]')) {
+    throw new Error('installation did not start');
+  }
+  if (document.activeElement !== panel) throw new Error('focus escaped plugin content at install start: ' + document.activeElement?.outerHTML.slice(0, 500));
+  if (document.querySelector('[data-tooltip-content]')) throw new Error('unrequested tooltip opened');
+  if (probe.elsewhere) document.querySelector('.official-plugin-search input').focus();
+  probe.release();
+  return 'content owns focus while installation runs';
+})()'''
+
+[[step]]
+name = "completion and failure preserve content focus"
+action = "eval"
+script = '''(async () => {
+  const probe = window.__pluginTooltipProbe;
+  const {desktopPluginInstallQueue} = await import('/src/lib/agentPluginInstallQueue.ts');
+  const deadline = Date.now() + 10000;
+  while (Date.now() < deadline && desktopPluginInstallQueue.isInstalling('goal')) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  const task = desktopPluginInstallQueue.snapshot().find(task => task.key === 'goal');
+  if (task?.status !== (probe.fail ? 'error' : 'success')) throw new Error(JSON.stringify(task));
+  const target = document.querySelector(probe.elsewhere ? '.official-plugin-search input' : '[role=tabpanel][data-value=plugins]');
+  if (document.activeElement !== target) {
+    throw new Error('completion moved focus away from plugin content');
+  }
+  if (document.querySelector('[data-tooltip-content]')) throw new Error('completion opened a tooltip');
+  const card = document.querySelector('.official-plugin-card[data-plugin-id=goal]');
+  if (probe.fail ? !card?.querySelector('button:not(:disabled)') :
+      probe.available ? !!card : card?.dataset.installed !== 'true' || !!card.querySelector('button')) {
+    throw new Error('wrong installed/retry/filter state');
+  }
+  return 'completion preserves focus even when the install button or card disappears';
+})()'''
+
+[[step]]
+name = "pointer focus alone does not open a chrome tooltip"
+action = "eval"
+script = '''(async () => {
+  const button = document.querySelector('.fullscreen-surface-expand');
+  document.querySelector('.fullscreen-surface').dispatchEvent(new PointerEvent('pointerdown', {bubbles:true, pointerType:'mouse'}));
+  button.focus();
+  document.querySelector('.fullscreen-surface').dispatchEvent(new PointerEvent('pointerup', {bubbles:true, pointerType:'mouse'}));
+  await new Promise(resolve => setTimeout(resolve, 100));
+  if (document.querySelector('[data-tooltip-content]')) throw new Error('non-keyboard focus opened a tooltip');
+  document.querySelector('.fullscreen-surface').focus();
+  return 'pointer/programmatic focus is quiet';
+})()'''
+
+[[step]]
+name = "hover still exposes the maximize hint"
+action = "eval"
+script = '''(async () => {
+  const button = document.querySelector('.fullscreen-surface-expand');
+  document.querySelector('.fullscreen-surface').focus();
+  button.dispatchEvent(new PointerEvent('pointermove', {bubbles:true, pointerType:'mouse'}));
+  await new Promise(resolve => setTimeout(resolve, 850));
+  const hint = document.querySelector('[data-tooltip-content]');
+  if (hint?.textContent.trim() !== button.getAttribute('aria-label')) throw new Error('hover tooltip is missing');
+  return 'hover tooltip remains available';
+})()'''
