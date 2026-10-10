@@ -45,6 +45,7 @@ All notable changes to this project will be documented in this file.
 - Remove message board examples from plugin developer
 
 ### Miscellaneous
+- **sdk**: Advance the pinned SDK revision to the private main tip
 - Default the repository branch to main
 - **plugins**: Pin the published kit 1.8.0 archive
 
