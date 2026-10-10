@@ -109,8 +109,12 @@
   When attachments are present, subtract their strip height from the editor's
   maximum so the bottom controls remain inside the bounded card.
   Preserve native dragging from non-interactive card space and keep a dedicated 12px top-edge
-  drag strip inside the rounded perimeter without covering editable text. Open
-  selectors below and visually outside the card,
+  drag strip inside the rounded perimeter without covering editable text.
+  Never cancel pointer events or start a native drag from a `contenteditable`
+  editor, a textbox role, or any of their formatted-text descendants. The editor
+  is a DOM contenteditable surface, so excluding only native inputs and textareas
+  consumes the click that should restore focus after toolbar use.
+  Open selectors below and visually outside the card,
   aligned to their trigger start edge, without collision-based side flipping.
   Give the launcher card only a restrained shadow. Keep its 760px card width
   separate from the wider transparent native canvas, with 48px horizontal stage
@@ -139,7 +143,10 @@
   `OPENAGENT_HOME` and `TAURI_PILOT_SOCKET`. The scenario checks actual control
   bounds and hit targets in light/dark and Chinese/English, expanded formatting,
   clamped long input with attachment add/remove, long model labels, narrower
-  card width, and selector placement below the card. The runner restores settings
+  card width, selector placement below the card, and clicking back into the
+  contenteditable editor after toolbar use. Assert unconsumed pointer events on
+  the editor and its formatted descendants, then drive an editor click and typing
+  without explicitly focusing it. The runner restores settings
   and launcher visibility; it never submits a provider turn.
 - General settings owns the persisted quick-chat accelerator. Capturing a new
   accelerator requires at least one modifier and stores the portable Tauri

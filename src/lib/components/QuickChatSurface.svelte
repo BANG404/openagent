@@ -182,7 +182,11 @@
   async function startDrag(event: PointerEvent): Promise<void> {
     if (!appWindow || event.button !== 0) return;
     const target = event.target;
-    if (target instanceof Element && target.closest("button, input, textarea, select, a")) return;
+    if (
+      target instanceof Element &&
+      target.closest('button, input, textarea, select, a, [contenteditable], [role="textbox"]')
+    )
+      return;
     event.preventDefault();
     focusArmed = false;
     focusSuppressed = true;
