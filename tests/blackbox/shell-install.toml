@@ -1,0 +1,24 @@
+[scenario]
+name = "native shell install confirms teardown before installer handoff"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "host has a running supervised Runtime before preparation"
+action = "eval"
+script = '''(async () => {
+  const versions = await window.__TAURI_INTERNALS__.invoke('get_component_versions');
+  if (!versions.runtime) throw new Error('fixture Runtime is not running');
+  return true;
+})()'''
+
+[[step]]
+name = "preparation waits for teardown and leaves no Runtime to write"
+action = "eval"
+script = '''(async () => {
+  const prepared = await window.__TAURI_INTERNALS__.invoke('begin_shell_install');
+  if (prepared !== true) throw new Error('idle fixture unexpectedly deferred the install');
+  const versions = await window.__TAURI_INTERNALS__.invoke('get_component_versions');
+  if (versions.runtime !== null) throw new Error('preparation handed off with a live Runtime');
+  return true;
+})()'''

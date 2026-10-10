@@ -104,7 +104,8 @@
     "dev:desktop": "bun scripts/tauri.mjs dev",
     "dev:desktop:source": "bun scripts/prepare-source-dev.mjs",
     "build:bootstrap": "vite build --config bootstrap.vite.config.js",
-    "test:blackbox:shell-resources": "bun scripts/test-shell-resources-blackbox.mjs"
+    "test:blackbox:shell-resources": "bun scripts/test-shell-resources-blackbox.mjs",
+    "test:blackbox:shell-install": "bun scripts/test-shell-install-blackbox.mjs"
   },
   "license": "GPL-3.0-or-later",
   "overrides": {

@@ -123,13 +123,19 @@ test("the shell installer runs after the host has prepared the exit", () => {
   expect(host).toContain('stage = "install_prepared"');
   expect(host).toContain("acquire_component_update_barrier(updates.inner(), supervisor.inner())");
 
-  // Preparation does the bounded teardown and never restarts anything.
+  // Successful preparation confirms teardown. Failure restores a usable host
+  // by restart and must reject before the caller reaches the installer.
   const begin = host.indexOf("async fn begin_shell_install(");
   expect(begin).toBeGreaterThanOrEqual(0);
   const command = host.slice(begin, host.indexOf("\n}\n", begin) + 2);
   expect(command).toContain("stop_desktop_children(&app).await");
   expect(command).toContain("hide_desktop_surfaces(&app)");
-  expect(command).not.toContain("request_desktop_exit");
+  expect(command).toContain("if let Err(error) = stop_desktop_children(&app).await");
+  expect(command).toContain("request_desktop_exit(app, DesktopExitAction::Restart)");
+  expect(command).toContain("return Err(error)");
+  expect(command.indexOf("return Err(error)")).toBeLessThan(
+    command.indexOf('stage = "install_prepared"'),
+  );
 
   // The exit that follows completes the prepared work instead of repeating it.
   expect(host).toContain("DesktopExitStep::Complete");

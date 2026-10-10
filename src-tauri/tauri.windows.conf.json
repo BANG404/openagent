@@ -2,6 +2,12 @@
   "bundle": {
     "targets": [
       "nsis"
-    ]
+    ],
+    "windows": {
+      "nsis": {
+        "installerHooks": "./windows/install-hooks.nsh",
+        "languages": ["English", "SimpChinese"]
+      }
+    }
   }
 }

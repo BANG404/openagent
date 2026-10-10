@@ -47,9 +47,11 @@ supervises it with the same lifetime boundary as other plugin processes.
 The shell step begins with a preparation command that re-acquires the barrier —
 an in-process frontend confirmation releases it, so the Runtime must be drained
 again before it is stopped — and then runs the same bounded child teardown the
-ordinary exit path uses. No restart happens during preparation; it only makes
-the process safe to end, and an undrainable Runtime defers the whole update
-before anything is torn down. This ordering exists because the shell installer,
+ordinary exit path uses. Successful preparation confirms the Runtime, event
+relay, and workspace children stopped before reporting `install_prepared`.
+A teardown error or timeout rejects the installer and restarts the prepared
+host to restore its stopped Runtime and hidden windows. An undrainable Runtime
+defers the whole update before anything is torn down. This ordering exists because the shell installer,
 not the host, ends the process: on Windows the updater plugin launches NSIS and
 terminates the application inside `install()`, so no statement after that call
 runs and the component-update records it would have written are recovered by
@@ -63,6 +65,37 @@ The updater currently defaults to relaunching after NSIS finishes, but keeping
 the option at the call site makes the production handoff independent of plugin
 or configuration defaults; without it, a successful installer can leave the
 desktop process stopped until the user launches it manually.
+
+Windows installers share `src-tauri/windows/install-hooks.nsh`. Before copying
+or removing installed bytes, its install and uninstall hooks probe the selected
+installation tree with non-writing, exclusive `OPEN_EXISTING` file handles.
+A running host image, its workspace images, and temporarily held resources must
+all release those files. Sharing and lock violations retry every 250 ms under
+one 30-second deadline per gate; other errors stop immediately. Neither failure
+path mutates installed files or kills processes. Junctions and symbolic links
+are refused rather than followed outside that tree. The executing uninstaller
+itself is excluded. The hook replaces the pinned template's name-based forced
+termination check, so a different installation or development host stays alive.
+An invisible installer page runs the same gate after `.onInit` restores the old
+installation path and before maintenance can invoke a legacy uninstaller;
+`/UPDATE` already skips that uninstall, and silent installs still pass through
+the preinstall hook. The online updater and offline overlay inherit the same
+Windows bundle configuration. Exceptional installer copy is English/Chinese;
+ordinary delayed exits complete without a Retry dialog.
+
+Run `bun run test:blackbox:shell-install` on Windows to compile and execute real
+NSIS fixtures using these production hooks. It covers 1/5/15-second image exits,
+a temporary nested-resource lock, immediate permission refusal, the 30-second
+timeout with old bytes intact, manual maintenance, scoped uninstall, and another
+same-name installation staying alive. The runner
+uses temporary directories, including Chinese and spaced paths, and Rust-built
+image/handle holders; override `MAKENSIS` only to select an installed NSIS compiler.
+It then starts a real debug Tauri window with its verified prepared Runtime and
+executes `tests/blackbox/shell-install.toml` through `tauri-pilot`, asserting that
+preparation returns only after the supervised Runtime stops and the host records
+`install_prepared`. Prepare the exact public kit with `bun run dev:prepare`
+before this native pass. These checks do not substitute for signed packaged
+component-update qualification.
 
 After a frontend activation, the host's first WebView confirmation owns the
 completion notice. Other workspace and utility WebViews still confirm the
