@@ -170,6 +170,22 @@ failure isolation and retry, concurrent catalog installs, duplicate protection,
 retained tasks after reopening, common installed-card structure, and removal
 with preserved plugin data. This mode does not replace full lifecycle qualification.
 It requires the Goal and Graph catalog entries for its failure/retry fixture.
+
+Installation and update actions hand focus to the persistent Plugins tab panel
+before their focused catalog button is disabled/replaced or a filter removes its
+card. Do this in a pre-update effect, only when focus belongs to that card; an
+asynchronous result must not steal focus from another control. Otherwise the
+enclosing Dialog recovers to its first tabbable chrome action and exposes an
+unrequested maximize hint. Run `bun run test:blackbox:plugin-install-focus` on an
+isolated `plugin-tooltip` debug instance with an explicit `TAURI_PILOT_SOCKET`.
+The deterministic catalog boundary installs a local fixture through the real
+Runtime and covers pointer/keyboard activation, Available-filter removal,
+failure/retry availability and intended tooltip focus/hover in light/dark and
+English/Chinese, including focus moved elsewhere before completion. The same
+runner supplements native DOM assertions with trusted Tab and hover input via
+the workspace Playwright wrapper; Windows can block pilot key injection with
+UIPI. It complements the actual catalog-download lifecycle scenario.
+
 On Windows, set `BLACKBOX_NATIVE_WINDOW_HANDLE` to the fixture's main HWND
 (decimal or `0x` hex). The runner uses `scripts/capture-windows-window.py`
 with Python and Pillow to capture that native window even when covered. Otherwise

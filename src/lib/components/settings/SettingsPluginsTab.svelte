@@ -16,9 +16,29 @@
   import { useSettingsContext } from "$lib/settings/context";
   import PluginSetup from "./PluginSetup.svelte";
   const { plugins, options } = useSettingsContext();
+  let panelElement = $state<HTMLElement | null>(null);
+
+  // Move focus before installation disables/replaces its button (or an
+  // Available filter removes its card). Otherwise Dialog's focus scope
+  // recovers to the first tabbable control: the surface maximize button.
+  $effect.pre(() => {
+    const cards = plugins.officialPluginCards;
+    const tasks = plugins.agentPluginInstallTasks;
+    const active = panelElement?.ownerDocument.activeElement;
+    if (!(active instanceof HTMLButtonElement)) return;
+    const card = active.closest<HTMLElement>(".official-plugin-card");
+    if (!card || !panelElement?.contains(card)) return;
+    const next = cards.find((plugin) => plugin.id === card.dataset.pluginId);
+    const running = tasks.some(
+      (task) => task.pluginId === card.dataset.pluginId && task.status === "running",
+    );
+    if (!next || running || (next.installed && !next.updateAvailable)) {
+      panelElement.focus({ preventScroll: true });
+    }
+  });
 </script>
 
-<Tabs.Content value="plugins" class="settings-tab-panel">
+<Tabs.Content value="plugins" class="settings-tab-panel" bind:ref={panelElement}>
   <ScrollArea
     height="100%"
     class="settings-content-col plugin-management-content"

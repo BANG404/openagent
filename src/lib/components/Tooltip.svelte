@@ -43,7 +43,7 @@
     {@render children()}
   {/if}
 {:else}
-  <T.Root delayDuration={delayMs}>
+  <T.Root delayDuration={delayMs} ignoreNonKeyboardFocus>
     <T.Trigger>
       {#snippet child({ props })}
         {#if trigger}
