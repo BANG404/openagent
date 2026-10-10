@@ -114,6 +114,7 @@ jobs:
           scripts/release-workflow.test.mjs
           scripts/plugin-release.test.mjs
           scripts/plugin-release-index.test.mjs
+          scripts/publish-plugin-release-index.test.mjs
 
       - name: Verify generated release metadata
         shell: bash

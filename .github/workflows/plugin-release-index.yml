@@ -1,0 +1,62 @@
+name: Refresh plugin release index
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/lib/officialPluginRegistry.json"
+      - "scripts/plugin-release-index.mjs"
+      - "scripts/plugin-release-index.test.mjs"
+      - "scripts/publish-plugin-release-index.mjs"
+      - "scripts/publish-plugin-release-index.test.mjs"
+      - ".github/workflows/plugin-release-index.yml"
+  pull_request:
+    paths:
+      - "src/lib/officialPluginRegistry.json"
+      - "scripts/plugin-release-index.mjs"
+      - "scripts/plugin-release-index.test.mjs"
+      - "scripts/publish-plugin-release-index.mjs"
+      - "scripts/publish-plugin-release-index.test.mjs"
+      - ".github/workflows/plugin-release-index.yml"
+  schedule:
+    - cron: "13,43 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plugin-release-index-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'publish' }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.21
+      - name: Verify collection and safe publication
+        run: bun test scripts/plugin-release-index.test.mjs scripts/publish-plugin-release-index.test.mjs
+  publish:
+    if: github.event_name != 'pull_request'
+    needs: verify
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.21
+      - name: Collect a complete plugin release index
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bun scripts/plugin-release-index.mjs
+      - name: Publish the rolling index Release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TARGET: ${{ github.sha }}
+        run: bun scripts/publish-plugin-release-index.mjs

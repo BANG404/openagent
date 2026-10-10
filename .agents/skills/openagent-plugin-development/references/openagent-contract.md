@@ -513,7 +513,7 @@ current. `update` is explicit: it downloads, validates, stages, and atomically
 activates that candidate without executing it during validation.
 
 For repositories covered by the official store, checks and explicit updates
-read the static Pages feed described in [official-registry.md](official-registry.md).
+read the static Release asset described in [official-registry.md](official-registry.md).
 Runtime caches a complete feed for ten minutes in the derived
 `<OPENAGENT_HOME>/plugin-release-index-cache.json`. A feed generated more than
 48 hours ago fails refresh; the last complete snapshot may still show reminders
@@ -557,7 +557,7 @@ does not flicker on a transient error — the envelope already states the global
 condition, so a stale value is never shown as current. `update` re-resolves
 metadata before installing and refuses to activate from a stale or otherwise
 unconfirmable release. Client metadata requests and archive downloads use public
-endpoints and never carry a user credential. Only the Pages collector authenticates.
+endpoints and never carry a user credential. Only the index workflow authenticates.
 
 ## Built-in capabilities and packages
 

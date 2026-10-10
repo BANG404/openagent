@@ -45,26 +45,9 @@ First-install copy points users to full release assets or model download at setu
 Component-only releases show an explicit no-installer explanation rather than
 presenting their version as a new desktop installer.
 
-## Static plugin release feed
-
-The same Pages workflow refreshes daily at 02:23 UTC, on relevant main pushes,
-manual dispatch and release calls. `scripts/plugin-release-index.mjs` uses the
-job's `GITHUB_TOKEN` to collect the latest 100 releases for every repository in
-`src/lib/officialPluginRegistry.json`. It publishes `plugin-releases.json` at the
-site root with schema version 1, a Unix-seconds `generated_at`, and a repository
-map keyed by lowercase `owner/repo`. Values contain only stable releases, their
-protocol metadata, release URLs and archive assets with GitHub SHA-256 digests.
-Empty release histories remain explicit covered entries. Never publish a branch
-manifest version as a release or include a token in the artifact.
-
-The builder copies the file supplied by `OPENAGENT_PLUGIN_RELEASE_MANIFEST`.
-PR builds run deterministic collector tests without authenticated collection or
-deployment. Any upstream error stops the entire deployment; the last deployed
-snapshot remains intact. Runtime checks and explicit updates consume this feed
-without credentials. Covered repositories never fall back to the GitHub API on
-failure. Changes to the reviewed registry and collector trigger Pages builds;
-do not commit generated `plugin-releases.json`. Collector tests run in Pages and
-frontend/automation qualification.
+Plugin update metadata is published independently as a rolling Release asset;
+see [plugin release index](plugin-release-index.md). Pages builds do not collect
+or publish it.
 
 Verify English/Chinese landing-page links, every tutorial route, theme and locale
 switching, mobile menu/layout, Pagefind search in a production preview, and the
