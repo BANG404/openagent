@@ -36,7 +36,7 @@ serve the product homepage. Do not edit generated site output.
 
 `.github/workflows/pages.yml` installs the dedicated frozen lockfile with Bun
 and a compatible Node runtime. PRs build and verify their merge SHA without
-deployment. Relevant pushes to `master`, manual dispatches, and release workflow
+deployment. Relevant pushes to `main`, manual dispatches, and release workflow
 calls build and deploy the combined artifact. Only the deploy job has Pages
 write and OIDC permissions. The Pages job also runs the artifact guard regression
 tests. Retain release-manifest inputs and channel fallback; direct platform

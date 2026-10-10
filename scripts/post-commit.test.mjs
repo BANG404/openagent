@@ -49,7 +49,7 @@ exec ${realGit} "$@"
   await writeFile(join(bin, "git.exe"), gitShim);
   await chmod(join(bin, "git.exe"), 0o755);
 
-  git(source, "init", "-b", "master");
+  git(source, "init", "-b", "main");
   git(source, "config", "user.name", "Hook Test");
   git(source, "config", "user.email", "hook@example.com");
   await writeFile(join(source, "tracked.txt"), "initial\n");
@@ -121,7 +121,7 @@ describe("WSL-to-Windows post-commit hook", () => {
     const result = runHook(context);
 
     expect(result.status, result.stderr).toBe(0);
-    expect(result.stderr).toContain("branch mismatch (WSL: feature, Windows: master)");
+    expect(result.stderr).toContain("branch mismatch (WSL: feature, Windows: main)");
     expect(git(context.windows, "rev-parse", "HEAD")).toBe(windowsHead);
   });
 });

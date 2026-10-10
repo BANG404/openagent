@@ -22,7 +22,7 @@ three verification routes:
   runtime execution.
 - Administrator-authored PRs perform only a repository-permission check, then
   publish the successful aggregate without module checks or review. Ordinary
-  pushes to `master` do not trigger CI.
+  pushes to `main` do not trigger CI.
 - Release workflow calls, nightly schedules, and manual dispatches force every
   module through complete qualification: frontend production build and bundle
   budgets, Windows/macOS native compilation, and embedding runtime tests.

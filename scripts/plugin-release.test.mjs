@@ -29,7 +29,7 @@ const tar =
 
 /** @param {string} directory */
 function initializeFixtureRepository(directory) {
-  git(directory, ["init", "--initial-branch=master"]);
+  git(directory, ["init", "--initial-branch=main"]);
   appendFileSync(
     join(directory, ".git", "config"),
     "\n[user]\n\tname = Plugin test\n\temail = plugin-test@example.invalid\n[core]\n\tautocrlf = false\n",

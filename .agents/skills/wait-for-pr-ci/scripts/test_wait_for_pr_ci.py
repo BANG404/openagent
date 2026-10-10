@@ -102,8 +102,8 @@ class WaitForPrCiTests(unittest.TestCase):
             ],
         }
 
-        self.assertTrue(wait_for_pr_ci.ruleset_applies(ruleset, "master", "master"))
-        self.assertFalse(wait_for_pr_ci.ruleset_applies(ruleset, "release", "master"))
+        self.assertTrue(wait_for_pr_ci.ruleset_applies(ruleset, "main", "main"))
+        self.assertFalse(wait_for_pr_ci.ruleset_applies(ruleset, "release", "main"))
         self.assertEqual(
             wait_for_pr_ci.contexts_from_ruleset(ruleset), {"Required PR Head"}
         )

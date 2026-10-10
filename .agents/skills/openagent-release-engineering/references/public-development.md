@@ -1,7 +1,7 @@
 # Pinned public development kits
 
 Public frontend and desktop development must not require access to the private
-SDK repository. Keep `master` as the integration branch; immutable product tags
+SDK repository. Keep `main` as the integration branch; immutable product tags
 are the reproducible public source baseline. A source revision is publicly
 developable only when its pinned SDK client, Runtime, and required platform
 helpers have an immutable signed kit. Never substitute a moving channel or a

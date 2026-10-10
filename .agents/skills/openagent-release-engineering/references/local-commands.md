@@ -77,7 +77,7 @@ release artifact requirements belong to [artifacts.md](artifacts.md).
 
 The GitHub **Prepare Release** workflow is the publication entrypoint. Local
 reproduction happens in an isolated OWT worktree, with its default checkout
-remaining on `master`. Fetch and explicitly select published promotion tags;
+remaining on `main`. Fetch and explicitly select published promotion tags;
 never copy a fixed historical version or silently select the newest tag.
 
 Dry runs do not create release commits:
@@ -89,7 +89,7 @@ bun run release:stable:dry-run
 ```
 
 For Beta reproduction, create a temporary `prepare/*` branch from the recorded
-local `master` source inside that worktree, then run
+local `main` source inside that worktree, then run
 `bun run release:prepare:beta`. For RC, start at the selected published Beta
 and use `bun scripts/release.mjs --channel=rc --promote-beta=<published-beta-tag>`.
 For Stable, start at the selected published RC and use

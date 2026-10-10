@@ -1,4 +1,4 @@
 interface:
   display_name: "Deliver via OWT"
   short_description: "Deliver verified changes through OWT"
-  default_prompt: "Use $deliver-via-owt to deliver repository changes from an isolated worktree, verify and fast-forward them into local master, and clean up while preserving unrelated work."
+  default_prompt: "Use $deliver-via-owt to deliver repository changes from an isolated worktree, verify and fast-forward them into local main, and clean up while preserving unrelated work."

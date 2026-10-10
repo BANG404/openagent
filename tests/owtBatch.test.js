@@ -41,7 +41,7 @@ function createRepository() {
   temporaryRoots.push(root);
   const repo = join(root, "repo");
   mkdirSync(repo);
-  git(repo, ["init", "--initial-branch=master"]);
+  git(repo, ["init", "--initial-branch=main"]);
   git(repo, ["config", "user.name", "OpenAgent Test"]);
   git(repo, ["config", "user.email", "openagent@example.com"]);
   git(repo, ["config", "core.autocrlf", "false"]);
@@ -54,7 +54,7 @@ function createRepository() {
 function createTask(repo, root, name, file) {
   const branch = `agent/${name}`;
   const worktree = join(root, `worktree-${name}`);
-  git(repo, ["worktree", "add", "-b", branch, worktree, "master"]);
+  git(repo, ["worktree", "add", "-b", branch, worktree, "main"]);
   writeFileSync(join(worktree, file), `${name}\n`);
   git(worktree, ["add", file]);
   git(worktree, ["commit", "-m", `test: ${name}`]);
@@ -130,7 +130,7 @@ describe("OWT batch coordination", () => {
     const { root, repo, base } = createRepository();
     const first = createTask(repo, root, "first", "first.txt");
     const second = createTask(repo, root, "second", "second.txt");
-    createBatch(repo, { batchId: "batch-one", defaultBranch: "master", base });
+    createBatch(repo, { batchId: "batch-one", defaultBranch: "main", base });
     register(repo, "batch-one", first);
     register(repo, "batch-one", second);
     sealBatch(repo, { batchId: "batch-one" });
@@ -163,7 +163,7 @@ describe("OWT batch coordination", () => {
       verifiedHead: integrationHead,
     });
     expect(finalized).toMatchObject({ action: "integrated", finalHead: integrationHead });
-    expect(git(repo, ["rev-parse", "master"])).toBe(integrationHead);
+    expect(git(repo, ["rev-parse", "main"])).toBe(integrationHead);
 
     const cleaned = cleanupBatch(repo, {
       batchId: "batch-one",
@@ -176,10 +176,10 @@ describe("OWT batch coordination", () => {
     expect(batchStatus(repo, { batchId: "batch-one" }).cleanedAt).toBeString();
   }, 20_000);
 
-  test("asks the integrator to refresh when master advances", () => {
+  test("asks the integrator to refresh when main advances", () => {
     const { root, repo, base } = createRepository();
     const task = createTask(repo, root, "feature", "feature.txt");
-    createBatch(repo, { batchId: "batch-refresh", defaultBranch: "master", base });
+    createBatch(repo, { batchId: "batch-refresh", defaultBranch: "main", base });
     register(repo, "batch-refresh", task);
     sealBatch(repo, { batchId: "batch-refresh" });
     const election = markTaskReady(task.worktree, {
@@ -214,13 +214,13 @@ describe("OWT batch coordination", () => {
       verifiedHead: integrationHead,
     });
     expect(finalized).toMatchObject({ action: "integrated", finalHead: integrationHead });
-    expect(git(repo, ["rev-parse", "master"])).toBe(integrationHead);
+    expect(git(repo, ["rev-parse", "main"])).toBe(integrationHead);
   }, 20_000);
 
   test("rejects ready state when the asserted preflight head is stale", () => {
     const { root, repo, base } = createRepository();
     const task = createTask(repo, root, "stale", "stale.txt");
-    createBatch(repo, { batchId: "batch-stale", defaultBranch: "master", base });
+    createBatch(repo, { batchId: "batch-stale", defaultBranch: "main", base });
     register(repo, "batch-stale", task);
     sealBatch(repo, { batchId: "batch-stale" });
     writeFileSync(join(task.worktree, "later.txt"), "later\n");
@@ -239,7 +239,7 @@ describe("OWT batch coordination", () => {
   test("does not strand a ready task before the batch is sealed", () => {
     const { root, repo, base } = createRepository();
     const task = createTask(repo, root, "unsealed", "unsealed.txt");
-    createBatch(repo, { batchId: "batch-unsealed", defaultBranch: "master", base });
+    createBatch(repo, { batchId: "batch-unsealed", defaultBranch: "main", base });
     register(repo, "batch-unsealed", task);
 
     expect(
@@ -260,7 +260,7 @@ describe("OWT batch coordination", () => {
     const { root, repo, base } = createRepository();
     const first = createTask(repo, root, "race-first", "race-first.txt");
     const second = createTask(repo, root, "race-second", "race-second.txt");
-    createBatch(repo, { batchId: "batch-race", defaultBranch: "master", base });
+    createBatch(repo, { batchId: "batch-race", defaultBranch: "main", base });
     register(repo, "batch-race", first);
     register(repo, "batch-race", second);
     sealBatch(repo, { batchId: "batch-race" });
@@ -295,7 +295,7 @@ describe("OWT batch coordination", () => {
     const { root, repo, base } = createRepository();
     const first = createTask(repo, root, "overlap-first", "shared.txt");
     const second = createTask(repo, root, "overlap-second", "shared.txt");
-    createBatch(repo, { batchId: "batch-overlap", defaultBranch: "master", base });
+    createBatch(repo, { batchId: "batch-overlap", defaultBranch: "main", base });
     register(repo, "batch-overlap", first);
     register(repo, "batch-overlap", second);
     sealBatch(repo, { batchId: "batch-overlap" });
@@ -339,7 +339,7 @@ describe("OWT batch coordination", () => {
     git(second.worktree, ["add", "shared.txt"]);
     git(second.worktree, ["commit", "-m", "modify shared file"]);
     second.head = git(second.worktree, ["rev-parse", "HEAD"]);
-    createBatch(repo, { batchId: "batch-delete-overlap", defaultBranch: "master", base });
+    createBatch(repo, { batchId: "batch-delete-overlap", defaultBranch: "main", base });
     register(repo, "batch-delete-overlap", first);
     register(repo, "batch-delete-overlap", second);
     sealBatch(repo, { batchId: "batch-delete-overlap" });
@@ -362,7 +362,7 @@ describe("OWT batch coordination", () => {
   test("heartbeats and recovers an abandoned integration lease", () => {
     const { root, repo, base } = createRepository();
     const task = createTask(repo, root, "recover", "recover.txt");
-    createBatch(repo, { batchId: "batch-recover", defaultBranch: "master", base });
+    createBatch(repo, { batchId: "batch-recover", defaultBranch: "main", base });
     register(repo, "batch-recover", task);
     sealBatch(repo, { batchId: "batch-recover" });
     expect(taskEnvironment(repo, { batchId: "batch-recover", taskId: task.taskId })).toMatchObject({

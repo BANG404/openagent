@@ -61,8 +61,8 @@ cd src-tauri && cargo check
 
 Before committing, inspect the complete diff, stage intended new files, and run
 `bun run preflight`. It evaluates the branch, index, worktree, and untracked
-filenames against the selected baseline. Manual verification on `master` uses `origin/master`; OWT branches use local
-`master` so unpublished local commits do not expand the task scope. Set
+filenames against the selected baseline. Manual verification on `main` uses `origin/main`; OWT branches use local
+`main` so unpublished local commits do not expand the task scope. Set
 `PREFLIGHT_BASE` or pass `--base <ref>` when a batch coordinator records a
 different immutable base. Use `--dry-run` to inspect the plan.
 
@@ -145,6 +145,6 @@ layout-stable skeleton.
 ## Delivery
 Every repository-changing task uses `deliver-via-owt` and the same OWT workflow.
 No prefix or mode selection is required. Implement in isolated task worktrees;
-keep the default directory on local `master` for developer debugging and
+keep the default directory on local `main` for developer debugging and
 fast-forward verified results into it. Batches coordinate concurrent OWT tasks.
 The skill owns preservation, reconciliation, verification, and cleanup; user instructions override delivery.

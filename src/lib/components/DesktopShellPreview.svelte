@@ -132,7 +132,7 @@
   );
   let workspace = $derived<WorkspaceContext>({
     path: workspacePath,
-    git_branch: workspacePath.endsWith("openagent") ? "master" : null,
+    git_branch: workspacePath.endsWith("openagent") ? "main" : null,
     has_agent_dir: true,
     environment: workspacePath.startsWith("\\\\wsl")
       ? { kind: "wsl", distribution: "Ubuntu-24.04", linux_path: "/home/dev/math" }

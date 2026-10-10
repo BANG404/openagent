@@ -1,7 +1,7 @@
 # OWT delivery
 
 OWT is the only repository delivery workflow, including single-agent tasks.
-No prompt prefix selects a mode. Keep the default worktree on local `master`
+No prompt prefix selects a mode. Keep the default worktree on local `main`
 for developer debugging; implement and validate in isolated sibling worktrees.
 Never switch the default worktree to a task or integration branch.
 
@@ -22,7 +22,7 @@ layout through implementation and handoff; plugin destinations are owned by
 ## Isolated task worktree, then fast-forward
 
 1. Keep the public host's default worktree on its local default branch
-   (`master` in OpenAgent); do not switch it. Record that branch and its
+   (`main` in OpenAgent); do not switch it. Record that branch and its
    exact starting `HEAD`, which is the authoritative OWT base even when it
    differs from the remote default. Fetch the upstream for awareness, but
    never merge, rebase, reset, or otherwise reconcile remote history as part
@@ -77,7 +77,7 @@ layout through implementation and handoff; plugin destinations are owned by
    committed advance makes that fast-forward fail, repeat this merge,
    preflight, and fast-forward loop until the handoff succeeds. Do not
    stash or include unrelated default-worktree changes. A blocked handoff keeps
-   the default worktree on `master` and preserves the committed task for recovery;
+   the default worktree on `main` and preserves the committed task for recovery;
    report it as pending integration, not delivered.
 8. Confirm the intended commits and paths are now on the local default
    branch. Remove only the clean registered task worktree and its fully

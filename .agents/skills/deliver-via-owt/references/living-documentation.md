@@ -55,9 +55,9 @@ private SDK gitlink.
 - Skill metadata still describes the situations that should trigger it.
 - Public documentation contains no private SDK implementation detail.
 - OWT reached its terminal state: verified commits from an isolated worktree
-  are fast-forwarded into local `master`; task worktrees and fully merged
+  are fast-forwarded into local `main`; task worktrees and fully merged
   branches are cleaned up, and nothing was pushed. The default directory stays
-  on `master` for developer debugging. Private SDK delivery follows its owner.
+  on `main` for developer debugging. Private SDK delivery follows its owner.
 - OWT bases each task on committed local default `HEAD`, preserves unrelated
   staged and working changes, and merges later committed default-branch
   descendants into the task branch. Rerun preflight after each integration and
@@ -67,4 +67,4 @@ private SDK gitlink.
 - A batch coordinates the same OWT workflow using an explicit manifest for
   membership and one elected integrator for combined verification. It retains
   its completion record after safe cleanup. A blocked handoff remains pending
-  integration while the default directory stays on `master`.
+  integration while the default directory stays on `main`.

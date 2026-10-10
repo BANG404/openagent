@@ -12,7 +12,7 @@ HEAD before starting task agents:
 
 ```bash
 bun .agents/skills/deliver-via-owt/scripts/coordinate-owt-batch.mjs create \
-  --repo . --batch <batch-id> --default master --base HEAD
+  --repo . --batch <batch-id> --default main --base HEAD
 ```
 
 Create every task branch and sibling worktree from that recorded HEAD by the
@@ -48,7 +48,7 @@ browser sessions separate while retaining the immutable batch identity.
 ## Finish a task
 
 Each task agent stages only its owned files, runs `bun run preflight --base
-<batch-base-sha>` (or relies on the automatic local-master baseline), commits,
+<batch-base-sha>` (or relies on the automatic local-main baseline), commits,
 requires a clean task worktree, and calls `ready` with the exact preflighted
 commit:
 

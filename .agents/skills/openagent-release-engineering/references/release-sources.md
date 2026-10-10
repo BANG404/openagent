@@ -1,8 +1,8 @@
 # Release sources and direct pushes
 
 A Beta preparation run creates one generated release commit on the exact
-current `master` head. The administrator credential pushes that commit directly
-to `master`; a concurrent update rejects the push instead of releasing stale
+current `main` head. The administrator credential pushes that commit directly
+to `main`; a concurrent update rejects the push instead of releasing stale
 source.
 
 A promotion requires its selected prerelease tag to be published.

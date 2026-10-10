@@ -8,7 +8,7 @@
   lockfile on patched releases so the JavaScript audit remains a release gate.
 - Pull requests run diff-selected fast checks only for contributors without
   administrator permission. Administrator-authored PRs use the documented
-  bypass after local preflight. Ordinary `master` pushes do not replace release
+  bypass after local preflight. Ordinary `main` pushes do not replace release
   qualification.
 - Release, nightly, and manual full qualification force every frontend,
   automation, native, and embedding capability. Release candidate

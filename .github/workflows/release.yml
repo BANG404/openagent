@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     branches:
-      - master
+      - main
       - release/rc/**
       - release/stable/**
     paths:
@@ -99,8 +99,8 @@ jobs:
           fi
 
           manifest_channel="$(node -p "JSON.parse(require('fs').readFileSync('.github/release.json', 'utf8')).channel")"
-          if [[ "$manifest_channel" == "beta" && "$RELEASE_BRANCH" != "master" ]]; then
-            echo "Beta releases must be merged to master, not $RELEASE_BRANCH." >&2
+          if [[ "$manifest_channel" == "beta" && "$RELEASE_BRANCH" != "main" ]]; then
+            echo "Beta releases must be merged to main, not $RELEASE_BRANCH." >&2
             exit 1
           fi
           if [[ "$manifest_channel" == "rc" && "$RELEASE_BRANCH" != release/rc/* ]]; then
@@ -534,7 +534,7 @@ jobs:
           --target "${{ matrix.runtime_target }}"
 
       # This is the authoritative full product compilation for the immutable
-      # release SHA. Pull-request and master CI validate source-level modules.
+      # release SHA. Pull-request and main CI validate source-level modules.
       - name: Build lightweight release candidate
         id: tauri
         uses: tauri-apps/tauri-action@v0

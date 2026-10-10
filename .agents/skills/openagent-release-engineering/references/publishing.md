@@ -1,7 +1,7 @@
 # Publishing
 
 The direct release commit changes `.github/release.json`, so its push starts the
-Release workflow. It accepts Beta markers only from `master`, RC markers only
+Release workflow. It accepts Beta markers only from `main`, RC markers only
 from `release/rc/*`, and Stable markers only from `release/stable/*`, validates
 metadata and source integrity, then starts the complete reusable CI suite and
 SDK release orchestration concurrently for that exact SHA. The SDK path builds
@@ -50,7 +50,7 @@ manifests, tests the packaged bytes, then publishes or reuses immutable releases
 The [plugin versioning contract](../../openagent-plugin-development/references/versioning.md)
 owns version decisions, range declarations, reuse and collision checks. The plugin
 contract owns repository token requirements. Independent
-SDK publication dispatches and waits for this same pipeline on public `master`;
+SDK publication dispatches and waits for this same pipeline on public `main`;
 it does not duplicate plugin release logic. Configure the dispatcher App for Actions write
 on OpenAgent and the host's `OPENAGENT_PLUGIN_RELEASE_TOKEN` for contents write
 on the standard package repositories before enabling release publication.

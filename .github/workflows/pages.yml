@@ -2,7 +2,7 @@ name: Deploy GitHub Pages
 
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - "website/**"
       - "assets/**"
@@ -44,7 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event_name == 'pull_request' && github.sha || 'master' }}
+          ref: ${{ github.event_name == 'pull_request' && github.sha || 'main' }}
       - uses: actions/setup-node@v6
         with:
           node-version: "22.16.0"

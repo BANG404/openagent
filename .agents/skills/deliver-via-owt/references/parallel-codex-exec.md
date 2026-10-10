@@ -10,8 +10,8 @@ user request and must inspect the combined result after every child exits.
 
 Pass one complete, bounded prompt per repeated `--task`; no mode prefix is
 required. Every child uses OWT automatically: create an isolated worktree,
-run preflight, commit, integrate into local `master`, and clean up. The launcher
-requires its repository directory to remain on `master` before starting children:
+run preflight, commit, integrate into local `main`, and clean up. The launcher
+requires its repository directory to remain on `main` before starting children:
 
 ```bash
 bun .agents/skills/deliver-via-owt/scripts/run-codex-exec-batch.mjs \
@@ -44,7 +44,7 @@ reported branch and worktree before retrying; never launch a duplicate task or
 delete uncertain state automatically.
 
 Successful process exit means only that each child reported completing its own
-OWT workflow. After all children finish, the parent must inspect local `master`,
+OWT workflow. After all children finish, the parent must inspect local `main`,
 the complete combined diff from the recorded starting HEAD, repository status,
 and remaining worktrees. Confirm that every requested acceptance criterion is
 present and that unrelated state was preserved. Run combined verification only

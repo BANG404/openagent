@@ -17,7 +17,7 @@ export default defineConfig({
       },
       social: [{ icon: "github", label: "GitHub", href: "https://github.com/BANG404/openagent" }],
       editLink: {
-        baseUrl: "https://github.com/BANG404/openagent/edit/master/website/docs/",
+        baseUrl: "https://github.com/BANG404/openagent/edit/main/website/docs/",
       },
       sidebar: [
         { slug: "index" },

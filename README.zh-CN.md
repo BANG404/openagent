@@ -139,8 +139,8 @@ bun run dev:desktop
 
 有私有 SDK 权限时使用 `bun run prepare:worktree:dev`，然后
 `bun run dev:desktop:source` 启动 SDK 监视和 Runtime 重编译。
-主目录继续保留在 `master` 方便调试，改动在独立 OWT 工作树中完成并集成；
-发布标签代表可复现的版本，无需改变 `master` 的用途。
+主目录继续保留在 `main` 方便调试，改动在独立 OWT 工作树中完成并集成；
+发布标签代表可复现的版本，无需改变 `main` 的用途。
 
 在线安装包包含壳和独立引导界面，首次运行同时下载 Runtime、前端、辅助程序和
 embedding 模型。离线安装包包含相同的完整平台资源及 Windows 离线 WebView2。
@@ -179,7 +179,7 @@ flowchart LR
 
 ### 参与贡献
 
-编辑前阅读 [`AGENTS.md`](AGENTS.md) 和适用领域的技能。仓库变更使用[隔离 OWT 工作树](.agents/skills/deliver-via-owt/SKILL.md)：默认目录留在本地 `master`，在任务工作树实现和验证，再将验证结果快进合入。提交前检查完整差异、暂存目标文件，并执行 `bun run preflight`；提交采用 Conventional Commits。
+编辑前阅读 [`AGENTS.md`](AGENTS.md) 和适用领域的技能。仓库变更使用[隔离 OWT 工作树](.agents/skills/deliver-via-owt/SKILL.md)：默认目录留在本地 `main`，在任务工作树实现和验证，再将验证结果快进合入。提交前检查完整差异、暂存目标文件，并执行 `bun run preflight`；提交采用 Conventional Commits。
 
 行为变化需要同步更新主要归属文档。可见桌面变化还需执行对应的真实窗口[原生黑盒场景](.agents/skills/openagent-desktop-host/references/native-verification.md)。修改 SDK 或插件时，先遵循各自仓库说明，再推进父仓库 gitlink。
 

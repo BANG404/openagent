@@ -140,7 +140,7 @@ See [public development kits](.agents/skills/openagent-release-engineering/refer
 
 With private SDK access, use `bun run prepare:worktree:dev`, then
 `bun run dev:desktop:source` for SDK watching and Runtime rebuilding. Keep the
-default directory on `master` for debugging; use isolated OWT worktrees for
+default directory on `main` for debugging; use isolated OWT worktrees for
 changes and release tags for reproducible product versions.
 
 Online installers contain the shell and standalone bootstrap. First launch
@@ -182,7 +182,7 @@ The host remains thin; runtime state machines and durable data belong to the SDK
 
 ### Contribute
 
-Read [`AGENTS.md`](AGENTS.md) and the applicable subsystem skill before editing. Repository changes use [isolated OWT worktrees](.agents/skills/deliver-via-owt/SKILL.md): preserve the default checkout on local `master`, implement and verify in a task worktree, then fast-forward the verified result back. Inspect the complete diff, stage intended files, and run `bun run preflight` before a Conventional Commit.
+Read [`AGENTS.md`](AGENTS.md) and the applicable subsystem skill before editing. Repository changes use [isolated OWT worktrees](.agents/skills/deliver-via-owt/SKILL.md): preserve the default checkout on local `main`, implement and verify in a task worktree, then fast-forward the verified result back. Inspect the complete diff, stage intended files, and run `bun run preflight` before a Conventional Commit.
 
 Update the primary owner documentation when behavior changes. Visible desktop changes also require the matching real-window [native black-box scenario](.agents/skills/openagent-desktop-host/references/native-verification.md). SDK and plugin changes follow their own repository instructions before the parent gitlink is advanced.
 

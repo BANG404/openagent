@@ -79,7 +79,7 @@ if (exists) {
     "--repo",
     repository,
     "--target",
-    process.env.GITHUB_SHA ?? "master",
+    process.env.GITHUB_SHA ?? "main",
     "--prerelease",
     "--title",
     `Development kit ${sdkSha.slice(0, 12)}`,

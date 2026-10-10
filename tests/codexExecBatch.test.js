@@ -13,7 +13,7 @@ describe("Codex exec OWT batch launcher", () => {
   let repo = "";
   beforeEach(() => {
     repo = mkdtempSync(join(tmpdir(), "openagent-codex-batch-"));
-    execFileSync("git", ["init", "-b", "master", repo], { stdio: "ignore" });
+    execFileSync("git", ["init", "-b", "main", repo], { stdio: "ignore" });
   });
   afterEach(() => rmSync(repo, { recursive: true, force: true }));
 
@@ -46,7 +46,7 @@ describe("Codex exec OWT batch launcher", () => {
     ]);
     for (const task of plan.tasks) {
       expect(task.prompt).toContain("Use $deliver-via-owt and the OWT workflow");
-      expect(task.prompt).toContain("keep the default directory on master");
+      expect(task.prompt).toContain("keep the default directory on main");
     }
     expect(plan.tasks[0].prompt).toEndWith("add the first independent feature");
   });
@@ -68,7 +68,7 @@ describe("Codex exec OWT batch launcher", () => {
   test("rejects task branches and detached HEAD without switching the repository", () => {
     const options = { repo, tasks: ["first", "second"], maxConcurrency: 2, codexBin: "codex-test" };
     execFileSync("git", ["-C", repo, "symbolic-ref", "HEAD", "refs/heads/agent/task"]);
-    expect(() => buildExecPlan(options)).toThrow("default directory on master");
+    expect(() => buildExecPlan(options)).toThrow("default directory on main");
     expect(
       execFileSync("git", ["-C", repo, "branch", "--show-current"], { encoding: "utf8" }).trim(),
     ).toBe("agent/task");
@@ -89,6 +89,6 @@ describe("Codex exec OWT batch launcher", () => {
       { stdio: "ignore" },
     );
     execFileSync("git", ["-C", repo, "checkout", "--detach"], { stdio: "ignore" });
-    expect(() => buildExecPlan(options)).toThrow("default directory on master");
+    expect(() => buildExecPlan(options)).toThrow("default directory on main");
   });
 });

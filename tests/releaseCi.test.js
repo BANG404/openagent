@@ -571,12 +571,12 @@ describe("release CI verification", () => {
     expect(releaseWorkflow).toContain("needs.detect.outputs.runtime == 'true'");
   });
 
-  test("refreshes an unpublished Beta marker onto the latest master source", () => {
-    expect(prepareReleaseWorkflow).toContain("ref: master");
+  test("refreshes an unpublished Beta marker onto the latest main source", () => {
+    expect(prepareReleaseWorkflow).toContain("ref: main");
     expect(prepareReleaseWorkflow).toContain(
-      "git fetch origin refs/heads/master:refs/remotes/origin/master",
+      "git fetch origin refs/heads/main:refs/remotes/origin/main",
     );
-    expect(prepareReleaseWorkflow).toContain('automation_sha="$(git rev-parse origin/master)"');
+    expect(prepareReleaseWorkflow).toContain('automation_sha="$(git rev-parse origin/main)"');
     expect(prepareReleaseWorkflow).toContain('base_sha="$automation_sha"');
     expect(releaseScript).toContain('const refreshFiles = [releaseManifestFile, "CHANGELOG.md"]');
     expect(releaseScript).toContain(

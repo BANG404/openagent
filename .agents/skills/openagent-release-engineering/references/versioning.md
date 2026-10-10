@@ -22,12 +22,12 @@ through a component update while retaining its installed shell version; it must
 never use the product release number as a substitute for a component artifact
 version.
 
-Development commits and Beta release metadata land on `master`. Ordinary
+Development commits and Beta release metadata land on `main`. Ordinary
 pushes never create a version or tag by themselves. Start `Prepare Release` and
-choose `beta`, `rc`, or `stable`. Beta is the default, uses the current `master` head,
-and pushes its generated metadata commit directly back to `master`. The job
-fetches `origin/master` again immediately before resolving that immutable base;
-if `master` advances after resolution, the direct push fails instead of
+choose `beta`, `rc`, or `stable`. Beta is the default, uses the current `main` head,
+and pushes its generated metadata commit directly back to `main`. The job
+fetches `origin/main` again immediately before resolving that immutable base;
+if `main` advances after resolution, the direct push fails instead of
 publishing stale source.
 
 If the current prerelease metadata has not produced its immutable tag yet and
@@ -47,13 +47,13 @@ immutable Beta commit. Stable in turn requires an explicit published
 commit. Each promotion adds one commit that refreshes only release automation
 and its tests/docs, and pushes the channel-specific metadata commit directly to that
 branch. Product source remains byte-for-byte aligned with the selected source tag
-without restoring old application code into a newer `master`. The Stable branch
+without restoring old application code into a newer `main`. The Stable branch
 is also the durable source snapshot for that version.
 
 For Beta preparation, `scripts/release.mjs` selects the highest immutable
 SemVer tag across all release branches. It uses that tag's merge base with
-`master` as the previous product source, then inspects release-relevant commits
-to the selected `master` head and applies:
+`main` as the previous product source, then inspects release-relevant commits
+to the selected `main` head and applies:
 
 - `major`: any breaking commit, such as `feat!:` or a `BREAKING CHANGE:` footer
 - `minor`: any `feat`
