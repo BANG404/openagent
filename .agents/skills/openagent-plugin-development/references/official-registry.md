@@ -27,6 +27,10 @@ test expectations together. Source-manifest parity remains a required check.
 This applies to release-qualification fixes in package state or tests as well;
 the parent catalog must advertise the newly pinned source version before full
 frontend qualification runs.
+When the pinned source version has no published archive, use its published Git
+repository as `source_url` and omit the archive digest. Do not advertise an older
+release archive under a newer catalog version. Replace the Git source with the
+verified archive URL and digest when that version is released.
 
 Optional `i18n` entries use the validated `AgentPluginI18n` presentation shape.
 Uninstalled cards use catalog declarations; installed cards refresh from the

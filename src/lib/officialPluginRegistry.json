@@ -365,10 +365,10 @@
       "id": "openagent-plugin-kit",
       "display_name": "Plugin Developer",
       "description": "Create plugins from Skills and templates, implement, test and qualify them with the production Runtime.",
-      "version": "1.7.0",
+      "version": "1.7.1",
       "repository": "https://github.com/BANG404/openagent-plugin-kit",
       "homepage": "https://github.com/BANG404/openagent-plugin-kit",
-      "source_url": "https://github.com/BANG404/openagent-plugin-kit/releases/download/v1.7.0/openagent-plugin-kit-1.7.0.zip",
+      "source_url": "https://github.com/BANG404/openagent-plugin-kit",
       "i18n": {
         "supported_locales": ["en", "zh"],
         "default_locale": "en",
@@ -402,8 +402,7 @@
             "commands.accept.description": "记录开发者对已验证插件的验收"
           }
         }
-      },
-      "sha256": "sha256:e2a25274fe4bc81a90c58d49bfe50c73f9f7054c46081cd915f209ef098185c4"
+      }
     },
     {
       "id": "asana",
