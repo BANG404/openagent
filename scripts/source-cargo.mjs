@@ -34,6 +34,17 @@ export function sourceCargoEnvironment({
   };
 }
 
+/** The directory Cargo writes one profile to. An explicit target adds Cargo's
+ * triple subdirectory; without one, output stays directly under the target
+ * directory beside every other artifact built for the host.
+ * @param {string} targetDirectory
+ * @param {string} profileDirectory
+ * @param {string | undefined} cargoTarget
+ */
+export function cargoProfileDirectory(targetDirectory, profileDirectory, cargoTarget) {
+  return path.join(targetDirectory, ...(cargoTarget ? [cargoTarget] : []), profileDirectory);
+}
+
 /** Hold the shared-output lock through Cargo AND staging the resulting bytes.
  * An interrupted owner leaves a visible lock; never remove another process's
  * lock automatically. A caller may remove it only after confirming it is dead.

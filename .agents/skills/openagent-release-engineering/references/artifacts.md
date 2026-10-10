@@ -12,7 +12,12 @@
   Never reset or overwrite a divergent SDK checkout automatically, and never
   mix library, setup-helper, and command-runner revisions. Keep any compiler
   warning override narrowly scoped to that third-party helper build; native
-  host and SDK warnings remain errors.
+  host and SDK warnings remain errors. Windows keeps the helpers in the
+  profile directory of the selected target directory, beside the
+  `openagent-server` executable that runs them: Codex's setup orchestrator
+  locates `codex-windows-sandbox-setup.exe` relative to its own executable, so
+  a build that selects a target triple unconditionally leaves the helpers
+  somewhere the orchestrator never searches.
 - Windows produces NSIS plus updater artifacts, not WiX. Signed Runtime
   manifests bind the pinned sandbox helpers; installation verifies and places
   them next to that Runtime under `codex-resources/`. Linux's helper is installed

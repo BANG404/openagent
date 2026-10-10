@@ -2,7 +2,11 @@ import { expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { sourceCargoEnvironment, withSourceCargoLock } from "./source-cargo.mjs";
+import {
+  cargoProfileDirectory,
+  sourceCargoEnvironment,
+  withSourceCargoLock,
+} from "./source-cargo.mjs";
 import {
   runtimeVerificationPlan,
   runRuntimeVerification,
@@ -30,6 +34,16 @@ test("worktrees share private dependency output while explicit targets and relea
       profile: "release",
     }).CARGO_TARGET_DIR,
   ).toBe(path.resolve("worktree-a/sdk/target"));
+});
+
+test("only an explicit Cargo target adds the triple directory to staged bytes", () => {
+  const targetDirectory = path.resolve("repository/sdk/target");
+  expect(cargoProfileDirectory(targetDirectory, "debug", undefined)).toBe(
+    path.join(targetDirectory, "debug"),
+  );
+  expect(cargoProfileDirectory(targetDirectory, "debug", "x86_64-pc-windows-msvc")).toBe(
+    path.join(targetDirectory, "x86_64-pc-windows-msvc", "debug"),
+  );
 });
 
 test("a shared build keeps its staging lock until bytes are consumed, and failure releases it", async () => {

@@ -5,8 +5,11 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import { copyFileIfChanged } from "./copy-if-changed.mjs";
-import { parseRustHost } from "./prepare-runtime-server.mjs";
-import { sourceCargoEnvironment, withSourceCargoLock } from "./source-cargo.mjs";
+import {
+  cargoProfileDirectory,
+  sourceCargoEnvironment,
+  withSourceCargoLock,
+} from "./source-cargo.mjs";
 
 const helperNames = ["codex-windows-sandbox-setup.exe", "codex-command-runner.exe"];
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -45,9 +48,18 @@ const profileDirectory = requestedProfile === "dev" ? "debug" : "release";
 const environment = sourceCargoEnvironment({ repositoryRoot: root, profile: requestedProfile });
 const targetDirectory = path.resolve(root, argument("--target-dir", environment.CARGO_TARGET_DIR));
 const cargo = process.env.CARGO ?? "cargo";
-const targetTriple =
-  argument("--target", process.env.OPENAGENT_RUNTIME_TARGET ?? process.env.CARGO_BUILD_TARGET) ??
-  parseRustHost(run(process.env.RUSTC ?? "rustc", ["-vV"]));
+// The setup orchestrator only finds `codex-windows-sandbox-setup.exe` beside its
+// own executable, and qualification builds that orchestrator directly in
+// `<target-dir>/<profile>`. Deriving a target from the host would move the
+// helpers into a triple subdirectory the orchestrator never searches, so only
+// an explicit target request selects that layout. Cargo already honors
+// `CARGO_BUILD_TARGET` by itself; mirror it when reading the staged bytes.
+const requestedTarget = argument("--target", process.env.OPENAGENT_RUNTIME_TARGET);
+const helperProfileDirectory = cargoProfileDirectory(
+  targetDirectory,
+  profileDirectory,
+  requestedTarget ?? process.env.CARGO_BUILD_TARGET,
+);
 
 const metadata = JSON.parse(
   run(cargo, [
@@ -98,8 +110,7 @@ await withSourceCargoLock(targetDirectory, async () => {
       requestedProfile,
       "--target-dir",
       targetDirectory,
-      "--target",
-      targetTriple,
+      ...(requestedTarget ? ["--target", requestedTarget] : []),
     ],
     { stdio: "inherit", env: environment },
   );
@@ -108,7 +119,7 @@ await withSourceCargoLock(targetDirectory, async () => {
   await mkdir(resourceDirectory, { recursive: true });
   for (const helperName of helperNames) {
     await copyFileIfChanged(
-      path.join(targetDirectory, targetTriple, profileDirectory, helperName),
+      path.join(helperProfileDirectory, helperName),
       path.join(resourceDirectory, helperName),
     );
   }

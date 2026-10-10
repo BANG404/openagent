@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { sourceCargoEnvironment } from "../scripts/source-cargo.mjs";
+import { cargoProfileDirectory, sourceCargoEnvironment } from "../scripts/source-cargo.mjs";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -68,6 +68,18 @@ describe("sandbox helper packaging", () => {
         .CARGO_TARGET_DIR,
     ).toBe(join(root, "sdk", "target"));
     expect(nativeWorkflow).toContain('$env:CARGO_TARGET_DIR = (Resolve-Path "sdk\\target").Path');
+  });
+
+  test("stages Windows helpers where the sandbox orchestrator finds them", () => {
+    expect(windowsHelper).not.toContain("parseRustHost");
+    expect(windowsHelper).toContain(
+      'const requestedTarget = argument("--target", process.env.OPENAGENT_RUNTIME_TARGET);',
+    );
+    expect(windowsHelper).toContain('...(requestedTarget ? ["--target", requestedTarget] : []),');
+    expect(windowsHelper).toContain("path.join(helperProfileDirectory, helperName)");
+    expect(cargoProfileDirectory(join(root, "sdk", "target"), "debug", undefined)).toBe(
+      join(root, "sdk", "target", "debug"),
+    );
   });
 
   test("materializes the Windows private target before the sandbox steps resolve it", () => {
