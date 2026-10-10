@@ -367,7 +367,7 @@
     onPickWorkspace={() => void pickWorkspace()}
     onDragStart={startDrag}
   >
-    {#snippet composer()}
+    {#snippet composer(toolbarContent)}
       <MessageInput
         bind:value={inputText}
         bind:attachments={inputAttachments}
@@ -391,6 +391,7 @@
         allowImageAttachments={selectedModelSupportsVision}
         attachmentDisplay="strip"
         showModelSelector={false}
+        {toolbarContent}
         onUploadAttachments={preview ? uploadPreviewAttachments : undefined}
         focusRequest={inputFocusRequest}
         onAttachmentPickerOpenChange={handleAttachmentPickerOpenChange}
