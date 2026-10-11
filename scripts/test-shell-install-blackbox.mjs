@@ -1,7 +1,16 @@
 // @ts-check
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { access, copyFile, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import {
+  access,
+  copyFile,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -56,9 +65,13 @@ function start(executable, args) {
   });
   return { child, done };
 }
-/** @param {string} executable @param {number} millis @param {string | undefined} [file] */
-async function hold(executable, millis, file) {
-  const running = start(executable, [String(millis), ...(file ? [file] : [])]);
+/** @param {string} executable @param {number} millis @param {string | undefined} [file] @param {boolean} [link] */
+async function hold(executable, millis, file, link = false) {
+  const running = start(executable, [
+    String(millis),
+    ...(file ? [file] : []),
+    ...(link ? ["link"] : []),
+  ]);
   await new Promise((resolve, reject) => {
     running.child.stdout?.once("data", () => resolve(undefined));
     running.child.once("error", reject);
@@ -77,6 +90,97 @@ async function runInstaller(executable, args = ["/S"]) {
     clearTimeout(timeout);
   }
 }
+
+// Hugging Face snapshot files in legacy fastembed caches are file symlinks.
+// Probe the link object, including a dangling link, without opening its target.
+for (const dangling of [false, true]) {
+  const current = await fixture(dangling ? "dangling-cache-link" : "legacy-cache-link");
+  const outside = path.join(directory, `${dangling ? "missing" : "held"}-blob.json`);
+  const link = path.join(
+    current.target,
+    ".fastembed_cache",
+    "models--Qdrant--all-MiniLM-L6-v2-onnx",
+    "snapshots",
+    "revision",
+    "config.json",
+  );
+  await mkdir(path.dirname(link), { recursive: true });
+  if (!dangling) await writeFile(outside, "external model metadata");
+  await symlink(outside, link, "file");
+  const targetHolder = dangling ? undefined : await hold(holder, 60_000, outside);
+  try {
+    const result = await runInstaller(current.installer);
+    assert.equal(result.code, 0, `Cache link: ${JSON.stringify(result)}`);
+    assert.ok(result.elapsed < 5000, "Installer followed the link into a locked external target");
+    assert.equal(await readFile(current.marker, "utf8"), "installed");
+    assert.ok((await lstat(link)).isSymbolicLink());
+    const uninstall = await runInstaller(path.join(current.target, "uninstall.exe"), [
+      "/S",
+      `_?=${current.target}`,
+    ]);
+    assert.equal(uninstall.code, 0);
+    await assert.rejects(access(current.marker));
+    assert.ok((await lstat(link)).isSymbolicLink());
+    if (targetHolder) assert.equal(targetHolder.child.exitCode, null);
+  } finally {
+    if (targetHolder) {
+      targetHolder.child.kill();
+      await targetHolder.done;
+    }
+  }
+  if (!dangling) assert.equal(await readFile(outside, "utf8"), "external model metadata");
+  console.log(
+    `Legacy cache file link (${dangling ? "dangling" : "locked external target"}): install and uninstall passed`,
+  );
+}
+
+const linkLocked = await fixture("link-object-lock");
+const linkTarget = path.join(directory, "link-target.json");
+const lockedLink = path.join(linkLocked.target, ".fastembed_cache", "config.json");
+await mkdir(path.dirname(lockedLink), { recursive: true });
+await writeFile(linkTarget, "model metadata");
+await symlink(linkTarget, lockedLink, "file");
+const linkHolder = await hold(holder, 1000, lockedLink, true);
+const linkResult = await runInstaller(linkLocked.installer);
+assert.equal(linkResult.code, 0);
+assert.ok(linkResult.elapsed >= 700, "Installer did not wait for the link object lock");
+await linkHolder.done;
+assert.ok((await lstat(lockedLink)).isSymbolicLink());
+assert.equal(await readFile(linkTarget, "utf8"), "model metadata");
+console.log("File link object lock: waited without changing link or target");
+
+const junction = await fixture("directory-junction");
+const outsideDirectory = path.join(directory, "outside-directory");
+const outsideMarker = path.join(outsideDirectory, "untouched.txt");
+await mkdir(outsideDirectory);
+await writeFile(outsideMarker, "external bytes");
+await writeFile(junction.marker, "old version");
+const directoryLink = path.join(junction.target, "linked-directory");
+await symlink(outsideDirectory, directoryLink, "junction");
+const junctionResult = await runInstaller(junction.installer);
+assert.equal(junctionResult.code, 2);
+assert.ok(junctionResult.elapsed < 5000);
+assert.equal(await readFile(`${junction.installer}.log`, "utf16le"), `4390: ${directoryLink}`);
+assert.equal(await readFile(junction.marker, "utf8"), "old version");
+assert.equal(await readFile(outsideMarker, "utf8"), "external bytes");
+console.log("Directory junction: refused immediately; installed and external bytes preserved");
+
+for (const location of ["resources", ".fastembed_cache-other"]) {
+  const current = await fixture(`non-cache-link-${location}`);
+  await writeFile(current.marker, "old version");
+  const link = path.join(current.target, location, "config.json");
+  await mkdir(path.dirname(link), { recursive: true });
+  await symlink(linkTarget, link, "file");
+  const result = await runInstaller(current.installer);
+  assert.equal(result.code, 2);
+  assert.ok(result.elapsed < 5000);
+  assert.equal(await readFile(`${current.installer}.log`, "utf16le"), `4390: ${link}`);
+  assert.equal(await readFile(current.marker, "utf8"), "old version");
+  assert.equal(await readFile(linkTarget, "utf8"), "model metadata");
+}
+console.log(
+  "File symlinks outside the exact legacy cache: refused; installed and external bytes preserved",
+);
 
 for (const delay of [1000, 5000, 15000]) {
   const current = await fixture(`slow-${delay}`, delay === 5000 ? 2052 : 1033);

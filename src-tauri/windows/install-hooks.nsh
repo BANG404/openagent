@@ -26,6 +26,7 @@ Function ${PREFIX}OpenAgentProbeTree
   Push $3
   Push $4
   Push $5
+  Push $6
   StrCpy $2 0
   System::Call 'kernel32::GetFileAttributesW(w r0) i .r3 ?e'
   Pop $4
@@ -63,13 +64,27 @@ Function ${PREFIX}OpenAgentProbeTree
     System::Call '*$5(&w260 .r3)'
     ${If} $3 != "."
     ${AndIf} $3 != ".."
-      ; Never follow a junction/symlink out of the selected installation.
+      ; Never traverse directory reparse points. Legacy fastembed snapshots
+      ; contain file symlinks: inspect those link objects without resolving
+      ; their blob targets. Other installed paths still refuse reparse points.
       System::Call '*$2(i .r4)'
       IntOp $5 $4 & 0x400
       ${If} $5 != 0
-        StrCpy $OpenAgentProbeError 4390
-        StrCpy $OpenAgentProbeFile "$0\$3"
-        Goto next
+        IntOp $5 $4 & 0x10
+        ${If} $5 != 0
+          Goto refuse_reparse
+        ${EndIf}
+        StrLen $6 "$INSTDIR\.fastembed_cache\"
+        StrCpy $6 "$0\" $6
+        ${If} $6 != "$INSTDIR\.fastembed_cache\"
+          Goto refuse_reparse
+        ${EndIf}
+        ; WIN32_FIND_DATAW.dwReserved0 is the reparse tag at offset 36.
+        IntOp $5 $2 + 36
+        System::Call '*$5(i .r5)'
+        ${If} $5 <> 0xA000000C
+          Goto refuse_reparse
+        ${EndIf}
       ${EndIf}
       IntOp $5 $4 & 0x10
       ${If} $5 != 0
@@ -79,7 +94,9 @@ Function ${PREFIX}OpenAgentProbeTree
         ; A manually invoked uninstaller can be executing from this directory.
         StrCmp "$0\$3" $EXEPATH next
         ; OPEN_EXISTING and no truncation: this only checks access, never writes.
-        System::Call 'kernel32::CreateFileW(w "$0\$3", i 0xC0010000, i 0, p 0, i 3, i 0, p 0) p .r5 ?e'
+        ; OPEN_REPARSE_POINT also prevents a file swapped to a link from
+        ; resolving to a target during this non-writing access probe.
+        System::Call 'kernel32::CreateFileW(w "$0\$3", i 0xC0010000, i 0, p 0, i 3, i 0x00200000, p 0) p .r5 ?e'
         Pop $4
         ${If} $5 == -1
           ; Files disappearing during orderly shutdown are already released.
@@ -92,6 +109,10 @@ Function ${PREFIX}OpenAgentProbeTree
           System::Call 'kernel32::CloseHandle(p r5)'
         ${EndIf}
       ${EndIf}
+      Goto next
+      refuse_reparse:
+      StrCpy $OpenAgentProbeError 4390
+      StrCpy $OpenAgentProbeFile "$0\$3"
     ${EndIf}
     next:
     ${If} $OpenAgentProbeError != 0
@@ -110,6 +131,7 @@ Function ${PREFIX}OpenAgentProbeTree
   System::Call 'kernel32::FindClose(p r1)'
   done:
   System::Free $2
+  Pop $6
   Pop $5
   Pop $4
   Pop $3
@@ -139,7 +161,7 @@ Function ${PREFIX}OpenAgentWaitForRelease
       DetailPrint "$(OpenAgentWaitError) ($OpenAgentProbeError): $OpenAgentProbeFile"
       !ifdef OPENAGENT_INSTALL_TEST_LOG
         FileOpen $0 "${OPENAGENT_INSTALL_TEST_LOG}" w
-        FileWrite $0 "$OpenAgentProbeError: $OpenAgentProbeFile"
+        FileWriteUTF16LE $0 "$OpenAgentProbeError: $OpenAgentProbeFile"
         FileClose $0
       !endif
       SetErrorLevel 2
@@ -153,7 +175,7 @@ Function ${PREFIX}OpenAgentWaitForRelease
       DetailPrint "$(OpenAgentWaitTimeout): $OpenAgentProbeFile"
       !ifdef OPENAGENT_INSTALL_TEST_LOG
         FileOpen $0 "${OPENAGENT_INSTALL_TEST_LOG}" w
-        FileWrite $0 "$OpenAgentProbeError: $OpenAgentProbeFile"
+        FileWriteUTF16LE $0 "$OpenAgentProbeError: $OpenAgentProbeFile"
         FileClose $0
       !endif
       SetErrorLevel 2

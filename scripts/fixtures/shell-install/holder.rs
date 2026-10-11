@@ -10,6 +10,11 @@ fn main() {
         std::fs::OpenOptions::new()
             .read(true)
             .share_mode(0)
+            .custom_flags(if args.get(3).is_some_and(|arg| arg == "link") {
+                0x00200000 // FILE_FLAG_OPEN_REPARSE_POINT: hold the link, not its target.
+            } else {
+                0
+            })
             .open(path)
             .unwrap()
     });
