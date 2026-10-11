@@ -2,11 +2,11 @@
      Individual controls may opt into a larger value (for example pairing
      codes), but labels, hints, headings, and form fields use these tokens. */
 .application-settings-scope {
-  --settings-body-size: 13px;
+  --settings-body-size: calc(var(--app-font-size, 14px) - 1px);
   --settings-body-leading: 1.45;
-  --settings-hint-size: 12px;
+  --settings-hint-size: calc(var(--app-font-size, 14px) - 2px);
   --settings-hint-leading: 1.45;
-  --settings-heading-size: 16px;
+  --settings-heading-size: calc(var(--app-font-size, 14px) + 2px);
   --settings-heading-leading: 1.35;
   font-size: var(--settings-body-size);
   line-height: var(--settings-body-leading);

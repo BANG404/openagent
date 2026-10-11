@@ -8,6 +8,14 @@ describe("configuration version", () => {
     expect(normalizeConfigShape({} as AppConfig).config_version).toBe(1);
     expect(normalizeConfigShape({ config_version: 99 } as AppConfig).config_version).toBe(1);
   });
+  test("older appearance snapshots retain the built-in design and no overrides", () => {
+    const config = normalizeConfigShape({ theme: "dark" } as AppConfig);
+    expect(config.theme_plugin).toBe("");
+    expect(config.theme_overrides.light).toEqual({});
+    expect(config.theme_overrides.dark).toEqual({});
+    expect(config.theme_overrides.font_family).toBe("");
+    expect(normalizeConfigShape({ theme_plugin: "../escape" } as AppConfig).theme_plugin).toBe("");
+  });
 });
 
 describe("OpenAI API mode", () => {

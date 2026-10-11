@@ -357,6 +357,15 @@
                       >{pluginText(plugin.i18n, $locale, "display_name", plugin.name)}</span
                     >
                     <span class="plugin-version">{plugin.version ?? "-"}</span>
+                    {#if plugin.plugin_type === "theme" || plugin.plugin_type === "integration"}
+                      <span class="detail-hint" data-plugin-type={plugin.plugin_type}>
+                        {$t(
+                          plugin.plugin_type === "theme"
+                            ? "pluginTypeTheme"
+                            : "pluginTypeIntegration",
+                        )}
+                      </span>
+                    {/if}
                     {#if (plugins.agentPluginUpdates ?? []).find((item: AgentPluginUpdateSummary) => item.id === plugin.id)?.update_available}
                       <span class="plugin-update-mark">{$t("pluginUpdateAvailable")}</span>
                     {/if}

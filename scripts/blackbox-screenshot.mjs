@@ -17,7 +17,7 @@ export function captureBlackboxScreenshot(pilot, artifact) {
         "-c",
         `import ctypes, sys, time
 from ctypes import wintypes
-from PIL import ImageGrab
+from PIL import Image, ImageGrab
 u = ctypes.windll.user32
 u.SetWindowPos.argtypes = [wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, wintypes.UINT]
 u.SetWindowPos.restype = wintypes.BOOL
@@ -54,7 +54,61 @@ try:
             break
         if time.monotonic() >= deadline:
             raise RuntimeError('Verified OpenAgent main window is obscured')
-    ImageGrab.grab(bbox=(rect.left, rect.top, rect.right, rect.bottom), all_screens=True).save(sys.argv[2])
+    try:
+        capture = ImageGrab.grab(bbox=(rect.left, rect.top, rect.right, rect.bottom), all_screens=True)
+    except OSError:
+        # A disconnected desktop cannot be grabbed, but the verified window
+        # can still render its own native pixels, including WebView surfaces.
+        # Refresh the compositor; otherwise PrintWindow can return a cached
+        # WebView frame. Restore the exact bounds before reading its pixels.
+        width, height = rect.right - rect.left, rect.bottom - rect.top
+        if not u.SetWindowPos(hwnd, None, 0, 0, width + 1, height, 0x16):
+            raise ctypes.WinError()
+        try:
+            time.sleep(0.2)
+        finally:
+            if not u.SetWindowPos(hwnd, None, 0, 0, width, height, 0x16):
+                raise ctypes.WinError()
+        time.sleep(0.3)
+        g = ctypes.windll.gdi32
+        u.GetDC.argtypes = [wintypes.HWND]
+        u.GetDC.restype = wintypes.HDC
+        u.ReleaseDC.argtypes = [wintypes.HWND, wintypes.HDC]
+        u.PrintWindow.argtypes = [wintypes.HWND, wintypes.HDC, wintypes.UINT]
+        g.CreateCompatibleDC.argtypes = [wintypes.HDC]
+        g.CreateCompatibleDC.restype = wintypes.HDC
+        g.CreateCompatibleBitmap.argtypes = [wintypes.HDC, ctypes.c_int, ctypes.c_int]
+        g.CreateCompatibleBitmap.restype = wintypes.HBITMAP
+        g.SelectObject.argtypes = [wintypes.HDC, wintypes.HGDIOBJ]
+        g.SelectObject.restype = wintypes.HGDIOBJ
+        g.GetDIBits.argtypes = [wintypes.HDC, wintypes.HBITMAP, wintypes.UINT, wintypes.UINT, ctypes.c_void_p, ctypes.c_void_p, wintypes.UINT]
+        g.DeleteObject.argtypes = [wintypes.HGDIOBJ]
+        g.DeleteDC.argtypes = [wintypes.HDC]
+        width, height = rect.right - rect.left, rect.bottom - rect.top
+        dc = u.GetDC(hwnd)
+        memory = g.CreateCompatibleDC(dc)
+        bitmap = g.CreateCompatibleBitmap(dc, width, height)
+        previous = g.SelectObject(memory, bitmap)
+        try:
+            if not u.PrintWindow(hwnd, memory, 2):
+                raise RuntimeError('Native PrintWindow capture failed')
+            class Header(ctypes.Structure):
+                _fields_ = [('size', wintypes.DWORD), ('width', wintypes.LONG), ('height', wintypes.LONG), ('planes', wintypes.WORD), ('bits', wintypes.WORD), ('compression', wintypes.DWORD), ('image_size', wintypes.DWORD), ('x_resolution', wintypes.LONG), ('y_resolution', wintypes.LONG), ('colors', wintypes.DWORD), ('important', wintypes.DWORD)]
+            header = Header()
+            header.size, header.width, header.height = ctypes.sizeof(Header), width, -height
+            header.planes, header.bits = 1, 32
+            pixels = ctypes.create_string_buffer(width * height * 4)
+            if g.GetDIBits(memory, bitmap, 0, height, pixels, ctypes.byref(header), 0) != height:
+                raise RuntimeError('Native window pixels could not be read')
+            capture = Image.frombuffer('RGB', (width, height), pixels.raw, 'raw', 'BGRX', 0, 1)
+            if all(low == high for low, high in capture.getextrema()):
+                raise RuntimeError('Native window capture is blank')
+        finally:
+            g.SelectObject(memory, previous)
+            g.DeleteObject(bitmap)
+            g.DeleteDC(memory)
+            u.ReleaseDC(hwnd, dc)
+    capture.save(sys.argv[2])
 finally:
     if not was_topmost:
         u.SetWindowPos(hwnd, ctypes.c_void_p(-2), 0, 0, 0, 0, 0x13)`,

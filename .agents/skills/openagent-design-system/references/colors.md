@@ -40,3 +40,12 @@
 ### Application Conversation Surfaces
 
 The desktop and remote conversational surfaces do not introduce a second brand palette. Paint every conversation stage with the shared Tailwind `bg-conversation-surface` theme color, which is white in light mode, and use the distinct neutral-gray `bg-conversation-component` color for transcript components. Use neutral Mica only for raised controls. Do not place a fade, ambient gradient, glow, or streaming shadow behind the bottom composer.
+
+### Installed theme overlays
+
+The selected enabled theme package overrides the current design through document-root CSS
+custom properties, including colors and geometry. The default palette resumes
+when its tokens are removed. Saved appearance overrides apply last. Typography
+uses `--app-font-family`, `--app-font-size`, and `--code-font-size` in shared
+application/chat/diff styles. [The plugin package contract](../../openagent-plugin-development/references/package-format.md#theme-and-integration-package-types)
+owns declaration, validation, precedence and lifecycle behavior.

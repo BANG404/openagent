@@ -371,11 +371,10 @@
       "category": "development",
       "display_name": "Plugin Developer",
       "description": "Create plugins from Skills and templates, implement, test and qualify them with the production Runtime.",
-      "version": "1.8.0",
+      "version": "1.9.0",
       "repository": "https://github.com/BANG404/openagent-plugin-kit",
       "homepage": "https://github.com/BANG404/openagent-plugin-kit",
-      "source_url": "https://github.com/BANG404/openagent-plugin-kit/releases/download/v1.8.0/openagent-plugin-kit-1.8.0.zip",
-      "sha256": "sha256:d2513d726a7264145c16505518b557b90b53381427b125c25ab02f401ed37757",
+      "source_url": "https://github.com/BANG404/openagent-plugin-kit",
       "i18n": {
         "supported_locales": ["en", "zh"],
         "default_locale": "en",
@@ -482,10 +481,10 @@
       "category": "communication",
       "display_name": "discord",
       "description": "Discord messaging connected to OpenAgent conversations.",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "repository": "https://github.com/BANG404/openagent-discord",
       "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/discord",
-      "source_url": "https://github.com/BANG404/openagent-discord/releases/download/v0.2.0/discord-0.2.0.zip",
+      "source_url": "https://github.com/BANG404/openagent-discord",
       "i18n": {
         "supported_locales": ["en", "zh"],
         "default_locale": "en",
@@ -515,8 +514,7 @@
             "configuration.token.description": "此插件的密钥私有保存；密码框留空表示保留已保存的密钥。"
           }
         }
-      },
-      "sha256": "sha256:83c4da567a2350d2886460853576f3852ab3dbd103fd3163f23fd66660e58d40"
+      }
     },
     {
       "id": "fakechat",

@@ -24,6 +24,8 @@
   import { chatTaskUsagesByCheckpoint } from "$lib/cacheUsage";
   import { Tooltip as TooltipPrimitive } from "bits-ui";
   import { normalizeConfigShape } from "$lib/config";
+  import { applyPluginThemeTokens, appearanceTokens } from "$lib/pluginPresentation";
+  import { appearancePreview } from "$lib/appearancePreview";
   import { applyDocumentTheme, createNativeThemeSynchronizer, type AppTheme } from "$lib/appTheme";
   import { ComposerPreferences } from "$lib/composerPreferences.svelte";
   import {
@@ -423,6 +425,26 @@
   let fileChangesPanelSelectionKey = $state<string | null>(null);
   let workspace = $state<WorkspaceContext | null>(null);
   let agentPlugins = $state<AgentPluginSummary[]>([]);
+  let pluginThemeDark = $state(false);
+  let pluginAppearanceConfig = $state<AppConfig | null>(null);
+  onMount(() => {
+    const root = document.documentElement;
+    const resolve = () => (pluginThemeDark = root.classList.contains("dark"));
+    resolve();
+    const observer = new MutationObserver(resolve);
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  });
+  $effect(() => {
+    return applyPluginThemeTokens(
+      document.documentElement,
+      appearanceTokens(
+        agentPlugins,
+        $appearancePreview ?? config ?? pluginAppearanceConfig,
+        pluginThemeDark,
+      ),
+    );
+  });
   let config = $state<AppConfig | null>(null);
   const settingsRequests = new LatestRequest();
   let isMemorySyncing = $state(false);
@@ -1687,14 +1709,22 @@
   }
 
   onMount(() => {
-    if (!tauriAvailable || isSettingsWindow || isDevInspectorWindow) return;
+    if (!tauriAvailable || isDevInspectorWindow) return;
     let disposed = false;
     let failed = false;
+    let presentationLoad = 0;
     const load = async (notifyUpdates = true): Promise<void> => {
+      const generation = ++presentationLoad;
       try {
-        const plugins = await openAgent.invokeProduct("list_agent_plugins", {});
-        if (disposed) return;
+        const [plugins, savedConfig] = await Promise.all([
+          openAgent.invokeProduct("list_agent_plugins", {}),
+          openAgent.invokeProduct("get_settings", {}),
+        ]);
+        if (disposed || generation !== presentationLoad) return;
         agentPlugins = plugins;
+        pluginAppearanceConfig = savedConfig as AppConfig;
+        if (isSettingsWindow || isRoleEditorWindow || isOnboardingSurface || isQuickChatSurface)
+          return;
         const report = await checkAgentPluginUpdates();
         if (disposed) return;
         if (!notifyUpdates) return;
@@ -1711,6 +1741,14 @@
       }
     };
     void load();
+    const specialSurface =
+      isSettingsWindow || isRoleEditorWindow || isOnboardingSurface || isQuickChatSurface;
+    const stops = specialSurface
+      ? [
+          listen("agent-plugins-changed", () => void load(false)),
+          listen("settings-changed", () => void load(false)),
+        ]
+      : [];
     // The Runtime may not be ready this early in startup, so a failed first
     // attempt gets one more chance. Retrying an attempt that succeeded would
     // spend quota on every launch for a result the first attempt already had.
@@ -1720,6 +1758,7 @@
     return () => {
       disposed = true;
       window.clearTimeout(retry);
+      for (const stop of stops) void stop.then((dispose) => dispose());
     };
   });
 

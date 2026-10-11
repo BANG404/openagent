@@ -1,0 +1,43 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "openagent-integration-probe",
+  "version": "1.0.0",
+  "description": "Integration configuration fixture",
+  "extensions": {
+    "openagent": {
+      "type": "integration",
+      "compatibility": {
+        "plugin_protocol": { "min": 1, "max": 1 },
+        "features": ["integration-v1", "configuration-v1"]
+      },
+      "configuration": {
+        "version": 1,
+        "fields": [
+          {
+            "key": "account",
+            "label": "Account",
+            "type": "string",
+            "required": true,
+            "env": "PROBE_ACCOUNT"
+          }
+        ]
+      },
+      "i18n": {
+        "supported_locales": ["en", "zh"],
+        "default_locale": "en",
+        "translations": {
+          "en": {
+            "display_name": "Integration probe",
+            "description": "Integration configuration fixture",
+            "configuration.account.label": "Account"
+          },
+          "zh": {
+            "display_name": "集成测试",
+            "description": "集成配置测试",
+            "configuration.account.label": "账号"
+          }
+        }
+      }
+    }
+  }
+}

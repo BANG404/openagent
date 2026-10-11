@@ -5,6 +5,7 @@
   import Select from "../ui/Select.svelte";
   import Switch from "../ui/Switch.svelte";
   import ScrollArea from "../ui/ScrollArea.svelte";
+  import AppearanceSettings from "./AppearanceSettings.svelte";
   import { useSettingsContext } from "$lib/settings/context";
   const { draft, general } = useSettingsContext();
 </script>
@@ -16,7 +17,7 @@
       <div class="application-settings-surface settings-card">
         <div class="settings-card-row">
           <span class="settings-card-copy">
-            <span class="label-text">{$t("theme")}</span>
+            <span class="label-text">{$t("appearanceMode")}</span>
             <span class="detail-hint">{$t("themeHint")}</span>
           </span>
           <div class="settings-card-control">
@@ -31,6 +32,7 @@
             />
           </div>
         </div>
+        <AppearanceSettings />
         <div class="settings-card-row">
           <span class="settings-card-copy">
             <span class="label-text">{$t("language")}</span>

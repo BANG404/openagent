@@ -121,7 +121,7 @@
     align-items: start;
     color: var(--text-muted);
     font:
-      400 12px/20px "JetBrains Mono",
+      400 var(--code-font-size, 12px)/1.6 "JetBrains Mono",
       monospace;
     white-space: pre-wrap;
     overflow-wrap: anywhere;

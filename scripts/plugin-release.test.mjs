@@ -112,7 +112,10 @@ describe("source-owned plugin release versions", () => {
     expect(pluginProtocolRange(undefined, "demo")).toEqual({ min: 1, max: 1 });
     expect(
       pluginProtocolRange(
-        { plugin_protocol: { min: 1, max: 1 }, features: ["configuration-v1", "plugin-oauth-v1"] },
+        {
+          plugin_protocol: { min: 1, max: 1 },
+          features: ["configuration-v1", "plugin-oauth-v1", "theme-v1", "integration-v1"],
+        },
         "demo",
       ),
     ).toEqual({ min: 1, max: 1 });

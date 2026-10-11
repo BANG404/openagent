@@ -1,7 +1,8 @@
 import { invoke } from "$lib/openagent/tauriClient";
 import { isTauri } from "@tauri-apps/api/core";
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
-import { onMount, tick } from "svelte";
+import { onMount, onDestroy, tick } from "svelte";
+import { appearancePreview } from "$lib/appearancePreview";
 import { fromStore } from "svelte/store";
 import type { PermissionProfile } from "$lib/types";
 import { captureQuickChatShortcut } from "$lib/quickChatShortcut";
@@ -124,6 +125,15 @@ export function createGeneralSettings(
     if (options.onThemePreview) options.onThemePreview(theme);
     else applyDocumentTheme(theme);
   });
+
+  $effect(() => {
+    appearancePreview.set({
+      theme_plugin: draft.draftConfig.theme_plugin,
+      theme_overrides: $state.snapshot(draft.draftConfig.theme_overrides),
+      agent_plugins_enabled: $state.snapshot(draft.draftConfig.agent_plugins_enabled),
+    });
+  });
+  onDestroy(() => appearancePreview.set(null));
 
   $effect(() => {
     const enabled = draft.draftConfig.launch_on_startup;

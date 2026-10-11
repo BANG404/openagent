@@ -1,0 +1,21 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "openagent-theme-probe",
+  "version": "1.0.0",
+  "description": "Deterministic theme presentation fixture",
+  "extensions": {
+    "openagent": {
+      "type": "theme",
+      "compatibility": {
+        "plugin_protocol": { "min": 1, "max": 1 },
+        "features": ["theme-v1"]
+      },
+      "theme": {
+        "version": 1,
+        "tokens": { "--app-radius": "20px", "--plugin-card-radius": "18px" },
+        "light": { "--primary": "#663399", "--surface": "#fffaf5" },
+        "dark": { "--primary": "#cc99ff", "--surface": "#211b29" }
+      }
+    }
+  }
+}

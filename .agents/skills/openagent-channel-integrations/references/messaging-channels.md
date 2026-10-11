@@ -20,6 +20,11 @@ control through the shared settings status-toggle treatment also used by model
 providers and MCP servers. The bundled platform artwork is sourced from Cherry
 Studio at commit `16e2905fd30fbfe21d1c58651574dcc939b6fb30`.
 
+Installed packages declaring the integration type also appear in this list.
+Their names, configuration and enablement come from the ordinary plugin
+contract; see [package types](../../openagent-plugin-development/references/package-format.md#theme-and-integration-package-types).
+Package entries and built-in platform entries have independent identities.
+
 ## Platform setup
 
 | Platform | Required configuration | Receive transport | Allowlist identity |
