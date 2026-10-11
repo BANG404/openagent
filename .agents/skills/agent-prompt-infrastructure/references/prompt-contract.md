@@ -41,6 +41,12 @@ Skill discovery uses directory paths, visible counts, and names for global,
 project, and enabled plugin skills. Models inspect candidate SKILL.md metadata
 and instructions progressively. Categories are not required or generated.
 
+Product-bundled skills are owned and seeded by the SDK bootstrap into the global
+skill directory, preserving existing user instructions. Terminal utility setup
+is task-driven skill guidance, not unconditional binary installation or a
+replacement for file creation/editing tools. Bundled skills retain ordinary
+role association and discovery rules; host routing skills do not install them.
+
 ## Change and verification contract
 
 Changes to runtime prompt composition update the SDK owner and its tests before
