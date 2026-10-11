@@ -820,7 +820,7 @@
     padding: var(--composer-input-padding);
     color: var(--text);
     font-family: inherit;
-    font-size: 14px;
+    font-size: var(--app-font-size, 14px);
     resize: none;
     outline: none;
     line-height: 1.47;

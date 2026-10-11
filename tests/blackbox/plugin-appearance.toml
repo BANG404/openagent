@@ -1,0 +1,30 @@
+[scenario]
+name = "plugin theme selection and appearance overrides"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "selected package and localized override controls"
+action = "eval"
+script = '''(() => {
+  if (!document.querySelector('[data-appearance-theme] button').textContent.includes('probe'))
+    throw new Error('selected theme is not visible');
+  const probe = window.__appearanceProbe;
+  for (const key of ['accent', 'background', 'foreground'])
+    if (document.querySelector('#appearance-' + key).value !== probe[key])
+      throw new Error('override control disagrees with saved color: ' + key);
+  if (!document.querySelector('[data-appearance-reset]').textContent.includes(probe.resetLabel))
+    throw new Error('reset action is not localized');
+})()'''
+
+[[step]]
+name = "typography reaches the rendered native document"
+action = "eval"
+script = '''(() => {
+  if (getComputedStyle(document.body).fontSize !== '16px' ||
+      window.__appearanceDiffFont !== '15px' ||
+      !getComputedStyle(document.body).fontFamily.includes('JetBrains') ||
+      getComputedStyle(document.querySelector('#appearance-accent')).fontSize !== '15px' ||
+      document.documentElement.style.getPropertyValue('--code-font-size') !== '15px')
+    throw new Error('typography overrides did not reach the document');
+})()'''

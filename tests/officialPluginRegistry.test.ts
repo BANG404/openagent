@@ -102,10 +102,10 @@ describe("official plugin registry", () => {
       "1.0.7",
       "1.3.0",
       "1.1.2",
-      "1.8.0",
+      "1.9.0",
       "0.2.0",
       "0.1.1",
-      "0.2.0",
+      "0.2.1",
       "0.2.0",
       "0.1.2",
       "0.2.0",
@@ -122,11 +122,13 @@ describe("official plugin registry", () => {
       "https://github.com/BANG404/message-board.git",
     );
     expect(findOfficialPlugin(registry, "openagent-plugin-kit")?.sourceUrl).toBe(
-      "https://github.com/BANG404/openagent-plugin-kit/releases/download/v1.8.0/openagent-plugin-kit-1.8.0.zip",
+      "https://github.com/BANG404/openagent-plugin-kit",
     );
-    expect(findOfficialPlugin(registry, "openagent-plugin-kit")?.sha256).toBe(
-      "sha256:d2513d726a7264145c16505518b557b90b53381427b125c25ab02f401ed37757",
+    expect(findOfficialPlugin(registry, "openagent-plugin-kit")?.sha256).toBeUndefined();
+    expect(findOfficialPlugin(registry, "discord")?.sourceUrl).toBe(
+      "https://github.com/BANG404/openagent-discord",
     );
+    expect(findOfficialPlugin(registry, "discord")?.sha256).toBeUndefined();
   });
 
   test("distinguishes the development assistant and message board in localized search", () => {

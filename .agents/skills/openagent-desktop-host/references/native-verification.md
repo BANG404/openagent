@@ -70,7 +70,12 @@ On Windows, both management runners accept `BLACKBOX_NATIVE_WINDOW_ID` with
 the verified main window HWND. Native capture requires Python with Pillow,
 restores the window, temporarily raises it for an unobscured screen capture,
 and restores its original topmost state. This avoids WebView screenshots that
-omit composited settings content. Keep artifacts in the temporary directory;
+omit composited settings content. If a disconnected desktop refuses screen
+capture, the helper uses native `PrintWindow` with full-content rendering and
+refreshes the compositor with a temporary one-pixel resize, restoring the exact
+bounds before capture. It rejects blank pixels; visually inspect those artifacts
+against the current surface and locale before accepting them.
+Keep artifacts in the temporary directory;
 set `BLACKBOX_ARTIFACT_DIR` to choose its exact location. Verify compact and
 expanded window layouts and keep the user-memory Save footer visible when the
 backup/cleanup disclosure is expanded.
@@ -371,3 +376,16 @@ placement above the card. Its transient local-command failure fixture checks
 that completion and Continue remain blocked until Check again succeeds. The
 shell runner additionally asserts the same three groups during preparation and
 their verified results after importing the signed offline distribution.
+
+## Plugin theme and integration presentation
+
+Start `bun tauri dev --multi-instance plugin-presentation` with an isolated
+`OPENAGENT_HOME`, verified embedding resources and an active fixture workspace,
+then select that instance's `TAURI_PILOT_SOCKET` and run
+`bun run test:blackbox:plugin-presentation`. The runner installs process-free
+theme/configuration fixtures and accepts the pinned Discord manifest through
+the real Runtime. It drives all light/dark and English/Chinese combinations,
+appearance selection, per-mode color/font/size overrides, persistence and
+standalone-window synchronization, override reset, enablement, theme restoration and removal of the
+selected integration. Use `BLACKBOX_NATIVE_WINDOW_ID` for native captures.
+No live Discord credentials or account operation is part of this scenario.

@@ -519,18 +519,26 @@ export function createPluginSettings(
   }
   onMount(() => {
     if (!isTauri()) return;
-    if (options.visibleSections.has("plugins")) refreshAgentPlugins().catch(() => {});
+    if (
+      options.visibleSections.has("plugins") ||
+      options.visibleSections.has("channels") ||
+      options.visibleSections.has("general")
+    )
+      refreshAgentPlugins().catch(() => {});
     const unlistenInstalls = pluginInstallQueue.subscribe((tasks) => {
       agentPluginInstallTasks = tasks;
     });
     const unlistenAccess = pluginHostAccessQueue.subscribe((plugins) => {
       agentPluginHostAccessRequests = plugins;
     });
-    const unlistenChanges = options.visibleSections.has("plugins")
-      ? listen("agent-plugins-changed", () => {
-          void refreshAgentPlugins();
-        })
-      : Promise.resolve(() => {});
+    const unlistenChanges =
+      options.visibleSections.has("plugins") ||
+      options.visibleSections.has("channels") ||
+      options.visibleSections.has("general")
+        ? listen("agent-plugins-changed", () => {
+            void refreshAgentPlugins();
+          })
+        : Promise.resolve(() => {});
     return () => {
       unlistenInstalls();
       unlistenAccess();

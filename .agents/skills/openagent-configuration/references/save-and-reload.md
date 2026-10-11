@@ -24,11 +24,28 @@ the local settings command and applies only its newest outstanding read. An
 authoritative save result invalidates older reads before it updates local state,
 so a delayed response cannot restore configuration from before that save.
 
-When language and/or theme are the only configuration changes, both in-app saves
+When language and/or appearance are the only configuration changes, both in-app saves
 and valid external reloads preserve MCP connections and plugin automation.
 Plugin locale context reads the updated shared configuration on each request.
 Other changes retain the usual service refresh path; language switching must
 not make already connected tools unavailable or reset package state.
+
+Version 1 configuration additively persists `theme_plugin` (empty selects the
+built-in design) and `theme_overrides`. Older snapshots default to no selection
+and no overrides. Missing, disabled or invalid selected packages fall back to
+the built-in design while retaining the selected ID; user overrides still apply.
+Overrides carry separate `light`/`dark` palettes with optional `accent`,
+`background`, and `foreground` six-digit hex colors, normalized to uppercase;
+invalid colors are dropped. `font_family` is empty (follow theme), `system`,
+`sans`, `serif`, or `mono`; unsupported presets revert to empty. Optional
+`ui_font_size`/`code_font_size` are bounded to 10–24 px. Invalid typed TOML remains
+a reload failure, preserving the last valid snapshot. Changes use the existing
+debounced save, atomic persistence, conflict merge, and cross-window notification.
+Appearance-only saves/reloads preserve live connections and automation.
+Reset overrides clears both palettes and typography while retaining the selected
+package; selecting OpenAgent default restores built-in design beneath overrides.
+Theme application and the draft preview are owned by the frontend page, with
+CSS variables for application typography and shared chat/diff code font size.
 
 Frontend configuration normalization shares the same stable plugin-ID validator
 across enablement, host access, and MCP mode overrides. Only enablement drops

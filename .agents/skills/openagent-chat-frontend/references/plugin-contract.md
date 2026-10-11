@@ -131,3 +131,8 @@ while preserving the mounted iframe and its draft.
 
 Plugin summary types carry optional discovery category metadata. Read the category
 IDs and validation rules in [package format](../../openagent-plugin-development/references/package-format.md#discovery-categories); consume them through the shared SDK descriptor and keep display labels localized.
+
+Installed plugin summaries carry `plugin_type` and validated theme token maps.
+The page applies the overlay from saved lifecycle state and resolved appearance
+without moving credential drafts into chat state. The plugin owner documents
+[theme and integration types](../../openagent-plugin-development/references/package-format.md#theme-and-integration-package-types).

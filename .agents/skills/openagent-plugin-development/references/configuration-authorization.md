@@ -2,8 +2,10 @@
 
 `extensions.openagent.configuration` is optional, with `version: 1` and at
 most 64 `fields`. Require `configuration-v1` in `compatibility.features`
-alongside the verified `plugin_protocol` range. Recognized optional features
-are `configuration-v1` and `plugin-oauth-v1`; unknown features reject a package.
+alongside the verified `plugin_protocol` range. These setup features are
+`configuration-v1` and `plugin-oauth-v1`; the presentation features live in
+[package format](package-format.md#theme-and-integration-package-types).
+Unknown features reject a package.
 
 Each field declares a unique `key`, non-empty `label` and a `type` of `string`,
 `boolean`, `integer` or `enum`. Optional members are `description`, `required`,

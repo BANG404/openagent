@@ -7,7 +7,23 @@
   import SettingsStatusToggle from "../ui/SettingsStatusToggle.svelte";
   import ScrollArea from "../ui/ScrollArea.svelte";
   import { useSettingsContext } from "$lib/settings/context";
-  const { channels, draft, options } = useSettingsContext();
+  import PluginSetup from "./PluginSetup.svelte";
+  import { integrationPlugins } from "$lib/pluginPresentation";
+  import { pluginText } from "$lib/pluginI18n";
+  import { locale } from "$lib/i18n";
+  const { channels, draft, options, plugins } = useSettingsContext();
+  const integrations = $derived(integrationPlugins(plugins.agentPlugins));
+  const selectedIntegration = $derived(
+    integrations.find((plugin) => channels.channelSettingsNav === `plugin:${plugin.id}`),
+  );
+  $effect(() => {
+    if (
+      channels.channelSettingsNav.startsWith("plugin:") &&
+      !plugins.agentPluginsLoading &&
+      !selectedIntegration
+    )
+      channels.channelSettingsNav = "feishu";
+  });
 </script>
 
 <Tabs.Content value="channels" class="settings-tab-panel">
@@ -107,6 +123,35 @@
             ><strong>{$t("remoteGateway")}</strong><span>{$t("remoteGatewaySubtitle")}</span></span
           >
         </button>
+        {#if plugins.agentPluginsLoading && !integrations.length}
+          <div class="channel-settings-item" aria-busy="true" aria-label={$t("pluginLoading")}>
+            <span class="channel-settings-icon integration-skeleton" aria-hidden="true"></span>
+            <span class="channel-settings-item-copy" aria-hidden="true">
+              <span class="integration-skeleton integration-skeleton-title"></span>
+              <span class="integration-skeleton integration-skeleton-description"></span>
+            </span>
+          </div>
+        {/if}
+        {#each integrations as plugin (plugin.id)}
+          <button
+            type="button"
+            class="channel-settings-item"
+            class:active={channels.channelSettingsNav === `plugin:${plugin.id}`}
+            data-integration-plugin={plugin.id}
+            onclick={() => (channels.channelSettingsNav = `plugin:${plugin.id}`)}
+          >
+            <span class="channel-settings-icon" aria-hidden="true">↗</span>
+            <span class="channel-settings-item-copy">
+              <strong>{pluginText(plugin.i18n, $locale, "display_name", plugin.name)}</strong>
+              <span
+                >{pluginText(plugin.i18n, $locale, "description", plugin.description ?? "")}</span
+              >
+            </span>
+          </button>
+        {/each}
+        {#if plugins.agentPluginStatus}
+          <div class="provider-status error" role="status">{plugins.agentPluginStatus}</div>
+        {/if}
       </div>
     </nav>
     <ScrollArea
@@ -114,7 +159,50 @@
       class="settings-content-col channel-settings-detail"
       scrollHideDelay={350}
     >
-      {#if channels.channelSettingsNav === "feishu"}
+      {#if selectedIntegration}
+        <section class="detail-section" data-integration-detail={selectedIntegration.id}>
+          <div class="detail-section-header remote-gateway-heading">
+            <div>
+              <h4 class="detail-section-title">
+                {pluginText(
+                  selectedIntegration.i18n,
+                  $locale,
+                  "display_name",
+                  selectedIntegration.name,
+                )}
+              </h4>
+              <p class="remote-gateway-subtitle">
+                {pluginText(
+                  selectedIntegration.i18n,
+                  $locale,
+                  "description",
+                  selectedIntegration.description ?? "",
+                )}
+              </p>
+            </div>
+            <SettingsStatusToggle
+              checked={plugins.agentPluginEnabled(selectedIntegration.id)}
+              ariaLabel={$t("channelEnabled")}
+              disabled={!!selectedIntegration.error}
+              onCheckedChange={(enabled) =>
+                plugins.setAgentPluginEnabled(selectedIntegration.id, enabled)}
+            />
+          </div>
+          {#if selectedIntegration.error}
+            <div class="provider-status error">{selectedIntegration.error}</div>
+          {:else}
+            {#key selectedIntegration.id}
+              <div class="application-settings-surface channel-config-card">
+                <PluginSetup
+                  plugin={selectedIntegration}
+                  setup={plugins.setup}
+                  enabled={plugins.agentPluginEnabled(selectedIntegration.id)}
+                />
+              </div>
+            {/key}
+          {/if}
+        </section>
+      {:else if channels.channelSettingsNav === "feishu"}
         <section class="detail-section">
           <div class="detail-section-header remote-gateway-heading">
             <div>
@@ -497,3 +585,18 @@
     </ScrollArea>
   </div>
 </Tabs.Content>
+
+<style>
+  .integration-skeleton {
+    background: var(--component-neutral-bg);
+    border-radius: var(--menu-item-radius);
+  }
+  .integration-skeleton-title {
+    width: 110px;
+    height: 14px;
+  }
+  .integration-skeleton-description {
+    width: 170px;
+    height: 12px;
+  }
+</style>

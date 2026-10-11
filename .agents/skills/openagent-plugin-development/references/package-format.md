@@ -56,6 +56,81 @@ the subscription the verified release updater follows. That subscription is
 polled through a cached, quota-aware check, not one request per plugin per
 load; `openagent-contract.md` owns that lifecycle.
 
+### Theme and integration package types
+
+`extensions.openagent.type` declares `agent` (the default), `theme`, or
+`integration`, independently of the discovery `category`. Invalid IDs reject
+the manifest. These types use the ordinary installation, update, enablement,
+and removal lifecycle and grant no additional process permissions.
+
+A theme declares `extensions.openagent.theme` with `version: 1` and custom
+property maps `tokens`, `light`, and `dark`. Common tokens apply first, then the
+resolved light/dark map. For example:
+
+```json
+{
+  "extensions": {
+    "openagent": {
+      "type": "theme",
+      "compatibility": {
+        "plugin_protocol": {"min": 1, "max": 1},
+        "features": ["theme-v1"]
+      },
+      "theme": {
+        "version": 1,
+        "tokens": {"--app-radius": "20px", "--plugin-card-radius": "18px"},
+        "light": {"--primary": "#663399", "--surface": "#fffaf5"},
+        "dark": {"--primary": "#cc99ff", "--surface": "#211b29"}
+      }
+    }
+  }
+}
+```
+
+Theme maps contain 1–256 total entries. Keys are CSS custom properties starting
+with `--` followed by a lowercase letter, lowercase letters/digits/hyphens,
+and at most 80 characters after the prefix. Values are nonempty, at most 512
+bytes, and cannot contain control characters, declaration separators, braces,
+markup, escapes, comments, `url(`, `expression(`, or `!important`. A theme must
+provide its configuration; other types cannot declare a theme. The SDK validates
+and projects these maps; clients apply them as document-root custom properties.
+Use the existing `app.css` design variables for colors, surfaces, borders,
+radii, spacing, and motion. No executable stylesheet or remote asset is loaded.
+
+Settings → General → Appearance selects one installed theme or OpenAgent default.
+Selection enables that package; other enabled themes do not affect presentation.
+The selected, enabled, valid theme overlays the application's existing design,
+with common tokens followed by the resolved light/dark map. Saved user overrides
+apply last. Disablement, uninstall, refresh and update rebuild the overlay;
+absent tokens restore their original inline value or the ordinary stylesheet.
+Unavailable selections retain their ID and temporarily use the built-in design.
+System appearance selects the resolved map. The same styling applies to every
+product window, including standalone Settings. The settings draft previews
+through the page's single overlay owner; accepted saves notify other windows.
+Appearance persistence and normalization belong to configuration's
+[save/reload contract](../../openagent-configuration/references/save-and-reload.md).
+
+An integration declares `type: "integration"` and lists `integration-v1` in
+`compatibility.features`. Installed integrations appear under Integrations →
+Channels, including disabled packages so users can enable them there. Selecting
+an entry uses the package's localized name and description, ordinary lifecycle
+switch, and existing configuration/OAuth setup surface. Configuration secrets
+remain SDK-owned. Built-in channel adapters retain their ordinary rows; package
+IDs are namespaced as `plugin:<id>` so a Discord package cannot select or
+configure the built-in Discord adapter. Uninstalling the selected package
+returns to the first built-in channel. Skills/MCP/commands retain the ordinary
+loading path; the presentation type does not create a channel transport.
+
+Plugin Kit mirrors these declarations in its validator, presentation JSON
+schema and `theme`/`integration` starter templates. Its messaging importer
+marks channel packages as integrations. The pinned Discord source declares
+this type; its release archives must carry the updated manifest to expose it.
+
+Qualify with `test:blackbox:plugin-presentation`: install deterministic theme
+and integration fixtures, inspect colors and geometry in light/dark and both
+locales, drive configuration and lifecycle switches, and assert restoration
+and removal. SDK schema/loader tests own malformed declaration rejection.
+
 OpenAgent implements both portable component types:
 
 - Agent Skills are discovered only from immediate child directories under

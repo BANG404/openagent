@@ -1,6 +1,32 @@
 import type { TranslationKeys } from "./i18n.zh";
 
 const en: Record<TranslationKeys, string> = {
+  appearanceMode: "Mode",
+  appearanceEnableTheme: "Enable selected theme",
+  appearancePluginTheme: "Theme",
+  appearancePluginThemeHint: "Choose an installed theme plugin to customize the design",
+  appearanceDefaultTheme: "OpenAgent default",
+  appearanceUnavailable: "Unavailable",
+  appearanceUnavailableHint:
+    "The selected theme is unavailable. The default is used until the package is reinstalled.",
+  appearanceAccent: "Accent color",
+  appearanceBackground: "Background",
+  appearanceForeground: "Foreground",
+  appearanceFont: "Font",
+  appearanceFollowTheme: "Follow theme",
+  appearanceFontSystem: "System",
+  appearanceFontSans: "Sans serif",
+  appearanceFontSerif: "Serif",
+  appearanceFontMono: "Monospace",
+  appearanceResetField: "Follow theme",
+  appearanceReset: "Reset overrides",
+  appearanceAdvanced: "Advanced",
+  appearanceUiSize: "Interface font size",
+  appearanceCodeSize: "Code font size",
+  appearanceDarkOverrides:
+    "Colors override dark mode. Leave blank to follow the theme. Font sizes: 10–24 px.",
+  appearanceLightOverrides:
+    "Colors override light mode. Leave blank to follow the theme. Font sizes: 10–24 px.",
   shellPreparing: "Preparing OpenAgent",
   shellFailed: "Resource preparation incomplete",
   shellDescription:
@@ -369,6 +395,8 @@ const en: Record<TranslationKeys, string> = {
   pluginMarketplaceInstalled: "Installed",
   pluginMarketplaceUncategorized: "Uncategorized",
   pluginMarketplaceSourceInstallerRequired: "This source requires a dedicated installer.",
+  pluginTypeTheme: "Theme",
+  pluginTypeIntegration: "Integration",
   pluginLoading: "Loading installed plugins...",
   pluginEmpty: "No third-party plugins are installed.",
   pluginInstalled: "Plugin installed.",

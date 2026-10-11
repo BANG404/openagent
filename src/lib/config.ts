@@ -8,6 +8,8 @@ import type {
   ReasoningEffort,
 } from "./types";
 import { normalizeQuickChatShortcut } from "./quickChatShortcut";
+import { normalizeThemeOverrides } from "./pluginPresentation";
+import type { ThemeOverrides } from "./types";
 
 export type NormalizedMcpServerConfig = McpServerConfig & {
   disabled_tools: string[];
@@ -16,6 +18,8 @@ export type NormalizedMcpServerConfig = McpServerConfig & {
 export type NormalizedAppConfig = Omit<AppConfig, "mcp" | "automation_hooks"> & {
   mcp: { servers: NormalizedMcpServerConfig[] };
   automation_hooks: AutomationHookConfig[];
+  theme_plugin: string;
+  theme_overrides: ThemeOverrides;
 };
 
 export function defaultPermissionProfile(): PermissionProfile {
@@ -226,6 +230,8 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
     agent_plugins_host_access,
     agent_plugins_mcp_tool_modes,
     language: input.language ?? "zh",
+    theme_plugin: input.theme_plugin && validPluginId(input.theme_plugin) ? input.theme_plugin : "",
+    theme_overrides: normalizeThemeOverrides(input.theme_overrides),
     launch_on_startup: input.launch_on_startup ?? false,
     onboarding_completed: input.onboarding_completed ?? false,
     diagnostic_log_collection_enabled: input.diagnostic_log_collection_enabled ?? true,

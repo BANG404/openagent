@@ -1,0 +1,57 @@
+[scenario]
+name = "plugin theme overrides and installed integration settings"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "theme overrides colors and design geometry"
+action = "eval"
+script = '''(() => {
+  const style = getComputedStyle(document.documentElement);
+  const probe = window.__presentationProbe;
+  if (style.getPropertyValue('--primary').trim() !== probe.primary ||
+      style.getPropertyValue('--surface').trim() !== probe.surface ||
+      style.getPropertyValue('--app-radius').trim() !== '20px')
+    throw new Error('theme colors or geometry were not applied');
+  const canvas = document.querySelector('#conversation-stage');
+  if (!canvas || getComputedStyle(canvas).backgroundColor !== probe.background)
+    throw new Error('theme surface did not reach the rendered conversation');
+  const composer = document.querySelector('.conversation-input-surface');
+  if (!composer || getComputedStyle(composer).borderTopLeftRadius !== '20px')
+    throw new Error('theme geometry did not reach the rendered composer');
+  return true;
+})()'''
+
+[[step]]
+name = "installed integration has localized navigation and configuration"
+action = "eval"
+script = '''(() => {
+  const probe = window.__presentationProbe;
+  const row = document.querySelector('[data-integration-plugin="openagent-integration-probe"]');
+  const panel = document.querySelector('[data-integration-detail="openagent-integration-probe"]');
+  if (!row || !panel || row.querySelector('strong').textContent !== probe.name)
+    throw new Error('localized integration entry is missing');
+  const field = panel.querySelector('[data-config-field="account"]');
+  if (!field || field.querySelector('label').textContent.trim() !== probe.account + ' *')
+    throw new Error('integration configuration label is not localized');
+  const control = panel.querySelector('[role=switch]');
+  if (!control || control.getAttribute('aria-checked') !== 'true')
+    throw new Error('integration lifecycle switch is missing');
+  return true;
+})()'''
+
+[[step]]
+name = "integration lifecycle switch responds"
+action = "click"
+target = "[data-integration-detail='openagent-integration-probe'] [role=switch]"
+
+[[step]]
+name = "disabled integration remains in channel navigation"
+action = "eval"
+script = '''(() => {
+  const row = document.querySelector('[data-integration-plugin="openagent-integration-probe"]');
+  const toggle = document.querySelector('[data-integration-detail="openagent-integration-probe"] [role=switch]');
+  if (!row || toggle.getAttribute('aria-checked') !== 'false')
+    throw new Error('disabled integration disappeared or switch failed');
+  return true;
+})()'''

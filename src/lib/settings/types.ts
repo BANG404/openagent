@@ -5,7 +5,7 @@ import { type PluginSidebarContext } from "$lib/pluginSidebar";
 import type { RightSidebarPanel } from "$lib/rightSidebar";
 
 export type StandardChannelKind = "feishu" | "telegram" | "qq" | "discord" | "slack";
-export type ChannelSettingsNav = StandardChannelKind | "wechat" | "gateway";
+export type ChannelSettingsNav = StandardChannelKind | "wechat" | "gateway" | `plugin:${string}`;
 export type ComponentVersions = {
   release: string;
   shell: string;

@@ -722,7 +722,16 @@ export interface AgentPluginAuthorSummary {
 
 export type { AgentPluginInstallProgress } from "@openagent/client/types";
 
+export interface AgentPluginTheme {
+  version: 1;
+  tokens: Record<string, string>;
+  light: Record<string, string>;
+  dark: Record<string, string>;
+}
+
 export interface AgentPluginSummary {
+  plugin_type?: "agent" | "theme" | "integration";
+  theme?: AgentPluginTheme | null;
   configuration?: import("@openagent/client/types").PluginConfiguration | null;
   ui_components?: import("@openagent/client/types").ConversationUiComponent[];
   mcp_tool_mode?: "direct" | "relay";
@@ -939,6 +948,20 @@ export interface AutomationHookConfig {
   action: AutomationHookAction;
 }
 
+export interface ThemeColors {
+  accent?: string;
+  background?: string;
+  foreground?: string;
+}
+
+export interface ThemeOverrides {
+  light: ThemeColors;
+  dark: ThemeColors;
+  font_family: string;
+  ui_font_size?: number;
+  code_font_size?: number;
+}
+
 export interface AppConfig {
   config_version?: number;
   agent_turn_limit_enabled: boolean;
@@ -961,6 +984,8 @@ export interface AppConfig {
   agent_plugins_host_access?: Record<string, boolean>;
   agent_plugins_mcp_tool_modes?: Record<string, "direct" | "relay">;
   theme: "system" | "light" | "dark";
+  theme_plugin?: string;
+  theme_overrides?: ThemeOverrides;
   language: "zh" | "en";
   launch_on_startup: boolean;
   onboarding_completed?: boolean;

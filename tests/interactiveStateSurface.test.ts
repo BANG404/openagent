@@ -79,8 +79,8 @@ test("reuses shared controls across onboarding and settings collections", async 
   expect(onboarding).not.toMatch(/\n\s*input\s*{/);
   expect(onboarding).not.toContain("<select");
   // The plugin page keeps the installed package surfaces alongside the
-  // marketplace switch without a credential card.
-  expect(settings.match(/application-settings-surface/g)).toHaveLength(29);
+  // marketplace switch; the Channels view reuses PluginSetup inside its surface.
+  expect(settings.match(/application-settings-surface/g)).toHaveLength(30);
   expect(settings).toContain('class="application-settings-scope settings-panel"');
   expect(settings).not.toMatch(/\.list-search-input,[\s\S]*?\.detail-input\s*{[^}]*border:/);
   for (const surfaceClass of [
@@ -111,7 +111,8 @@ test("reuses shared controls across onboarding and settings collections", async 
     /\.settings-action\s*{[^}]*border: 1px solid var\(--mica-divider\);/s,
   );
   expect(settingsActionButton).toMatch(/\.settings-action\s*{[^}]*box-shadow: none;/s);
-  expect(settings.match(/class="detail-input settings-card-number-input"/g)).toHaveLength(7);
+  // Appearance's shared size-field template uses the ordinary number control.
+  expect(settings.match(/class="detail-input settings-card-number-input"/g)).toHaveLength(8);
   expect(settings).toMatch(
     /\.settings-card-number-input\s*{[^}]*justify-self: end;[^}]*margin-inline-start: auto;/s,
   );
