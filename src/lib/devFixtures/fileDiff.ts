@@ -41,7 +41,9 @@ export function fileDiffPreviewChanges(base: FileChange): FileChange[] {
     0,
     ...bytes,
   ];
-  const long = Array.from({ length: 100 }, (_, index) => `recorded line ${index + 1}`).join("\n");
+  const long = Array.from({ length: 100 }, (_, index) =>
+    index === 0 ? `\t${"long recorded source ".repeat(30)}END` : `recorded line ${index + 1}`,
+  ).join("\n");
   return [
     ...projected,
     {

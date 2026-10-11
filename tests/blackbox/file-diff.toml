@@ -42,6 +42,11 @@ script = '''(async () => {
     if (index === 4) {
       const viewport = panel.querySelector('.file-content-scroll .ui-scroll-area-viewport');
       if (content.length !== 100 || viewport.clientHeight > 420 || viewport.scrollHeight <= viewport.clientHeight) throw new Error('long file did not use a bounded scroll area');
+      if (getComputedStyle(content[0].querySelector('code')).whiteSpace !== 'pre' || content[0].getBoundingClientRect().height > 21 || viewport.scrollWidth <= viewport.clientWidth || content[0].querySelectorAll('.line-number').length !== 1) throw new Error('source wrapped or retained duplicate line numbers');
+      viewport.scrollLeft = viewport.scrollWidth;
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      if (viewport.scrollLeft <= 0 || !content[0].querySelector('code').textContent.endsWith('END')) throw new Error('long source cannot scroll horizontally');
+      viewport.scrollLeft = 0;
       viewport.scrollTop = viewport.scrollHeight;
       await new Promise(resolve => requestAnimationFrame(resolve));
       if (!content.at(-1).textContent.includes('recorded line 100') || content.at(-1).getBoundingClientRect().bottom > viewport.getBoundingClientRect().bottom + 2) throw new Error('last recorded line is unreachable');

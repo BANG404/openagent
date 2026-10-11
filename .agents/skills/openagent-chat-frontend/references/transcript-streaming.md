@@ -240,6 +240,9 @@
   an explicit collapse stays collapsed when live records replace existing ones.
   Short file content has intrinsic height; long content gets a bounded shared
   ScrollArea so other file rows remain reachable.
+  The full-file sidebar uses one compact line-number gutter and preserves source
+  whitespace without wrapping. Enable the shared ScrollArea's optional horizontal
+  scrollbar for long source lines; keep the outer file list within the sidebar.
   Desktop and remote surfaces prefer the SDK's branch-scoped
   `FileChange.projection` latest content, including creation followed by edits.
   When a record has no derived projection, decode its complete compressed

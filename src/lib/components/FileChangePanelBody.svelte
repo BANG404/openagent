@@ -114,6 +114,7 @@
                 </p>{/if}
               <ScrollArea
                 maxHeight="min(420px, 55vh)"
+                horizontal
                 class="file-content-scroll"
                 scrollHideDelay={350}
               >
@@ -154,6 +155,10 @@
   }
   :global(.file-panel .ui-scroll-area-viewport) {
     overflow-x: hidden;
+  }
+  :global(.file-panel .file-content-scroll .ui-scroll-area-viewport) {
+    overflow-x: auto;
+    padding-bottom: 8px;
   }
   :global(.file-panel .file-item) {
     border-bottom: 1px solid var(--border);
