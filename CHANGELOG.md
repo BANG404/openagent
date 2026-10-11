@@ -10,6 +10,20 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.78.1-beta.1] - 2026-10-10
+
+### Bug Fixes
+- **chat**: Keep quick chat editor clicks out of native dragging
+- **chat**: Reveal conversation when fullscreen sidebar is unavailable
+- **onboarding**: Summarize application resources in welcome
+- **chat**: Align quick chat controls in the composer toolbar
+- **onboarding**: Separate workspace preferences and reset dev previews
+- **plugins**: Publish rolling Release index every 30 minutes
+- **onboarding**: Prepare local resources in welcome and load dev logo
+- **plugins**: Publish daily static release metadata for updates
+- **startup**: Integrate resource preparation into welcome
+- **updater**: Wait for installed files before Windows replacement
+
 ## [0.78.0-beta.1] - 2026-10-10
 
 ### Features
