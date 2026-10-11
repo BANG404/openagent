@@ -45,9 +45,19 @@ their repositories and the parent gitlinks pin their exact commits. Initialize
 them in every checkout or isolated worktree before using the development tools:
 
 ```bash
-git submodule update --init --recursive -- plugins
+bun scripts/prepare-submodules.mjs
 bun run plugin:dev
 ```
+
+Use this preparation helper (also run by `prepare:worktree:dev`) instead of a
+plain submodule checkout. It disables automatic newline conversion before the
+first recursive checkout and persists `core.autocrlf=false` / `core.eol=lf` in
+each submodule's local Git configuration, without changing global Git settings.
+Parent attributes do not apply across submodule repository boundaries. Existing
+CRLF conversions are repaired only when the unstaged regular file matches its
+index blob after CRLF removal and repository filters permit those bytes; actual
+edits and staged files are preserved. Provenance hashes remain byte-exact and
+must never be regenerated merely to accommodate Windows checkout conversion.
 
 The reviewed Claude external adaptations follow the same ownership: Asana,
 Context7, Discord, Fakechat, Firebase, GitHub, GitLab, iMessage, Laravel Boost,

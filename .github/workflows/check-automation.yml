@@ -110,6 +110,7 @@ jobs:
           tests/privateSdkDiagnostic.test.js
           tests/releaseCi.test.js
           tests/releaseVersion.test.js
+          scripts/prepare-worktree.test.mjs
           scripts/release-candidate-artifacts.test.mjs
           scripts/release-workflow.test.mjs
           scripts/plugin-release.test.mjs

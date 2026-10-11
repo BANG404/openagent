@@ -21,7 +21,7 @@ export function worktreePreparationPlan({
 
   const bun = process.execPath;
   const commands = [
-    ["git", ["submodule", "update", "--init", "--recursive"]],
+    [bun, ["scripts/prepare-submodules.mjs"]],
     [bun, ["install", "--frozen-lockfile"]],
   ];
   commands.push([bun, ["scripts/prepare-source-dev.mjs", "--client-only"]]);

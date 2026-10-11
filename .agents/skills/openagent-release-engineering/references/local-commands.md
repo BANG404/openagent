@@ -16,7 +16,10 @@ bun run dev:desktop:source
 ```
 
 Preparation initializes pinned submodules, installs the frozen Bun lockfile,
-and materializes the pinned SDK source client. The default development command
+and materializes the pinned SDK source client. Its submodule preparation preserves
+LF bytes from the first checkout and repairs unchanged legacy CRLF conversions;
+see [pinned plugin checkouts](../../openagent-plugin-development/references/local-development.md#pinned-source-checkouts)
+for configuration and edit-preservation boundaries. The default development command
 does not compile Rust; `--native` additionally builds and stages the platform's
 sandbox helpers and Runtime sidecar. Release preparation still builds both.
 Ordinary desktop development supervises an external `openagent-server` and uses

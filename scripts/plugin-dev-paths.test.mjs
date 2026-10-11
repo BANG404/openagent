@@ -59,7 +59,7 @@ describe("tracked plugin development index", () => {
       }
       writeFileSync(indexFile, JSON.stringify({ goal: "goal" }));
       const index = readPluginDevIndex({ indexFile });
-      expect(() => resolvePluginDevPath(index, "goal")).toThrow("git submodule update");
+      expect(() => resolvePluginDevPath(index, "goal")).toThrow("prepare-submodules.mjs");
       mkdirSync(join(root, "goal"));
       expect(() => resolvePluginDevPath(index, "goal")).toThrow("has no plugin.json");
     } finally {

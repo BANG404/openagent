@@ -54,7 +54,7 @@ export function resolvePluginDevPath(index, id) {
   const directory = Object.hasOwn(index.directories, id) ? index.directories[id] : undefined;
   if (!directory)
     throw new Error(`No directory configured for plugin ${id} in ${index.indexFile}.`);
-  const initialize = `Run git submodule update --init --recursive -- plugins/${id}.`;
+  const initialize = "Run bun scripts/prepare-submodules.mjs.";
   if (!existsSync(directory) || !statSync(directory).isDirectory()) {
     throw new Error(`Plugin ${id} directory does not exist: ${directory}. ${initialize}`);
   }
