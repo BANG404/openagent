@@ -31,8 +31,8 @@ function compile(command, args) {
 }
 compile("rustc", [path.join(root, "scripts/fixtures/shell-install/holder.rs"), "-o", holder]);
 
-/** @param {string} name @param {number} [language] */
-async function fixture(name, language = 1033) {
+/** @param {string} name @param {number} [language] @param {number} [waitMs] */
+async function fixture(name, language = 1033, waitMs = 30_000) {
   const target = path.join(directory, name, "安装目录 with spaces");
   await mkdir(target, { recursive: true });
   await copyFile(holder, path.join(target, "openagent.exe"));
@@ -43,6 +43,7 @@ async function fixture(name, language = 1033) {
     `-DFIXTURE_INSTALL_DIR=${target}`,
     `-DOPENAGENT_INSTALL_TEST_LOG=${installer}.log`,
     `-DFIXTURE_LANGUAGE=${language}`,
+    `-DOPENAGENT_INSTALL_WAIT_MS=${waitMs}`,
     `-DOPENAGENT_HOOKS=${path.join(root, "src-tauri/windows/install-hooks.nsh")}`,
     path.join(root, "scripts/fixtures/shell-install/installer.nsi"),
   ]);
@@ -90,6 +91,83 @@ async function runInstaller(executable, args = ["/S"]) {
     clearTimeout(timeout);
   }
 }
+
+// A production installation contained 181,439 Cargo output files here. These
+// are not installer payloads; even an active development host must survive an
+// install and uninstall without a traversal or a demand to release its files.
+const largeCache = await fixture("large-development-cache");
+const developmentCache = path.join(largeCache.target, "dev-targets");
+compile("python", [
+  "-c",
+  "import pathlib,sys\np=pathlib.Path(sys.argv[1])\nfor i in range(200):\n d=p/str(i)/'debug'/'deps'; d.mkdir(parents=True)\n for j in range(1000): (d/str(j)).touch()\n",
+  developmentCache,
+]);
+const developmentImage = path.join(developmentCache, "openagent.exe");
+await copyFile(holder, developmentImage);
+const developmentHolder = await hold(developmentImage, 60_000);
+try {
+  const result = await runInstaller(largeCache.installer);
+  assert.equal(result.code, 0);
+  assert.ok(result.elapsed < 5000, `Development cache was traversed: ${result.elapsed} ms`);
+  assert.equal(await readFile(largeCache.marker, "utf8"), "installed");
+  assert.equal(developmentHolder.child.exitCode, null);
+  const uninstall = await runInstaller(path.join(largeCache.target, "uninstall.exe"), [
+    "/S",
+    `_?=${largeCache.target}`,
+  ]);
+  assert.equal(uninstall.code, 0);
+  assert.ok(uninstall.elapsed < 5000);
+  assert.equal(developmentHolder.child.exitCode, null);
+  await access(path.join(developmentCache, "199", "debug", "deps", "999"));
+  await access(developmentImage);
+  console.log(
+    "200,000-file development cache: install/uninstall completed promptly; active host and cache preserved",
+  );
+} finally {
+  developmentHolder.child.kill();
+  await developmentHolder.done;
+}
+
+// The exemption must neither follow a junction nor match a nested directory.
+const cacheJunction = await fixture("development-cache-junction");
+await writeFile(cacheJunction.marker, "old version");
+await symlink(developmentCache, path.join(cacheJunction.target, "dev-targets"), "junction");
+assert.equal((await runInstaller(cacheJunction.installer)).code, 2);
+assert.equal(await readFile(cacheJunction.marker, "utf8"), "old version");
+for (const location of [path.join("resources", "dev-targets"), "dev-targets-other"]) {
+  const nestedCache = await fixture(`non-exempt-cache-${location.replaceAll(path.sep, "-")}`);
+  const nestedFile = path.join(nestedCache.target, location, "payload.dat");
+  await mkdir(path.dirname(nestedFile), { recursive: true });
+  await writeFile(nestedFile, "installed payload");
+  const nestedHolder = await hold(holder, 1000, nestedFile);
+  const nestedResult = await runInstaller(nestedCache.installer);
+  assert.equal(nestedResult.code, 0);
+  assert.ok(nestedResult.elapsed >= 700, "Non-cache payload incorrectly exempted");
+  await nestedHolder.done;
+  assert.equal(await readFile(nestedFile, "utf8"), "installed payload");
+}
+console.log(
+  "Development cache exemption: root junction refused; nested and sibling payload locks still waited",
+);
+
+// A short fixture deadline makes traversal exhaustion deterministic without
+// requiring a slow machine. No sharing violation is needed to trigger it.
+const scanTimeout = await fixture("scan-deadline", 2052, 25);
+const scanFiles = path.join(scanTimeout.target, "resources");
+await mkdir(scanFiles);
+await Promise.all(
+  Array.from({ length: 2000 }, (_, index) =>
+    writeFile(path.join(scanFiles, String(index)), "original payload"),
+  ),
+);
+await writeFile(scanTimeout.marker, "old version");
+const scanResult = await runInstaller(scanTimeout.installer);
+assert.equal(scanResult.code, 2);
+assert.ok(scanResult.elapsed < 2000, `Traversal exceeded its deadline: ${scanResult.elapsed} ms`);
+assert.match(await readFile(`${scanTimeout.installer}.log`, "utf16le"), /^1460: /);
+assert.equal(await readFile(scanTimeout.marker, "utf8"), "old version");
+assert.equal(await readFile(path.join(scanFiles, "1999"), "utf8"), "original payload");
+console.log("Traversal deadline: stopped during a scan, before any installed bytes changed");
 
 // Hugging Face snapshot files in legacy fastembed caches are file symlinks.
 // Probe the link object, including a dangling link, without opening its target.
@@ -207,7 +285,7 @@ console.log("Temporary resource lock: retried automatically without modifying th
 
 const denied = await fixture("permission-error");
 await writeFile(denied.marker, "old version");
-const readOnly = path.join(denied.target, "read-only.dat");
+const readOnly = path.join(denied.target, "dev-targets");
 await writeFile(readOnly, "original");
 compile("attrib", ["+R", readOnly]);
 try {
@@ -221,14 +299,61 @@ try {
   compile("attrib", ["-R", readOnly]);
 }
 
-const passive = await fixture("manual-maintenance");
-const manualHolder = await hold(path.join(passive.target, "openagent.exe"), 5000);
-const passiveResult = await runInstaller(passive.installer, ["/P"]);
-assert.equal(passiveResult.code, 0);
-assert.ok(passiveResult.elapsed >= 4700, "Manual maintenance ran before the gate");
-await manualHolder.done;
-assert.equal(await readFile(passive.marker, "utf8"), "installed");
-console.log("Manual maintenance: waited before continuing into installer pages");
+for (const language of [1033, 2052]) {
+  const passive = await fixture(`manual-maintenance-${language}`, language);
+  const manualHolder = await hold(path.join(passive.target, "openagent.exe"), 5000);
+  const started = performance.now();
+  const running = start(passive.installer, ["/P"]);
+  const timeout = setTimeout(() => running.child.kill(), 45_000);
+  try {
+    let visible = false;
+    const expected = language === 1033 ? "Checking files" : "正在检查文件";
+    while (performance.now() - started < 3000) {
+      const probe = spawnSync(
+        "python",
+        [
+          path.join(root, "scripts/fixtures/shell-install/wait-window.py"),
+          String(running.child.pid),
+        ],
+        { encoding: "utf8", windowsHide: true },
+      );
+      assert.equal(probe.status, 0, probe.stderr);
+      /** @type {{handle: number, text: string}[]} */
+      const windows = JSON.parse(probe.stdout);
+      const waitWindow = windows.find((window) => window.text.includes(expected));
+      if (waitWindow) {
+        compile("python", [
+          path.join(root, "scripts/capture-windows-window.py"),
+          "--hwnd",
+          String(waitWindow.handle),
+          "--output",
+          path.join(directory, `installer-wait-${language}.png`),
+        ]);
+        visible = true;
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    assert.ok(visible, "Passive installer waited without displaying a localized window");
+    assert.equal(await running.done, 0);
+    assert.ok(performance.now() - started >= 4700, "Maintenance ran before the gate");
+    await manualHolder.done;
+    assert.equal(await readFile(passive.marker, "utf8"), "installed");
+    console.log(
+      `Passive maintenance (${language}): visible waiting window, then automatic completion`,
+    );
+  } finally {
+    clearTimeout(timeout);
+    if (running.child.exitCode === null) {
+      running.child.kill();
+      await running.done;
+    }
+    if (manualHolder.child.exitCode === null) {
+      manualHolder.child.kill();
+      await manualHolder.done;
+    }
+  }
+}
 
 const timeoutFixture = await fixture("timeout", 2052);
 await writeFile(timeoutFixture.marker, "old version");

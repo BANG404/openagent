@@ -76,7 +76,10 @@ or removing installed bytes, its install and uninstall hooks probe the selected
 installation tree with non-writing, exclusive `OPEN_EXISTING` file handles.
 A running host image, its workspace images, and temporarily held resources must
 all release those files. Sharing and lock violations retry every 250 ms under
-one 30-second deadline per gate; other errors stop immediately. Neither failure
+one 30-second deadline per gate, checked during traversal as well as between
+retries. A large tree must not postpone the deadline until a full scan finishes;
+scan exhaustion stops with a distinct English/Chinese explanation before any
+installed bytes change. Other errors stop immediately. Neither failure
 path mutates installed files or kills processes. Directory reparse points,
 including junctions and directory symbolic links, are refused. Legacy Hugging
 Face snapshot file symlinks under `$INSTDIR\.fastembed_cache\` are allowed:
@@ -84,13 +87,23 @@ exclusive `FILE_FLAG_OPEN_REPARSE_POINT` handles probe only the link object,
 including dangling links, without accessing or waiting for external blob
 targets. File reparse points elsewhere and non-symlink reparse tags remain
 refused. The cache is runtime-generated and is not an installer payload
-destination. The executing uninstaller
+destination. The exact ordinary directory `$INSTDIR\dev-targets` is also
+preserved without traversal: the Windows development runner uses this location
+for Cargo output, neither shell bundle writes it, and the pinned Tauri
+uninstaller deletes only enumerated payloads. A root `dev-targets` junction is
+still refused before this exemption; a file of that name, a sibling prefix, or
+a nested `resources/dev-targets` remains subject to access checks. Do not bundle
+payloads under that development-cache destination without removing this
+exemption and updating its native acceptance. The executing uninstaller
 itself is excluded. The hook replaces the pinned template's name-based forced
 termination check, so a different installation or development host stays alive.
-An invisible installer page runs the same gate after `.onInit` restores the old
+An installer page runs the same gate after `.onInit` restores the old
 installation path and before maintenance can invoke a legacy uninstaller;
 `/UPDATE` already skips that uninstall, and silent installs still pass through
-the preinstall hook. The online updater and offline overlay inherit the same
+the preinstall hook. Non-silent gates display a localized waiting banner,
+including passive updates before installer pages appear, and destroy it on
+success or failure. Silent gates do not display the banner. The online updater
+and offline overlay inherit the same
 Windows bundle configuration. Exceptional installer copy is English/Chinese;
 ordinary delayed exits complete without a Retry dialog.
 
@@ -100,7 +113,12 @@ a temporary nested-resource lock, immediate permission refusal, the 30-second
 timeout with old bytes intact, manual maintenance, scoped uninstall, and another
 same-name installation staying alive. Cache link fixtures cover locked external
 targets, dangling links, link-object locks, install/uninstall, and refusal of
-directory junctions without changing external bytes. The runner
+directory junctions without changing external bytes. A 200,000-file development
+cache with an active host is preserved during prompt install/uninstall; cache
+junctions and nested payload locks retain the normal checks. A short-deadline
+large payload fixture proves timeout during traversal with old bytes intact.
+Passive fixtures assert a visible waiting window and capture English/Chinese
+native screenshots before automatically completing after image release. The runner
 uses temporary directories, including Chinese and spaced paths, and Rust-built
 image/handle holders; override `MAKENSIS` only to select an installed NSIS compiler.
 It then starts a real debug Tauri window with its verified prepared Runtime and

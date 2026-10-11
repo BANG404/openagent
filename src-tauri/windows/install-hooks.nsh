@@ -4,12 +4,16 @@
 !define /ifndef OPENAGENT_INSTALL_WAIT_MS 30000
 !define /ifndef OPENAGENT_INSTALL_POLL_MS 250
 
-LangString OpenAgentWaiting 1033 "Waiting for OpenAgent to exit and release installed files..."
-LangString OpenAgentWaiting 2052 "正在等待 OpenAgent 退出并释放安装文件…"
+LangString OpenAgentWaitTitle 1033 "OpenAgent update"
+LangString OpenAgentWaitTitle 2052 "OpenAgent 更新"
+LangString OpenAgentWaiting 1033 "Checking files. Please wait..."
+LangString OpenAgentWaiting 2052 "正在检查文件，请稍候…"
 LangString OpenAgentWaitTimeout 1033 "OpenAgent is still using its installed files. Close all OpenAgent windows and try again. Installation has not changed any files."
 LangString OpenAgentWaitTimeout 2052 "OpenAgent 仍在使用安装文件。请退出所有 OpenAgent 窗口后重试。安装文件尚未修改。"
 LangString OpenAgentWaitError 1033 "Unable to check access to the installed files. Installation has stopped before changing any files."
 LangString OpenAgentWaitError 2052 "无法检查安装文件的访问权限。安装已停止，安装文件尚未修改。"
+LangString OpenAgentScanTimeout 1033 "Checking the installation took too long. Move large development caches out of the installation directory and try again. Installation has not changed any files."
+LangString OpenAgentScanTimeout 2052 "安装目录检查超时。请将大型开发缓存移出安装目录后重试。安装文件尚未修改。"
 
 Var OpenAgentProbeError
 Var OpenAgentProbeFile
@@ -19,6 +23,17 @@ Var OpenAgentWaitStarted
 ; exclusive read/write/delete open. Scan the exact target tree so workspace
 ; hosts and bundled resources are covered without killing same-name processes.
 !macro OpenAgentProbeFunctions PREFIX
+; Enforce the gate's deadline during traversal, not only after a complete scan.
+Function ${PREFIX}OpenAgentCheckDeadline
+  Push $0
+  System::Call 'kernel32::GetTickCount() i .r0'
+  IntOp $0 $0 - $OpenAgentWaitStarted
+  ${If} $0 >= ${OPENAGENT_INSTALL_WAIT_MS}
+    StrCpy $OpenAgentProbeError 1460
+  ${EndIf}
+  Pop $0
+FunctionEnd
+
 Function ${PREFIX}OpenAgentProbeTree
   Exch $0
   Push $1
@@ -28,6 +43,10 @@ Function ${PREFIX}OpenAgentProbeTree
   Push $5
   Push $6
   StrCpy $2 0
+  Call ${PREFIX}OpenAgentCheckDeadline
+  ${If} $OpenAgentProbeError != 0
+    Goto done
+  ${EndIf}
   System::Call 'kernel32::GetFileAttributesW(w r0) i .r3 ?e'
   Pop $4
   ${If} $3 == -1
@@ -60,6 +79,11 @@ Function ${PREFIX}OpenAgentProbeTree
     Goto done
   ${EndIf}
   ${Do}
+    Call ${PREFIX}OpenAgentCheckDeadline
+    ${If} $OpenAgentProbeError != 0
+      StrCpy $OpenAgentProbeFile $0
+      ${ExitDo}
+    ${EndIf}
     IntOp $5 $2 + 44
     System::Call '*$5(&w260 .r3)'
     ${If} $3 != "."
@@ -88,6 +112,12 @@ Function ${PREFIX}OpenAgentProbeTree
       ${EndIf}
       IntOp $5 $4 & 0x10
       ${If} $5 != 0
+        ; The development runner puts Cargo outputs here. Neither the online
+        ; nor offline bundle writes this directory, and the pinned uninstaller
+        ; deletes only enumerated payloads. Preserve it without scanning its
+        ; potentially hundreds of thousands of files. Reparse checks above
+        ; still apply; only this exact root directory is excluded.
+        StrCmp "$0\$3" "$INSTDIR\dev-targets" next
         Push "$0\$3"
         Call ${PREFIX}OpenAgentProbeTree
       ${Else}
@@ -143,6 +173,10 @@ FunctionEnd
 Function ${PREFIX}OpenAgentWaitForRelease
   Push $0
   DetailPrint "$(OpenAgentWaiting)"
+  ; The maintenance gate precedes installer pages. Passive updates otherwise
+  ; have no visible window while checking files or waiting for a held image.
+  IfSilent +2
+    Banner::show /set 76 "$(OpenAgentWaitTitle)" "$(OpenAgentWaiting)"
   System::Call 'kernel32::GetTickCount() i .s'
   Pop $OpenAgentWaitStarted
   ${Do}
@@ -151,6 +185,11 @@ Function ${PREFIX}OpenAgentWaitForRelease
     Push "$INSTDIR"
     Call ${PREFIX}OpenAgentProbeTree
     ${If} $OpenAgentProbeError == 0
+      Call ${PREFIX}OpenAgentCheckDeadline
+    ${EndIf}
+    ${If} $OpenAgentProbeError == 0
+      IfSilent +2
+        Banner::destroy
       Pop $0
       Return
     ${EndIf}
@@ -158,6 +197,7 @@ Function ${PREFIX}OpenAgentWaitForRelease
     ; fail immediately rather than retrying a broken installation indefinitely.
     ${If} $OpenAgentProbeError != 32
     ${AndIf} $OpenAgentProbeError != 33
+    ${AndIf} $OpenAgentProbeError != 1460
       DetailPrint "$(OpenAgentWaitError) ($OpenAgentProbeError): $OpenAgentProbeFile"
       !ifdef OPENAGENT_INSTALL_TEST_LOG
         FileOpen $0 "${OPENAGENT_INSTALL_TEST_LOG}" w
@@ -165,6 +205,8 @@ Function ${PREFIX}OpenAgentWaitForRelease
         FileClose $0
       !endif
       SetErrorLevel 2
+      IfSilent +2
+        Banner::destroy
       MessageBox MB_ICONSTOP|MB_OK "$(OpenAgentWaitError) ($OpenAgentProbeError): $OpenAgentProbeFile" /SD IDOK
       Quit
     ${EndIf}
@@ -172,6 +214,7 @@ Function ${PREFIX}OpenAgentWaitForRelease
     Pop $0
     IntOp $0 $0 - $OpenAgentWaitStarted
     ${If} $0 >= ${OPENAGENT_INSTALL_WAIT_MS}
+    ${OrIf} $OpenAgentProbeError == 1460
       DetailPrint "$(OpenAgentWaitTimeout): $OpenAgentProbeFile"
       !ifdef OPENAGENT_INSTALL_TEST_LOG
         FileOpen $0 "${OPENAGENT_INSTALL_TEST_LOG}" w
@@ -179,7 +222,13 @@ Function ${PREFIX}OpenAgentWaitForRelease
         FileClose $0
       !endif
       SetErrorLevel 2
-      MessageBox MB_ICONSTOP|MB_OK "$(OpenAgentWaitTimeout)" /SD IDOK
+      IfSilent +2
+        Banner::destroy
+      ${If} $OpenAgentProbeError == 1460
+        MessageBox MB_ICONSTOP|MB_OK "$(OpenAgentScanTimeout)" /SD IDOK
+      ${Else}
+        MessageBox MB_ICONSTOP|MB_OK "$(OpenAgentWaitTimeout)" /SD IDOK
+      ${EndIf}
       Quit
     ${EndIf}
     Sleep ${OPENAGENT_INSTALL_POLL_MS}
