@@ -10,6 +10,11 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.78.2-beta.1] - 2026-10-11
+
+### Bug Fixes
+- **installer**: Accept legacy embedding cache file symlinks
+
 ## [0.78.1-beta.1] - 2026-10-10
 
 ### Bug Fixes
