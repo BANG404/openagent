@@ -15,7 +15,7 @@
     <section class="detail-section">
       <h4 class="detail-section-title">{$t("appearance")}</h4>
       <div class="application-settings-surface settings-card">
-        <div class="settings-card-row">
+        <div class="settings-card-row" data-appearance-mode>
           <span class="settings-card-copy">
             <span class="label-text">{$t("appearanceMode")}</span>
             <span class="detail-hint">{$t("themeHint")}</span>

@@ -5,6 +5,7 @@
   import { useSettingsContext } from "$lib/settings/context";
   import type { ThemeColors } from "$lib/types";
   import Select from "../ui/Select.svelte";
+  import SettingsActionButton from "../ui/SettingsActionButton.svelte";
   const { draft, plugins } = useSettingsContext();
   let dark = $state(false);
   let defaults = $state({ accent: "", background: "", foreground: "", ui: "14", code: "13" });
@@ -93,30 +94,32 @@
   </div>
 </div>
 {#if plugins.agentPluginStatus}
-  <p class="detail-hint" role="status">{plugins.agentPluginStatus}</p>
+  <p class="detail-hint appearance-hint" role="status">{plugins.agentPluginStatus}</p>
 {/if}
 {#if unavailable}
-  <p class="detail-hint" role="status">{$t("appearanceUnavailableHint")}</p>
+  <p class="detail-hint appearance-hint" role="status">{$t("appearanceUnavailableHint")}</p>
 {:else if selectedDisabled}
-  <button
-    class="btn-secondary"
-    type="button"
-    onclick={() => selectTheme(draft.draftConfig.theme_plugin)}
-    >{$t("appearanceEnableTheme")}</button
-  >
+  <div class="appearance-actions">
+    <SettingsActionButton
+      label={$t("appearanceEnableTheme")}
+      onclick={() => selectTheme(draft.draftConfig.theme_plugin)}
+    />
+  </div>
 {/if}
 {#each fields as key (key)}
   <div class="settings-card-row" data-appearance-color={key}>
-    <label class="label-text" for={`appearance-${key}`}
-      >{$t(
-        key === "accent"
-          ? "appearanceAccent"
-          : key === "background"
-            ? "appearanceBackground"
-            : "appearanceForeground",
-      )}</label
-    >
-    <div class="color-control">
+    <span class="settings-card-copy">
+      <label class="label-text" for={`appearance-${key}`}
+        >{$t(
+          key === "accent"
+            ? "appearanceAccent"
+            : key === "background"
+              ? "appearanceBackground"
+              : "appearanceForeground",
+        )}</label
+      >
+    </span>
+    <div class="settings-card-control color-control">
       <span
         class="color-swatch"
         style:background={draft.draftConfig.theme_overrides[palette][key] ?? defaults[key]}
@@ -144,17 +147,19 @@
           event.currentTarget.value = draft.draftConfig.theme_overrides[palette][key] ?? "";
         }}
       />
-      <button
-        class="btn-icon"
-        type="button"
-        aria-label={$t("appearanceResetField")}
-        onclick={() => setColor(key, "")}>↺</button
-      >
+      <SettingsActionButton
+        label={$t("appearanceResetField")}
+        icon="refresh"
+        tone="quiet"
+        onclick={() => setColor(key, "")}
+      />
     </div>
   </div>
 {/each}
 <div class="settings-card-row" data-appearance-font>
-  <span class="label-text">{$t("appearanceFont")}</span>
+  <span class="settings-card-copy">
+    <span class="label-text">{$t("appearanceFont")}</span>
+  </span>
   <div class="settings-card-control">
     <Select
       bind:value={draft.draftConfig.theme_overrides.font_family}
@@ -169,7 +174,7 @@
     />
   </div>
 </div>
-<p class="detail-hint palette-hint">
+<p class="detail-hint appearance-hint">
   {$t(dark ? "appearanceDarkOverrides" : "appearanceLightOverrides")}
 </p>
 <details class="appearance-advanced">
@@ -177,10 +182,12 @@
   {#each ["ui_font_size", "code_font_size"] as key (key)}
     {@const field = key as "ui_font_size" | "code_font_size"}
     <div class="settings-card-row">
-      <label class="label-text" for={`appearance-${field}`}
-        >{$t(field === "ui_font_size" ? "appearanceUiSize" : "appearanceCodeSize")}</label
-      >
-      <div class="size-control">
+      <span class="settings-card-copy">
+        <label class="label-text" for={`appearance-${field}`}
+          >{$t(field === "ui_font_size" ? "appearanceUiSize" : "appearanceCodeSize")}</label
+        >
+      </span>
+      <div class="settings-card-control size-control">
         <input
           id={`appearance-${field}`}
           type="number"
@@ -196,10 +203,8 @@
     </div>
   {/each}
 </details>
-<div class="appearance-reset">
-  <button class="btn-secondary" type="button" data-appearance-reset onclick={reset}
-    >{$t("appearanceReset")}</button
-  >
+<div class="appearance-actions" data-appearance-reset>
+  <SettingsActionButton label={$t("appearanceReset")} icon="refresh" onclick={reset} />
 </div>
 
 <style>
@@ -207,37 +212,63 @@
   .size-control {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 8px;
   }
   .color-swatch {
     width: 16px;
     height: 16px;
+    flex: 0 0 16px;
     border-radius: 50%;
     border: 1px solid var(--border);
   }
   .color-control input {
     width: 102px;
+    min-width: 0;
+  }
+  .color-control :global(.settings-action) {
+    align-self: center;
   }
   .size-control input {
     width: 72px;
+    flex: 0 1 72px;
+    margin: 0;
   }
-  .palette-hint {
-    padding-block: 8px;
+  .appearance-hint {
+    margin: 0;
+    padding: 8px 16px;
+  }
+  .appearance-advanced {
+    border-block: 1px solid var(--mica-divider);
   }
   .appearance-advanced summary {
+    margin-inline: 16px;
     color: var(--text-muted);
+    font-size: var(--settings-body-size);
+    line-height: var(--settings-body-leading);
     cursor: pointer;
-    padding-block: 8px;
+    padding-block: 12px;
   }
-  .appearance-reset {
+  .appearance-advanced summary:focus-visible {
+    outline: none;
+    border-radius: 6px;
+    box-shadow: var(--focus-ring);
+  }
+  .appearance-actions {
     display: flex;
     justify-content: flex-end;
-    padding-block: 8px;
+    padding: 12px 16px;
   }
   .theme-skeleton {
     width: 100%;
     height: var(--settings-control-height);
     border-radius: 8px;
     background: var(--component-neutral-bg);
+  }
+  @media (max-width: 640px) {
+    .color-control,
+    .size-control {
+      justify-content: flex-start;
+    }
   }
 </style>

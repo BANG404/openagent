@@ -112,6 +112,51 @@ try {
         await emit('agent-plugins-changed'); return true;`);
       const primary = theme === "light" ? "#663399" : "#cc99ff";
       await open("general");
+      // Hold one real save while another edit passes its debounce. Its reply and
+      // settings notifications must preserve the newer preview and merge base.
+      await operation(`const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
+        window.__appearanceSaveOriginal=c.invokeProduct;
+        window.__appearanceSaveStarted=false;
+        c.invokeProduct=async function(command,args){
+          if(command==='save_settings' && !window.__appearanceSaveStarted){
+            window.__appearanceSaveStarted=true;
+            await new Promise(resolve=>window.__appearanceSaveRelease=resolve);
+          }
+          return window.__appearanceSaveOriginal.call(this,command,args);
+        }; return true;`);
+      try {
+        pilot(["click", "[data-appearance-mode] button"]);
+        pilot(["click", `[role=option][data-value="${theme === "light" ? "dark" : "light"}"]`]);
+        await waitExpression("window.__appearanceSaveStarted");
+        pilot(["click", "[data-appearance-mode] button"]);
+        pilot(["click", `[role=option][data-value="${theme}"]`]);
+        pilot(["fill", "#appearance-accent", "#337799"]);
+        await operation(`const {emit}=await import('/src/lib/openagent/tauriClient.ts');
+          await emit('settings-changed'); await new Promise(resolve=>setTimeout(resolve,1000));
+          if(document.documentElement.classList.contains('dark')!==${theme === "dark"})
+            throw new Error('settings notification replaced the draft theme');
+          window.__appearanceSaveRelease(); return true;`);
+        await operation(`const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
+          for(let i=0;i<100;i++){const config=await c.invokeProduct('get_settings',{});
+            if(config.theme==='${theme}' && config.theme_overrides?.['${theme}']?.accent==='#337799'){
+              await new Promise(resolve=>setTimeout(resolve,1000));
+              if(document.documentElement.classList.contains('dark')!==${theme === "dark"} ||
+                document.querySelector('#appearance-accent').value!=='#337799')
+                throw new Error('earlier save replaced the newer appearance edit');
+              return true;
+            } await new Promise(resolve=>setTimeout(resolve,100));
+          } throw new Error('appearance edit made during a save did not persist');`);
+      } finally {
+        evaluate(`window.__appearanceSaveRelease?.(); true`);
+        await operation(`const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
+          c.invokeProduct=window.__appearanceSaveOriginal; return true;`);
+      }
+      pilot(["fill", "#appearance-accent", ""]);
+      await operation(`const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
+        for(let i=0;i<100;i++){
+          if(!(await c.invokeProduct('get_settings',{})).theme_overrides?.['${theme}']?.accent)return true;
+          await new Promise(resolve=>setTimeout(resolve,100));
+        } throw new Error('race probe override did not reset');`);
       pilot(["click", "[data-appearance-theme] button"]);
       await waitExpression(`document.querySelector('[role=option][data-value="${themeId}"]')`);
       pilot(["click", `[role=option][data-value="${themeId}"]`]);
@@ -168,7 +213,7 @@ try {
         `window.__TAURI_INTERNALS__.invoke('plugin:window|hide',{label:'settings-general'}); true`,
         "settings-general",
       );
-      pilot(["click", "[data-appearance-reset]"]);
+      pilot(["click", "[data-appearance-reset] button"]);
       await waitExpression(
         `document.documentElement.style.getPropertyValue('--primary')==='${primary}' && !document.documentElement.style.getPropertyValue('--app-font-size') && !document.documentElement.style.getPropertyValue('--code-font-size')`,
       );

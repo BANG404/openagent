@@ -26,6 +26,7 @@
   import { normalizeConfigShape } from "$lib/config";
   import { applyPluginThemeTokens, appearanceTokens } from "$lib/pluginPresentation";
   import { appearancePreview } from "$lib/appearancePreview";
+  import { get } from "svelte/store";
   import { applyDocumentTheme, createNativeThemeSynchronizer, type AppTheme } from "$lib/appTheme";
   import { ComposerPreferences } from "$lib/composerPreferences.svelte";
   import {
@@ -2549,6 +2550,7 @@
   }
 
   function applyTheme(theme: string) {
+    theme = get(appearancePreview)?.theme ?? theme;
     if (synchronizeNativeTheme) {
       const generation = ++themeSyncGeneration;
       themeSyncInFlight = true;

@@ -1,5 +1,10 @@
 # Shared product-host contract
 
+The page's theme application respects the active settings appearance preview
+before applying a saved mode, including configuration-change notifications.
+Draft preview and save sequencing are owned by the configuration skill's
+[save and reload behavior](../../openagent-configuration/references/save-and-reload.md).
+
 - Treat Tauri/Svelte and GPUI as product hosts over the same public SDK facade.
   GPUI must consume the SDK startup bootstrap, runtime event stream, settings,
   workspaces, roles/models, conversations, and durable checkpoints; it must not

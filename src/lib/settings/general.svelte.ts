@@ -122,16 +122,14 @@ export function createGeneralSettings(
 
   $effect(() => {
     const theme = draft.draftConfig.theme ?? "system";
-    if (options.onThemePreview) options.onThemePreview(theme);
-    else applyDocumentTheme(theme);
-  });
-
-  $effect(() => {
     appearancePreview.set({
+      theme,
       theme_plugin: draft.draftConfig.theme_plugin,
       theme_overrides: $state.snapshot(draft.draftConfig.theme_overrides),
       agent_plugins_enabled: $state.snapshot(draft.draftConfig.agent_plugins_enabled),
     });
+    if (options.onThemePreview) options.onThemePreview(theme);
+    else applyDocumentTheme(theme);
   });
   onDestroy(() => appearancePreview.set(null));
 

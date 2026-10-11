@@ -4,6 +4,30 @@ fail_fast = true
 global_timeout_ms = 60000
 
 [[step]]
+name = "appearance rows share the General settings alignment and hierarchy"
+action = "eval"
+script = '''(() => {
+  const rows = [...document.querySelectorAll('[data-appearance-color], [data-appearance-font]')];
+  for (const row of rows) {
+    const label = row.querySelector('.settings-card-copy > .label-text');
+    const control = row.querySelector('.settings-card-control');
+    if (!label || !control) throw new Error('appearance row bypasses shared settings layout');
+    const bounds = row.getBoundingClientRect();
+    const field = control.getBoundingClientRect();
+    if (field.left < bounds.left || field.right > bounds.right + 1 ||
+        control.scrollWidth > control.clientWidth + 1)
+      throw new Error('appearance controls overflow their row');
+    if (getComputedStyle(label).fontWeight !== getComputedStyle(document.querySelector('[data-appearance-theme] .label-text')).fontWeight)
+      throw new Error('appearance label hierarchy differs from other settings');
+  }
+  const rowLeft = rows[0].querySelector('.label-text').getBoundingClientRect().left;
+  const hintLeft = document.querySelector('.appearance-hint').getBoundingClientRect().left + parseFloat(getComputedStyle(document.querySelector('.appearance-hint')).paddingLeft);
+  const summaryLeft = document.querySelector('.appearance-advanced summary').getBoundingClientRect().left;
+  if (Math.abs(rowLeft - hintLeft) > 1 || Math.abs(rowLeft - summaryLeft) > 1)
+    throw new Error('appearance hint or disclosure lost its row inset');
+})()'''
+
+[[step]]
 name = "selected package and localized override controls"
 action = "eval"
 script = '''(() => {

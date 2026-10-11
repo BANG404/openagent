@@ -46,6 +46,13 @@ Reset overrides clears both palettes and typography while retaining the selected
 package; selecting OpenAgent default restores built-in design beneath overrides.
 Theme application and the draft preview are owned by the frontend page, with
 CSS variables for application typography and shared chat/diff code font size.
+The preview includes the light/dark/system mode: saved configuration callbacks
+and cross-window reloads must not replace the active settings draft's mode.
+Queued saves capture their snapshot and accepted baseline when their turn starts,
+after the preceding result has rebased the draft. Edits made during a save stay
+dirty and schedule another save; accepting an earlier result must not suppress
+their autosave. Verify delayed save replies, intervening notifications and
+reopening with `bun run test:blackbox:plugin-presentation`.
 
 Frontend configuration normalization shares the same stable plugin-ID validator
 across enablement, host access, and MCP mode overrides. Only enablement drops

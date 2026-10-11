@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
+  import { get } from "svelte/store";
+  import { appearancePreview } from "$lib/appearancePreview";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import SettingsWindowSkeleton from "$lib/components/SettingsWindowSkeleton.svelte";
   import SettingsView from "$lib/components/SettingsView.svelte";
@@ -49,6 +51,7 @@
   );
 
   function applyNativeTheme(theme: AppTheme): void {
+    theme = (get(appearancePreview)?.theme ?? theme) as AppTheme;
     const generation = ++themeSyncGeneration;
     themeSyncInFlight = true;
     void (synchronizeNativeTheme?.(theme) ?? Promise.resolve()).finally(() => {
@@ -146,6 +149,7 @@
       initialNav={selectedSection}
       sections={settingsWindowSections[kind]}
       onSave={saveSettings}
+      onThemePreview={(theme) => applyNativeTheme(theme as AppTheme)}
       onOpenConversation={openConversation}
     />
   {:else}

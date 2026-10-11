@@ -74,24 +74,25 @@ export function createSettingsDraft(
       autoSaveTimer = null;
     }
     if (!initializedFromConfig) return Promise.resolve();
-    const snapshot = snapshotDraftConfig();
-    const incompletePendingMcp = snapshot.mcp.servers.some((server) => {
-      if (!pendingMcpServerIds.has(server.id)) return false;
-      return server.transport === "http" ? !server.url.trim() : !server.command.trim();
-    });
-    if (incompletePendingMcp) return Promise.resolve();
-    if (!settingsConfigChanged(snapshot, acceptedConfigFingerprint)) return Promise.resolve();
-    const baseConfig = JSON.parse(acceptedConfigFingerprint) as AppConfig;
     pendingSave = pendingSave
       .catch(() => {})
       .then(async () => {
+        // A queued save must use the draft and baseline left by the previous save.
+        const snapshot = snapshotDraftConfig();
+        const incompletePendingMcp = snapshot.mcp.servers.some((server) => {
+          if (!pendingMcpServerIds.has(server.id)) return false;
+          return server.transport === "http" ? !server.url.trim() : !server.command.trim();
+        });
+        if (incompletePendingMcp || !settingsConfigChanged(snapshot, acceptedConfigFingerprint))
+          return;
+        const baseConfig = JSON.parse(acceptedConfigFingerprint) as AppConfig;
         try {
           const saved = normalizeConfigShape(await options.onSave(snapshot, baseConfig));
           const edited = snapshotDraftConfig();
           const rebased = normalizeConfigShape(
             rebaseDraftValue(snapshot, saved, edited) as AppConfig,
           );
-          suppressNextAutoSave = true;
+          suppressNextAutoSave = !settingsConfigChanged(rebased, JSON.stringify(saved));
           draftConfig = rebased;
           acceptedConfigFingerprint = JSON.stringify(saved);
           for (const server of edited.mcp.servers) pendingMcpServerIds.delete(server.id);
