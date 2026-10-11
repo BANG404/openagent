@@ -9,6 +9,7 @@
     scrollable = true,
     path = "",
     contentMode = false,
+    fullFile = false,
     emptyLabel = "",
   }: {
     lines: FileChangeDiffLine[];
@@ -16,6 +17,7 @@
     scrollable?: boolean;
     path?: string;
     contentMode?: boolean;
+    fullFile?: boolean;
     emptyLabel?: string;
   } = $props();
 
@@ -60,6 +62,7 @@
           class="diff-row {line.type}"
           class:single-line-numbers={singleLineNumbers}
           class:content-mode={contentMode}
+          class:full-file={fullFile}
         >
           {#if singleLineNumbers}
             <span class="line-number">{line.newLine ?? line.oldLine ?? ""}</span>

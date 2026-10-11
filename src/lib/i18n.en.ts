@@ -123,6 +123,7 @@ const en: Record<TranslationKeys, string> = {
   fileChangeViewMode: "File view",
   fileChangeBranchScope: "Selected branch",
   fileChangeRevertBranch: "Revert all changes to this file on the selected branch",
+  fileChangeContentUnavailable: "Recorded file content is unavailable",
   fileChangeDeletedContent: "This file was deleted",
   fileChangeEmptyContent: "This file is empty",
   fileChangeRefreshFailed: "The file was reverted. Refresh the conversation to reload its changes.",

@@ -1,5 +1,5 @@
 [scenario]
-name = "Files sidebar renders language syntax and plaintext fallback"
+name = "Files sidebar shows recorded full content in terminal-style collapsible rows"
 fail_fast = true
 global_timeout_ms = 30000
 
@@ -9,62 +9,66 @@ action = "click"
 target = ".checkpoint-flow-toggle"
 
 [[step]]
-name = "each file keeps diff metadata and theme-aware syntax"
+name = "full content, syntax, raw snapshots and collapsible file states"
 action = "eval"
 script = '''(async () => {
   const panel = document.querySelector('#checkpoint-flow-panel .file-panel');
-  const sidebar = document.querySelector('#checkpoint-flow-panel');
-  if (sidebar.classList.contains('collapsed') || panel.getBoundingClientRect().height <= 0) throw new Error('Files sidebar is not visible');
-  const tabs = [...panel.querySelectorAll('.file-tab')];
-  const paths = ['sample.ts', 'sample.py', 'sample.ps1', 'sample.unknown'];
-  if (tabs.length !== paths.length) throw new Error('language fixtures missing');
+  if (document.querySelector('#checkpoint-flow-panel').classList.contains('collapsed') || panel.getBoundingClientRect().height <= 0) throw new Error('Files sidebar is not visible');
+  const rows = [...panel.querySelectorAll('.file-row')];
+  const paths = ['sample.ts', 'sample.py', 'sample.ps1', 'sample.unknown', 'long.txt', 'recorded.txt', 'empty.txt', 'deleted.txt', 'unavailable.txt'];
+  if (rows.length !== paths.length || panel.querySelector('.file-tabs, .file-view-controls, [role="tablist"]')) throw new Error('Files must be a vertical collapsible list');
   for (const [index, path] of paths.entries()) {
-    tabs[index].click();
-    const deadline = Date.now() + 10000;
-    while (Date.now() < deadline && (panel.querySelector('.file-path')?.textContent !== path || !panel.querySelector('.diff-token'))) await new Promise(resolve => setTimeout(resolve, 50));
-    if (panel.querySelector('.file-path')?.textContent !== path) throw new Error('file selection is stale');
-    if (!panel.querySelector('.diff-row.add .line-number') || panel.querySelector('.diff-row.add .line-marker')?.textContent !== '+') throw new Error('diff metadata lost');
-    const tokens = [...panel.querySelectorAll('.diff-row.add .diff-token')];
+    if (!rows[index].textContent.includes(path)) throw new Error('file path missing');
+    if (rows[index].getAttribute('aria-expanded') !== 'true') rows[index].click();
+    await new Promise(resolve => setTimeout(resolve, 200));
+    if (rows[index].getAttribute('aria-expanded') !== 'true' || rows.filter(row => row.getAttribute('aria-expanded') === 'true').length !== 1) throw new Error('file expansion did not select this path');
+    if (index < 6 && !panel.querySelector('.diff-row.full-file')) throw new Error('complete file with inline diff is missing');
+    const content = [...panel.querySelectorAll('.diff-row.full-file:not(.remove)')];
+    if (index < 6 && (!content.length || content.some(row => !row.querySelector('.line-number')))) throw new Error('complete content or line numbers missing');
     if (index < 3) {
-      const styledDeadline = Date.now() + 10000;
-      while (Date.now() < styledDeadline && !panel.querySelector('.diff-token[style*="--shiki-light"]')) await new Promise(resolve => setTimeout(resolve, 50));
-      const colored = [...panel.querySelectorAll('.diff-row.add .diff-token[style*="--shiki-light"]')];
-      if (!colored.length || !colored.every(token => token.style.getPropertyValue('--shiki-dark'))) throw new Error(`syntax styles missing: ${path}`);
-      const colors = new Set(colored.map(token => getComputedStyle(token).color));
-      if (colors.size < 2) throw new Error(`no syntax color distinction: ${path}`);
+      const deadline = Date.now() + 4000;
+      while (Date.now() < deadline && !panel.querySelector('.diff-token[style*="--shiki-light"]')) await new Promise(resolve => setTimeout(resolve, 50));
+      const colored = [...panel.querySelectorAll('.diff-token[style*="--shiki-light"]')];
+      if (!colored.length || !colored.every(token => token.style.getPropertyValue('--shiki-dark'))) throw new Error('syntax styles missing: ' + path);
+      if (new Set(colored.map(token => getComputedStyle(token).color)).size < 2) throw new Error('syntax has one color: ' + path);
       const mode = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-      const token = colored[0];
-      const probe = document.createElement('span');
-      probe.style.color = token.style.getPropertyValue(`--shiki-${mode}`);
-      panel.append(probe);
-      if (getComputedStyle(token).color !== getComputedStyle(probe).color) throw new Error(`wrong ${mode} syntax theme`);
-      probe.remove();
-    } else {
-      const text = panel.querySelector('.diff-table').textContent;
-      if (!text.includes('<script>alert("raw text")</script>') || !text.includes('```literal fences```')) throw new Error('unknown-file text was interpreted or lost');
-      if (tokens.some(token => token.style.cssText) || panel.querySelector('code script')) throw new Error('unknown-file fallback is not plain text');
+      const probe = document.createElement('span'); probe.style.color = colored[0].style.getPropertyValue('--shiki-' + mode); panel.append(probe);
+      if (getComputedStyle(colored[0]).color !== getComputedStyle(probe).color) throw new Error('wrong syntax theme'); probe.remove();
+    }
+    if (index === 3) {
+      if (!panel.querySelector('.diff-table').textContent.includes('<script>alert("raw text")</script>') || panel.querySelector('code script')) throw new Error('literal source was interpreted');
+      if ([...panel.querySelectorAll('.diff-token')].some(token => token.style.cssText)) throw new Error('unknown language is not plaintext');
+    }
+    if (index === 4) {
+      const viewport = panel.querySelector('.file-content-scroll .ui-scroll-area-viewport');
+      if (content.length !== 100 || viewport.clientHeight > 420 || viewport.scrollHeight <= viewport.clientHeight) throw new Error('long file did not use a bounded scroll area');
+      viewport.scrollTop = viewport.scrollHeight;
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      if (!content.at(-1).textContent.includes('recorded line 100') || content.at(-1).getBoundingClientRect().bottom > viewport.getBoundingClientRect().bottom + 2) throw new Error('last recorded line is unreachable');
+    }
+    if (index === 5) {
+      if (!panel.querySelector('.diff-row.remove')?.textContent.includes('two') || !panel.querySelector('.diff-row.add')?.textContent.includes('TWO')) throw new Error('raw snapshot lost inline edit markers');
+      if (content.map(row => row.querySelector('code').textContent).join('\n') !== 'one\nTWO\nthree\nFOUR') throw new Error('edited raw snapshot lost unchanged lines');
+      if (!panel.querySelector('.revert-button').disabled) throw new Error('raw snapshot cannot authorize cumulative rollback');
+    }
+    if (index >= 6) {
+      const zh = document.documentElement.lang === 'zh' || panel.textContent.includes('所选分支');
+      const expected = index === 6 ? (zh ? '此文件为空' : 'This file is empty') : index === 7 ? (zh ? '此文件已删除' : 'This file was deleted') : (zh ? '无法读取记录中的完整文件内容' : 'Recorded file content is unavailable');
+      if (content.length || !panel.textContent.includes(expected)) throw new Error('wrong empty/deleted/unreadable state: ' + path);
     }
   }
-  tabs[0].click();
-  await new Promise(resolve => setTimeout(resolve, 200));
-  const rows = [...panel.querySelectorAll('.diff-row.add code')];
-  if (rows.map(row => row.textContent).join('\n') !== 'const message: string = "你好";\n/* comment\ncontinued */\nconsole.log(message);') throw new Error('source text changed during highlighting');
-  const modes = [...panel.querySelectorAll('.file-view-controls [role="tab"]')];
-  if (modes.length !== 2) throw new Error('diff/full-file modes missing');
-  modes[1].click();
-  await new Promise(resolve => setTimeout(resolve, 200));
-  const complete = [...panel.querySelectorAll('.diff-row.content-mode')];
-  if (complete.length !== 4 || complete.map(row => row.querySelector('code').textContent).join('\n') !== 'const message: string = "你好";\n/* comment\ncontinued */\nconsole.log(message);') throw new Error('full file omits recorded lines');
-  if (panel.querySelector('.line-marker') || complete.some(row => row.querySelectorAll('.line-number').length !== 1)) throw new Error('full file retained diff gutters');
-  tabs[3].click();
-  await new Promise(resolve => setTimeout(resolve, 200));
-  if (!panel.querySelector('.diff-table').textContent.includes('<script>alert("raw text")</script>') || panel.querySelector('code script')) throw new Error('full-file source was interpreted');
-  tabs[0].click();
-  modes[0].click();
-  await new Promise(resolve => setTimeout(resolve, 200));
+  rows[0].click(); await new Promise(resolve => setTimeout(resolve, 200));
+  if ([...panel.querySelectorAll('.diff-row:not(.remove) code')].map(row => row.textContent).join('\n') !== 'const message: string = "你好";\n/* comment\ncontinued */\nconsole.log(message);') throw new Error('recorded full source changed');
+  const output = panel.querySelector('.file-content-scroll .ui-scroll-area-viewport');
+  if (output.clientHeight > 120) throw new Error('short file reserves a blank window');
+  rows[0].click(); await new Promise(resolve => setTimeout(resolve, 100));
+  if (rows[0].getAttribute('aria-expanded') !== 'false' || panel.querySelector('.diff-table')) throw new Error('explicit collapse reopened itself');
+  rows[0].focus(); rows[0].dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowDown', bubbles: true}));
+  if (document.activeElement !== rows[1]) throw new Error('accordion keyboard navigation failed');
+  rows[0].click(); await new Promise(resolve => setTimeout(resolve, 100));
   document.querySelector('#checkpoint-flow-panel').style.width = '260px';
   await new Promise(resolve => requestAnimationFrame(resolve));
   const viewport = panel.querySelector('.ui-scroll-area-viewport');
-  if (viewport.scrollWidth > viewport.clientWidth + 2) throw new Error('narrow file sidebar overflows');
-  return 'multilanguage diff, active theme and literal fallback verified';
+  if (viewport.scrollWidth > viewport.clientWidth + 2) throw new Error('narrow Files sidebar overflows');
+  return 'complete recorded files, collapse, syntax and unavailable states verified';
 })()'''

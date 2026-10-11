@@ -228,28 +228,45 @@
   successful but stale refresh cannot remove the Files entry or its title-bar
   toggle while file changes remain observable. Its
   top-level Status and Files tabs preserve one
-  full-height body, and the Files page uses horizontally scrollable file tabs
-  with one selected file and a shared Diff / Full file control. Desktop and remote
-  surfaces use the SDK's branch-scoped `FileChange.projection`: the first
-  recorded baseline is compared with the latest recorded snapshot, including
-  creation followed by edits. Never prefer an initial creation record over its
-  later projection, infer checkpoint ordering from timestamps, or read the live
-  filesystem to render historical content. Select files by path so streaming
-  replacements preserve selection. An available net-zero projection disappears
-  from the Files list. The transcript retains individual operation records.
-  Full file mode shows all latest recorded lines with one line-number gutter;
-  deletion and empty files have explicit localized states. Incomplete cumulative
-  history can still expose the latest content, but disables whole-file revert.
-  Revert restores this file's selected-branch baseline independently of display
-  mode, refreshes the durable list, and reports failures inline. Verify the Files
-  module with `bun run test:blackbox:file-diff`, including full-file mode,
-  language syntax, literal source, narrow layout, and reload in both locales
-  and themes. Run `bun run test:blackbox:file-projection` on a fresh temporary
-  application home for actual persisted create/append/edit snapshots, sibling
-  isolation, reload, external-edit rejection and whole-file revert from full
-  content mode. Its fixture is SDK-owned and must never seed user data.
-  Run `bun run test:blackbox:remote-page` for the actual remote route with
-  the shared Files surface in both locales/themes.
+  full-height body. Files uses the same vertical collapsible-row layout as the
+  terminal sidebar, with one file expanded at a time. Show complete recorded content
+  with inline diff: unchanged lines outside hunks remain visible, additions are
+  green, and removed baseline lines are red at their original position. Do not
+  add file tabs, window chrome or a Diff / Full file switch to this sidebar.
+  Load the file panel body asynchronously behind a sidebar skeleton so its
+  Accordion and preview code stay outside the initial main-route bundle.
+  Use Bits UI Accordion for keyboard navigation and expansion semantics.
+  Preserve expansion by path per conversation/branch;
+  an explicit collapse stays collapsed when live records replace existing ones.
+  Short file content has intrinsic height; long content gets a bounded shared
+  ScrollArea so other file rows remain reachable.
+  Desktop and remote surfaces prefer the SDK's branch-scoped
+  `FileChange.projection` latest content, including creation followed by edits.
+  When a record has no derived projection, decode its complete compressed
+  `new_content_z` snapshot, including for edited files. Never reconstruct a full
+  file from a diff hunk or read the current filesystem for historical content.
+  Overlay the cumulative forward patch on the latest snapshot; raw records use
+  their reverse patch. Preserve old/new line numbers across disjoint hunks,
+  including zero-length insertion/deletion anchors. A deleted file shows its
+  removed baseline when the projection supplies that diff.
+  Projection content, including deletion/unavailability, is authoritative when
+  present. Empty, deleted and unreadable snapshots have distinct localized states.
+  Never prefer an initial creation record over its later projection or infer
+  checkpoint ancestry from timestamps. An available net-zero projection disappears
+  from the Files list. The transcript retains individual operation records and
+  its per-operation diff display. Records without an available cumulative
+  projection still display their complete snapshots but disable whole-file revert.
+  Revert restores the file's selected-branch baseline, refreshes its durable
+  history, and reports failures inline on that file.
+  Verify Files with `bun run test:blackbox:file-diff`: collapsible rows, keyboard
+  interaction, full recorded snapshots with and without projections, language
+  syntax, literal source, empty/deleted/unreadable content, intrinsic short-content
+  height, narrow layout and reload in both locales/themes.
+  Run `bun run test:blackbox:file-projection` on a fresh temporary application home
+  for persisted create/append/edit snapshots, sibling isolation, reload, external
+  edit rejection and whole-file revert. Its fixture is SDK-owned and must never
+  seed user data. Run `bun run test:blackbox:remote-page` for the actual remote
+  route's shared Files surface in both locales/themes.
   SDK snapshot, live-event, branch, and rollback correctness belong
   to its Runtime tests. Keep the
   title-bar toggle and collapsible panel host available whenever any package
