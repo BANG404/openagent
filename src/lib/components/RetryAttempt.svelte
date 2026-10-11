@@ -7,7 +7,7 @@
   import { chatMarkdownTheme } from "$lib/streamdown/chatMarkdownTheme";
   import { customExtensions } from "$lib/streamdown/extensions";
   import type { ComponentToken } from "$lib/streamdown/extensions";
-  import type { FileChange, StreamItem } from "$lib/types";
+  import type { StreamItem } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { t } from "$lib/i18n";
   import ToolCallCard from "./ToolCallCard.svelte";
@@ -23,19 +23,11 @@
     item: Extract<StreamItem, { type: "retry" }>;
     shikiTheme: string;
     mermaidConfig: MermaidConfig;
-    fileChanges?: FileChange[];
     onSubmitUserInput: (requestId: string, values: Record<string, unknown>) => void;
     onCancelUserInput: (requestId: string) => void;
   }
 
-  let {
-    item,
-    shikiTheme,
-    mermaidConfig,
-    fileChanges = [],
-    onSubmitUserInput,
-    onCancelUserInput,
-  }: Props = $props();
+  let { item, shikiTheme, mermaidConfig, onSubmitUserInput, onCancelUserInput }: Props = $props();
 
   let expandedToolCalls = $state(new Set<number>());
   const attemptSegments = $derived(groupStreamItems(item.items));
@@ -63,12 +55,7 @@
   <div class="attempt-content" use:externalLinks={capabilities.openUrl}>
     {#each attemptSegments as segment (segment.startIndex)}
       {#if segment.kind === "tool_group"}
-        <ToolCallGroup
-          items={segment.items}
-          {fileChanges}
-          {onSubmitUserInput}
-          {onCancelUserInput}
-        />
+        <ToolCallGroup items={segment.items} {onSubmitUserInput} {onCancelUserInput} />
       {:else}
         {@const attemptItem = segment.item}
         {@const idx = segment.startIndex}
@@ -106,7 +93,6 @@
             approval={attemptItem.approval}
             onApprove={(requestId) => onSubmitUserInput(requestId, { approved: true })}
             onDeny={onCancelUserInput}
-            {fileChanges}
             {mermaidConfig}
             onToggle={() => toggleToolCall(idx)}
           />

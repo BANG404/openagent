@@ -9,7 +9,6 @@ function change(
   id: string,
   checkpointId: string,
   path: string,
-  oldPatch: string | null,
   createdAt: number,
   seq: number,
 ): FileChange {
@@ -19,10 +18,6 @@ function change(
     checkpoint_id: checkpointId,
     path,
     operation: "write",
-    old_patch: oldPatch,
-    old_content_z: null,
-    new_content_z: null,
-    new_hash: null,
     created_at: createdAt,
     seq,
   };
@@ -55,12 +50,12 @@ describe("remote conversation projection", () => {
     });
   });
 
-  test("keeps only active-branch changes and the restorable record for each path", () => {
+  test("keeps only active-branch changes and the latest estimate for each path", () => {
     const changes = [
-      change("old", "active", "src/app.ts", "old patch", 1, 1),
-      change("new", "active", "src/app.ts", "new patch", 2, 2),
-      change("create", "active", "src/new.ts", null, 1, 3),
-      change("other-branch", "other", "src/other.ts", "patch", 10, 4),
+      change("old", "active", "src/app.ts", 1, 1),
+      change("new", "active", "src/app.ts", 2, 2),
+      change("create", "active", "src/new.ts", 1, 3),
+      change("other-branch", "other", "src/other.ts", 10, 4),
     ];
 
     expect(projectCurrentFileChanges(changes, new Set(["active"])).map((item) => item.id)).toEqual([
@@ -71,8 +66,8 @@ describe("remote conversation projection", () => {
 });
 
 test("creation uses the latest SDK projection across checkpoint sequence resets", () => {
-  const created = change("create", "root", "demo.txt", null, 1, 5);
-  const edited = change("edit", "tip", "demo.txt", "reverse", 1, 0);
+  const created = change("create", "root", "demo.txt", 1, 5);
+  const edited = change("edit", "tip", "demo.txt", 1, 0);
   edited.projection = {
     kind: "created",
     available: true,
@@ -93,8 +88,8 @@ test("creation uses the latest SDK projection across checkpoint sequence resets"
 });
 
 test("net-zero files disappear, while unavailable history remains inspectable", () => {
-  const created = change("create", "root", "demo.txt", null, 1, 0);
-  const reverted = change("revert", "tip", "demo.txt", "reverse", 2, 0);
+  const created = change("create", "root", "demo.txt", 1, 0);
+  const reverted = change("revert", "tip", "demo.txt", 2, 0);
   reverted.projection = {
     kind: "unchanged",
     available: true,

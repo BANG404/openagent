@@ -10,10 +10,7 @@ import type { FileChange } from "$lib/types";
 interface HistoryOptions {
   client: Pick<
     OpenAgentClient,
-    | "getRemoteConversationHistory"
-    | "switchRemoteConversationBranch"
-    | "getRemoteConversationState"
-    | "revertRemoteFileChange"
+    "getRemoteConversationHistory" | "switchRemoteConversationBranch" | "getRemoteConversationState"
   >;
   conversation: RemoteConversationState | null;
   readonly running: boolean;
@@ -69,12 +66,6 @@ export function createRemoteHistoryController(options: HistoryOptions) {
       });
     });
   }
-  async function revertFileChange(changeId: string) {
-    const convId = options.conversation?.conv_id;
-    if (!convId) return;
-    await options.client.revertRemoteFileChange(convId, changeId);
-    if (options.conversation?.conv_id === convId) await load(convId);
-  }
   return {
     get activeTree() {
       return activeTree;
@@ -88,6 +79,5 @@ export function createRemoteHistoryController(options: HistoryOptions) {
     reset,
     load,
     switchBranch,
-    revertFileChange,
   };
 }

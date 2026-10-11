@@ -1,5 +1,5 @@
 [scenario]
-name = "Recorded creation and later edits use the latest selected-branch file"
+name = "Inferred creation and later edits use the latest selected-branch file"
 fail_fast = true
 global_timeout_ms = 30000
 
@@ -10,8 +10,8 @@ script = '''(() => {
   const panel = document.querySelector('.file-panel');
   if (panel.querySelectorAll('.file-row').length !== 1) throw new Error('file history was not grouped');
   const rows = [...panel.querySelectorAll('.diff-row code')].map(row => row.textContent);
-  if (rows.join('\n') !== 'one\nTWO\nthree\nFOUR') throw new Error('initial creation or sibling replaced the latest selected snapshot');
-  if (!panel.querySelector('.diff-row.add .line-marker') || panel.querySelector('.revert-button').disabled) throw new Error('created file is not fully restorable');
+  if (rows.join('\n') !== 'one\nTWO\nthree\nFOUR') throw new Error('initial creation or sibling replaced the latest selected tool estimate');
+  if (panel.querySelector('.diff-row.remove') || panel.querySelector('.revert-button')) throw new Error('created estimate exposed unexpected controls');
   return 'latest branch projection verified';
 })()'''
 

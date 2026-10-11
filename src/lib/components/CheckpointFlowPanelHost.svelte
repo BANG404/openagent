@@ -16,7 +16,6 @@
   let {
     flow,
     changes,
-    onRevert,
     collapsed = true,
     activePanel = $bindable<RightSidebarPanel>("status"),
     terminalEnabled = false,
@@ -34,7 +33,6 @@
   }: {
     flow: CheckpointFlow | null;
     changes: FileChange[];
-    onRevert: (changeId: string) => Promise<void>;
     collapsed?: boolean;
     activePanel?: RightSidebarPanel;
     terminalEnabled?: boolean;
@@ -146,7 +144,6 @@
 <CheckpointFlowStatus
   {flow}
   {changes}
-  {onRevert}
   {width}
   {collapsed}
   {resizing}

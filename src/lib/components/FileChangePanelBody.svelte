@@ -5,20 +5,14 @@
   import type { FileChange } from "$lib/types";
   import FileDiffView from "./FileDiffView.svelte";
   import ScrollArea from "./ui/ScrollArea.svelte";
-  import Tooltip from "./Tooltip.svelte";
 
   let {
     changes,
-    onRevert,
     expandedPath = $bindable<string | null>(null),
   }: {
     changes: FileChange[];
-    onRevert: (changeId: string) => Promise<void>;
     expandedPath?: string | null;
   } = $props();
-
-  let revertingIds = $state(new Set<string>());
-  let errors = $state<Record<string, string>>({});
 
   $effect(() => {
     // Empty string is an explicit collapse; null is a new conversation/branch.
@@ -33,20 +27,6 @@
   function filename(path: string): string {
     return path.split(/[/\\]/).at(-1) || path;
   }
-
-  async function handleRevert(change: FileChange): Promise<void> {
-    revertingIds = new Set(revertingIds).add(change.id);
-    errors = { ...errors, [change.id]: "" };
-    try {
-      await onRevert(change.id);
-    } catch (error) {
-      errors = { ...errors, [change.id]: String(error) };
-    } finally {
-      const next = new Set(revertingIds);
-      next.delete(change.id);
-      revertingIds = next;
-    }
-  }
 </script>
 
 <div class="file-panel">
@@ -59,8 +39,7 @@
       aria-label={$t("fileChangesPanelTabs")}
     >
       {#each changes as change (change.path)}
-        {@const kind =
-          change.projection?.kind ?? (change.old_patch === null ? "created" : "edited")}
+        {@const kind = change.projection?.kind ?? "edited"}
         <Accordion.Item value={change.path} class="file-item">
           <Accordion.Header class="file-heading">
             <Accordion.Trigger class="file-row">
@@ -90,28 +69,10 @@
               {@const content = fileChangeContent(change)}
               <div class="file-toolbar">
                 <span>{$t("fileChangeBranchScope")}</span>
-                <Tooltip text={$t("fileChangeRevertBranch")}>
-                  {#snippet trigger(props)}
-                    <button
-                      {...props}
-                      class="revert-button"
-                      type="button"
-                      disabled={revertingIds.has(change.id) || !change.projection?.available}
-                      aria-label={$t("fileChangeRevertBranch")}
-                      onclick={() => handleRevert(change)}
-                    >
-                      {#if revertingIds.has(change.id)}<span>…</span>{:else}
-                        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"
-                          ><path d="M5.5 6H3V3.5M3.5 6a6.25 6.25 0 1 1-.4 6" /></svg
-                        >
-                      {/if}
-                    </button>
-                  {/snippet}
-                </Tooltip>
+                {#if change.projection?.complete === false}<span
+                    >{$t("fileChangeFragmentScope")}</span
+                  >{/if}
               </div>
-              {#if errors[change.id]}<p class="file-error" role="alert">
-                  {errors[change.id]}
-                </p>{/if}
               <ScrollArea
                 maxHeight="min(420px, 55vh)"
                 horizontal
@@ -122,7 +83,7 @@
                   lines={fileChangeFullDiffLines(change, content)}
                   path={change.path}
                   scrollable={false}
-                  fullFile
+                  fullFile={content !== null && change.projection?.complete !== false}
                   emptyLabel={$t(
                     kind === "deleted"
                       ? "fileChangeDeletedContent"
@@ -251,49 +212,11 @@
     display: flex;
     min-height: 32px;
     align-items: center;
-    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px 8px;
     padding: 0 8px;
     color: var(--text-muted);
     font-size: 10px;
-  }
-  .revert-button {
-    display: grid;
-    width: 28px;
-    height: 28px;
-    place-items: center;
-    padding: 0;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
-  }
-  .revert-button:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--danger) 9%, transparent);
-    color: var(--danger);
-  }
-  .revert-button:focus-visible {
-    outline: none;
-    box-shadow: var(--focus-ring);
-  }
-  .revert-button:disabled {
-    cursor: default;
-    opacity: 0.5;
-  }
-  .revert-button svg {
-    width: 16px;
-    height: 16px;
-    stroke: currentColor;
-    stroke-width: 1.5;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-  .file-error {
-    margin: 0;
-    padding: 8px;
-    color: var(--danger);
-    font-size: 11px;
-    overflow-wrap: anywhere;
   }
   @container (max-width: 220px) {
     .change-kind {

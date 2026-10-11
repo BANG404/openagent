@@ -2,7 +2,6 @@
 import { expect, test } from "bun:test";
 import {
   MAX_TOOL_PATCH_PREVIEW_LINES,
-  applyFileChangeSnapshotsToPatchPreviews,
   parseApplyPatchPreview,
   summarizePatchChanges,
 } from "../src/lib/toolCallPatch";
@@ -79,24 +78,10 @@ test("numbers every line in a delete patch body", () => {
   ]);
 });
 
-test("hydrates bodyless delete previews from the pre-delete file snapshot", () => {
+test("bodyless deletions remain unknown instead of borrowing another checkpoint's content", () => {
   const [preview] = parseApplyPatchPreview(
-    ["*** Begin Patch", "*** Delete File: docs/old.md", "*** End Patch"].join("\n"),
+    "*** Begin Patch\n*** Delete File: docs/old.md\n*** End Patch",
   );
-  const hydrated = applyFileChangeSnapshotsToPatchPreviews(
-    [preview],
-    [
-      {
-        path: "/workspace/docs/old.md",
-        old_patch: "@@ -1,0 +1,3 @@\n+first\n+second\n+third",
-      },
-    ],
-  );
-
-  expect(hydrated[0]).toMatchObject({ additions: 0, removals: 3 });
-  expect(hydrated[0].lines).toEqual([
-    { type: "remove", text: "-first", oldLine: 1 },
-    { type: "remove", text: "-second", oldLine: 2 },
-    { type: "remove", text: "-third", oldLine: 3 },
-  ]);
+  expect(preview.operation).toBe("delete");
+  expect(preview.lines).toEqual([]);
 });

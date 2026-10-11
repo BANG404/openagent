@@ -1,38 +1,10 @@
 // @ts-nocheck -- legacy fixture typing is tracked separately from the strict test surface.
 import { describe, expect, test } from "bun:test";
 import {
-  fileChangeContent,
-  fileChangeDiffLines,
   fileChangeFullDiffLines,
   fileChangeProjectionLines,
   parseForwardFilePatch,
-  parseReverseFilePatch,
 } from "../src/lib/fileChangeDiff";
-
-describe("file change diff", () => {
-  test("turns a stored reverse patch into a forward display", () => {
-    expect(parseReverseFilePatch("@@ -1 +1 @@\n-new value\n+old value")).toEqual([
-      { type: "remove", text: "-old value", oldLine: 1 },
-      { type: "add", text: "+new value", newLine: 1 },
-    ]);
-  });
-
-  test("renders zstd-compressed new files as added lines", () => {
-    expect(
-      fileChangeDiffLines({
-        old_patch: null,
-        new_content_z: [40, 181, 47, 253, 32, 4, 33, 0, 0, 97, 10, 98, 10],
-      }),
-    ).toEqual([
-      { type: "add", text: "+a", newLine: 1 },
-      { type: "add", text: "+b", newLine: 2 },
-    ]);
-  });
-
-  test("falls back to the unavailable state for invalid compressed content", () => {
-    expect(fileChangeDiffLines({ old_patch: null, new_content_z: [1, 2, 3] })).toEqual([]);
-  });
-});
 
 describe("cumulative file projection rendering", () => {
   const projection = {
@@ -73,55 +45,8 @@ describe("cumulative file projection rendering", () => {
   });
 });
 
-describe("recorded full file without a derived projection", () => {
-  const recorded = (content: string) => {
-    const bytes = new TextEncoder().encode(content);
-    return {
-      old_patch: "@@ -2 +2 @@\n-TWO\n+two",
-      new_content_z: [
-        40,
-        181,
-        47,
-        253,
-        32,
-        bytes.length,
-        ((bytes.length << 3) | 1) & 255,
-        bytes.length >> 5,
-        0,
-        ...bytes,
-      ],
-    };
-  };
-  test("an edited raw snapshot exposes all lines, including unchanged Chinese text", () => {
-    const change = recorded("第一行\r\nTWO\rthree\nFOUR\n");
-    expect(fileChangeContent(change)).toBe("第一行\r\nTWO\rthree\nFOUR\n");
-    expect(fileChangeProjectionLines(change, "content").map((line) => line.text)).toEqual([
-      "第一行",
-      "TWO",
-      "three",
-      "FOUR",
-    ]);
-    expect(fileChangeProjectionLines(change, "diff").map((line) => line.text)).toEqual([
-      "-two",
-      "+TWO",
-    ]);
-  });
-  test("empty, missing and corrupt snapshots have distinct availability", () => {
-    expect(fileChangeContent(recorded(""))).toBe("");
-    expect(fileChangeContent({ new_content_z: null })).toBeNull();
-    expect(fileChangeContent({ new_content_z: [1, 2, 3] })).toBeNull();
-  });
-  test("the authoritative projection wins even for deletion or unavailable content", () => {
-    const change = { ...recorded("obsolete"), projection: { content: null } };
-    expect(fileChangeContent(change)).toBeNull();
-    change.projection.content = "最新记录";
-    expect(fileChangeContent(change)).toBe("最新记录");
-  });
-});
-
 describe("complete recorded file with inline diff", () => {
   const change = {
-    old_patch: "reverse",
     projection: {
       content: "first\nNEW\nthird\nfourth\n",
       diff: "@@ -2 +2 @@\n-old\n+NEW\n",
@@ -170,4 +95,22 @@ describe("complete recorded file with inline diff", () => {
       }).map((line) => line.type),
     ).toEqual(["context", "context"]);
   });
+});
+
+test("fragment diffs never present snippet offsets as file line numbers", () => {
+  const change = {
+    projection: {
+      kind: "edited",
+      available: true,
+      complete: false,
+      content: null,
+      diff: "@@ -1 +1 @@\n-old\n+new\n",
+    },
+  };
+  const expected = [
+    { type: "remove", text: "-old" },
+    { type: "add", text: "+new" },
+  ];
+  expect(fileChangeProjectionLines(change, "diff")).toEqual(expected);
+  expect(fileChangeFullDiffLines(change)).toEqual(expected);
 });

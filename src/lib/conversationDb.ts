@@ -75,7 +75,3 @@ export async function fetchRenderableCheckpoints(convId: string): Promise<Render
 export async function fetchFileChanges(convId: string): Promise<FileChange[]> {
   return desktopOpenAgent.invokeProduct("get_file_changes", { convId });
 }
-
-export async function revertFileChange(changeId: string): Promise<string> {
-  return desktopOpenAgent.invokeProduct("revert_file_change", { changeId });
-}

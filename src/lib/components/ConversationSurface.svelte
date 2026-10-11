@@ -51,7 +51,6 @@
     pendingCheckpointId: string | null;
     debugMode: boolean;
     fileChanges: FileChange[];
-    fileChangeRecords: FileChange[];
     followTail: boolean;
     isAwaitingStreamOutput: boolean;
     streamStartedAt: number | null;
@@ -97,7 +96,6 @@
     pauseCurrentStream: () => void | Promise<void>;
     removeQueuedMessage: (convId: string, index: number) => void;
     resumeCurrentStream: () => void | Promise<void>;
-    revertFileChange: (changeId: string) => Promise<void>;
     reExecuteMessage: (convId: string, assistantMsgIdx: number) => void | Promise<void>;
     sendMessage: () => void | Promise<void>;
     sendSuggestedMessage: (suggestion: string) => void | Promise<void>;
@@ -166,7 +164,7 @@
     theme: view.config?.theme ?? "system",
     fileChanges: view.fileChanges.map((change) => ({
       path: change.path,
-      status: change.old_patch === null ? "created" : "modified",
+      status: change.projection?.kind === "created" ? "created" : "modified",
     })),
   });
 
@@ -297,7 +295,6 @@
               activeConvId={view.activeConvId}
               activeBranchId={view.activeBranchId}
               debugMode={view.debugMode}
-              fileChanges={view.fileChangeRecords}
               taskUsagesByCheckpointId={view.taskUsagesByCheckpointId}
               activeTree={view.activeTree}
               paddingBottom={inputAreaHeight + 24}
@@ -442,7 +439,6 @@
   <CheckpointFlowPanelHost
     flow={view.checkpointFlow}
     changes={view.fileChanges}
-    onRevert={actions.revertFileChange}
     collapsed={checkpointFlowPanelCollapsed}
     bind:activePanel={rightSidebarPanel}
     terminalEnabled={view.tauriAvailable}

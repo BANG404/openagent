@@ -25,7 +25,6 @@
     AppConfig,
     ChatAttachment,
     ChatMessage,
-    FileChange,
     PermissionProfile,
     ReasoningEffort,
     RecentWorkspace,
@@ -237,21 +236,6 @@
       "*** End Patch",
     ].join("\n"),
   });
-  const toolPatchFileChanges: FileChange[] = [
-    {
-      id: "tool-patch-preview-removed",
-      conv_id: "tool-diff-preview",
-      checkpoint_id: "tool-diff-preview-checkpoint",
-      path: "/workspace/openagent/docs/removed.md",
-      operation: "delete",
-      old_patch: "@@ -1,0 +1,3 @@\n+first line\n+second line\n+third line",
-      old_content_z: null,
-      new_content_z: null,
-      new_hash: null,
-      seq: 1,
-      created_at: 1,
-    },
-  ];
   const toolExecArgs = JSON.stringify({
     cmd: "rtk bun test tests/toolCallPatch.test.ts",
     workdir: "/workspace/openagent",
@@ -1039,7 +1023,6 @@
         name="apply_patch"
         args={toolPatchArgs}
         result="Applied patch to 3 files: src/lib/components/ToolCallCard.svelte, docs/tool-rendering.md, docs/removed.md"
-        fileChanges={toolPatchFileChanges}
         expanded={true}
         argHint="2 files"
         onToggle={() => {}}
@@ -1206,7 +1189,6 @@
       collapsed={backgroundTerminalPanelCollapsed}
       resizing={false}
       onResizeStart={startPanelResize}
-      onRevert={async () => {}}
       bind:activePanel={backgroundTerminalActivePanel}
       terminalEnabled
       terminalAvailable={backgroundTerminalSessionCount > 0}
@@ -1268,7 +1250,6 @@
         width={panelWidth}
         collapsed={panelCollapsed}
         resizing={panelResizing}
-        onRevert={async () => {}}
         onResizeStart={startPanelResize}
       />
     {/if}

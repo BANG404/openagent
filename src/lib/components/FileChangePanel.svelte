@@ -5,11 +5,9 @@
 
   let {
     changes,
-    onRevert,
     expandedPath = $bindable<string | null>(null),
   }: {
     changes: FileChange[];
-    onRevert: (changeId: string) => Promise<void>;
     expandedPath?: string | null;
   } = $props();
   const panel = import("./FileChangePanelBody.svelte");
@@ -23,7 +21,7 @@
       label={$t("loadingContent")}
     />
   {:then module}
-    <module.default {changes} {onRevert} bind:expandedPath />
+    <module.default {changes} bind:expandedPath />
   {:catch}
     <p role="alert">{$t("fileChangeContentUnavailable")}</p>
   {/await}

@@ -29,7 +29,7 @@
   } from "$lib/transcript/assistantContent";
   import type { ConvTree } from "$lib/checkpointTree";
   import type { ChatMemoryRetrievalStage } from "$lib/openagent";
-  import type { ChatMessage, StreamItem, FileChange, TaskTokenUsage } from "$lib/types";
+  import type { ChatMessage, StreamItem, TaskTokenUsage } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
 
   interface Props {
@@ -43,7 +43,6 @@
     pendingCheckpointId: string | null;
     shikiTheme: string;
     mermaidConfig: MermaidConfig;
-    fileChanges: FileChange[];
     taskUsagesByCheckpointId: Record<string, TaskTokenUsage[]>;
     memoryRetrievalStage: ChatMemoryRetrievalStage | null;
     memoryRetrievalCanSkip: boolean;
@@ -72,7 +71,6 @@
     pendingCheckpointId,
     shikiTheme,
     mermaidConfig,
-    fileChanges,
     taskUsagesByCheckpointId,
     memoryRetrievalStage,
     memoryRetrievalCanSkip,
@@ -191,7 +189,6 @@
           <ToolCallGroup
             items={segment.items}
             isStreaming={assistantIsStreaming}
-            {fileChanges}
             {onSubmitUserInput}
             {onCancelUserInput}
           />
@@ -215,7 +212,6 @@
             : undefined}
           {shikiTheme}
           {mermaidConfig}
-          {fileChanges}
           {onSubmitUserInput}
           {onCancelUserInput}
         />

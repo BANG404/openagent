@@ -22,7 +22,6 @@
   import type {
     ChatAttachment,
     ChatMessage,
-    FileChange,
     StreamItem,
     TaskTokenUsage,
     UserMessageContext,
@@ -54,7 +53,6 @@
     activeConvId: string | null;
     activeBranchId: string | null;
     debugMode: boolean;
-    fileChanges?: FileChange[];
     taskUsagesByCheckpointId?: Record<string, TaskTokenUsage[]>;
     activeTree: ConvTree | undefined;
     paddingBottom: number;
@@ -107,7 +105,6 @@
     activeConvId,
     activeBranchId,
     debugMode,
-    fileChanges = [],
     taskUsagesByCheckpointId = {},
     activeTree,
     paddingBottom,
@@ -361,7 +358,6 @@
           {pendingCheckpointId}
           {shikiTheme}
           {mermaidConfig}
-          {fileChanges}
           {taskUsagesByCheckpointId}
           {memoryRetrievalStage}
           {memoryRetrievalCanSkip}
@@ -386,12 +382,7 @@
           id={`message-${firstMessage.id}`}
           data-message-id={firstMessage.id}
         >
-          <ToolCallGroup
-            items={entry.items}
-            {fileChanges}
-            {onSubmitUserInput}
-            {onCancelUserInput}
-          />
+          <ToolCallGroup items={entry.items} {onSubmitUserInput} {onCancelUserInput} />
         </div>
       {:else if entry.kind === "message"}
         {@const msg = entry.msg}

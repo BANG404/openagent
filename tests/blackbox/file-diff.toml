@@ -9,15 +9,16 @@ action = "click"
 target = ".checkpoint-flow-toggle"
 
 [[step]]
-name = "full content, syntax, raw snapshots and collapsible file states"
+name = "mount the tool-estimate assertions"
 action = "eval"
 script = '''(async () => {
   const panel = document.querySelector('#checkpoint-flow-panel .file-panel');
   if (document.querySelector('#checkpoint-flow-panel').classList.contains('collapsed') || panel.getBoundingClientRect().height <= 0) throw new Error('Files sidebar is not visible');
   const rows = [...panel.querySelectorAll('.file-row')];
-  const paths = ['sample.ts', 'sample.py', 'sample.ps1', 'sample.unknown', 'long.txt', 'recorded.txt', 'empty.txt', 'deleted.txt', 'unavailable.txt'];
+  const paths = ['sample.ts', 'sample.py', 'sample.ps1', 'sample.unknown', 'long.txt', 'recorded.txt', 'empty.txt', 'deleted.txt', 'unavailable.txt', 'fragment.txt'];
   if (rows.length !== paths.length || panel.querySelector('.file-tabs, .file-view-controls, [role="tablist"]')) throw new Error('Files must be a vertical collapsible list');
-  for (const [index, path] of paths.entries()) {
+  window.__fileDiffVerify = async index => {
+    const path = paths[index];
     if (!rows[index].textContent.includes(path)) throw new Error('file path missing');
     if (rows[index].getAttribute('aria-expanded') !== 'true') rows[index].click();
     await new Promise(resolve => setTimeout(resolve, 200));
@@ -52,16 +53,85 @@ script = '''(async () => {
       if (!content.at(-1).textContent.includes('recorded line 100') || content.at(-1).getBoundingClientRect().bottom > viewport.getBoundingClientRect().bottom + 2) throw new Error('last recorded line is unreachable');
     }
     if (index === 5) {
-      if (!panel.querySelector('.diff-row.remove')?.textContent.includes('two') || !panel.querySelector('.diff-row.add')?.textContent.includes('TWO')) throw new Error('raw snapshot lost inline edit markers');
-      if (content.map(row => row.querySelector('code').textContent).join('\n') !== 'one\nTWO\nthree\nFOUR') throw new Error('edited raw snapshot lost unchanged lines');
-      if (!panel.querySelector('.revert-button').disabled) throw new Error('raw snapshot cannot authorize cumulative rollback');
+      if (!panel.querySelector('.diff-row.remove')?.textContent.includes('two') || !panel.querySelector('.diff-row.add')?.textContent.includes('TWO')) throw new Error('inferred content lost inline edit markers');
+      if (content.map(row => row.querySelector('code').textContent).join('\n') !== 'one\nTWO\nthree\nFOUR') throw new Error('edited inferred content lost unchanged lines');
+      if (panel.querySelector('.revert-button')) throw new Error('undo control remains');
     }
-    if (index >= 6) {
+    if (index >= 6 && index < 9) {
       const zh = document.documentElement.lang === 'zh' || panel.textContent.includes('所选分支');
-      const expected = index === 6 ? (zh ? '此文件为空' : 'This file is empty') : index === 7 ? (zh ? '此文件已删除' : 'This file was deleted') : (zh ? '无法读取记录中的完整文件内容' : 'Recorded file content is unavailable');
+      const expected = index === 6 ? (zh ? '此文件为空' : 'This file is empty') : index === 7 ? (zh ? '此文件已删除' : 'This file was deleted') : (zh ? '无法推算完整文件内容' : 'Inferred file content is unavailable');
       if (content.length || !panel.textContent.includes(expected)) throw new Error('wrong empty/deleted/unreadable state: ' + path);
     }
-  }
+    if (index === 9) {
+      if (panel.querySelector('.diff-row.full-file') || [...panel.querySelectorAll('.line-number')].some(row => row.textContent.trim())) throw new Error('fragments claimed full content or file offsets');
+      if (![...panel.querySelectorAll('.diff-row code')].map(row => row.textContent).join('\n').includes('new fragment')) throw new Error('fragment inference missing');
+      if (!panel.textContent.includes('unknown') && !panel.textContent.includes('未知')) throw new Error('fragment uncertainty missing');
+    }
+    return 'inferred file verified: ' + path;
+  };
+  return 'file assertions ready';
+})()'''
+
+[[step]]
+name = "inferred file 1: content, syntax and uncertainty"
+action = "eval"
+script = "window.__fileDiffVerify(0)"
+
+[[step]]
+name = "inferred file 2: content, syntax and uncertainty"
+action = "eval"
+script = "window.__fileDiffVerify(1)"
+
+[[step]]
+name = "inferred file 3: content, syntax and uncertainty"
+action = "eval"
+script = "window.__fileDiffVerify(2)"
+
+[[step]]
+name = "inferred file 4: content, syntax and uncertainty"
+action = "eval"
+script = "window.__fileDiffVerify(3)"
+
+[[step]]
+name = "inferred file 5: content, syntax and uncertainty"
+action = "eval"
+script = "window.__fileDiffVerify(4)"
+
+[[step]]
+name = "inferred file 6: content, syntax and uncertainty"
+action = "eval"
+script = "window.__fileDiffVerify(5)"
+
+[[step]]
+name = "inferred file 7: content, syntax and uncertainty"
+action = "eval"
+script = "window.__fileDiffVerify(6)"
+
+[[step]]
+name = "inferred file 8: content, syntax and uncertainty"
+action = "eval"
+script = "window.__fileDiffVerify(7)"
+
+[[step]]
+name = "inferred file 9: content, syntax and uncertainty"
+action = "eval"
+script = "window.__fileDiffVerify(8)"
+
+[[step]]
+name = "inferred file 10: content, syntax and uncertainty"
+action = "eval"
+script = "window.__fileDiffVerify(9)"
+
+[[step]]
+name = "collapse, keyboard navigation and narrow layout"
+action = "eval"
+script = '''(async () => {
+  const panel = document.querySelector('#checkpoint-flow-panel .file-panel');
+  if (document.querySelector('#checkpoint-flow-panel').classList.contains('collapsed') || panel.getBoundingClientRect().height <= 0) throw new Error('Files sidebar is not visible');
+  const rows = [...panel.querySelectorAll('.file-row')];
+  const paths = ['sample.ts', 'sample.py', 'sample.ps1', 'sample.unknown', 'long.txt', 'recorded.txt', 'empty.txt', 'deleted.txt', 'unavailable.txt', 'fragment.txt'];
+  if (rows.length !== paths.length || panel.querySelector('.file-tabs, .file-view-controls, [role="tablist"]')) throw new Error('Files must be a vertical collapsible list');
+  if (panel.querySelector('.revert-button')) throw new Error('undo control remains');
   rows[0].click(); await new Promise(resolve => setTimeout(resolve, 200));
   if ([...panel.querySelectorAll('.diff-row:not(.remove) code')].map(row => row.textContent).join('\n') !== 'const message: string = "你好";\n/* comment\ncontinued */\nconsole.log(message);') throw new Error('recorded full source changed');
   const output = panel.querySelector('.file-content-scroll .ui-scroll-area-viewport');
@@ -75,5 +145,6 @@ script = '''(async () => {
   await new Promise(resolve => requestAnimationFrame(resolve));
   const viewport = panel.querySelector('.ui-scroll-area-viewport');
   if (viewport.scrollWidth > viewport.clientWidth + 2) throw new Error('narrow Files sidebar overflows');
-  return 'complete recorded files, collapse, syntax and unavailable states verified';
+  delete window.__fileDiffVerify;
+  return 'inferred files, collapse, syntax and unavailable states verified';
 })()'''

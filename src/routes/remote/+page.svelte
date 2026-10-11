@@ -231,7 +231,6 @@
   });
   const loadConversationHistory = remoteHistory.load;
   const switchBranch = remoteHistory.switchBranch;
-  const revertFileChange = remoteHistory.revertFileChange;
   const remoteCatalog = createRemoteCatalogController({
     client,
     get running() {
@@ -842,7 +841,6 @@
                 activeConvId={conversation?.conv_id ?? null}
                 activeBranchId={remoteHistory.activeBranchId}
                 debugMode={false}
-                fileChanges={currentFileChangeRecords}
                 activeTree={remoteHistory.activeTree}
                 paddingBottom={inputAreaHeight + 24}
                 showApiKeyWarn={remoteModels.length === 0}
@@ -901,7 +899,7 @@
               />
             {:else}
               {#if currentFileChanges.length > 0 && !activeInterrupt}
-                <FileChangeBanner changes={currentFileChanges} onRevert={revertFileChange} />
+                <FileChangeBanner changes={currentFileChanges} />
               {/if}
               {#if conversation}
                 <ChatQueue

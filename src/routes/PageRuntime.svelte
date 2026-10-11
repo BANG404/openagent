@@ -150,7 +150,6 @@
     fetchConversationPage,
     fetchRenderableCheckpoints,
     metaToConversation,
-    revertFileChange,
   } from "$lib/conversationDb";
   import {
     readStartupRestoreHint,
@@ -1304,15 +1303,6 @@
     return false;
   }
 
-  async function handleRevertFileChange(changeId: string): Promise<void> {
-    const convId = activeConvId;
-    if (!convId) return;
-    await revertFileChange(changeId);
-    await loadMessagesForConv(convId, false, true);
-    if ((await loadFileChangesForConv(convId)) === null)
-      throw new Error(tr("fileChangeRefreshFailed"));
-  }
-
   // ─── Branch / Re-execute ─────────────────────────────────────────────────────
 
   async function reExecuteMsg(
@@ -1385,19 +1375,6 @@
         await openAgent.invokeProduct("rollback_to_checkpoint", { convId, checkpointId });
       } catch {
         return;
-      }
-
-      // Embedded diagnostics do not run through the Runtime HTTP branch operation.
-      const cutMsgs = conv.messages.slice(userMsgIdx);
-      const rolledBackCps = new Set(
-        cutMsgs.filter((m) => m.role === "assistant" && m.checkpointId).map((m) => m.checkpointId!),
-      );
-      const allChanges = fileChangesPerConv[convId] ?? [];
-      const toRevert = allChanges.filter((fc) => rolledBackCps.has(fc.checkpoint_id));
-      for (const change of [...toRevert].reverse()) {
-        await openAgent
-          .invokeProduct("revert_file_change_keep", { changeId: change.id })
-          .catch(() => {});
       }
     }
 
@@ -1474,39 +1451,7 @@
       return;
     }
 
-    const sourceCps = ckIdsAlongActivePath(tree);
-    const targetCps = ckIdsAlongActivePath(tree, override);
-
     if (tauriAvailable) {
-      const allChanges = fileChangesPerConv[convId] ?? [];
-      const sortByOrder = (checkpoints: ReadonlySet<string>) => {
-        const order = new Map([...checkpoints].map((id, index) => [id, index]));
-        return (a: FileChange, b: FileChange) =>
-          (order.get(a.checkpoint_id) ?? 0) - (order.get(b.checkpoint_id) ?? 0) || a.seq - b.seq;
-      };
-      const toRevert = allChanges
-        .filter((fc) => sourceCps.has(fc.checkpoint_id) && !targetCps.has(fc.checkpoint_id))
-        .sort(sortByOrder(sourceCps));
-      const toApply = allChanges
-        .filter((fc) => targetCps.has(fc.checkpoint_id) && !sourceCps.has(fc.checkpoint_id))
-        .sort(sortByOrder(targetCps));
-
-      // Unwind source-only edits in reverse, then apply target-only edits forward.
-      for (const change of [...toRevert].reverse()) {
-        await openAgent
-          .invokeProduct("revert_file_change_keep", { changeId: change.id })
-          .catch((e) => {
-            console.warn("revert_file_change_keep failed", change.path, e);
-          });
-      }
-      for (const change of toApply) {
-        await openAgent
-          .invokeProduct("apply_file_change_forward", { changeId: change.id })
-          .catch((e) => {
-            console.warn("apply_file_change_forward failed", change.path, e);
-          });
-      }
-
       // Restore the agent's in-memory history to the tip of the newly-active path
       // so the next message continues from where the user is now looking.
       await openAgent
@@ -4035,7 +3980,6 @@
     taskUsagesByCheckpointId: activeConvId ? (taskUsagesByConversation[activeConvId] ?? {}) : {},
     liveContextUsage: activeConvId ? (liveContextUsageByConversation[activeConvId] ?? null) : null,
     fileChanges: currentFileChanges,
-    fileChangeRecords: currentFileChangeRecords,
     followUpSuggestionsByMessageId,
     // Tail following is a streaming affordance only. Once the response is
     // durable, the transcript must remain where the reader left it.
@@ -4079,7 +4023,6 @@
     pickWslWorkspace: () => pickWslWorkspace(true),
     removeQueuedMessage,
     resumeCurrentStream,
-    revertFileChange: handleRevertFileChange,
     reExecuteMessage: reExecuteMsg,
     sendMessage,
     sendSuggestedMessage,

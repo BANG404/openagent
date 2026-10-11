@@ -20,6 +20,7 @@ const toolNameKeys: Partial<Record<string, TranslationKeys>> = {
   read_file: "toolReadFile",
   write_file: "toolWriteFile",
   edit_file: "toolEditFile",
+  create_file: "toolCreateFile",
   ls: "toolListDirectory",
   glob: "toolGlob",
   grep: "toolGrep",

@@ -67,20 +67,16 @@ function fileChanges(id) {
     checkpoint_id: "file-tip",
     path: "demo.txt",
     operation: "apply_patch",
-    old_content_z: null,
-    new_content_z: null,
-    new_hash: null,
     created_at: 1,
   };
   return [
-    { ...base, id: "file-created", seq: 0, old_patch: null },
     {
       ...base,
       id: "file-edited",
       seq: 1,
-      old_patch: "reverse",
       projection: {
         kind: "created",
+        complete: true,
         change_ids: ["file-created", "file-edited"],
         available: true,
         content: "one\nTWO\nthree\nFOUR\n",

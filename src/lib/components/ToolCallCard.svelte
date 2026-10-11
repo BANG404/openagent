@@ -2,11 +2,9 @@
   import { useOpenAgentUiCapabilities } from "$lib/openagent/uiCapabilities";
   import MermaidToolPreview from "./MermaidToolPreview.svelte";
   import type { ChatToolImage, McpUiInvocation, UserInputRequest } from "$lib/types";
-  import type { FileChange } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { t, toolNameKey } from "$lib/i18n";
   import {
-    applyFileChangeSnapshotsToPatchPreviews,
     parseApplyPatchPreview,
     summarizePatchChanges,
     type ToolPatchFilePreview,
@@ -31,7 +29,6 @@
     images?: ChatToolImage[];
     expanded: boolean;
     argHint: string;
-    fileChanges?: FileChange[];
     mermaidConfig?: MermaidConfig;
     showRunning?: boolean;
     approval?: {
@@ -69,7 +66,6 @@
     onApprove,
     onDeny,
     onToggle,
-    fileChanges = [],
   }: Props = $props();
 
   const focusedTools = new Set(["exec_command", "write_stdin", "apply_patch", "view_image"]);
@@ -124,9 +120,7 @@
     ),
   );
   const patchText = $derived(getString(parsedArgs, "patch"));
-  const applyPatchPreviews = $derived(
-    applyFileChangeSnapshotsToPatchPreviews(parseApplyPatchPreview(patchText), fileChanges),
-  );
+  const applyPatchPreviews = $derived(parseApplyPatchPreview(patchText));
   const patchSummary = $derived(summarizePatchChanges(applyPatchPreviews));
   // A terminal call's `workdir` is context, never an inspected path: it must
   // not become the file-path chip, the header hint, or the open-folder action.

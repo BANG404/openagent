@@ -10,7 +10,7 @@
   import ConversationUiRecord from "./ConversationUiRecord.svelte";
   import CompactionStatus from "./CompactionStatus.svelte";
   import { t } from "$lib/i18n";
-  import type { FileChange, StreamItem } from "$lib/types";
+  import type { StreamItem } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { customExtensions, type ComponentToken } from "$lib/streamdown/extensions";
   import { chatMarkdownTheme } from "$lib/streamdown/chatMarkdownTheme";
@@ -30,7 +30,6 @@
     isStreaming?: boolean;
     shikiTheme: string;
     mermaidConfig: MermaidConfig;
-    fileChanges?: FileChange[];
     onSubmitUserInput: (requestId: string, values: Record<string, unknown>) => void;
     onCancelUserInput: (requestId: string) => void;
   }
@@ -45,7 +44,6 @@
     isStreaming = false,
     shikiTheme,
     mermaidConfig,
-    fileChanges = [],
     onSubmitUserInput,
     onCancelUserInput,
   }: Props = $props();
@@ -154,7 +152,6 @@
       approval={item.approval}
       onApprove={(requestId) => onSubmitUserInput(requestId, { approved: true })}
       onDeny={onCancelUserInput}
-      {fileChanges}
       {mermaidConfig}
       showRunning={isStreaming}
       onToggle={() => (expanded = !expanded)}
@@ -201,14 +198,7 @@
     data-message-id={messageId}
     data-stream-item={itemKey}
   >
-    <RetryAttempt
-      {item}
-      {fileChanges}
-      {shikiTheme}
-      {mermaidConfig}
-      {onSubmitUserInput}
-      {onCancelUserInput}
-    />
+    <RetryAttempt {item} {shikiTheme} {mermaidConfig} {onSubmitUserInput} {onCancelUserInput} />
   </div>
 {:else if item.type === "user_input"}
   <div

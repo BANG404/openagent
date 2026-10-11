@@ -22,7 +22,6 @@
     collapsed: boolean;
     resizing: boolean;
     onResizeStart: (event: PointerEvent) => void;
-    onRevert: (changeId: string) => Promise<void>;
     activePanel?: RightSidebarPanel;
     terminalEnabled?: boolean;
     terminalAvailable?: boolean;
@@ -55,7 +54,6 @@
     collapsed,
     resizing,
     onResizeStart,
-    onRevert,
     activePanel = $bindable<RightSidebarPanel>("status"),
     terminalEnabled = false,
     terminalAvailable = false,
@@ -241,7 +239,7 @@
       aria-hidden={collapsed || activePanel !== "files"}
     >
       {#if changes.length > 0}
-        <FileChangePanel {changes} {onRevert} bind:expandedPath={fileExpandedPath} />
+        <FileChangePanel {changes} bind:expandedPath={fileExpandedPath} />
       {/if}
     </div>
     {#each pluginSidebarViews as view (view.id)}

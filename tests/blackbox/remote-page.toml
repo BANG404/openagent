@@ -41,6 +41,7 @@ script = '''(async () => {
   const panel = document.querySelector('.banner .file-panel');
   const row = panel.querySelector('.file-row');
   if (panel.querySelectorAll('.file-row').length !== 1 || [...panel.querySelectorAll('.diff-row.full-file code')].map(row => row.textContent).join('\n') !== 'one\nTWO\nthree\nFOUR') throw new Error('remote recorded content is stale');
+  if (panel.querySelector('.revert-button')) throw new Error('remote Files exposed undo');
   if (panel.querySelector('[role="tablist"]')) throw new Error('remote Files retained window-style tabs');
   row.click();
   await new Promise(resolve => setTimeout(resolve, 100));

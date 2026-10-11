@@ -6,25 +6,17 @@
     type ToolCallItem,
     type ToolCallStatus,
   } from "$lib/toolCallGroups";
-  import type { FileChange } from "$lib/types";
   import ToolCallCard from "./ToolCallCard.svelte";
   import Tooltip from "./Tooltip.svelte";
 
   interface Props {
     items: ToolCallItem[];
     isStreaming?: boolean;
-    fileChanges?: FileChange[];
     onSubmitUserInput: (requestId: string, values: Record<string, unknown>) => void;
     onCancelUserInput: (requestId: string) => void;
   }
 
-  let {
-    items,
-    isStreaming = false,
-    fileChanges = [],
-    onSubmitUserInput,
-    onCancelUserInput,
-  }: Props = $props();
+  let { items, isStreaming = false, onSubmitUserInput, onCancelUserInput }: Props = $props();
 
   let expanded = $state(false);
   let expandedCalls = $state(new Set<number>());
@@ -175,7 +167,6 @@
             approval={item.approval}
             onApprove={(requestId) => onSubmitUserInput(requestId, { approved: true })}
             onDeny={onCancelUserInput}
-            {fileChanges}
             showRunning={isStreaming}
             onToggle={() => toggleCall(index)}
           />

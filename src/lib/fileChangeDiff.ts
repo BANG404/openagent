@@ -1,4 +1,3 @@
-import { decompress } from "fzstd";
 import type { FileChange } from "$lib/types";
 
 export type FileChangeDiffLine = {
@@ -6,7 +5,7 @@ export type FileChangeDiffLine = {
   text: string;
   oldLine?: number;
   newLine?: number;
-  /** Insertion position in the complete latest snapshot for removed lines. */
+  /** Insertion position in the complete latest inferred content for removed lines. */
   newLineAnchor?: number;
 };
 
@@ -19,7 +18,6 @@ function changedPatchLines(
   start: number,
   oldLine: number,
   newLine: number,
-  reverse: boolean,
   anchors = false,
 ) {
   const lines: FileChangeDiffLine[] = [];
@@ -32,7 +30,7 @@ function changedPatchLines(
     changed.push(source[index]);
     index += 1;
   }
-  for (const changedLine of changed.filter((item) => item.startsWith(reverse ? "+" : "-"))) {
+  for (const changedLine of changed.filter((item) => item.startsWith("-"))) {
     lines.push({
       type: "remove",
       text: `-${changedLine.slice(1)}`,
@@ -41,26 +39,18 @@ function changedPatchLines(
     });
     oldLine += 1;
   }
-  for (const changedLine of changed.filter((item) => item.startsWith(reverse ? "-" : "+"))) {
+  for (const changedLine of changed.filter((item) => item.startsWith("+"))) {
     lines.push({ type: "add", text: `+${changedLine.slice(1)}`, newLine });
     newLine += 1;
   }
   return { lines, nextIndex: index - 1, oldLine, newLine };
 }
 
-export function parseReverseFilePatch(patch: string): FileChangeDiffLine[] {
-  return parseUnifiedFilePatch(patch, true);
-}
-
 export function parseForwardFilePatch(patch: string): FileChangeDiffLine[] {
-  return parseUnifiedFilePatch(patch, false);
+  return parseUnifiedFilePatch(patch);
 }
 
-function parseUnifiedFilePatch(
-  patch: string,
-  reverse: boolean,
-  anchors = false,
-): FileChangeDiffLine[] {
+function parseUnifiedFilePatch(patch: string, anchors = false): FileChangeDiffLine[] {
   let oldLine = 0;
   let newLine = 0;
   const lines: FileChangeDiffLine[] = [];
@@ -72,15 +62,14 @@ function parseUnifiedFilePatch(
     const header = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(line);
     if (header) {
       inHunk = true;
-      // Stored patches run new -> old. Swap the hunk counters for forward display.
-      oldLine = Number(header[reverse ? 3 : 1]);
-      newLine = Number(header[reverse ? 1 : 3]);
-      if (anchors && header[reverse ? 2 : 4] === "0") newLine++;
+      oldLine = Number(header[1]);
+      newLine = Number(header[3]);
+      if (anchors && header[4] === "0") newLine++;
       continue;
     }
     if (!inHunk) continue;
     if (line.startsWith("+") || line.startsWith("-")) {
-      const changed = changedPatchLines(source, index, oldLine, newLine, reverse, anchors);
+      const changed = changedPatchLines(source, index, oldLine, newLine, anchors);
       lines.push(...changed.lines);
       oldLine = changed.oldLine;
       newLine = changed.newLine;
@@ -99,12 +88,10 @@ export function fileChangeProjectionLines(
   change: FileChange | undefined,
   mode: "diff" | "content",
 ): FileChangeDiffLine[] {
+  const projection = change?.projection;
   if (mode === "diff") {
-    return change?.projection
-      ? change.projection.diff
-        ? parseForwardFilePatch(change.projection.diff)
-        : []
-      : fileChangeDiffLines(change);
+    const lines = projection?.diff ? parseForwardFilePatch(projection.diff) : [];
+    return projection?.complete === false ? lines.map(({ type, text }) => ({ type, text })) : lines;
   }
   return recordedContentLines(fileChangeContent(change));
 }
@@ -116,27 +103,23 @@ function recordedContentLines(content: string | null): FileChangeDiffLine[] {
   return source.map((text, index) => ({ type: "context", text, newLine: index + 1 }));
 }
 
-/** Recorded content is available even when the Runtime omits its derived projection. */
+/** Complete content is available only when editing tool records determine it. */
 export function fileChangeContent(change: FileChange | undefined): string | null {
-  if (change?.projection) return change.projection.content;
-  if (!change?.new_content_z) return null;
-  try {
-    return new TextDecoder("utf-8", { fatal: true }).decode(
-      decompress(Uint8Array.from(change.new_content_z)),
-    );
-  } catch {
-    return null;
-  }
+  return change?.projection?.content ?? null;
 }
 
-/** Overlay recorded changes on every latest file line, including context outside hunks. */
+/** Overlay inferred changes on every known latest file line. */
 export function fileChangeFullDiffLines(
   change: FileChange,
   content = fileChangeContent(change),
 ): FileChangeDiffLine[] {
   const projection = change.projection;
-  const patch = projection ? projection.diff : change.old_patch;
-  const changes = patch ? parseUnifiedFilePatch(patch, !projection, true) : [];
+  if (projection?.complete === false) {
+    // Fragment offsets cannot be overlaid on a complete file without a baseline.
+    const fragments = fileChangeProjectionLines(change, "diff");
+    return fragments.length ? fragments : recordedContentLines(content);
+  }
+  const changes = projection?.diff ? parseUnifiedFilePatch(projection.diff, true) : [];
   if (content === null) {
     return projection?.kind === "deleted"
       ? changes
@@ -145,9 +128,6 @@ export function fileChangeFullDiffLines(
       : [];
   }
   const source = recordedContentLines(content);
-  if (!projection && change.old_patch === null) {
-    return source.map((line) => ({ ...line, type: "add", text: `+${line.text}` }));
-  }
   if (!changes.length) return source;
   const result: FileChangeDiffLine[] = [];
   let next = 1;
@@ -182,20 +162,4 @@ export function fileChangeFullDiffLines(
   }
   while (next <= source.length) context();
   return result;
-}
-
-export function fileChangeDiffLines(change: FileChange | undefined): FileChangeDiffLine[] {
-  if (!change) return [];
-  if (change.old_patch) return parseReverseFilePatch(change.old_patch);
-  if (!change.new_content_z) return [];
-
-  try {
-    const content = new TextDecoder().decode(decompress(Uint8Array.from(change.new_content_z)));
-    if (!content) return [];
-    const source = content.split("\n");
-    if (source.at(-1) === "") source.pop();
-    return source.map((text, index) => ({ type: "add", text: `+${text}`, newLine: index + 1 }));
-  } catch {
-    return [];
-  }
 }

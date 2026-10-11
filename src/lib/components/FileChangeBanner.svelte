@@ -3,13 +3,7 @@
   import { t } from "$lib/i18n";
   import FileChangePanel from "./FileChangePanel.svelte";
 
-  let {
-    changes,
-    onRevert,
-  }: {
-    changes: FileChange[];
-    onRevert: (changeId: string) => Promise<void>;
-  } = $props();
+  let { changes }: { changes: FileChange[] } = $props();
   let expanded = $state(false);
 </script>
 
@@ -45,7 +39,7 @@
     >
   </button>
   <div class="banner-list" hidden={!expanded}>
-    <FileChangePanel {changes} {onRevert} />
+    <FileChangePanel {changes} />
   </div>
 </div>
 

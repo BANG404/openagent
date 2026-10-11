@@ -211,30 +211,6 @@ pub(crate) async fn get_file_changes(
 }
 
 #[tauri::command]
-pub(crate) async fn revert_file_change(
-    runtime: State<'_, Arc<OpenAgentRuntime>>,
-    change_id: String,
-) -> Result<String, String> {
-    openagent_runtime::commands::revert_file_change(runtime.state(), change_id).await
-}
-
-#[tauri::command]
-pub(crate) async fn revert_file_change_keep(
-    runtime: State<'_, Arc<OpenAgentRuntime>>,
-    change_id: String,
-) -> Result<String, String> {
-    openagent_runtime::commands::revert_file_change_keep(runtime.state(), change_id).await
-}
-
-#[tauri::command]
-pub(crate) async fn apply_file_change_forward(
-    runtime: State<'_, Arc<OpenAgentRuntime>>,
-    change_id: String,
-) -> Result<String, String> {
-    openagent_runtime::commands::apply_file_change_forward(runtime.state(), change_id).await
-}
-
-#[tauri::command]
 pub(crate) async fn set_conversation_ui_props(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
     conv_id: String,
