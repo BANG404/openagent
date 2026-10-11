@@ -1,0 +1,84 @@
+[scenario]
+name = "Composer suggestions fit the clipped conversation card"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "clipping, ancestor resize, filtering, scrolling and selection"
+action = "eval"
+script = '''(async () => {
+  const assert = (value, message) => { if (!value) throw new Error(message); };
+  const wait = async (read, message) => {
+    const deadline = Date.now() + 5000;
+    while (Date.now() < deadline) {
+      if (read()) return;
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    throw new Error(message);
+  };
+  const stage = document.querySelector('.command-palette-preview-stage');
+  const editor = stage.querySelector('[contenteditable=true]');
+  const composer = stage.querySelector('.composer');
+  // Reproduce the real card's clipping below desktop chrome, independently of
+  // the native window's minimum size. No provider or persisted roles are used.
+  stage.style.cssText = 'position:absolute;top:72px;left:24px;width:680px;height:300px;min-height:0;box-sizing:border-box;overflow:hidden;';
+  const settle = () => new Promise(resolve => setTimeout(resolve, 220));
+  const key = key => editor.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles:true, cancelable:true }));
+  const fill = async value => {
+    editor.focus();
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    const selection = window.getSelection();
+    selection.removeAllRanges(); selection.addRange(range);
+    editor.dispatchEvent(new InputEvent('beforeinput', { inputType:'insertText', data:value, bubbles:true, cancelable:true }));
+    await settle();
+  };
+  const labels = () => [...stage.querySelectorAll('.palette-label')];
+  const bounds = () => {
+    const palette = stage.querySelector('.palette').getBoundingClientRect();
+    const card = stage.getBoundingClientRect();
+    const input = composer.getBoundingClientRect();
+    assert(palette.top >= card.top + 7, 'candidate list clipped above the card');
+    assert(palette.bottom <= input.top - 5, 'candidate list overlaps composer');
+    assert(palette.left >= card.left && palette.right <= card.right, 'candidate list escapes card width');
+    return palette;
+  };
+  await fill('@');
+  await wait(() => labels().length === 24, 'role fixture did not load');
+  const composerBefore = composer.getBoundingClientRect();
+  bounds();
+  const list = stage.querySelector('.palette-list');
+  assert(list.scrollHeight > list.clientHeight, 'long candidate list is not scrollable');
+  // Change only the ancestor's top edge and height, keeping the composer fixed.
+  // Observing the composer alone does not see this geometry change.
+  const heightBefore = bounds().height;
+  stage.style.top = '132px'; stage.style.height = '240px';
+  await settle();
+  assert(bounds().height < heightBefore - 50, 'ancestor resize did not constrain suggestions');
+  assert(Math.abs(composer.getBoundingClientRect().top - composerBefore.top) < 1, 'palette resize moved composer');
+  for (let index = 0; index < 23; index++) key('ArrowDown');
+  await settle();
+  const last = labels().at(-1).getBoundingClientRect();
+  const viewport = list.getBoundingClientRect();
+  assert(last.top >= viewport.top - 1 && last.bottom <= viewport.bottom + 1, 'keyboard selection is hidden');
+  assert(list.scrollTop > 0, 'keyboard did not scroll the candidate list');
+  bounds();
+  key('Enter');
+  await wait(() => !stage.querySelector('.palette') && editor.textContent.includes('24'), 'keyboard selection did not insert role');
+  await fill('@01');
+  await wait(() => labels().length === 1, 'filtered candidate missing');
+  assert(bounds().height < 70, 'short results leave empty space');
+  assert(Math.abs(composer.getBoundingClientRect().top - composerBefore.top) < 1, 'filtering moved composer');
+  await fill('@missing');
+  await wait(() => stage.querySelector('.palette-empty'), 'empty result state missing');
+  assert(bounds().height < 80, 'empty state reserves the long-list height');
+  await fill('/');
+  await wait(() => labels().length === 5, 'slash palette failed to recover');
+  bounds();
+  key('Escape');
+  await wait(() => !stage.querySelector('.palette'), 'Escape did not dismiss suggestions');
+  await fill('@');
+  await wait(() => labels().length === 24, 'mention palette failed to reopen');
+  bounds();
+  return 'visible card bounds, ancestor resize, list scrolling, filtering, selection and recovery passed';
+})()'''

@@ -14,6 +14,7 @@
   import { NEW_CONVERSATION_GREETING } from "$lib/newConversation";
   import type { BackgroundTerminalSession } from "$lib/openagent";
   import { fileDiffPreviewChanges } from "$lib/devFixtures/fileDiff";
+  import { previewMentionItems } from "$lib/devFixtures/composerPalette";
   import { terminalHistory } from "$lib/terminalHistory";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
   import { defaultPermissionProfile, normalizeConfigShape } from "$lib/config";
@@ -1474,7 +1475,8 @@
       sendDisabled={true}
       sendTitle={$t("send")}
       {slashCommands}
-      enableMentions={false}
+      loadMentionItems={async (query) => previewMentionItems(query, locale)}
+      showGlobalDraftsInMentions={false}
       showAttachments={false}
       showModelSelector={false}
       showStopButton={false}

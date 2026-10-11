@@ -294,10 +294,21 @@
 
   function syncPaletteAvailableHeight() {
     if (!composerEl) return;
-    const viewportTop = window.visualViewport?.offsetTop ?? 0;
+    // The conversation card clips below the title bar, inside the viewport.
+    // Respect every clipping ancestor, including embedded composer surfaces.
+    let visibleTop = window.visualViewport?.offsetTop ?? 0;
+    for (let ancestor = composerEl.parentElement; ancestor; ancestor = ancestor.parentElement) {
+      const { overflowY } = getComputedStyle(ancestor);
+      if (["hidden", "clip", "auto", "scroll"].includes(overflowY)) {
+        visibleTop = Math.max(
+          visibleTop,
+          ancestor.getBoundingClientRect().top + ancestor.clientTop,
+        );
+      }
+    }
     const availableHeight =
       composerEl.getBoundingClientRect().top -
-      viewportTop -
+      visibleTop -
       paletteComposerGap -
       paletteViewportInset;
     paletteAvailableHeight = Math.max(
@@ -319,7 +330,9 @@
       if (paletteController.paletteMode) syncPaletteAvailableHeight();
     };
     const composerResizeObserver = new ResizeObserver(syncOpenPalette);
-    if (composerEl) composerResizeObserver.observe(composerEl);
+    for (let element = composerEl; element; element = element.parentElement) {
+      composerResizeObserver.observe(element);
+    }
     window.addEventListener("resize", syncOpenPalette);
     window.addEventListener("scroll", syncOpenPalette, true);
     window.visualViewport?.addEventListener("resize", syncOpenPalette);

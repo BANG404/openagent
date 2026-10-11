@@ -183,12 +183,19 @@ preview query routing and book-open actions load the same checked components.
   menu row scale and conversation-input material. Align its width to the
   composer, use the shared 18px radius and 6px inset, and let both surfaces
   follow their visible items up to the lesser of the configured 320px maximum
-  and the live space above the composer, retaining an 8px viewport inset. Recalculate that space
-  for window, visual-viewport, composer-height, and scroll changes. Only
+  and the live space above the composer inside the visual viewport and every
+  ancestor that clips vertical overflow, retaining an 8px inset and 6px composer
+  gap. The conversation card begins below the desktop title bar; window height
+  alone is not its visible boundary. Recalculate that space for window,
+  visual-viewport, composer/ancestor size, and scroll changes. Only
   overflow scrolls independently, so short result sets leave no trailing empty
   area, constrained windows never clip the palette, and opening or navigating
   them never moves the composer. Keep slash-command rows to the command token
   and description only, without trailing hints or decorative glyphs.
+  Verify with `bun run test:blackbox:composer-palette` in an isolated Tauri
+  window across English/Chinese and light/dark. The command-palette preview
+  supplies role fixtures for clipping, resize, filtering, keyboard navigation,
+  selection and dismissal coverage.
 - Filter slash-command names case-insensitively, accepting nonadjacent query
   characters in any order. Every repeated query character needs a distinct
   occurrence in the name. Rank exact, prefix, and substring matches ahead of
