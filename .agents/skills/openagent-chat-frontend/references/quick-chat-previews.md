@@ -230,7 +230,18 @@
 - Keep the development-only `tool-diff-preview` query available with a large
   `edit_file` fixture. Its `-theme` and `-locale` parameters must keep bounded
   expansion, light/dark themes, and Chinese/English rendering directly
-  verifiable without native state.
+  verifiable without native state. Use an opaque themed surface for this
+  fixture so native material transparency cannot mix a light backdrop with
+  dark tool text during screenshot verification.
+- Verify edit cards with `bun run test:blackbox:tool-edit` against an isolated
+  `edit-tools` source development instance, with explicit `TAURI_PILOT_SOCKET`
+  and `OPENAGENT_HOME`. It covers the collapsed path/summary, expansion and
+  collapse, exact replacement fragments without invented offsets, bounded
+  large edits with complete counts, and failed results in light/dark and
+  Chinese/English. Set `BLACKBOX_NATIVE_WINDOW_ID` to the verified main HWND
+  on Windows for native captures. The runner also switches the native window
+  theme for matching material backgrounds and restores the original resolved
+  window theme and URL when it finishes.
 - Keep the development-only `tool-status-preview` query available for the
   shared ToolResult lifecycle. Its `-theme` and `-locale` parameters must keep
   waiting, successful, unanswered, hidden-failure, pending `ask_user`, and

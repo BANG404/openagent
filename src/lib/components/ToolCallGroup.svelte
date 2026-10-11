@@ -1,6 +1,7 @@
 <script lang="ts">
   import { t, toolNameKey } from "$lib/i18n";
   import {
+    toolArgHint,
     shouldDisplayToolCall,
     toolCallStatus,
     type ToolCallItem,
@@ -47,17 +48,6 @@
     if (next.has(index)) next.delete(index);
     else next.add(index);
     expandedCalls = next;
-  }
-
-  function toolArgHint(args: string): string {
-    try {
-      const first = Object.values(JSON.parse(args))[0];
-      if (first !== undefined) {
-        const value = String(first);
-        return value.length > 48 ? `${value.slice(0, 48)}…` : value;
-      }
-    } catch {}
-    return "";
   }
 
   function statusLabel(status: ToolCallStatus): string {
