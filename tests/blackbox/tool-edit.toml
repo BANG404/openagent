@@ -1,0 +1,66 @@
+[scenario]
+name = "file edit tool cards"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "collapsed edit shows its file and replacement summary"
+action = "eval"
+script = '''(() => {
+  const card=document.querySelector('.tool-call-card');
+  if(!card || !card.textContent.includes('src/config.ts') || !card.textContent.includes('+2 -2'))throw new Error('edit summary missing');
+  if(document.body.textContent.includes('[object Object]'))throw new Error('object argument leaked into header');
+  if(card.querySelector('.tool-detail'))throw new Error('edit starts expanded');
+  const query=new URLSearchParams(location.search);
+  const label=query.get('tool-diff-preview-locale')==='en'?'Edit file':'编辑文件';
+  if(!card.textContent.includes(label))throw new Error('requested localized edit label missing');
+  const theme=query.get('tool-diff-preview-theme');
+  if(!document.documentElement.classList.contains(theme))throw new Error('requested theme missing');
+  const backdrop=getComputedStyle(document.querySelector('.tool-diff-preview-stage')).backgroundColor;
+  if(backdrop==='transparent' || backdrop==='rgba(0, 0, 0, 0)')throw new Error('preview uses an uncontrolled native backdrop');
+  return true;
+})()'''
+
+[[step]]
+name = "expand edit"
+action = "click"
+target = ".tool-call-card:first-child .tool-toggle"
+
+[[step]]
+name = "expanded edit shows exact fragments and result separately"
+action = "eval"
+script = '''(() => {
+  const card=document.querySelector('.tool-call-card');
+  if(!card.querySelector('.tool-toggle[aria-expanded="true"]'))throw new Error('edit did not expand');
+  const rows=[...card.querySelectorAll('.diff-row')];
+  if(rows.length!==4 || !rows.some(row=>row.classList.contains('remove') && row.textContent.includes('staging')) || !rows.some(row=>row.classList.contains('add') && row.textContent.includes('production')))throw new Error('replacement diff missing');
+  if(rows.some(row=>[...row.querySelectorAll('.line-number')].some(number=>number.textContent.trim())))throw new Error('invented file offsets');
+  if(!card.querySelector('.path-chip')?.textContent.includes('src/config.ts') || !/Completed|已完成/.test(card.querySelector('.result-output')?.textContent || ''))throw new Error('path/result missing');
+  return true;
+})()'''
+
+[[step]]
+name = "large edit stays bounded and failed edit keeps its error"
+action = "eval"
+script = '''(() => {
+  const cards=[...document.querySelectorAll('.tool-call-card')];
+  const rows=cards[1].querySelectorAll('.diff-row');
+  if(rows.length>240 || rows.length<2 || !rows[rows.length-1].textContent.includes('...'))throw new Error('large edit preview is not bounded');
+  if(!cards[1].querySelector('.tool-result-pill')?.textContent.includes('+20000 -20000'))throw new Error('large edit totals lost');
+  if(!cards[2].querySelector('.tool-failed') || cards[2].querySelector('.tool-result-pill') || !cards[2].querySelector('.result-output')?.textContent.includes('target_not_found'))throw new Error('failed edit claims success or loses its error');
+  return true;
+})()'''
+
+[[step]]
+name = "collapse edit"
+action = "click"
+target = ".tool-call-card:first-child .tool-toggle"
+
+[[step]]
+name = "collapsed result retains path and summary"
+action = "eval"
+script = '''(() => {
+  const card=document.querySelector('.tool-call-card');
+  if(card.querySelector('.tool-detail') || !card.textContent.includes('src/config.ts') || !card.textContent.includes('+2 -2'))throw new Error('collapse lost edit summary');
+  return true;
+})()'''

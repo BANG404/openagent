@@ -4,6 +4,21 @@ import { parseToolResultJson } from "./toolResultJson";
 
 export type ToolCallItem = Extract<StreamItem, { type: "tool_call" }>;
 
+export function toolArgHint(args: string): string {
+  try {
+    const parsed = JSON.parse(args);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return "";
+    const value = [parsed.path, parsed.file_path, parsed.cmd, ...Object.values(parsed)].find(
+      (item) => typeof item === "string" || typeof item === "number" || typeof item === "boolean",
+    );
+    if (value === undefined) return "";
+    const text = String(value);
+    return text.length > 48 ? `${text.slice(0, 48)}…` : text;
+  } catch {
+    return "";
+  }
+}
+
 export type StreamItemSegment =
   | { kind: "item"; item: StreamItem; startIndex: number }
   | { kind: "tool_group"; items: ToolCallItem[]; startIndex: number };

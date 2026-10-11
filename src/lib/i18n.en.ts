@@ -971,6 +971,7 @@ const en: Record<TranslationKeys, string> = {
   toolStatusCancelled: "Cancelled",
   toolInvocation: "Call",
   toolChanges: "File changes",
+  toolReplacements: "replacements",
   toolResult: "Result",
   toolFile: "file",
   toolFiles: "files",

@@ -15,7 +15,7 @@
   import CompactionStatus from "./CompactionStatus.svelte";
   import UserInputForm from "./UserInputForm.svelte";
   import UserInputSummary from "./UserInputSummary.svelte";
-  import { groupStreamItems } from "$lib/toolCallGroups";
+  import { groupStreamItems, toolArgHint } from "$lib/toolCallGroups";
   import { externalLinks } from "$lib/streamdown/externalLink";
   import { useOpenAgentUiCapabilities } from "$lib/openagent";
 
@@ -37,17 +37,6 @@
     const next = new Set(expandedToolCalls);
     next.has(index) ? next.delete(index) : next.add(index);
     expandedToolCalls = next;
-  }
-
-  function toolArgHint(args: string): string {
-    try {
-      const first = Object.values(JSON.parse(args))[0];
-      if (first !== undefined) {
-        const text = String(first);
-        return text.length > 48 ? `${text.slice(0, 48)}…` : text;
-      }
-    } catch {}
-    return "";
   }
 </script>
 

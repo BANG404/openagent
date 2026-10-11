@@ -10,6 +10,7 @@
   import ConversationUiRecord from "./ConversationUiRecord.svelte";
   import CompactionStatus from "./CompactionStatus.svelte";
   import { t } from "$lib/i18n";
+  import { toolArgHint } from "$lib/toolCallGroups";
   import type { StreamItem } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { customExtensions, type ComponentToken } from "$lib/streamdown/extensions";
@@ -63,17 +64,6 @@
     tokenize: "word" as const,
     animateOnMount: false,
   };
-
-  function toolArgHint(args: string): string {
-    try {
-      const first = Object.values(JSON.parse(args))[0];
-      if (first !== undefined) {
-        const value = String(first);
-        return value.length > 48 ? `${value.slice(0, 48)}…` : value;
-      }
-    } catch {}
-    return "";
-  }
 </script>
 
 {#if item.type === "ui"}

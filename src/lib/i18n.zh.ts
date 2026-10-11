@@ -936,6 +936,7 @@ export const zh = {
   toolStatusCancelled: "已取消",
   toolInvocation: "调用",
   toolChanges: "文件改动",
+  toolReplacements: "处替换",
   toolResult: "返回",
   toolFile: "个文件",
   toolFiles: "个文件",

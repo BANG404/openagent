@@ -34,29 +34,23 @@
   Appended context must not turn a failed result into a successful one, nor
   hide a structured result a feature already depends on.
 - `view_image` ToolResult image blocks remain image content during checkpoint
-  hydration. Render them as bounded previews in the expanded tool card, while
-  keeping the textual result concise (`[image]`) and never printing base64 in
-  transcript text. The same card grammar applies to `exec_command`,
-  `write_stdin`, and `apply_patch`.
-- Give the exposed filesystem tool set (`exec_command`, `write_stdin`,
-  `apply_patch`, and `view_image`) distinct call and result regions so the
-  command, continuation session, returned output, and inspected path remain
-  scannable. Only an inspected path earns the interactive path chip, the header
-  path hint, and the open-folder action; a terminal call's working directory is
-  command context and must not be rendered as any of them. Keep the terminal
-  card's header hint on the command itself. Project every `apply_patch` file operation into tabs backed by the
-  same bounded, line-numbered diff view as the conversation Files panel; retain
-  total addition and removal counts even when the rendered patch is truncated.
-  `apply_patch` follows the Codex patch grammar: add operations require one or
-  more `+` lines, update operations may contain a move without hunks, and the
-  tool's visible name and successful file-edit label are localized alongside
-  every other built-in tool. Unknown MCP tool names remain readable as supplied
-  by the server.
-  A standard `Delete File` header has no body, so hydrate its tab from the
-  matching pre-delete `FileChange` snapshot; number every deleted source line
-  from 1 and count the complete file even when the rendered preview is bounded.
-  Do not restore focused renderers for the unexposed legacy `read_file`,
-  `write_file`, `edit_file`, `glob`, or `grep` tools.
+  hydration. Render bounded previews in the expanded card without exposing encoded
+  bytes.
+- Give `exec_command`, `write_stdin`, `edit_file`, and `view_image` distinct call
+  and result regions. Terminal headers show the command; only an inspected file
+  path earns the path chip, header hint, and open-folder action. Working directories
+  remain terminal context.
+- `edit_file` renders the current JSON `edits` array of `old_text` / `new_text`
+  replacements. Keep path and replacement/addition/removal counts visible while
+  collapsed; expand submitted fragments through the shared bounded FileDiffView.
+  Fragment offsets are unknown, so never invent complete-file line numbers.
+  The submitted preview is not proof of success: retain waiting, running, denied,
+  and failed states and show the matching result separately.
+- Built-in `apply_patch` is removed from Runtime. Saved calls remain ordinary
+  readable records; do not register or recreate an executable patch tool.
+- Argument hints prefer path/command scalar values and never stringify objects
+  or arrays. Share the same hint projection across grouped, streamed, restored,
+  and retry tool cards; unknown MCP tool names remain readable as supplied.
 - Group consecutive ordinary ToolCalls into one collapsed summary row with
   independently expandable calls.
 - Keep ordinary and enhanced file/search tool cards, grouped tool summaries,

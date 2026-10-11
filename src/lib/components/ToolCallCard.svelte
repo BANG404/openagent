@@ -4,11 +4,7 @@
   import type { ChatToolImage, McpUiInvocation, UserInputRequest } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { t, toolNameKey } from "$lib/i18n";
-  import {
-    parseApplyPatchPreview,
-    summarizePatchChanges,
-    type ToolPatchFilePreview,
-  } from "$lib/toolCallPatch";
+  import { parseEditFilePreview } from "$lib/toolEditPreview";
   import {
     canMountMcpApp,
     shouldDisplayToolCall,
@@ -68,7 +64,7 @@
     onToggle,
   }: Props = $props();
 
-  const focusedTools = new Set(["exec_command", "write_stdin", "apply_patch", "view_image"]);
+  const focusedTools = new Set(["exec_command", "write_stdin", "edit_file", "view_image"]);
 
   const parsedArgs = $derived.by((): JsonObject | null => {
     try {
@@ -119,41 +115,39 @@
                 : "toolStatusWaiting",
     ),
   );
-  const patchText = $derived(getString(parsedArgs, "patch"));
-  const applyPatchPreviews = $derived(parseApplyPatchPreview(patchText));
-  const patchSummary = $derived(summarizePatchChanges(applyPatchPreviews));
+  const editPreview = $derived(parseEditFilePreview(name === "edit_file" ? parsedArgs : null));
   // A terminal call's `workdir` is context, never an inspected path: it must
   // not become the file-path chip, the header hint, or the open-folder action.
   const filePath = $derived(
-    getString(parsedArgs, "file_path") ||
-      getString(parsedArgs, "path") ||
-      applyPatchPreviews[0]?.path ||
-      "",
-  );
-  let selectedPatchPath = $state("");
-  const selectedPatch = $derived<ToolPatchFilePreview | undefined>(
-    applyPatchPreviews.find((preview) => preview.path === selectedPatchPath) ??
-      applyPatchPreviews[0],
+    getString(parsedArgs, "file_path") || getString(parsedArgs, "path") || "",
   );
   const terminalResult = $derived(parseTerminalResult(resultText));
   const command = $derived(getString(parsedArgs, "cmd"));
   const sessionId = $derived(getString(parsedArgs, "session_id"));
   const stdinChars = $derived(getString(parsedArgs, "chars"));
+  const editResultText = $derived.by(() => {
+    const value = parseToolResultJson(resultText);
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      const record = value as JsonObject;
+      if (status === "success" && record.status === "applied") return statusText;
+      if (record.error && typeof record.error === "object") {
+        const error = record.error as JsonObject;
+        if (typeof error.message === "string") {
+          return typeof error.kind === "string" ? `${error.kind}: ${error.message}` : error.message;
+        }
+      }
+    }
+    return resultText;
+  });
   const resultSummary = $derived.by(() =>
     status === "success"
-      ? name === "apply_patch" && patchSummary.files > 0
-        ? `${patchSummary.files} ${$t(patchSummary.files === 1 ? "toolFile" : "toolFiles")} · +${patchSummary.additions} -${patchSummary.removals}`
+      ? name === "edit_file" && editPreview.replacements > 0
+        ? `${editPreview.replacements} ${$t("toolReplacements")} · +${editPreview.additions} -${editPreview.removals}`
         : name === "exec_command" || name === "write_stdin"
           ? summarizeTerminalResult(terminalResult)
           : summarizeResult(resultText)
       : "",
   );
-
-  $effect(() => {
-    if (!applyPatchPreviews.some((preview) => preview.path === selectedPatchPath)) {
-      selectedPatchPath = applyPatchPreviews[0]?.path ?? "";
-    }
-  });
 
   function getString(obj: JsonObject | null, key: string): string {
     const value = obj?.[key];
@@ -203,16 +197,6 @@
     return outputLines ? `${outputLines} ${$t(outputLines === 1 ? "toolLine" : "toolLines")}` : "";
   }
 
-  function patchOperationLabel(operation: ToolPatchFilePreview["operation"]): string {
-    return $t(
-      operation === "add"
-        ? "toolPatchAdded"
-        : operation === "delete"
-          ? "toolPatchDeleted"
-          : "toolPatchUpdated",
-    );
-  }
-
   async function openPath(path: string, event?: MouseEvent) {
     event?.stopPropagation();
     if (!path) return;
@@ -254,7 +238,7 @@
           {#if isFocusedTool}
             {#if name === "exec_command" && command}
               <span class="tool-arg-hint">{command}</span>
-            {:else if filePath && name !== "apply_patch"}
+            {:else if filePath}
               <span class="tool-arg-hint">{shortPath(filePath)}</span>
             {:else if getString(parsedArgs, "session_id")}
               <span class="tool-arg-hint">{getString(parsedArgs, "session_id")}</span>
@@ -304,7 +288,7 @@
             </svg>
           </span>
         </button>
-        {#if isFocusedTool && filePath && name !== "apply_patch"}
+        {#if isFocusedTool && filePath}
           <Tooltip text={$t("openContainingFolder")}>
             {#snippet trigger(props)}
               <button
@@ -347,7 +331,7 @@
         {#if isFocusedTool}
           <div class="tool-detail">
             <div class="detail-section-label">{$t("toolInvocation")}</div>
-            {#if filePath && name !== "apply_patch"}
+            {#if filePath}
               <Tooltip text={filePath}>
                 {#snippet trigger(props)}
                   <button
@@ -418,50 +402,19 @@
                     12_000,
                   )}</pre>
               {/if}
-            {:else if name === "apply_patch"}
+            {:else if name === "edit_file"}
               <div class="patch-summary">
-                <span
-                  >{patchSummary.files}
-                  {$t(patchSummary.files === 1 ? "toolFile" : "toolFiles")}</span
-                >
-                <span class="additions">+{patchSummary.additions}</span>
-                <span class="removals">-{patchSummary.removals}</span>
+                <span>{editPreview.replacements} {$t("toolReplacements")}</span>
+                <span class="additions">+{editPreview.additions}</span>
+                <span class="removals">-{editPreview.removals}</span>
               </div>
               <div class="detail-section-label changes-label">{$t("toolChanges")}</div>
-              {#if applyPatchPreviews.length > 0}
-                <div class="patch-tabs" role="tablist" aria-label={$t("toolAffectedFiles")}>
-                  {#each applyPatchPreviews as preview (preview.path)}
-                    <Tooltip text={preview.path} side="bottom">
-                      {#snippet trigger(props)}
-                        <button
-                          {...props}
-                          class="patch-tab"
-                          class:active={selectedPatch?.path === preview.path}
-                          type="button"
-                          role="tab"
-                          aria-selected={selectedPatch?.path === preview.path}
-                          onclick={() => (selectedPatchPath = preview.path)}
-                        >
-                          <span class="patch-operation"
-                            >{patchOperationLabel(preview.operation)}</span
-                          >
-                          <span class="patch-path">{shortPath(preview.path)}</span>
-                        </button>
-                      {/snippet}
-                    </Tooltip>
-                  {/each}
-                </div>
-                {#if selectedPatch}
-                  <div class="tool-diff-host" role="tabpanel">
-                    <FileDiffView lines={selectedPatch.lines} compact />
-                  </div>
-                {/if}
-              {:else}
-                <pre class="code-block">{trimPreview(patchText, 12_000)}</pre>
-              {/if}
+              <div class="tool-diff-host">
+                <FileDiffView lines={editPreview.lines} path={filePath} compact />
+              </div>
               {#if result !== undefined}
                 <div class="detail-section-label result-label">{$t("toolResult")}</div>
-                <pre class="tool-result result-output">{trimPreview(resultText)}</pre>
+                <pre class="tool-result result-output">{trimPreview(editResultText)}</pre>
               {/if}
             {:else if name === "view_image"}
               {#if result !== undefined && resultText && resultText !== "[image]"}
@@ -746,71 +699,6 @@
 
   .patch-summary .removals {
     color: color-mix(in srgb, #b42318 82%, var(--text));
-  }
-
-  .patch-tabs {
-    display: flex;
-    min-width: 0;
-    overflow-x: auto;
-    padding: 5px 6px 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .patch-tab {
-    position: relative;
-    display: flex;
-    min-width: 120px;
-    max-width: 220px;
-    height: 33px;
-    flex: 1 0 136px;
-    align-items: center;
-    gap: 6px;
-    padding: 0 9px;
-    border: 0;
-    border-radius: 6px 6px 0 0;
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
-    font-size: 10px;
-  }
-
-  .patch-tab:hover,
-  .patch-tab:focus-visible {
-    background: var(--interactive-state-bg);
-    color: var(--text);
-    outline: none;
-  }
-
-  .patch-tab:focus-visible {
-    box-shadow: inset var(--focus-ring);
-  }
-
-  .patch-tab.active {
-    background: var(--surface2);
-    color: var(--text);
-  }
-
-  .patch-tab.active::after {
-    position: absolute;
-    inset: auto 0 -1px;
-    height: 2px;
-    background: var(--primary);
-    content: "";
-  }
-
-  .patch-operation {
-    flex: 0 0 auto;
-    font-weight: 600;
-  }
-
-  .patch-path {
-    overflow: hidden;
-    min-width: 0;
-    flex: 1;
-    font-family: "JetBrains Mono", monospace;
-    text-align: left;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .tool-diff-host {

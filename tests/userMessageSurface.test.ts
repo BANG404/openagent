@@ -123,9 +123,9 @@ test("keeps focused tool rendering aligned with the exposed filesystem tools", a
   );
 
   expect(source).toContain(
-    'const focusedTools = new Set(["exec_command", "write_stdin", "apply_patch", "view_image"]);',
+    'const focusedTools = new Set(["exec_command", "write_stdin", "edit_file", "view_image"]);',
   );
-  for (const legacyTool of ["read_file", "write_file", "edit_file", "glob", "grep"]) {
+  for (const legacyTool of ["apply_patch", "read_file", "write_file", "glob", "grep"]) {
     expect(source).not.toContain(`name === "${legacyTool}"`);
   }
 });

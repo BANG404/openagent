@@ -221,23 +221,20 @@
   let quoteMessagesElement = $state<HTMLElement | null>(null);
   let runtimeNoticeMessagesElement = $state<HTMLElement | null>(null);
   let mermaidFinalizationMessagesElement = $state<HTMLElement | null>(null);
-  const toolPatchArgs = JSON.stringify({
-    patch: [
-      "*** Begin Patch",
-      "*** Update File: src/lib/components/ToolCallCard.svelte",
-      "@@",
-      '-  const focusedTools = new Set(["exec_command"]);',
-      '+  const focusedTools = new Set(["exec_command", "apply_patch"]);',
-      "*** Add File: docs/tool-rendering.md",
-      "+# Tool rendering",
-      "+",
-      "+Show calls, results, and file changes as separate regions.",
-      "*** Delete File: docs/removed.md",
-      "*** End Patch",
-    ].join("\n"),
+  let toolEditExpanded = $state(false);
+  const toolEditArgs = JSON.stringify({
+    edits: [
+      { old_text: 'const mode = "staging";', new_text: 'const mode = "production";' },
+      { old_text: "const retries = 2;", new_text: "const retries = 4;" },
+    ],
+    path: "src/config.ts",
+  });
+  const toolLargeEditArgs = JSON.stringify({
+    path: "src/large.ts",
+    edits: [{ old_text: "old line\n".repeat(20_000), new_text: "new line\n".repeat(20_000) }],
   });
   const toolExecArgs = JSON.stringify({
-    cmd: "rtk bun test tests/toolCallPatch.test.ts",
+    cmd: "rtk bun test tests/toolEditPreview.test.ts",
     workdir: "/workspace/openagent",
     yield_time_ms: 10_000,
   });
@@ -1020,11 +1017,39 @@
   <main class="tool-diff-preview-stage">
     <section class="tool-diff-preview-stack" aria-label={$t("toolPreviewLargeEdit")}>
       <ToolCallCard
-        name="apply_patch"
-        args={toolPatchArgs}
-        result="Applied patch to 3 files: src/lib/components/ToolCallCard.svelte, docs/tool-rendering.md, docs/removed.md"
+        name="edit_file"
+        args={toolEditArgs}
+        result={JSON.stringify({
+          status: "applied",
+          path: "src/config.ts",
+          operation: "edit",
+          replacements: 2,
+        })}
+        expanded={toolEditExpanded}
+        argHint="[object Object]"
+        onToggle={() => (toolEditExpanded = !toolEditExpanded)}
+      />
+      <ToolCallCard
+        name="edit_file"
+        args={toolLargeEditArgs}
+        result={JSON.stringify({
+          status: "applied",
+          path: "src/large.ts",
+          operation: "edit",
+          replacements: 1,
+        })}
         expanded={true}
-        argHint="2 files"
+        argHint="src/large.ts"
+        onToggle={() => {}}
+      />
+      <ToolCallCard
+        name="edit_file"
+        args={toolEditArgs}
+        result={JSON.stringify({
+          error: { kind: "target_not_found", message: "Read the file again before retrying." },
+        })}
+        expanded={true}
+        argHint="src/config.ts"
         onToggle={() => {}}
       />
       <ToolCallCard
@@ -1662,6 +1687,7 @@
     display: grid;
     place-items: start center;
     padding: 48px 24px;
+    background: var(--surface);
   }
   .input-surfaces-preview-stage {
     display: grid;
