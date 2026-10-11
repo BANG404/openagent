@@ -298,6 +298,79 @@ try {
   }
   if (!preferencesOpened)
     throw new Error("Resource preparation did not continue in the welcome wizard");
+  // Reproduce an interrupted installer in the old shell, then prepare a newer
+  // signed plan through the real native command without running an installer.
+  const futureVersion = "999.0.1-beta.1";
+  const interruptedVersion = "999.0.0-beta.1";
+  const futureFrontendManifest = Buffer.from(
+    JSON.stringify({ ...JSON.parse(frontendManifest.toString()), version: futureVersion }),
+  );
+  await writeFile(
+    path.join(frontendDir, "openagent-frontend-manifest.json"),
+    futureFrontendManifest,
+  );
+  await writeFile(
+    path.join(frontendDir, "openagent-frontend-manifest.json.sig"),
+    fixture.sign(futureFrontendManifest),
+  );
+  const futureDirectory = path.join(home, "resources", "distributions", futureVersion);
+  await createDistribution({
+    directory: futureDirectory,
+    runtimeDirectory: runtimeDir,
+    frontendDirectory: frontendDir,
+    modelDirectory: path.join(root, "src-tauri/resources/models/all-MiniLM-L6-v2-q"),
+    helperDirectory: helperDir,
+    version: futureVersion,
+    sdkSha: "1".repeat(40),
+  });
+  await writeFile(
+    path.join(futureDirectory, "openagent-distribution.json.sig"),
+    fixture.sign(await readFile(path.join(futureDirectory, "openagent-distribution.json"))),
+  );
+  const updatesDirectory = path.join(home, "resources", "updates");
+  await mkdir(updatesDirectory, { recursive: true });
+  const continuationFile = path.join(updatesDirectory, "shell-handoff.json");
+  await writeFile(
+    continuationFile,
+    JSON.stringify({ schema_version: 1, shell_version: interruptedVersion }),
+  );
+  pilot(["snapshot", "-i"]);
+  pilot(["run", path.join(root, "tests/blackbox/shell-handoff-unverified.toml")]);
+  if (JSON.parse(await readFile(continuationFile, "utf8")).shell_version !== interruptedVersion)
+    throw new Error("Unverified candidate overwrote the interrupted shell continuation");
+  const signatureFile = path.join(futureDirectory, "openagent-distribution.json.sig");
+  const validSignature = await readFile(signatureFile);
+  const helperFile = path.join(futureDirectory, "codex-command-runner.exe");
+  const validHelper = await readFile(helperFile);
+  const corruptHelper = Buffer.from(validHelper);
+  corruptHelper[0] ^= 0xff;
+  /** @type {Array<[string, string, string | Buffer, Buffer]>} */
+  const damagedCandidates = [
+    [
+      "Distribution signature verification failed",
+      signatureFile,
+      fixture.sign(Buffer.from("changed")),
+      validSignature,
+    ],
+    ["Prepared release artifact checksum changed", helperFile, corruptHelper, validHelper],
+  ];
+  for (const [expectedError, damagedFile, damagedBytes, validBytes] of damagedCandidates) {
+    await writeFile(damagedFile, damagedBytes);
+    try {
+      pilot(["snapshot", "-i"]);
+      pilot(["eval", `window.__shellHandoffExpectedError = ${JSON.stringify(expectedError)}`]);
+      pilot(["snapshot", "-i"]);
+      pilot(["run", path.join(root, "tests/blackbox/shell-handoff-integrity.toml")]);
+      if (JSON.parse(await readFile(continuationFile, "utf8")).shell_version !== interruptedVersion)
+        throw new Error("Damaged candidate overwrote the interrupted shell continuation");
+    } finally {
+      await writeFile(damagedFile, validBytes);
+    }
+  }
+  pilot(["snapshot", "-i"]);
+  pilot(["run", path.join(root, "tests/blackbox/shell-handoff-retry.toml")]);
+  if (JSON.parse(await readFile(continuationFile, "utf8")).shell_version !== futureVersion)
+    throw new Error("Newer verified plan did not replace the interrupted shell continuation");
   // Restart with no offline source and a refused network endpoint. The signed
   // cache and durable handoff must be enough to reopen and confirm the product.
   if (!desktop.pid) throw new Error("Fixture desktop has no process identity");
@@ -314,8 +387,6 @@ try {
     configFile,
     savedConfig.replace("onboarding_completed = false", "onboarding_completed = true"),
   );
-  const updatesDirectory = path.join(home, "resources", "updates");
-  await mkdir(updatesDirectory, { recursive: true });
   await writeFile(
     path.join(updatesDirectory, "shell-handoff.json"),
     JSON.stringify({ schema_version: 1, shell_version: version }),
@@ -438,7 +509,7 @@ try {
   )
     throw new Error("Missing installed Runtime did not recover through resource preparation");
   console.log(
-    `Shell resource black-box passed: retry, four themes/locales, verified offline install, continuation, direct repeat startup and missing-resource repair. Artifacts: ${directory}`,
+    `Shell resource black-box passed: retry, four themes/locales, verified offline install, interrupted installer supersession, continuation, direct repeat startup and missing-resource repair. Artifacts: ${directory}`,
   );
 } finally {
   await writeFile(path.join(directory, "desktop.log"), logs.join(""));

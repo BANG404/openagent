@@ -30,8 +30,13 @@ and durably writes
 activate the new frontend. The shell installer runs first; the replacement
 process reverifies the recorded Runtime, starts and probes it, then activates
 the staged frontend and arms its confirmation deadline. No moving channel is
-queried to reconstruct a handoff. An identical handoff may be retried, while a
-different pending transaction refuses overwrite. Frontend-only
+queried to reconstruct a handoff. An identical handoff may be retried. If the
+installer left the running shell older than the pending target, preparation of
+a strictly newer, fully verified distribution may atomically supersede that
+interrupted plan. Lower targets and plans whose shell has already been reached
+but whose frontend is not yet confirmed refuse overwrite. A failed write keeps
+the prior continuation intact; successful replacement logs `handoff_superseded`
+with the current, previous and candidate shell versions. Frontend-only
 activation reloads and confirms the frontend in the current process.
 An update that activates only frontend or Runtime resources keeps the same
 notification model without restarting the shell. Every product release also
@@ -390,8 +395,18 @@ retry or importing an exact-version resource directory.
 
 Run `bun run test:blackbox:shell-resources` to verify the shared welcome/recovery surface
 in all locales/themes, normal offline restart without a preparation reveal,
-missing-resource repair, and shell-handoff continuation. The runner uses its own
-temporary home, advances the same welcome window to Preferences, and records
+missing-resource repair, and shell-handoff continuation. Its interrupted-installer
+scenarios prove that an unverified candidate preserves the old record, a newer
+verified plan supersedes it, damaged signatures and helper bytes preserve the old
+record, and an identical retry keeps the Runtime running. See
+[update verification](update-verification.md) for the failure matrix and commands.
+For installed-release recovery before the fixed shell is available, inspect the
+host log and running executable version first. If the running shell is still
+older than the recorded target and no installer is active, move only
+`resources/updates/shell-handoff.json` into a timestamped file under `backups/`,
+verify the backup bytes, and retry the newer update. Preserve distribution caches
+and active resource selections. Do not remove a reached-but-unconfirmed plan.
+The runner uses its own temporary home, advances the same welcome window to Preferences, and records
 native window visibility during installed startup.
 
 Frontend-host protocol 2 requires shell provisioning and continuation commands.

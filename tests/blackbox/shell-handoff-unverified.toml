@@ -1,0 +1,25 @@
+[scenario]
+name = "unverified shell plan preserves the interrupted continuation"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "candidate without a staged signed distribution is rejected"
+action = "eval"
+script = '''(async () => {
+  const invoke = window.__TAURI_INTERNALS__.invoke;
+  const gate = await invoke('begin_component_update');
+  if (!gate.ready) throw new Error('idle fixture unexpectedly deferred the update');
+  try {
+    let rejected = false;
+    try {
+      await invoke('prepare_shell_handoff', {shellVersion: '999.0.2-beta.1'});
+    } catch {
+      rejected = true;
+    }
+    if (!rejected) throw new Error('unverified candidate was admitted');
+  } finally {
+    await invoke('end_component_update');
+  }
+  return true;
+})()'''

@@ -1,0 +1,33 @@
+[scenario]
+name = "newer verified shell plan recovers an interrupted installer"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "newer signed plan replaces an unreached target and remains retryable"
+action = "eval"
+script = '''(async () => {
+  const invoke = window.__TAURI_INTERNALS__.invoke;
+  const gate = await invoke('begin_component_update');
+  if (!gate.ready) throw new Error('idle fixture unexpectedly deferred the update');
+  try {
+    await invoke('prepare_shell_handoff', {shellVersion: '999.0.1-beta.1'});
+    await invoke('prepare_shell_handoff', {shellVersion: '999.0.1-beta.1'});
+  } finally {
+    await invoke('end_component_update');
+  }
+  const versions = await invoke('get_component_versions');
+  if (!versions.runtime) throw new Error('plan preparation stopped the running Runtime');
+  return true;
+})()'''
+
+[[step]]
+name = "preparation leaves the same preferences window usable"
+action = "eval"
+script = '''(() => {
+  if (!location.href.includes('openagent-ui') || !location.search.includes('onboarding-inline')) throw new Error('preparation navigated away from the product wizard');
+  const panel = document.querySelector('[data-module="onboarding"]');
+  if (!panel?.querySelector('nav [aria-current="step"][aria-label^="2."]')) throw new Error('preparation lost the preferences step');
+  if (document.querySelector('[data-module="shell-resources"]')) throw new Error('preparation replaced the product with bootstrap');
+  return true;
+})()'''

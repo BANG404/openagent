@@ -220,6 +220,168 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    async fn serve_response(response: &'static [u8]) -> (Url, tokio::task::JoinHandle<String>) {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut request = [0; 4096];
+            let count = socket.read(&mut request).await.unwrap();
+            socket.write_all(response).await.unwrap();
+            String::from_utf8_lossy(&request[..count]).to_ascii_lowercase()
+        });
+        (
+            Url::parse(&format!("http://{address}/artifact")).unwrap(),
+            server,
+        )
+    }
+
+    #[tokio::test]
+    async fn resume_rejects_wrong_ranges_lengths_statuses_and_preserves_partial_bytes() {
+        let fixture = tempfile::tempdir().unwrap();
+        let payload = b"abcdefgh";
+        let digest = format!("{:x}", Sha256::digest(payload));
+        let partial = fixture.path().join(format!("{digest}.partial"));
+        let cases: &[(&[u8], &str)] = &[
+            (b"HTTP/1.1 206 Partial Content\r\nContent-Length: 5\r\nContent-Range: bytes 2-7/8\r\nConnection: close\r\n\r\ndefgh", "invalid resource resume range"),
+            (b"HTTP/1.1 200 OK\r\nContent-Length: 7\r\nConnection: close\r\n\r\nabcdefg", "length mismatch"),
+            (b"HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n", "Unexpected resource transfer status"),
+            (b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", "404"),
+        ];
+        for &(response, expected) in cases {
+            tokio::fs::write(&partial, &payload[..3]).await.unwrap();
+            let (url, server) = serve_response(response).await;
+            let error = artifact(&Client::new(), url, fixture.path(), 8, &digest, |_, _| {})
+                .await
+                .unwrap_err();
+            assert!(
+                error.contains(expected),
+                "unexpected transfer failure: {error}"
+            );
+            assert!(server.await.unwrap().contains("range: bytes=3-"));
+            assert_eq!(tokio::fs::read(&partial).await.unwrap(), &payload[..3]);
+            assert!(!fixture.path().join(&digest).exists());
+        }
+    }
+
+    #[tokio::test]
+    async fn server_ignoring_range_restarts_download_without_appending() {
+        let fixture = tempfile::tempdir().unwrap();
+        let payload = b"abcdefgh";
+        let digest = format!("{:x}", Sha256::digest(payload));
+        tokio::fs::write(
+            fixture.path().join(format!("{digest}.partial")),
+            &payload[..3],
+        )
+        .await
+        .unwrap();
+        let (url, server) = serve_response(
+            b"HTTP/1.1 200 OK\r\nContent-Length: 8\r\nConnection: close\r\n\r\nabcdefgh",
+        )
+        .await;
+        let selected = artifact(&Client::new(), url, fixture.path(), 8, &digest, |_, _| {})
+            .await
+            .unwrap();
+        assert!(server.await.unwrap().contains("range: bytes=3-"));
+        assert_eq!(tokio::fs::read(selected).await.unwrap(), payload);
+    }
+
+    #[tokio::test]
+    async fn corrupt_download_is_removed_and_a_clean_retry_repairs_the_cache() {
+        let fixture = tempfile::tempdir().unwrap();
+        let digest = format!("{:x}", Sha256::digest(b"abcdefgh"));
+        let destination = fixture.path().join(&digest);
+        tokio::fs::write(&destination, b"corrupt!").await.unwrap();
+        let (url, server) = serve_response(
+            b"HTTP/1.1 200 OK\r\nContent-Length: 8\r\nConnection: close\r\n\r\ncorrupt!",
+        )
+        .await;
+        assert!(
+            artifact(&Client::new(), url, fixture.path(), 8, &digest, |_, _| {})
+                .await
+                .unwrap_err()
+                .contains("checksum mismatch")
+        );
+        server.await.unwrap();
+        assert!(!fixture.path().join(format!("{digest}.partial")).exists());
+        let (url, server) = serve_response(
+            b"HTTP/1.1 200 OK\r\nContent-Length: 8\r\nConnection: close\r\n\r\nabcdefgh",
+        )
+        .await;
+        assert_eq!(
+            artifact(&Client::new(), url, fixture.path(), 8, &digest, |_, _| {})
+                .await
+                .unwrap(),
+            destination
+        );
+        server.await.unwrap();
+        assert_eq!(tokio::fs::read(&destination).await.unwrap(), b"abcdefgh");
+    }
+
+    #[tokio::test]
+    async fn verified_completed_partial_recovers_without_network_after_interruption() {
+        let fixture = tempfile::tempdir().unwrap();
+        let digest = format!("{:x}", Sha256::digest(b"abcdefgh"));
+        let partial = fixture.path().join(format!("{digest}.partial"));
+        tokio::fs::write(&partial, b"abcdefgh").await.unwrap();
+        let selected = artifact(
+            &Client::new(),
+            Url::parse("http://127.0.0.1:9/unavailable").unwrap(),
+            fixture.path(),
+            8,
+            &digest,
+            |_, _| {},
+        )
+        .await
+        .unwrap();
+        assert_eq!(tokio::fs::read(selected).await.unwrap(), b"abcdefgh");
+        assert!(!partial.exists());
+    }
+
+    #[tokio::test]
+    async fn interrupted_response_retains_received_bytes_and_resumes_on_retry() {
+        let fixture = tempfile::tempdir().unwrap();
+        let digest = format!("{:x}", Sha256::digest(b"abcdefgh"));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut request = [0; 4096];
+            socket.read(&mut request).await.unwrap();
+            socket
+                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 8\r\nConnection: close\r\n\r\nabc")
+                .await
+                .unwrap();
+            socket.shutdown().await.unwrap();
+            drop(socket);
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let count = socket.read(&mut request).await.unwrap();
+            assert!(String::from_utf8_lossy(&request[..count])
+                .to_ascii_lowercase()
+                .contains("range: bytes=3-"));
+            socket.write_all(b"HTTP/1.1 206 Partial Content\r\nContent-Length: 5\r\nContent-Range: bytes 3-7/8\r\nConnection: close\r\n\r\ndefgh").await.unwrap();
+        });
+        let url = Url::parse(&format!("http://{address}/artifact")).unwrap();
+        let client = Client::new();
+        assert!(
+            artifact(&client, url.clone(), fixture.path(), 8, &digest, |_, _| {})
+                .await
+                .is_err()
+        );
+        assert_eq!(
+            tokio::fs::read(fixture.path().join(format!("{digest}.partial")))
+                .await
+                .unwrap(),
+            b"abc"
+        );
+        assert!(!fixture.path().join(&digest).exists());
+        let selected = artifact(&client, url, fixture.path(), 8, &digest, |_, _| {})
+            .await
+            .unwrap();
+        server.await.unwrap();
+        assert_eq!(tokio::fs::read(selected).await.unwrap(), b"abcdefgh");
+    }
     #[tokio::test]
     async fn http_resume_checks_range_and_keeps_incomplete_bytes() {
         let fixture = tempfile::tempdir().unwrap();

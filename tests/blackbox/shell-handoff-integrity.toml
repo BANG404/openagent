@@ -1,0 +1,27 @@
+[scenario]
+name = "signed shell plan integrity failures preserve the old continuation"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "damaged signature or artifact refuses admission before changing the plan"
+action = "eval"
+script = '''(async () => {
+  const invoke = window.__TAURI_INTERNALS__.invoke;
+  const expected = window.__shellHandoffExpectedError;
+  if (!expected) throw new Error('missing integrity failure fixture');
+  const gate = await invoke('begin_component_update');
+  if (!gate.ready) throw new Error('idle fixture unexpectedly deferred the update');
+  try {
+    let failure = '';
+    try {
+      await invoke('prepare_shell_handoff', {shellVersion: '999.0.1-beta.1'});
+    } catch (error) {
+      failure = String(error);
+    }
+    if (!failure.includes(expected)) throw new Error('wrong integrity result: ' + failure);
+  } finally {
+    await invoke('end_component_update');
+  }
+  return true;
+})()'''
