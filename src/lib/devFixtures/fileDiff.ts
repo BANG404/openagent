@@ -1,7 +1,7 @@
 import type { FileChange } from "$lib/types";
 
 export function fileDiffPreviewChanges(base: FileChange): FileChange[] {
-  return [
+  const projected: FileChange[] = [
     {
       path: "sample.ts",
       source: 'const message: string = "你好";\n/* comment\ncontinued */\nconsole.log(message);',
@@ -28,6 +28,73 @@ export function fileDiffPreviewChanges(base: FileChange): FileChange[] {
       .map((line) => `-${line}`)
       .join("\n")}\n+old value`,
   }));
+  const text = new TextEncoder().encode("one\r\nTWO\r\nthree\r\nFOUR\r\n");
+  const raw = (bytes: Uint8Array) => [
+    40,
+    181,
+    47,
+    253,
+    32,
+    bytes.length,
+    ((bytes.length << 3) | 1) & 255,
+    bytes.length >> 5,
+    0,
+    ...bytes,
+  ];
+  const long = Array.from({ length: 100 }, (_, index) =>
+    index === 0 ? `\t${"long recorded source ".repeat(30)}END` : `recorded line ${index + 1}`,
+  ).join("\n");
+  return [
+    ...projected,
+    {
+      ...base,
+      id: "long-snapshot",
+      path: "long.txt",
+      projection: {
+        kind: "edited",
+        available: true,
+        change_ids: ["long-snapshot"],
+        content: long,
+        diff: "",
+      },
+    },
+    {
+      ...base,
+      id: "raw-snapshot",
+      path: "recorded.txt",
+      projection: undefined,
+      old_patch: "@@ -2 +2 @@\n-TWO\n+two",
+      new_content_z: raw(text),
+    },
+    {
+      ...base,
+      id: "empty-snapshot",
+      path: "empty.txt",
+      projection: undefined,
+      old_patch: "reverse",
+      new_content_z: raw(new Uint8Array()),
+    },
+    {
+      ...base,
+      id: "deleted-snapshot",
+      path: "deleted.txt",
+      projection: {
+        kind: "deleted",
+        available: true,
+        change_ids: ["deleted-snapshot"],
+        content: null,
+        diff: "",
+      },
+    },
+    {
+      ...base,
+      id: "unavailable-snapshot",
+      path: "unavailable.txt",
+      projection: undefined,
+      old_patch: "reverse",
+      new_content_z: [1, 2, 3],
+    },
+  ];
 }
 
 export const checkpointPanelChanges: FileChange[] = [

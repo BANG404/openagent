@@ -1,7 +1,9 @@
 // @ts-nocheck -- legacy fixture typing is tracked separately from the strict test surface.
 import { describe, expect, test } from "bun:test";
 import {
+  fileChangeContent,
   fileChangeDiffLines,
+  fileChangeFullDiffLines,
   fileChangeProjectionLines,
   parseForwardFilePatch,
   parseReverseFilePatch,
@@ -68,5 +70,104 @@ describe("cumulative file projection rendering", () => {
     const change = { projection: { ...projection, available: false, diff: null } };
     expect(fileChangeProjectionLines(change, "diff")).toEqual([]);
     expect(fileChangeProjectionLines(change, "content")).toHaveLength(4);
+  });
+});
+
+describe("recorded full file without a derived projection", () => {
+  const recorded = (content: string) => {
+    const bytes = new TextEncoder().encode(content);
+    return {
+      old_patch: "@@ -2 +2 @@\n-TWO\n+two",
+      new_content_z: [
+        40,
+        181,
+        47,
+        253,
+        32,
+        bytes.length,
+        ((bytes.length << 3) | 1) & 255,
+        bytes.length >> 5,
+        0,
+        ...bytes,
+      ],
+    };
+  };
+  test("an edited raw snapshot exposes all lines, including unchanged Chinese text", () => {
+    const change = recorded("第一行\r\nTWO\rthree\nFOUR\n");
+    expect(fileChangeContent(change)).toBe("第一行\r\nTWO\rthree\nFOUR\n");
+    expect(fileChangeProjectionLines(change, "content").map((line) => line.text)).toEqual([
+      "第一行",
+      "TWO",
+      "three",
+      "FOUR",
+    ]);
+    expect(fileChangeProjectionLines(change, "diff").map((line) => line.text)).toEqual([
+      "-two",
+      "+TWO",
+    ]);
+  });
+  test("empty, missing and corrupt snapshots have distinct availability", () => {
+    expect(fileChangeContent(recorded(""))).toBe("");
+    expect(fileChangeContent({ new_content_z: null })).toBeNull();
+    expect(fileChangeContent({ new_content_z: [1, 2, 3] })).toBeNull();
+  });
+  test("the authoritative projection wins even for deletion or unavailable content", () => {
+    const change = { ...recorded("obsolete"), projection: { content: null } };
+    expect(fileChangeContent(change)).toBeNull();
+    change.projection.content = "最新记录";
+    expect(fileChangeContent(change)).toBe("最新记录");
+  });
+});
+
+describe("complete recorded file with inline diff", () => {
+  const change = {
+    old_patch: "reverse",
+    projection: {
+      content: "first\nNEW\nthird\nfourth\n",
+      diff: "@@ -2 +2 @@\n-old\n+NEW\n",
+      kind: "edited",
+    },
+  };
+  test("includes context outside hunks and both sides of a replacement", () => {
+    expect(fileChangeFullDiffLines(change)).toEqual([
+      { type: "context", text: "first", oldLine: 1, newLine: 1 },
+      { type: "remove", text: "-old", oldLine: 2 },
+      { type: "add", text: "+NEW", newLine: 2 },
+      { type: "context", text: "third", oldLine: 3, newLine: 3 },
+      { type: "context", text: "fourth", oldLine: 4, newLine: 4 },
+    ]);
+  });
+  test("keeps line numbers after deletion, insertion and separated hunks", () => {
+    const row = {
+      ...change,
+      projection: {
+        ...change.projection,
+        content: "a\nc\nNEW\nd\ne\n",
+        diff: "@@ -2 +1,0 @@\n-b\n@@ -3,0 +3 @@\n+NEW\n",
+      },
+    };
+    // Zero-length hunk anchors are the line BEFORE the insertion/deletion.
+    expect(fileChangeFullDiffLines(row).map((line) => line.text)).toEqual([
+      "a",
+      "-b",
+      "c",
+      "+NEW",
+      "d",
+      "e",
+    ]);
+  });
+  test("a deleted file keeps its removed content while unavailable history stays neutral", () => {
+    expect(
+      fileChangeFullDiffLines({
+        ...change,
+        projection: { kind: "deleted", content: null, diff: "@@ -1,2 +0,0 @@\n-a\n-b\n" },
+      }).map((line) => line.text),
+    ).toEqual(["-a", "-b"]);
+    expect(
+      fileChangeFullDiffLines({
+        ...change,
+        projection: { kind: "edited", content: "a\nb\n", diff: null },
+      }).map((line) => line.type),
+    ).toEqual(["context", "context"]);
   });
 });

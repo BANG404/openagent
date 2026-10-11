@@ -37,7 +37,13 @@ const fixture = (action) =>
 async function waitFor(expression) {
   const deadline = Date.now() + 30000;
   while (Date.now() < deadline) {
-    if (pilot(["eval", expression]) === "true") return;
+    if (
+      pilot([
+        "eval",
+        `document.documentElement.dataset.fileProjectionReload !== "pending" && (${expression})`,
+      ]) === "true"
+    )
+      return;
     await new Promise((done) => setTimeout(done, 100));
   }
   throw new Error(`Timed out: ${expression}`);
@@ -48,7 +54,10 @@ const url = new URL(pilot(["url"]));
 assert(!url.search, "Run against the ordinary desktop conversation surface");
 fixture("seed");
 pilot(["snapshot", "-i"]);
-pilot(["eval", "setTimeout(() => location.reload(), 100); true"]);
+pilot([
+  "eval",
+  "document.documentElement.dataset.fileProjectionReload = 'pending'; setTimeout(() => location.reload(), 100); true",
+]);
 await waitFor(
   "[...document.querySelectorAll('.conv-item')].some(item => item.textContent.includes('File projection regression'))",
 );
@@ -58,16 +67,17 @@ pilot([
   "[...document.querySelectorAll('.conv-item')].find(item => item.textContent.includes('File projection regression')).click(); true",
 ]);
 await waitFor(
-  "document.querySelectorAll('.file-tab').length === 1 && document.querySelectorAll('.file-panel .diff-row.add').length === 4",
+  "document.querySelectorAll('.file-row').length === 1 && document.querySelectorAll('.file-panel .diff-row.full-file').length === 4",
 );
 pilot(["snapshot", "-i"]);
 pilot(["run", join(repo, "tests/blackbox/file-projection.toml")]);
 pilot(["screenshot", join(artifacts, "complete-recorded-file.png")]);
-pilot(["eval", "setTimeout(() => location.reload(), 100); true"]);
-await waitFor("document.querySelectorAll('.file-panel .diff-row.add').length === 4");
+pilot([
+  "eval",
+  "document.documentElement.dataset.fileProjectionReload = 'pending'; setTimeout(() => location.reload(), 100); true",
+]);
+await waitFor("document.querySelectorAll('.file-panel .diff-row.full-file').length === 4");
 pilot(["snapshot", "-i"]);
-pilot(["click", '.file-view-controls [data-filter="content"]']);
-await waitFor("document.querySelectorAll('.file-panel .diff-row.content-mode').length === 4");
 fixture("drift");
 pilot(["snapshot", "-i"]);
 pilot(["click", ".file-panel .revert-button"]);
@@ -77,7 +87,7 @@ await waitFor(
 fixture("restore");
 pilot(["snapshot", "-i"]);
 pilot(["click", ".file-panel .revert-button"]);
-await waitFor("document.querySelectorAll('.file-tab').length === 0");
+await waitFor("document.querySelectorAll('.file-row').length === 0");
 fixture("verify");
 pilot(["logs", "--level", "error"]);
 process.stdout.write(`Persistent file projection verification passed. Artifacts: ${artifacts}\n`);

@@ -58,7 +58,7 @@ try {
       pilot(["navigate", url.href]);
       const deadline = Date.now() + 30000;
       const selector = files
-        ? "#checkpoint-flow-panel .file-tab"
+        ? "#checkpoint-flow-panel .file-row"
         : "#background-terminal-panel .terminal-output-scroll .ui-scroll-area-viewport";
       let mounted = false;
       while (Date.now() < deadline) {

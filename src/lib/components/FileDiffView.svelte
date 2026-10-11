@@ -9,6 +9,7 @@
     scrollable = true,
     path = "",
     contentMode = false,
+    fullFile = false,
     emptyLabel = "",
   }: {
     lines: FileChangeDiffLine[];
@@ -16,10 +17,13 @@
     scrollable?: boolean;
     path?: string;
     contentMode?: boolean;
+    fullFile?: boolean;
     emptyLabel?: string;
   } = $props();
 
-  let singleLineNumbers = $derived(contentMode || lines.every((line) => line.type !== "context"));
+  let singleLineNumbers = $derived(
+    fullFile || contentMode || lines.every((line) => line.type !== "context"),
+  );
   let highlighted = $state.raw<{
     lines: FileChangeDiffLine[];
     path: string;
@@ -52,7 +56,13 @@
   }
 </script>
 
-<div class="diff-viewport" class:compact class:scrollable>
+<div
+  class="diff-viewport"
+  class:compact
+  class:scrollable
+  class:full-file={fullFile}
+  style:--full-file-gutter-width={`${Math.max(32, (String(lines.length).length + 1) * 7)}px`}
+>
   {#if lines.length > 0}
     <div class="diff-table">
       {#each lines as line, index (`${line.type}-${index}`)}
@@ -60,6 +70,7 @@
           class="diff-row {line.type}"
           class:single-line-numbers={singleLineNumbers}
           class:content-mode={contentMode}
+          class:full-file={fullFile}
         >
           {#if singleLineNumbers}
             <span class="line-number">{line.newLine ?? line.oldLine ?? ""}</span>
@@ -157,6 +168,29 @@
     font: inherit;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
+  }
+  .diff-viewport.full-file,
+  .diff-viewport.full-file .diff-table {
+    width: max-content;
+    min-width: 100%;
+    overflow: visible;
+  }
+  .diff-row.full-file {
+    grid-template-columns: var(--full-file-gutter-width) 18px minmax(0, 1fr);
+    font-size: 11px;
+    color: var(--text);
+  }
+  .diff-row.full-file .line-number {
+    width: var(--full-file-gutter-width);
+    padding: 0 6px;
+  }
+  .diff-row.full-file .line-marker {
+    width: 18px;
+  }
+  .diff-row.full-file code {
+    white-space: pre;
+    overflow-wrap: normal;
+    tab-size: 4;
   }
   .diff-row.add {
     background: color-mix(in srgb, #18794e 24%, transparent);

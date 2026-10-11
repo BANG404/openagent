@@ -5,6 +5,7 @@
   let {
     height = "auto",
     maxHeight,
+    horizontal = false,
     scrollHideDelay = 350,
     class: className = "",
     viewport = $bindable(null),
@@ -17,6 +18,7 @@
     height?: string;
     /** Cap an intrinsic-height viewport without reserving empty space. */
     maxHeight?: string;
+    horizontal?: boolean;
     scrollHideDelay?: number;
     class?: string;
     viewport?: HTMLElement | null;
@@ -48,6 +50,14 @@
   <ScrollArea.Scrollbar orientation="vertical" class="ui-scroll-area-scrollbar">
     <ScrollArea.Thumb class="ui-scroll-area-thumb" />
   </ScrollArea.Scrollbar>
+  {#if horizontal}
+    <ScrollArea.Scrollbar
+      orientation="horizontal"
+      class="ui-scroll-area-scrollbar ui-scroll-area-horizontal"
+    >
+      <ScrollArea.Thumb class="ui-scroll-area-thumb" />
+    </ScrollArea.Scrollbar>
+  {/if}
 </ScrollArea.Root>
 
 <style>
@@ -104,5 +114,14 @@
 
   :global(.ui-scroll-area-thumb:hover) {
     opacity: 1;
+  }
+  :global(.ui-scroll-area-horizontal) {
+    width: auto;
+    height: 8px;
+    padding: 1px 2px;
+  }
+  :global(.ui-scroll-area-horizontal .ui-scroll-area-thumb) {
+    min-width: 24px;
+    min-height: 0;
   }
 </style>

@@ -4,29 +4,24 @@ fail_fast = true
 global_timeout_ms = 30000
 
 [[step]]
-name = "cumulative creation diff includes both later edits and excludes the sibling"
+name = "complete recorded creation includes both later edits and excludes the sibling"
 action = "eval"
 script = '''(() => {
   const panel = document.querySelector('.file-panel');
-  if (panel.querySelectorAll('.file-tab').length !== 1) throw new Error('file history was not grouped');
+  if (panel.querySelectorAll('.file-row').length !== 1) throw new Error('file history was not grouped');
   const rows = [...panel.querySelectorAll('.diff-row code')].map(row => row.textContent);
   if (rows.join('\n') !== 'one\nTWO\nthree\nFOUR') throw new Error('initial creation or sibling replaced the latest selected snapshot');
-  if (panel.querySelector('.diff-row.remove') || panel.querySelector('.revert-button').disabled) throw new Error('created file is not fully restorable');
+  if (!panel.querySelector('.diff-row.add .line-marker') || panel.querySelector('.revert-button').disabled) throw new Error('created file is not fully restorable');
   return 'latest branch projection verified';
 })()'''
-
-[[step]]
-name = "switch to complete recorded content"
-action = "click"
-target = '.file-view-controls [data-filter="content"]'
 
 [[step]]
 name = "full file contains all four logical lines with ordinary line numbers"
 action = "eval"
 script = '''(() => {
   const panel = document.querySelector('.file-panel');
-  const rows = [...panel.querySelectorAll('.diff-row.content-mode')];
+  const rows = [...panel.querySelectorAll('.diff-row.full-file')];
   if (rows.map(row => row.querySelector('code').textContent).join('\n') !== 'one\nTWO\nthree\nFOUR') throw new Error('full file is incomplete');
-  if (rows.map(row => row.querySelector('.line-number').textContent).join(',') !== '1,2,3,4' || panel.querySelector('.line-marker')) throw new Error('full content retained diff markers');
+  if (rows.map(row => row.querySelector('.line-number').textContent).join(',') !== '1,2,3,4' || !panel.querySelector('.diff-row.add .line-marker')) throw new Error('full file line numbers or addition markers are missing');
   return 'complete content verified';
 })()'''

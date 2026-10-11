@@ -124,23 +124,30 @@ describe("RightSidebarScopeStore", () => {
 });
 
 describe("RightSidebarPanelStateStore", () => {
+  test("keeps explicit file collapse separate from a newly opened branch", () => {
+    const store = new RightSidebarPanelStateStore();
+    const fresh = { fileExpandedPath: null };
+    store.save("branch-a", { fileExpandedPath: "" });
+    expect(store.activate("branch-a", fresh)).toEqual({ fileExpandedPath: "" });
+    expect(store.activate("branch-b", fresh)).toEqual(fresh);
+  });
   test("restores tab-local selections and drafts per scope", () => {
     const store = new RightSidebarPanelStateStore();
-    const fallback = { fileSelectedId: null, groupSelectedId: null, groupDraft: "" };
+    const fallback = { fileExpandedPath: null, groupSelectedId: null, groupDraft: "" };
     expect(store.switchScope(null, fallback, "branch-a", fallback)).toEqual(fallback);
     store.save("branch-a", {
-      fileSelectedId: "file-2",
+      fileExpandedPath: "file-2",
       groupSelectedId: "group-1",
       groupDraft: "@reviewer check this",
     });
     const branchA = {
-      fileSelectedId: "file-2",
+      fileExpandedPath: "file-2",
       groupSelectedId: "group-1",
       groupDraft: "@reviewer check this",
     };
     expect(store.switchScope("branch-a", branchA, "branch-b", fallback)).toEqual(fallback);
     expect(store.switchScope("branch-b", fallback, "branch-a", fallback)).toEqual({
-      fileSelectedId: "file-2",
+      fileExpandedPath: "file-2",
       groupSelectedId: "group-1",
       groupDraft: "@reviewer check this",
     });
@@ -148,7 +155,7 @@ describe("RightSidebarPanelStateStore", () => {
 
   test("copies fallback and saved state instead of aliasing caller objects", () => {
     const store = new RightSidebarPanelStateStore();
-    const fallback = { fileSelectedId: null, groupSelectedId: null, groupDraft: "" };
+    const fallback = { fileExpandedPath: null, groupSelectedId: null, groupDraft: "" };
     const restored = store.activate("new", fallback);
     restored.groupDraft = "changed";
     expect(store.activate("new", fallback)).toEqual(fallback);

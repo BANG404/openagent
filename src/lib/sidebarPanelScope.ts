@@ -95,12 +95,11 @@ export class RightSidebarScopeStore {
 }
 
 /**
- * Keeps each tab's own selection separate from the sidebar's active tab.
- * Components are mounted conditionally, so this small store prevents a tab
- * switch from turning a user's last file selection back into a default.
+ * Retains the expanded file path per conversation/branch across sidebar tabs.
+ * Null opens the first arriving file; an empty string records explicit collapse.
  */
 export interface RightSidebarPanelState {
-  fileSelectedId: string | null;
+  fileExpandedPath: string | null;
 }
 
 export class RightSidebarPanelStateStore {

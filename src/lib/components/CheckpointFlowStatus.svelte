@@ -73,22 +73,22 @@
   }: Props = $props();
   const panelSnapshots = new RightSidebarPanelStateStore();
   let currentScopeKey = $state<string | null>(null);
-  let fileSelectedId = $state<string | null>(null);
+  let fileExpandedPath = $state<string | null>(null);
 
   $effect(() => {
     const scope = rightSidebarScopeKey;
     if (scope === currentScopeKey) return;
-    const current: RightSidebarPanelState = { fileSelectedId };
+    const current: RightSidebarPanelState = { fileExpandedPath };
     const restored = panelSnapshots.switchScope(currentScopeKey, current, scope, {
-      fileSelectedId: null,
+      fileExpandedPath: null,
     });
     currentScopeKey = scope;
-    fileSelectedId = restored.fileSelectedId;
+    fileExpandedPath = restored.fileExpandedPath;
   });
 
   $effect(() => {
     const scope = currentScopeKey;
-    if (scope !== null) panelSnapshots.save(scope, { fileSelectedId });
+    if (scope !== null) panelSnapshots.save(scope, { fileExpandedPath });
   });
   let progress = $derived(flow ? checkpointFlowProgress(flow) : { completed: 0, total: 0 });
   let flatItems = $derived(flow?.items ?? []);
@@ -241,7 +241,7 @@
       aria-hidden={collapsed || activePanel !== "files"}
     >
       {#if changes.length > 0}
-        <FileChangePanel {changes} {onRevert} bind:selectedId={fileSelectedId} />
+        <FileChangePanel {changes} {onRevert} bind:expandedPath={fileExpandedPath} />
       {/if}
     </div>
     {#each pluginSidebarViews as view (view.id)}

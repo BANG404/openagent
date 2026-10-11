@@ -147,6 +147,7 @@ export const zh = {
   fileChangeViewMode: "文件视图",
   fileChangeBranchScope: "所选分支",
   fileChangeRevertBranch: "撤回该文件在所选分支上的全部修改",
+  fileChangeContentUnavailable: "无法读取记录中的完整文件内容",
   fileChangeDeletedContent: "此文件已删除",
   fileChangeEmptyContent: "此文件为空",
   fileChangeRefreshFailed: "文件已撤回，请刷新会话以重新加载文件变化。",

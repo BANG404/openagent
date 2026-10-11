@@ -1,340 +1,42 @@
 <script lang="ts">
   import { t } from "$lib/i18n";
-  import { fileChangeProjectionLines } from "$lib/fileChangeDiff";
   import type { FileChange } from "$lib/types";
-  import FileDiffView from "./FileDiffView.svelte";
-  import ScrollArea from "./ui/ScrollArea.svelte";
-  import Tooltip from "./Tooltip.svelte";
-  import SegmentedControl from "./ui/SegmentedControl.svelte";
+  import LoadingSkeleton from "./LoadingSkeleton.svelte";
 
   let {
     changes,
     onRevert,
-    selectedId = $bindable<string | null>(null),
+    expandedPath = $bindable<string | null>(null),
   }: {
     changes: FileChange[];
     onRevert: (changeId: string) => Promise<void>;
-    selectedId?: string | null;
+    expandedPath?: string | null;
   } = $props();
-
-  let revertingIds = $state(new Set<string>());
-  let mode = $state<"diff" | "content">("diff");
-  let revertError = $state("");
-  let selectedChange = $derived(changes.find((change) => change.path === selectedId) ?? changes[0]);
-  let diffLines = $derived(fileChangeProjectionLines(selectedChange, mode));
-  let kind = $derived(selectedChange?.projection?.kind ?? "edited");
-  let emptyLabel = $derived(
-    kind === "deleted" && mode === "content"
-      ? $t("fileChangeDeletedContent")
-      : selectedChange?.projection?.content === "" && mode === "content"
-        ? $t("fileChangeEmptyContent")
-        : $t("fileChangePreviewUnavailable"),
-  );
-
-  $effect(() => {
-    if (!changes.some((change) => change.path === selectedId))
-      selectedId = changes[0]?.path ?? null;
-  });
-
-  function filename(path: string): string {
-    return path.split(/[/\\]/).filter(Boolean).at(-1) ?? path;
-  }
-
-  async function handleRevert(id: string): Promise<void> {
-    revertingIds = new Set(revertingIds).add(id);
-    revertError = "";
-    try {
-      await onRevert(id);
-    } catch (error) {
-      revertError = String(error);
-    } finally {
-      const next = new Set(revertingIds);
-      next.delete(id);
-      revertingIds = next;
-    }
-  }
+  const panel = import("./FileChangePanelBody.svelte");
 </script>
 
-<div class="file-panel">
-  <div class="file-tabs" role="tablist" aria-label={$t("fileChangesPanelTabs")}>
-    {#each changes as change (change.path)}
-      <Tooltip text={change.path} side="bottom">
-        {#snippet trigger(props)}
-          <button
-            {...props}
-            class="file-tab"
-            class:active={selectedChange?.id === change.id}
-            type="button"
-            role="tab"
-            aria-selected={selectedChange?.id === change.id}
-            onclick={() => {
-              selectedId = change.path;
-              revertError = "";
-            }}
-          >
-            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path
-                d="M3.25 1.75h5.1l4.4 4.4v7.1a1 1 0 0 1-1 1h-8.5a1 1 0 0 1-1-1V2.75a1 1 0 0 1 1-1Z"
-              />
-              <path d="M8.25 1.75v4.5h4.5" />
-            </svg>
-            <span>{filename(change.path)}</span>
-            <i class:created={change.projection?.kind === "created"} aria-hidden="true"></i>
-          </button>
-        {/snippet}
-      </Tooltip>
-    {/each}
-  </div>
-
-  {#if selectedChange}
-    <div class="file-toolbar">
-      <Tooltip text={selectedChange.path}>
-        {#snippet trigger(props)}
-          <span {...props} class="file-path">{selectedChange.path}</span>
-        {/snippet}
-      </Tooltip>
-      <span class="change-kind">
-        {$t(
-          kind === "created"
-            ? "fileChangeCreated"
-            : kind === "deleted"
-              ? "fileChangeDeleted"
-              : "fileChangeEdited",
-        )}
-      </span>
-      <Tooltip text={$t("fileChangeRevertBranch")}>
-        {#snippet trigger(props)}
-          <button
-            {...props}
-            class="revert-button"
-            type="button"
-            disabled={revertingIds.has(selectedChange.id) || !selectedChange.projection?.available}
-            aria-label={$t("fileChangeRevertBranch")}
-            onclick={() => handleRevert(selectedChange.id)}
-          >
-            {#if revertingIds.has(selectedChange.id)}
-              <span aria-hidden="true">...</span>
-            {:else}
-              <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                <path d="M6.2 5.1H3.1V2" />
-                <path d="M3.35 5.05a6.2 6.2 0 1 1-.35 7.3" />
-              </svg>
-            {/if}
-          </button>
-        {/snippet}
-      </Tooltip>
-    </div>
-    <div class="file-view-controls">
-      <SegmentedControl
-        value={mode}
-        items={[
-          { value: "diff", label: $t("fileChangeDiffMode") },
-          { value: "content", label: $t("fileChangeContentMode") },
-        ]}
-        ariaLabel={$t("fileChangeViewMode")}
-        onValueChange={(value) => (mode = value)}
-        fitContent
-        tabs
-      />
-      <span>{$t("fileChangeBranchScope")}</span>
-    </div>
-    {#if revertError}<p class="file-error" role="alert">{revertError}</p>{/if}
-
-    <ScrollArea height="100%" class="diff-scroll" scrollHideDelay={350}>
-      <div class="diff-host" role="tabpanel">
-        <FileDiffView
-          lines={diffLines}
-          path={selectedChange.path}
-          scrollable={false}
-          contentMode={mode === "content"}
-          {emptyLabel}
-        />
-      </div>
-    </ScrollArea>
-  {/if}
+<div class="file-panel-shell">
+  {#await panel}
+    <LoadingSkeleton
+      variant="sidebar"
+      rows={Math.min(changes.length, 6)}
+      label={$t("loadingContent")}
+    />
+  {:then module}
+    <module.default {changes} {onRevert} bind:expandedPath />
+  {:catch}
+    <p role="alert">{$t("fileChangeContentUnavailable")}</p>
+  {/await}
 </div>
 
 <style>
-  .file-view-controls {
+  .file-panel-shell {
+    --file-row-height: 50px;
+    --list-item-compact-height: var(--file-row-height);
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 8px;
-    border-bottom: 1px solid var(--border);
-  }
-  .file-view-controls > span {
-    margin-left: auto;
-    font-size: 10px;
-    color: var(--text-muted);
-  }
-  .file-error {
-    margin: 0;
-    padding: 8px;
-    color: var(--danger);
-    font-size: 11px;
-    overflow-wrap: anywhere;
-  }
-  .file-panel {
-    display: flex;
-    min-width: 0;
-    min-height: 0;
-    flex: 1;
     flex-direction: column;
-    container-type: inline-size;
-  }
-  .file-tabs {
-    display: flex;
-    min-height: 39px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 5px 6px 0;
-    border-bottom: 1px solid var(--border);
-    scrollbar-width: thin;
-  }
-  .file-tab {
-    position: relative;
-    display: flex;
-    min-width: 104px;
-    max-width: 184px;
-    height: 33px;
-    flex: 1 0 112px;
-    align-items: center;
-    gap: 6px;
-    padding: 0 9px;
-    border: 0;
-    border-radius: 6px 6px 0 0;
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
-  }
-  .file-tab:hover,
-  .file-tab:focus-visible {
-    background: var(--interactive-state-bg);
-    color: var(--text);
-    outline: none;
-  }
-  .file-tab:focus-visible {
-    box-shadow: inset var(--focus-ring);
-  }
-  .file-tab.active {
-    background: var(--surface2);
-    color: var(--text);
-  }
-  .file-tab.active::after {
-    position: absolute;
-    inset: auto 0 -1px;
-    height: 2px;
-    background: var(--primary);
-    content: "";
-  }
-  .file-tab svg {
-    width: 14px;
-    height: 14px;
-    flex: 0 0 14px;
-    stroke: currentColor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 1.35;
-  }
-  .file-tab span {
-    overflow: hidden;
-    min-width: 0;
     flex: 1;
-    font-size: 11px;
-    text-align: left;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .file-tab i {
-    width: 6px;
-    height: 6px;
-    flex: 0 0 6px;
-    border-radius: 50%;
-    background: var(--primary);
-  }
-  .file-tab i.created {
-    background: #18794e;
-  }
-  .file-toolbar {
-    display: flex;
-    box-sizing: border-box;
+    min-height: 0;
     width: 100%;
-    min-height: 39px;
-    min-width: 0;
-    overflow: hidden;
-    align-items: center;
-    gap: 7px;
-    padding: 0 8px 0 11px;
-    border-bottom: 1px solid var(--border);
-  }
-  .file-path {
-    overflow: hidden;
-    min-width: 0;
-    flex: 1 1 0;
-    color: var(--text-muted);
-    font:
-      400 10px/1.4 "JetBrains Mono",
-      monospace;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .change-kind {
-    flex: 0 0 auto;
-    color: var(--text-muted);
-    font-size: 10px;
-  }
-  .revert-button {
-    display: grid;
-    width: 28px;
-    height: 28px;
-    flex: 0 0 28px;
-    place-items: center;
-    padding: 0;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
-  }
-  .revert-button:hover:not(:disabled),
-  .revert-button:focus-visible {
-    background: color-mix(in srgb, #b42318 9%, transparent);
-    color: #b42318;
-    outline: none;
-  }
-  .revert-button:focus-visible {
-    box-shadow: var(--focus-ring);
-  }
-  .revert-button:disabled {
-    cursor: default;
-    opacity: 0.5;
-  }
-  .revert-button svg {
-    width: 16px;
-    height: 16px;
-    stroke: currentColor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 1.5;
-  }
-  .diff-host {
-    display: flex;
-    min-width: 0;
-    min-height: 0;
-    flex: 1;
-  }
-  :global(.diff-scroll) {
-    min-height: 0;
-    flex: 1;
-  }
-  :global(.diff-scroll .ui-scroll-area-viewport) {
-    overflow-x: hidden;
-    padding-right: 8px;
-  }
-  @container (max-width: 220px) {
-    .change-kind {
-      display: none;
-    }
   }
 </style>
