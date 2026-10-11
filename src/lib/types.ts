@@ -389,19 +389,8 @@ export interface RenderableCheckpoint {
   follow_up_suggestions?: string[];
 }
 
-export interface FileChange {
-  id: string;
-  conv_id: string;
-  checkpoint_id: string;
-  path: string;
-  operation: string;
-  old_patch: string | null;
-  old_content_z: number[] | null;
-  new_content_z: number[] | null;
-  new_hash: string | null;
-  seq: number;
-  created_at: number;
-}
+export type { FileChange, FileChangeProjection } from "@openagent/client/types";
+import type { FileChange } from "@openagent/client/types";
 
 export interface WorkspaceContext {
   path: string | null;

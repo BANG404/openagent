@@ -60,6 +60,37 @@ function conversationState(id) {
 }
 
 /** @param {string} id */
+function fileChanges(id) {
+  if (id !== "one-a") return [];
+  const base = {
+    conv_id: id,
+    checkpoint_id: "file-tip",
+    path: "demo.txt",
+    operation: "apply_patch",
+    old_content_z: null,
+    new_content_z: null,
+    new_hash: null,
+    created_at: 1,
+  };
+  return [
+    { ...base, id: "file-created", seq: 0, old_patch: null },
+    {
+      ...base,
+      id: "file-edited",
+      seq: 1,
+      old_patch: "reverse",
+      projection: {
+        kind: "created",
+        change_ids: ["file-created", "file-edited"],
+        available: true,
+        content: "one\nTWO\nthree\nFOUR\n",
+        diff: "@@ -0,0 +1,4 @@\n+one\n+TWO\n+three\n+FOUR\n",
+      },
+    },
+  ];
+}
+
+/** @param {string} id */
 function meta(id) {
   return { id, title: `Remote ${id}`, created_at: 1, updated_at: 1, pinned: false };
 }
@@ -147,7 +178,7 @@ async function fixtureResponse(request) {
         checkpoints: [],
         branches: [],
         active_branch_tip: null,
-        file_changes: [],
+        file_changes: fileChanges(id),
       });
     if (surface === "events") {
       if (offline) return Response.json({ error: "fixture offline" }, { status: 503 });

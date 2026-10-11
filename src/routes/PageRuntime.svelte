@@ -1,5 +1,6 @@
 <!-- eslint-disable max-lines -- runtime controller is isolated from the route composition root. -->
 <script lang="ts">
+  import { projectCurrentFileChanges } from "$lib/remoteConversationProjection";
   /* eslint-disable max-lines */
   import { isTauri } from "@tauri-apps/api/core";
   import { homeDir } from "@tauri-apps/api/path";
@@ -814,7 +815,7 @@
     persistStreamDraft(convId).catch(() => {});
   }
 
-  let currentFileChanges = $derived.by(() => {
+  let currentFileChangeRecords = $derived.by(() => {
     const persisted = activeConvId ? (fileChangesPerConv[activeConvId] ?? []) : [];
     const live = activeConvId ? (liveFileChangesPerConv[activeConvId] ?? []) : [];
     const all = [
@@ -839,26 +840,9 @@
       activeCheckpoints.size === 0 && !isCurrentStreaming
         ? all
         : all.filter((c) => activeCheckpoints.has(c.checkpoint_id) || liveChangeIds.has(c.id));
-    // Deduplicate per path: prefer "new file" (old_patch===null) over edits;
-    // among multiple edits for the same path keep only the latest.
-    const byPath = new Map<string, FileChange>();
-    for (const c of branchScoped) {
-      const existing = byPath.get(c.path);
-      if (!existing) {
-        byPath.set(c.path, c);
-      } else if (existing.old_patch !== null && c.old_patch === null) {
-        byPath.set(c.path, c);
-      } else if (existing.old_patch !== null && c.old_patch !== null) {
-        if (
-          c.created_at > existing.created_at ||
-          (c.created_at === existing.created_at && c.seq > existing.seq)
-        ) {
-          byPath.set(c.path, c);
-        }
-      }
-    }
-    return Array.from(byPath.values());
+    return branchScoped;
   });
+  let currentFileChanges = $derived(projectCurrentFileChanges(currentFileChangeRecords, new Set()));
   // Plugin sidebar views resolve through one lifecycle registry instead of an
   // inline filter, so a disabled, broken, or out-of-scope view is never mounted
   // and the management surface reports the same reason the sidebar hides.
@@ -1323,15 +1307,10 @@
   async function handleRevertFileChange(changeId: string): Promise<void> {
     const convId = activeConvId;
     if (!convId) return;
-    try {
-      await revertFileChange(changeId);
-      fileChangesPerConv = {
-        ...fileChangesPerConv,
-        [convId]: (fileChangesPerConv[convId] ?? []).filter((c) => c.id !== changeId),
-      };
-    } catch (e) {
-      alert(`撤回失败: ${e}`);
-    }
+    await revertFileChange(changeId);
+    await loadMessagesForConv(convId, false, true);
+    if ((await loadFileChangesForConv(convId)) === null)
+      throw new Error(tr("fileChangeRefreshFailed"));
   }
 
   // ─── Branch / Re-execute ─────────────────────────────────────────────────────
@@ -1500,14 +1479,17 @@
 
     if (tauriAvailable) {
       const allChanges = fileChangesPerConv[convId] ?? [];
-      const sortByOrder = (a: FileChange, b: FileChange) =>
-        a.created_at - b.created_at || a.seq - b.seq;
+      const sortByOrder = (checkpoints: ReadonlySet<string>) => {
+        const order = new Map([...checkpoints].map((id, index) => [id, index]));
+        return (a: FileChange, b: FileChange) =>
+          (order.get(a.checkpoint_id) ?? 0) - (order.get(b.checkpoint_id) ?? 0) || a.seq - b.seq;
+      };
       const toRevert = allChanges
         .filter((fc) => sourceCps.has(fc.checkpoint_id) && !targetCps.has(fc.checkpoint_id))
-        .sort(sortByOrder);
+        .sort(sortByOrder(sourceCps));
       const toApply = allChanges
         .filter((fc) => targetCps.has(fc.checkpoint_id) && !sourceCps.has(fc.checkpoint_id))
-        .sort(sortByOrder);
+        .sort(sortByOrder(targetCps));
 
       // Unwind source-only edits in reverse, then apply target-only edits forward.
       for (const change of [...toRevert].reverse()) {
@@ -4053,6 +4035,7 @@
     taskUsagesByCheckpointId: activeConvId ? (taskUsagesByConversation[activeConvId] ?? {}) : {},
     liveContextUsage: activeConvId ? (liveContextUsageByConversation[activeConvId] ?? null) : null,
     fileChanges: currentFileChanges,
+    fileChangeRecords: currentFileChangeRecords,
     followUpSuggestionsByMessageId,
     // Tail following is a streaming affordance only. Once the response is
     // durable, the transcript must remain where the reader left it.

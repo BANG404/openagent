@@ -229,7 +229,29 @@
   toggle while file changes remain observable. Its
   top-level Status and Files tabs preserve one
   full-height body, and the Files page uses horizontally scrollable file tabs
-  with one line-numbered diff and revert action for the selected file. Keep the
+  with one selected file and a shared Diff / Full file control. Desktop and remote
+  surfaces use the SDK's branch-scoped `FileChange.projection`: the first
+  recorded baseline is compared with the latest recorded snapshot, including
+  creation followed by edits. Never prefer an initial creation record over its
+  later projection, infer checkpoint ordering from timestamps, or read the live
+  filesystem to render historical content. Select files by path so streaming
+  replacements preserve selection. An available net-zero projection disappears
+  from the Files list. The transcript retains individual operation records.
+  Full file mode shows all latest recorded lines with one line-number gutter;
+  deletion and empty files have explicit localized states. Incomplete cumulative
+  history can still expose the latest content, but disables whole-file revert.
+  Revert restores this file's selected-branch baseline independently of display
+  mode, refreshes the durable list, and reports failures inline. Verify the Files
+  module with `bun run test:blackbox:file-diff`, including full-file mode,
+  language syntax, literal source, narrow layout, and reload in both locales
+  and themes. Run `bun run test:blackbox:file-projection` on a fresh temporary
+  application home for actual persisted create/append/edit snapshots, sibling
+  isolation, reload, external-edit rejection and whole-file revert from full
+  content mode. Its fixture is SDK-owned and must never seed user data.
+  Run `bun run test:blackbox:remote-page` for the actual remote route with
+  the shared Files surface in both locales/themes.
+  SDK snapshot, live-event, branch, and rollback correctness belong
+  to its Runtime tests. Keep the
   title-bar toggle and collapsible panel host available whenever any package
   flow or file-change data is currently observable. A temporary empty file projection
   must not hide the panel while its matching live changes are still awaiting

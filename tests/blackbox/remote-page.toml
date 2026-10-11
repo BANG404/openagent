@@ -31,6 +31,23 @@ script = '''(async () => {
 })()'''
 
 [[step]]
+name = "remote Files uses the cumulative projection and complete content mode"
+action = "eval"
+script = '''(async () => {
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline && !document.querySelector('.banner-header')) await new Promise(resolve => setTimeout(resolve, 50));
+  document.querySelector('.banner-header').click();
+  await new Promise(resolve => setTimeout(resolve, 100));
+  const panel = document.querySelector('.banner .file-panel');
+  if (panel.querySelectorAll('.file-tab').length !== 1 || [...panel.querySelectorAll('.diff-row.add code')].map(row => row.textContent).join('\n') !== 'one\nTWO\nthree\nFOUR') throw new Error('remote cumulative creation is stale');
+  panel.querySelector('[data-filter="content"]').click();
+  await new Promise(resolve => setTimeout(resolve, 100));
+  if ([...panel.querySelectorAll('.diff-row.content-mode code')].map(row => row.textContent).join('\n') !== 'one\nTWO\nthree\nFOUR' || panel.querySelector('.line-marker')) throw new Error('remote full-file mode is incomplete');
+  document.querySelector('.banner-header').click();
+  return 'remote shared Files surface verified';
+})()'''
+
+[[step]]
 name = "recover the selected conversation after transport failure"
 action = "eval"
 script = '''(async () => {

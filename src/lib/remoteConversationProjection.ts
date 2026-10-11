@@ -30,9 +30,9 @@ export function projectCurrentFileChanges(
     const existing = byPath.get(change.path);
     if (
       !existing ||
-      (existing.old_patch !== null && change.old_patch === null) ||
-      (existing.old_patch !== null &&
-        change.old_patch !== null &&
+      change.projection?.change_ids.includes(existing.id) ||
+      (!existing.projection &&
+        !change.projection &&
         (change.created_at > existing.created_at ||
           (change.created_at === existing.created_at && change.seq > existing.seq)))
     ) {
@@ -40,5 +40,7 @@ export function projectCurrentFileChanges(
     }
   }
 
-  return [...byPath.values()];
+  return [...byPath.values()].filter(
+    (change) => !(change.projection?.available && change.projection.kind === "unchanged"),
+  );
 }

@@ -8,14 +8,18 @@
     compact = false,
     scrollable = true,
     path = "",
+    contentMode = false,
+    emptyLabel = "",
   }: {
     lines: FileChangeDiffLine[];
     compact?: boolean;
     scrollable?: boolean;
     path?: string;
+    contentMode?: boolean;
+    emptyLabel?: string;
   } = $props();
 
-  let singleLineNumbers = $derived(lines.every((line) => line.type !== "context"));
+  let singleLineNumbers = $derived(contentMode || lines.every((line) => line.type !== "context"));
   let highlighted = $state.raw<{
     lines: FileChangeDiffLine[];
     path: string;
@@ -52,16 +56,20 @@
   {#if lines.length > 0}
     <div class="diff-table">
       {#each lines as line, index (`${line.type}-${index}`)}
-        <div class="diff-row {line.type}" class:single-line-numbers={singleLineNumbers}>
+        <div
+          class="diff-row {line.type}"
+          class:single-line-numbers={singleLineNumbers}
+          class:content-mode={contentMode}
+        >
           {#if singleLineNumbers}
             <span class="line-number">{line.newLine ?? line.oldLine ?? ""}</span>
           {:else}
             <span class="line-number">{line.oldLine ?? ""}</span>
             <span class="line-number">{line.newLine ?? ""}</span>
           {/if}
-          <span class="line-marker" aria-hidden="true"
-            >{line.type === "add" ? "+" : line.type === "remove" ? "−" : ""}</span
-          >
+          {#if !contentMode}<span class="line-marker" aria-hidden="true"
+              >{line.type === "add" ? "+" : line.type === "remove" ? "−" : ""}</span
+            >{/if}
           <code
             >{#if tokens?.[index]?.length}{#each tokens[index] as token, tokenIndex (tokenIndex)}<span
                   class="diff-token"
@@ -77,7 +85,7 @@
         <path d="M5 2.75h6l4 4v10.5H5z" />
         <path d="M11 2.75v4h4M7.5 11h5M7.5 13.75h3.5" />
       </svg>
-      <span>{$t("fileChangePreviewUnavailable")}</span>
+      <span>{emptyLabel || $t("fileChangePreviewUnavailable")}</span>
     </div>
   {/if}
 </div>
@@ -137,6 +145,10 @@
   }
   .diff-row.single-line-numbers {
     grid-template-columns: 44px 24px minmax(0, 1fr);
+  }
+  .diff-row.content-mode {
+    grid-template-columns: 44px minmax(0, 1fr);
+    color: var(--text);
   }
   .diff-row code {
     min-width: 0;

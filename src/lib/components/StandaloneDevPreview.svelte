@@ -13,7 +13,7 @@
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import { NEW_CONVERSATION_GREETING } from "$lib/newConversation";
   import type { BackgroundTerminalSession } from "$lib/openagent";
-  import { fileDiffPreviewChanges } from "$lib/devFixtures/fileDiff";
+  import { checkpointPanelChanges, fileDiffPreviewChanges } from "$lib/devFixtures/fileDiff";
   import { previewMentionItems } from "$lib/devFixtures/composerPalette";
   import { terminalHistory } from "$lib/terminalHistory";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
@@ -192,48 +192,6 @@
     typecheck:
       "$ bun run check\n$ svelte-check --tsconfig ./tsconfig.json\n0 errors and 0 warnings\n",
   };
-  const checkpointPanelChanges: FileChange[] = [
-    {
-      id: "preview-file-change",
-      conv_id: "input-surfaces-preview",
-      checkpoint_id: "preview-checkpoint",
-      path: "src/lib/components/MessageInput.svelte",
-      operation: "write",
-      old_patch: "@@ -1 +1 @@\n-shared surface\n+old surface",
-      old_content_z: null,
-      new_content_z: null,
-      new_hash: null,
-      seq: 1,
-      created_at: 1,
-    },
-    {
-      id: "preview-file-change-two",
-      conv_id: "input-surfaces-preview",
-      checkpoint_id: "preview-checkpoint",
-      path: "src/lib/components/ConversationSurface.svelte",
-      operation: "write",
-      old_patch:
-        "@@ -238,2 +238,5 @@\n-          <FileChangeBanner changes={view.fileChanges} />\n+          <MessageInput\n+            bind:value={composerDraft.text}\n             disabled={!view.tauriAvailable}",
-      old_content_z: null,
-      new_content_z: null,
-      new_hash: null,
-      seq: 2,
-      created_at: 2,
-    },
-    {
-      id: "preview-file-change-three",
-      conv_id: "input-surfaces-preview",
-      checkpoint_id: "preview-checkpoint",
-      path: "docs/conversation-details.md",
-      operation: "write",
-      old_patch: null,
-      old_content_z: null,
-      new_content_z: [40, 181, 47, 253, 32, 4, 33, 0, 0, 97, 10, 98, 10],
-      new_hash: null,
-      seq: 3,
-      created_at: 3,
-    },
-  ];
   let attachmentItems = $state<ChatAttachment[]>([
     { path: "preview://agentgym.txt", name: "agentgym.txt", kind: "document" },
     { path: "preview://sdk-docs.ts", name: "4.1 SDK文档.ts", kind: "document" },

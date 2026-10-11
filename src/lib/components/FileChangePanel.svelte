@@ -1,10 +1,11 @@
 <script lang="ts">
   import { t } from "$lib/i18n";
-  import { fileChangeDiffLines } from "$lib/fileChangeDiff";
+  import { fileChangeProjectionLines } from "$lib/fileChangeDiff";
   import type { FileChange } from "$lib/types";
   import FileDiffView from "./FileDiffView.svelte";
   import ScrollArea from "./ui/ScrollArea.svelte";
   import Tooltip from "./Tooltip.svelte";
+  import SegmentedControl from "./ui/SegmentedControl.svelte";
 
   let {
     changes,
@@ -17,11 +18,22 @@
   } = $props();
 
   let revertingIds = $state(new Set<string>());
-  let selectedChange = $derived(changes.find((change) => change.id === selectedId) ?? changes[0]);
-  let diffLines = $derived(fileChangeDiffLines(selectedChange));
+  let mode = $state<"diff" | "content">("diff");
+  let revertError = $state("");
+  let selectedChange = $derived(changes.find((change) => change.path === selectedId) ?? changes[0]);
+  let diffLines = $derived(fileChangeProjectionLines(selectedChange, mode));
+  let kind = $derived(selectedChange?.projection?.kind ?? "edited");
+  let emptyLabel = $derived(
+    kind === "deleted" && mode === "content"
+      ? $t("fileChangeDeletedContent")
+      : selectedChange?.projection?.content === "" && mode === "content"
+        ? $t("fileChangeEmptyContent")
+        : $t("fileChangePreviewUnavailable"),
+  );
 
   $effect(() => {
-    if (!changes.some((change) => change.id === selectedId)) selectedId = changes[0]?.id ?? null;
+    if (!changes.some((change) => change.path === selectedId))
+      selectedId = changes[0]?.path ?? null;
   });
 
   function filename(path: string): string {
@@ -30,8 +42,11 @@
 
   async function handleRevert(id: string): Promise<void> {
     revertingIds = new Set(revertingIds).add(id);
+    revertError = "";
     try {
       await onRevert(id);
+    } catch (error) {
+      revertError = String(error);
     } finally {
       const next = new Set(revertingIds);
       next.delete(id);
@@ -42,7 +57,7 @@
 
 <div class="file-panel">
   <div class="file-tabs" role="tablist" aria-label={$t("fileChangesPanelTabs")}>
-    {#each changes as change (change.id)}
+    {#each changes as change (change.path)}
       <Tooltip text={change.path} side="bottom">
         {#snippet trigger(props)}
           <button
@@ -52,7 +67,10 @@
             type="button"
             role="tab"
             aria-selected={selectedChange?.id === change.id}
-            onclick={() => (selectedId = change.id)}
+            onclick={() => {
+              selectedId = change.path;
+              revertError = "";
+            }}
           >
             <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path
@@ -61,7 +79,7 @@
               <path d="M8.25 1.75v4.5h4.5" />
             </svg>
             <span>{filename(change.path)}</span>
-            <i class:created={change.old_patch === null} aria-hidden="true"></i>
+            <i class:created={change.projection?.kind === "created"} aria-hidden="true"></i>
           </button>
         {/snippet}
       </Tooltip>
@@ -76,20 +94,22 @@
         {/snippet}
       </Tooltip>
       <span class="change-kind">
-        {$t(selectedChange.old_patch === null ? "fileChangeCreated" : "fileChangeEdited")}
-      </span>
-      <Tooltip
-        text={$t(
-          selectedChange.old_patch === null ? "fileChangeDeleteCreated" : "fileChangeRestoreEdited",
+        {$t(
+          kind === "created"
+            ? "fileChangeCreated"
+            : kind === "deleted"
+              ? "fileChangeDeleted"
+              : "fileChangeEdited",
         )}
-      >
+      </span>
+      <Tooltip text={$t("fileChangeRevertBranch")}>
         {#snippet trigger(props)}
           <button
             {...props}
             class="revert-button"
             type="button"
-            disabled={revertingIds.has(selectedChange.id)}
-            aria-label={$t("fileChangeRevert")}
+            disabled={revertingIds.has(selectedChange.id) || !selectedChange.projection?.available}
+            aria-label={$t("fileChangeRevertBranch")}
             onclick={() => handleRevert(selectedChange.id)}
           >
             {#if revertingIds.has(selectedChange.id)}
@@ -104,16 +124,57 @@
         {/snippet}
       </Tooltip>
     </div>
+    <div class="file-view-controls">
+      <SegmentedControl
+        value={mode}
+        items={[
+          { value: "diff", label: $t("fileChangeDiffMode") },
+          { value: "content", label: $t("fileChangeContentMode") },
+        ]}
+        ariaLabel={$t("fileChangeViewMode")}
+        onValueChange={(value) => (mode = value)}
+        fitContent
+        tabs
+      />
+      <span>{$t("fileChangeBranchScope")}</span>
+    </div>
+    {#if revertError}<p class="file-error" role="alert">{revertError}</p>{/if}
 
     <ScrollArea height="100%" class="diff-scroll" scrollHideDelay={350}>
       <div class="diff-host" role="tabpanel">
-        <FileDiffView lines={diffLines} path={selectedChange.path} scrollable={false} />
+        <FileDiffView
+          lines={diffLines}
+          path={selectedChange.path}
+          scrollable={false}
+          contentMode={mode === "content"}
+          {emptyLabel}
+        />
       </div>
     </ScrollArea>
   {/if}
 </div>
 
 <style>
+  .file-view-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .file-view-controls > span {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+  .file-error {
+    margin: 0;
+    padding: 8px;
+    color: var(--danger);
+    font-size: 11px;
+    overflow-wrap: anywhere;
+  }
   .file-panel {
     display: flex;
     min-width: 0;

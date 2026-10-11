@@ -51,6 +51,7 @@
     pendingCheckpointId: string | null;
     debugMode: boolean;
     fileChanges: FileChange[];
+    fileChangeRecords: FileChange[];
     followTail: boolean;
     isAwaitingStreamOutput: boolean;
     streamStartedAt: number | null;
@@ -296,7 +297,7 @@
               activeConvId={view.activeConvId}
               activeBranchId={view.activeBranchId}
               debugMode={view.debugMode}
-              fileChanges={view.fileChanges}
+              fileChanges={view.fileChangeRecords}
               taskUsagesByCheckpointId={view.taskUsagesByCheckpointId}
               activeTree={view.activeTree}
               paddingBottom={inputAreaHeight + 24}

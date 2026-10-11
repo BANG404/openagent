@@ -373,12 +373,17 @@
   const conversations = $derived(
     remoteCatalog.remoteConversationMetas.map(remoteConversationMetaToConversation),
   );
-  const currentFileChanges = $derived.by(() => {
+  const currentFileChangeRecords = $derived.by(() => {
     const activeCheckpoints = remoteHistory.activeTree
       ? ckIdsAlongActivePath(remoteHistory.activeTree)
       : new Set<string>();
-    return projectCurrentFileChanges(remoteHistory.fileChanges, activeCheckpoints);
+    return activeCheckpoints.size
+      ? remoteHistory.fileChanges.filter((change) => activeCheckpoints.has(change.checkpoint_id))
+      : remoteHistory.fileChanges;
   });
+  const currentFileChanges = $derived(
+    projectCurrentFileChanges(currentFileChangeRecords, new Set()),
+  );
   const streamingConvIds = $derived(
     conversation && running ? { [conversation.conv_id]: true } : {},
   );
@@ -837,7 +842,7 @@
                 activeConvId={conversation?.conv_id ?? null}
                 activeBranchId={remoteHistory.activeBranchId}
                 debugMode={false}
-                fileChanges={currentFileChanges}
+                fileChanges={currentFileChangeRecords}
                 activeTree={remoteHistory.activeTree}
                 paddingBottom={inputAreaHeight + 24}
                 showApiKeyWarn={remoteModels.length === 0}

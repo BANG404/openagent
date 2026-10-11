@@ -69,3 +69,40 @@ describe("remote conversation projection", () => {
     ]);
   });
 });
+
+test("creation uses the latest SDK projection across checkpoint sequence resets", () => {
+  const created = change("create", "root", "demo.txt", null, 1, 5);
+  const edited = change("edit", "tip", "demo.txt", "reverse", 1, 0);
+  edited.projection = {
+    kind: "created",
+    available: true,
+    change_ids: [created.id, edited.id],
+    content: "one\ntwo\nthree\nfour\n",
+    diff: "forward",
+  };
+  expect(projectCurrentFileChanges([edited, created], new Set(["root", "tip"]))).toEqual([edited]);
+  const sibling = {
+    ...edited,
+    id: "sibling",
+    checkpoint_id: "sibling",
+    projection: { ...edited.projection, change_ids: [created.id, "sibling"], content: "other" },
+  };
+  expect(projectCurrentFileChanges([created, sibling, edited], new Set(["root", "tip"]))).toEqual([
+    edited,
+  ]);
+});
+
+test("net-zero files disappear, while unavailable history remains inspectable", () => {
+  const created = change("create", "root", "demo.txt", null, 1, 0);
+  const reverted = change("revert", "tip", "demo.txt", "reverse", 2, 0);
+  reverted.projection = {
+    kind: "unchanged",
+    available: true,
+    change_ids: [created.id, reverted.id],
+    content: null,
+    diff: "",
+  };
+  expect(projectCurrentFileChanges([created, reverted], new Set())).toEqual([]);
+  reverted.projection.available = false;
+  expect(projectCurrentFileChanges([created, reverted], new Set())).toEqual([reverted]);
+});
