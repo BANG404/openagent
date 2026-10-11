@@ -52,6 +52,12 @@ flow; the Runtime keeps a SQLite snapshot beside `messages.db` for rollback.
 Known unversioned configuration is normalized atomically by the long-lived
 Runtime after bootstrap inspection, with the original bytes retained in
 `config.toml.pre-v1.bak`; it does not enter the destructive transition flow.
+Supported release updates must keep settings and conversation records visible
+after bootstrap and repeated startup without entering backup-and-reset. The CD
+artifact check and its baseline policy are owned by release engineering's
+[qualification reference](../../openagent-release-engineering/references/qualification.md).
+Changing startup inspection or persisted formats requires maintaining both the
+SDK's historical migration coverage and that published-version artifact check.
 
 In ordinary debug and release desktop builds, one supervised external Runtime
 is the sole writer for `OPENAGENT_HOME`. The Tauri host does not construct a

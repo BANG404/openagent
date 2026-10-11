@@ -304,6 +304,7 @@ jobs:
       - detect
       - sdk-release
       - qualify
+      - data-compatibility
       - build
       - runtime-components
       - frontend-components
@@ -312,6 +313,7 @@ jobs:
       && needs.detect.outputs.active == 'true'
       && needs.sdk-release.result == 'success'
       && needs.qualify.result == 'success'
+      && needs.data-compatibility.result == 'success'
       && (needs.detect.outputs.published == 'true' || needs.build.result == 'success')
       && (needs.detect.outputs.published == 'true' || needs.runtime-components.result == 'success')
       && (needs.detect.outputs.published == 'true' || needs.frontend-components.result == 'success')
@@ -341,6 +343,51 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "$RELEASE_TAG" "$RELEASE_SHA" -m "Release $RELEASE_TAG"
           git push origin "refs/tags/$RELEASE_TAG"
+
+  data-compatibility:
+    name: Update data compatibility (${{ matrix.target }})
+    needs: [detect, sdk-release]
+    if: needs.detect.outputs.active == 'true'
+    timeout-minutes: 15
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: linux-x64
+          - os: windows-latest
+            target: windows-x64
+          - os: macos-15
+            target: macos-arm64
+          - os: macos-15-intel
+            target: macos-x64
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.detect.outputs.sha }}
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Download exact release-qualified Runtime bytes
+        uses: actions/download-artifact@v4
+        with:
+          name: pinned-sdk-runtime
+          path: ${{ runner.temp }}/sdk-runtime
+
+      - name: Check published-version data survival and startup
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SDK_SHA: ${{ needs.sdk-release.outputs.sdk_release_sha }}
+          COMPATIBILITY_TARGET: ${{ matrix.target }}
+        run: |
+          previous_tag="$(bun -e 'console.log(JSON.parse(await Bun.file(".github/release.json").text()).previousTag || "")')"
+          bun scripts/check-update-data-compatibility.mjs \
+            "$RUNNER_TEMP/sdk-runtime" "$SDK_SHA" "$previous_tag" "$COMPATIBILITY_TARGET"
 
   create-draft:
     name: Create draft release

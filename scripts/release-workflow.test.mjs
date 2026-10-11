@@ -7,6 +7,11 @@ import path from "node:path";
 import { runInNewContext } from "node:vm";
 import { runtimeChannelArtifacts, stageRuntimeChannel } from "./runtime-channel-artifacts.mjs";
 import { signingFixture } from "../tests/fixtures/minisign.mjs";
+import {
+  assertPreserved,
+  downloadBaseline,
+  inspectHome,
+} from "./check-update-data-compatibility.mjs";
 
 const workflowPath = new URL("../.github/workflows/release.yml", import.meta.url);
 
@@ -53,6 +58,7 @@ describe("release workflow publication gates", () => {
       },
       "sdk-release": { result: "success" },
       qualify: { result: "success" },
+      "data-compatibility": { result: "success" },
       build: { result: "success" },
       "runtime-components": { result: "success" },
       "frontend-components": { result: "success" },
@@ -80,9 +86,19 @@ describe("release workflow publication gates", () => {
         }),
       ).toBe(false);
     }
-    const tag = await releaseJobSource("tag", "create-draft");
+    const tag = await releaseJobSource("tag", "data-compatibility");
     expect(jobCondition(tag, needs)).toBe(true);
     expect(jobCondition(tag, { ...needs, build: { result: "skipped" } })).toBe(false);
+    for (const result of ["failure", "skipped", "cancelled"]) {
+      expect(jobCondition(tag, { ...needs, "data-compatibility": { result } })).toBe(false);
+      expect(
+        jobCondition(tag, {
+          ...needs,
+          "data-compatibility": { result },
+          detect: { ...needs.detect, outputs: { ...needs.detect.outputs, published: "true" } },
+        }),
+      ).toBe(false);
+    }
     const native = await releaseJobSource(
       "publish-native-assets",
       "publish-distribution-resources",
@@ -289,6 +305,55 @@ git() {
         "needs.detect.outputs.prerelease == 'true' || needs.publish-store.result == 'success'",
       );
     }
+  });
+});
+
+describe("update data compatibility checks", () => {
+  test("preserves records, contents and identifiers while allowing additive fields", () => {
+    const previous = {
+      config: { theme: "dark" },
+      history: [{ id: "old", text: "keep" }],
+      tip: "old",
+    };
+    expect(() =>
+      assertPreserved(previous, { ...previous, config: { theme: "dark", newSetting: true } }),
+    ).not.toThrow();
+    for (const current of [
+      { ...previous, history: [] },
+      { ...previous, history: [{ id: "new", text: "keep" }] },
+      { ...previous, history: [{ id: "old", text: "lost" }] },
+      { ...previous, tip: null },
+      { ...previous, config: {} },
+    ])
+      expect(() => assertPreserved(previous, current)).toThrow();
+  });
+
+  test("cannot qualify an absent or mutable baseline", async () => {
+    for (const tag of ["", "beta", "rc", "latest", "../v1.2.3", "--help"]) {
+      await expect(downloadBaseline(tag, "linux-x64", "unused")).rejects.toThrow(
+        "immutable previous release tag",
+      );
+    }
+    expect(() => inspectHome("missing-compatibility-runtime", "unused")).toThrow(
+      "inspection failed",
+    );
+  });
+
+  test("qualifies every platform using staged bytes before tagging and publication", async () => {
+    const source = await releaseJobSource("data-compatibility", "create-draft");
+    for (const target of ["linux-x64", "windows-x64", "macos-arm64", "macos-x64"])
+      expect(source).toContain(`target: ${target}`);
+    expect(source).toContain("needs: [detect, sdk-release]");
+    expect(source).toContain("name: pinned-sdk-runtime");
+    expect(source).toContain("sdk_release_sha");
+    expect(source).toContain("previousTag");
+    expect(source).toContain("bun scripts/check-update-data-compatibility.mjs");
+    expect(source).not.toContain("continue-on-error");
+    expect(source).not.toContain("cargo build");
+    const tag = await releaseJobSource("tag", "data-compatibility");
+    expect(tag).toContain("      - data-compatibility\n");
+    const draft = await releaseJobSource("create-draft", "build");
+    expect(draft).toContain("needs.tag.result == 'success'");
   });
 });
 
