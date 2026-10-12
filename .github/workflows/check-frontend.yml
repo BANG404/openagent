@@ -3,6 +3,11 @@ name: Frontend checks
 on:
   workflow_call:
     inputs:
+      base_sha:
+        description: Immutable baseline for affected test selection
+        required: false
+        default: ""
+        type: string
       full:
         description: Build production assets and enforce bundle budgets
         required: false
@@ -22,6 +27,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Initialize pinned plugin sources
         run: git submodule update --init --recursive -- plugins
@@ -92,7 +99,11 @@ jobs:
         run: bun run format:check
 
       - name: Run frontend tests
-        run: bun run test
+        env:
+          TEST_BASE_SHA: ${{ inputs.base_sha }}
+          TEST_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+          TEST_FULL: ${{ inputs.full }}
+        run: bun scripts/run-selected-tests.mjs --scope frontend
 
       - name: Build frontend
         if: inputs.full

@@ -15,31 +15,6 @@ export function verifyBunVersion(actual, expected) {
   }
 }
 
-const AUTOMATION_TESTS = [
-  "tests/ciChanges.test.js",
-  "tests/ciResults.test.js",
-  "tests/docsSync.test.js",
-  "tests/agentSkills.test.js",
-  "tests/componentUsage.test.js",
-  "tests/skillDocumentLength.test.js",
-  "tests/staticToolI18n.test.js",
-  "tests/owtBatch.test.js",
-  "tests/codexExecBatch.test.js",
-  "tests/preflight.test.js",
-  "tests/privateSdkDiagnostic.test.js",
-  "tests/releaseCi.test.js",
-  "tests/releaseVersion.test.js",
-  "tests/sdkGitlink.test.js",
-  "scripts/prepare-worktree.test.mjs",
-  "scripts/prepare-runtime-server.test.mjs",
-  "scripts/source-cargo.test.mjs",
-  "scripts/release-candidate-artifacts.test.mjs",
-  "scripts/release-workflow.test.mjs",
-  "scripts/release-notes.test.mjs",
-  "scripts/plugin-release.test.mjs",
-  "scripts/verify-plugin-candidates.test.mjs",
-];
-
 /**
  * @param {string[]} args
  * @returns {string[]}
@@ -92,8 +67,9 @@ export function selectPreflightBase({
 
 /**
  * @param {ReturnType<typeof classifyChangedModules>} modules
+ * @param {{ base?: string; full?: boolean }} [options]
  */
-export function buildPreflightCommands(modules) {
+export function buildPreflightCommands(modules, { base = "", full = false } = {}) {
   /** @type {{ id: string; label: string; command: string; args: string[] }[]} */
   const commands = [];
   const ids = new Set();
@@ -108,6 +84,14 @@ export function buildPreflightCommands(modules) {
     ids.add(id);
     commands.push({ id, label, command, args });
   };
+  /** @param {string} scope */
+  const testArgs = (scope) => [
+    "scripts/run-selected-tests.mjs",
+    "--scope",
+    scope,
+    ...(base ? ["--base", base] : []),
+    ...(full ? ["--all"] : []),
+  ];
 
   if (modules.automation) {
     add("skill-contract", "Agent skill contract", "bun", ["run", "check:skills"]);
@@ -116,7 +100,12 @@ export function buildPreflightCommands(modules) {
     add("format", "Repository formatting", "bun", ["run", "format:check"]);
     add("test-types", "Test TypeScript", "bun", ["run", "check:tests"]);
     if (!modules.frontend) {
-      add("automation-tests", "Automation policy tests", "bun", ["test", ...AUTOMATION_TESTS]);
+      add(
+        "automation-tests",
+        "Affected automation tests and shared guards",
+        "bun",
+        testArgs("automation"),
+      );
     }
   }
 
@@ -125,7 +114,12 @@ export function buildPreflightCommands(modules) {
     add("test-types", "Test TypeScript", "bun", ["run", "check:tests"]);
     add("lint", "JavaScript and frontend lint", "bun", ["run", "lint:frontend"]);
     add("format", "Repository formatting", "bun", ["run", "format:check"]);
-    add("frontend-tests", "Frontend and automation tests", "bun", ["run", "test"]);
+    add(
+      "frontend-tests",
+      "Affected frontend and automation tests and shared guards",
+      "bun",
+      testArgs("frontend"),
+    );
     add("frontend-build", "Frontend production build", "bun", ["run", "build"]);
     add("bootstrap-build", "Independent shell bootstrap build", "bun", ["run", "build:bootstrap"]);
     add("bundle-size", "Frontend bundle budgets", "bun", ["run", "check:bundle-size"]);
@@ -198,7 +192,7 @@ function main() {
   const selected = Object.entries(modules)
     .filter(([, enabled]) => enabled)
     .map(([name]) => name);
-  const commands = buildPreflightCommands(modules);
+  const commands = buildPreflightCommands(modules, { base: baseSha, full: all });
 
   console.log(`Preflight base: ${baseRef} (${baseSha.slice(0, 12)})`);
   console.log(`Changed files: ${files.length}`);

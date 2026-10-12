@@ -24,6 +24,8 @@ export function classifyChangedModules(files, forceAll = false) {
     "scripts/ci-changes.mjs",
     "scripts/ci-reuse.mjs",
     "scripts/preflight.mjs",
+    "scripts/test-selection.mjs",
+    "scripts/run-selected-tests.mjs",
     "scripts/verify-ci-results.mjs",
   ]);
   const all = forceAll || normalized.some((file) => routerFiles.has(file));
@@ -97,6 +99,7 @@ export function classifyChangedModules(files, forceAll = false) {
     "tests/sdkGitlink.test.js",
     "tests/skillDocumentLength.test.js",
     "tests/staticToolI18n.test.js",
+    "tests/testSelection.test.ts",
   ]);
 
   const automation =
@@ -110,6 +113,9 @@ export function classifyChangedModules(files, forceAll = false) {
         ".agents/skills/openagent-release-engineering/",
         "package.json",
         "bun.lock",
+        "bunfig.toml",
+        "eslint.config.js",
+        "tsconfig.tests.json",
       ]),
     ) ||
     normalized.some((file) => automationTests.has(file));
@@ -126,6 +132,9 @@ export function classifyChangedModules(files, forceAll = false) {
         "bun.lock",
         "svelte.config.js",
         "tsconfig.json",
+        "tsconfig.tests.json",
+        "bunfig.toml",
+        "eslint.config.js",
         "vite.config.js",
         "sdk",
       ]),
@@ -168,7 +177,7 @@ export function classifyChangedModules(files, forceAll = false) {
  * @returns {string[]}
  */
 function changedFiles(baseSha, headSha) {
-  return execFileSync("git", ["diff", "--name-only", "--diff-filter=ACMRT", baseSha, headSha], {
+  return execFileSync("git", ["diff", "--name-only", "--diff-filter=ACDMRT", baseSha, headSha], {
     // NOSONAR: git is the fixed repository tool.
     encoding: "utf8",
   })

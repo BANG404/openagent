@@ -42,23 +42,64 @@ three verification routes:
   every affected module; the verification tier controls whether those modules
   use their quick or complete checks.
 - The default-branch `workflow_run` reporter publishes `Required PR Head` for
-  pull requests only. It may publish reusable fast capability contexts for
-  contributor PRs; administrator bypass runs have no capability coverage to
-  reuse.
+  pull requests only. Native capability contexts can be reused for the exact
+  tree. Automation and fast frontend coverage depend on the base-to-head delta
+  and cannot be reused from tree-only statuses; administrator bypass runs have
+  no capability coverage to reuse.
 - The always-present aggregate proves that every selected check passed. Release
   qualification selects every check and gates tagging and builds directly.
 - Creation of a Stable archive branch reports an all-zero GitHub `before` SHA;
   change detection falls back to the branch head's parent instead of treating
   the existing Beta snapshot as an entirely new repository.
-- Documentation-only changes skip expensive modules. Local preflight's
-  automation test selection includes OWT batch and Codex launcher contracts;
-  keep this list aligned when removing or replacing delivery tooling.
+- Documentation-only changes skip expensive modules. Shared test inventory
+  includes OWT batch and Codex launcher contracts.
   Delivery helpers under `.agents/skills/deliver-via-owt/` follow the shared
   `.agents/skills/` automation route, including after skill directory renames.
   Whenever frontend checks are selected, local preflight builds fresh production
   assets and enforces bundle budgets after tests, including with `--all`.
   Bundle measurement and manifest-resolution changes select frontend checks
   as well as automation so their resulting assets are qualified.
+
+## Affected JavaScript tests
+
+Local preflight and both JavaScript CI modules call
+`scripts/run-selected-tests.mjs`. Fast runs select changed tests and their
+transitive import consumers from the current host source. The graph follows
+relative imports, `$lib/`, re-exports, literal dynamic imports, index modules,
+and Svelte script blocks. File-system, process, Bun file/glob access, and
+computed-import tests remain shared guards because their complete input set
+cannot be inferred from imports. These guards include helpers reached through
+imports, so source-scanning contracts remain checked for every module run.
+Literal repository-file reads establish component contract coverage; directory
+scans stay shared guards and do not imply unit coverage for every new source.
+
+The inventory discovers tracked and untracked host tests under `tests/` and
+`scripts/`, excluding ignored/generated output and submodule test trees.
+Frontend selection includes both frontend and automation tests; automation
+uses every script test plus the policy test names in `test-selection.mjs`.
+New frontend tests are discovered without a registry edit. New policy tests
+under `tests/` must join that automation name set and the module classifier.
+
+Shared dependencies, SDK/plugin gitlinks, resources, workflow/selector changes,
+an unavailable CI baseline, or changed paths without known dependency coverage
+fall back to complete scope coverage. Deletions participate in classification
+and selection. Never suppress an unmatched source path or treat zero selected
+tests as success. Selected paths are passed as explicit Bun file arguments;
+failure status propagates to the calling preflight or CI job.
+
+CI passes an immutable base/head delta; local preflight passes its resolved base
+and includes staged, unstaged, and untracked changes. Nightly, manual, and release
+qualification set `TEST_FULL=true`; local `preflight --all` passes `--all`.
+Complete frontend runs retain the existing `bun run test` discovery. Type,
+lint, format, build, bundle, native and desktop black-box gates retain their
+existing ownership; affected test selection does not replace them.
+
+Inspect a plan without running tests:
+
+```bash
+bun scripts/run-selected-tests.mjs --scope frontend --base main --dry-run
+bun scripts/run-selected-tests.mjs --scope automation --all --dry-run
+```
 
 Plugin gitlinks, `plugins/` source indexes, and `.gitmodules` changes select
 automation and frontend checks, including Message Board integration coverage.

@@ -258,4 +258,21 @@ describe("CI module classification", () => {
       embedding: true,
     });
   });
+
+  test("treats shared test selector changes as routing changes", () => {
+    for (const file of ["scripts/test-selection.mjs", "scripts/run-selected-tests.mjs"]) {
+      expect(classifyChangedModules([file])).toEqual(classifyChangedModules([], true));
+    }
+    expect(classifyChangedModules(["tests/testSelection.test.ts"])).toEqual({
+      ...nothing,
+      automation: true,
+    });
+    for (const file of ["tsconfig.tests.json", "bunfig.toml", "eslint.config.js"]) {
+      expect(classifyChangedModules([file])).toEqual({
+        ...nothing,
+        automation: true,
+        frontend: true,
+      });
+    }
+  });
 });
