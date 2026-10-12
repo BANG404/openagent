@@ -114,7 +114,15 @@ describe("source-owned plugin release versions", () => {
       pluginProtocolRange(
         {
           plugin_protocol: { min: 1, max: 1 },
-          features: ["configuration-v1", "plugin-oauth-v1", "theme-v1", "integration-v1"],
+          features: [
+            "configuration-v1",
+            "plugin-oauth-v1",
+            "theme-v1",
+            "integration-v1",
+            "conversation-observations-v1",
+            "context-sessions-v1",
+            "model-observations-v1",
+          ],
         },
         "demo",
       ),

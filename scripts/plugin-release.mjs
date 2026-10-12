@@ -75,7 +75,15 @@ export function pluginProtocolRange(compatibility, id) {
     (!Array.isArray(declaration.features) ||
       declaration.features.some(
         (feature) =>
-          !["configuration-v1", "plugin-oauth-v1", "theme-v1", "integration-v1"].includes(feature),
+          ![
+            "configuration-v1",
+            "plugin-oauth-v1",
+            "theme-v1",
+            "integration-v1",
+            "conversation-observations-v1",
+            "context-sessions-v1",
+            "model-observations-v1",
+          ].includes(feature),
       ))
   )
     throw new Error(`Invalid plugin compatibility features for ${id}`);

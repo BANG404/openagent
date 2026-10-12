@@ -113,6 +113,7 @@ describe("tracked plugin development index", () => {
       "gitlab",
       "imessage",
       "laravel-boost",
+      "langfuse",
       "linear",
       "playwright",
       "serena",

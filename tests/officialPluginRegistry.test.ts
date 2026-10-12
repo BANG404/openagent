@@ -89,6 +89,7 @@ describe("official plugin registry", () => {
       "gitlab",
       "imessage",
       "laravel-boost",
+      "langfuse",
       "linear",
       "playwright",
       "serena",
@@ -103,7 +104,7 @@ describe("official plugin registry", () => {
       "1.0.7",
       "1.3.0",
       "1.1.2",
-      "1.11.0",
+      "1.12.0",
       "0.2.0",
       "0.1.1",
       "0.2.0",
@@ -112,6 +113,7 @@ describe("official plugin registry", () => {
       "0.2.0",
       "0.1.0",
       "0.1.0",
+      "0.4.0",
       "0.2.0",
       "0.1.1",
       "0.1.1",
@@ -124,6 +126,12 @@ describe("official plugin registry", () => {
       "https://github.com/BANG404/openagent-plugin-kit",
     );
     expect(findOfficialPlugin(registry, "openagent-plugin-kit")?.sha256).toBeUndefined();
+    expect(findOfficialPlugin(registry, "langfuse")?.sourceUrl).toBe(
+      "https://github.com/BANG404/openagent-langfuse/releases/download/v0.4.0/langfuse-0.4.0.zip",
+    );
+    expect(findOfficialPlugin(registry, "langfuse")?.sha256).toBe(
+      "sha256:22fccdb6fbf9904c60f304e179bcf7333a31e3513f02aa71a297fe15e3f1c22a",
+    );
     expect(findOfficialPlugin(registry, "discord")).toBeUndefined();
     expect(findOfficialPlugin(registry, "telegram")).toBeUndefined();
   });

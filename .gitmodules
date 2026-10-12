@@ -55,3 +55,6 @@
 [submodule "plugins/terraform"]
 	path = plugins/terraform
 	url = https://github.com/BANG404/openagent-terraform.git
+[submodule "plugins/langfuse"]
+	path = plugins/langfuse
+	url = https://github.com/BANG404/openagent-langfuse.git

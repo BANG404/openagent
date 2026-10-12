@@ -46,7 +46,8 @@ A missing declaration means `{ "min": 1, "max": 1 }` permanently, even after a
 Runtime upgrade. Packaging preserves that absence rather than injecting fields.
 
 Optional required capabilities use `compatibility.features`: currently
-`configuration-v1`, `plugin-oauth-v1`, `theme-v1` and `integration-v1` (the
+`configuration-v1`, `plugin-oauth-v1`, `theme-v1`, `integration-v1`,
+`conversation-observations-v1`, `context-sessions-v1` and `model-observations-v1` (the
 [presentation types](package-format.md#theme-and-integration-package-types)). Runtime admission, Plugin Kit and the
 host release validator accept these names and reject malformed or unknown
 features. Packaging preserves the declaration. Protocol 1 alone does not imply

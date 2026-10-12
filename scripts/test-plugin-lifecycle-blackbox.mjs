@@ -335,7 +335,19 @@ for (const plugin of plugins) {
   mkdirSync(data, { recursive: true });
   const sentinel = join(data, "lifecycle-preserved.txt");
   writeFileSync(sentinel, "preserved plugin data\n");
-  if (!installationOnly && plugin.id !== "cua-driver") {
+  if (!installationOnly && plugin.id === "langfuse") {
+    const integration = evaluate(`(async () => {
+      const {desktopOpenAgent} = await import('/src/lib/openagent/tauriClient.ts');
+      const packages = await desktopOpenAgent.invokeProduct('list_agent_plugins', {});
+      const configuration = await desktopOpenAgent.invokeProduct('get_agent_plugin_configuration', {plugin_id:'langfuse'});
+      const summary = packages.find(item => item.id === 'langfuse');
+      return ['status','test','retry'].every(id => summary?.command_specs.some(command => command.id === 'plugin:langfuse:' + id)) &&
+        configuration.values['capture-model-content'] === false &&
+        !summary.mcp_servers.length;
+    })()`);
+    if (integration !== "true")
+      throw new Error("Langfuse commands or independent model consent are missing");
+  } else if (!installationOnly && plugin.id !== "cua-driver") {
     const tool =
       {
         goal: "read_goal",

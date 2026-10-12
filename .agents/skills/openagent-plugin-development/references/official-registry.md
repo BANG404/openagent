@@ -49,10 +49,12 @@ When the pinned source version has no published archive, use its published Git
 repository as `source_url` and omit the archive digest. Do not advertise an older
 release archive under a newer catalog version. Replace the Git source with the
 verified archive URL and digest when that version is released.
-Plugin Kit 1.11.0 defines explicit conversation observations and content-free
-context session identity.
+Plugin Kit 1.12.0 defines explicit conversation and per-model observations and
+content-free context session identity.
 Its catalog source follows published Git while the immutable package archive is
-unreleased; Langfuse remains a local candidate outside this catalog.
+unreleased. Langfuse 0.4.0 is an independent published integration: its catalog
+entry uses the verified immutable archive and digest, and its source is a pinned
+submodule in the development index.
 
 Optional `i18n` entries use the validated `AgentPluginI18n` presentation shape.
 Uninstalled cards use catalog declarations; installed cards refresh from the
@@ -163,9 +165,12 @@ isolated `OPENAGENT_HOME`. `BLACKBOX_PLUGIN_IDS` can select catalog entries.
 Set `TAURI_PILOT_SOCKET` explicitly to that instance's socket; instance/home
 variables do not override the CLI's newest-socket discovery. The runner requires
 the explicit socket to avoid mutating another running development window.
-The runner checks actual progress, MCP availability, enabled uninstall, preserved
+The runner checks actual progress, MCP availability for MCP packages, enabled uninstall, preserved
 plugin data, and the immediately restored Install action. Repeat with the native
 window in light/dark and English/Chinese.
+Langfuse has commands and hooks without MCP; its lifecycle check verifies the
+Runtime command declarations and independent default-off model consent. Its
+package-owned Runtime verifier qualifies actual model/tool hooks and OTLP readback.
 Use a separate fixture workspace outside the source and Runtime executable
 directories. Managed Windows confinement refuses a writable-policy sandbox
 wrapper; making the development executable's directory writable invalidates

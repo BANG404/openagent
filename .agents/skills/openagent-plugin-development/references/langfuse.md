@@ -1,20 +1,23 @@
-# Langfuse observability candidate
+# Langfuse observability integration
 
-`plugins/langfuse/` is the local unpublished `langfuse` integration package.
-Install its directory through the ordinary local installer. Keep it outside the
-published development index and official registry until its independent source
-repository and immutable release are authorized and published; those indices
-qualify pinned published packages, not unpublished source directories.
+`plugins/langfuse/` pins the independent `BANG404/openagent-langfuse` repository.
+The official registry installs its immutable versioned archive and SHA-256;
+the development index selects its pinned source directory. Publish package source
+and its archive before advancing the gitlink and catalog together. Local installs
+follow their recorded source through ordinary Runtime refresh; archive installs
+use the independent GitHub release channel.
 
 The package owns configuration, OTLP mapping, local pending records and retries.
 Use only public lifecycle routing, tool fields and explicitly consented
 [conversation observations](conversation-observations.md). Never scrape internal
 Inspector/provider traces, databases or model context to enrich an external
-observability integration. Current public hooks expose model timing but no model
-identity, prompt, reasoning, token usage or costs; absent values stay absent.
+observability integration. `model-observations-v1` adds independently consented per-call non-system text
+messages, tool calls/results, model identity and reported usage. Each generation
+uses its own request ID and response; absent values stay absent. System prompts,
+reasoning and attachment bytes remain excluded.
 Current-turn authored text is available only through `conversation-observations-v1`.
 
-Upload, message capture and tool-content capture are separate explicit opt-ins in the generic
+Upload, message capture, model-content capture and tool-content capture are separate explicit opt-ins in the generic
 plugin settings form. Normal network/process policy applies. The plugin does not
 request computer access. Hook stdout must remain empty because text would become
 model context. Diagnostics never include remote response bodies or credentials.
