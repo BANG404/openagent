@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "version": "1.1.1",
+  "release_version": "0.78.2-beta.1",
+  "protocol": {
+    "min": 2,
+    "max": 2
+  },
+  "artifacts": {
+    "windows-x64": {
+      "file": "openagent-server.bin",
+      "size": 16,
+      "sha256": "2b206f80b1a972f726f8592f10d66c1411bb0fb5675c187bf9a23c24b2791cdd"
+    },
+    "linux-x64": {
+      "file": "openagent-server.bin",
+      "size": 16,
+      "sha256": "2b206f80b1a972f726f8592f10d66c1411bb0fb5675c187bf9a23c24b2791cdd"
+    },
+    "macos-arm64": {
+      "file": "openagent-server.bin",
+      "size": 16,
+      "sha256": "2b206f80b1a972f726f8592f10d66c1411bb0fb5675c187bf9a23c24b2791cdd"
+    },
+    "macos-x64": {
+      "file": "openagent-server.bin",
+      "size": 16,
+      "sha256": "2b206f80b1a972f726f8592f10d66c1411bb0fb5675c187bf9a23c24b2791cdd"
+    }
+  },
+  "helpers": {
+    "windows-x64": {
+      "codex-command-runner.exe": {
+        "file": "codex-command-runner.exe",
+        "size": 10,
+        "sha256": "c02a64861ca2639b254f5dee9f0111916a2a703904af8a63b6bbe54f996858a9"
+      },
+      "codex-windows-sandbox-setup.exe": {
+        "file": "codex-windows-sandbox-setup.exe",
+        "size": 10,
+        "sha256": "c02a64861ca2639b254f5dee9f0111916a2a703904af8a63b6bbe54f996858a9"
+      }
+    },
+    "linux-x64": {
+      "codex-bwrap-linux-x64": {
+        "file": "codex-bwrap-linux-x64",
+        "size": 10,
+        "sha256": "c02a64861ca2639b254f5dee9f0111916a2a703904af8a63b6bbe54f996858a9"
+      }
+    }
+  }
+}

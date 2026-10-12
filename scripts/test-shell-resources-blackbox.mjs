@@ -391,6 +391,22 @@ try {
     path.join(updatesDirectory, "shell-handoff.json"),
     JSON.stringify({ schema_version: 1, shell_version: version }),
   );
+  // Keep the verified executable intact: a corrupt helper alone must prevent
+  // reuse, repair through the signed cache, and complete the same handoff.
+  const beforeRepairSelection = JSON.parse(
+    await readFile(path.join(home, "resources", "runtime", "active.json"), "utf8"),
+  );
+  const installedHelper = path.join(
+    home,
+    "resources",
+    "runtime",
+    beforeRepairSelection.active.version,
+    beforeRepairSelection.active.target,
+    "codex-resources",
+    "codex-command-runner.exe",
+  );
+  const expectedHelper = await readFile(installedHelper);
+  await writeFile(installedHelper, "damaged installed helper");
   desktop = start(process.execPath, desktopArguments);
   const restartDeadline = Date.now() + 120000;
   let continued = false;
@@ -412,6 +428,8 @@ try {
   }
   if (!continued)
     throw new Error("Cached restart did not confirm and clear its shell continuation");
+  if (!(await readFile(installedHelper)).equals(expectedHelper))
+    throw new Error("Cached handoff did not restore the installed helper");
   captureBlackboxScreenshot(pilot, path.join(directory, "product-after-restart.png"));
   // An ordinary repeat launch needs only installed selections. Hide the entire
   // distribution cache as well as the original source to prove it is not staged.
@@ -509,7 +527,7 @@ try {
   )
     throw new Error("Missing installed Runtime did not recover through resource preparation");
   console.log(
-    `Shell resource black-box passed: retry, four themes/locales, verified offline install, interrupted installer supersession, continuation, direct repeat startup and missing-resource repair. Artifacts: ${directory}`,
+    `Shell resource black-box passed: retry, four themes/locales, verified offline install, interrupted installer supersession, continuation with helper repair, direct repeat startup and missing-resource repair. Artifacts: ${directory}`,
   );
 } finally {
   await writeFile(path.join(directory, "desktop.log"), logs.join(""));

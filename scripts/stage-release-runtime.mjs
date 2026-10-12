@@ -109,6 +109,16 @@ export async function stageReleaseRuntime({
 }) {
   const candidate = await validateReleaseRuntime({ artifactsDirectory, sdkSha });
   if (releaseVersion) {
+    if (!/^\d+\.\d+\.\d+(?:-(?:beta|rc)\.\d+)?$/.test(releaseVersion)) {
+      throw new Error("Invalid desktop release version.");
+    }
+    // The SDK ordering remains independent; desktop-built helpers belong to
+    // this product release and must never overwrite another release's bytes.
+    const sdkVersion = candidate.manifest.version;
+    if (typeof sdkVersion !== "string" || !/^[0-9A-Za-z.+-]+$/.test(sdkVersion)) {
+      throw new Error("Runtime candidate has an invalid SDK version.");
+    }
+    candidate.manifest.version = `${sdkVersion}${sdkVersion.includes("+") ? "." : "+"}desktop.${releaseVersion}`;
     candidate.manifest.release_version = releaseVersion;
   }
   if (tauriTarget) await stageTauriArtifact(candidate, tauriTarget, repositoryRoot);
