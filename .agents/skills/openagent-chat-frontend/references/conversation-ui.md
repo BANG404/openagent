@@ -1,5 +1,22 @@
 # Conversation components
 
+New Chat loading keeps the centered composer in its destination layout. Render
+context above it only for an actual credential warning; the settled page has no
+memory note or greeting, so loading must not reserve space for either. Known
+new-conversation suggestions retain their text geometry while loading, with
+hidden, disabled placeholders; unknown or absent suggestions reserve no rows.
+The composer skeleton includes the formatting, attachment, model, approval and
+workspace controls enabled by its host. Select controls and their placeholders
+share `--composer-selector-height`, including wrapped toolbar rows.
+Verify empty/three/wrapped suggestions,
+credential warnings, narrow panes and light/dark, English/Chinese with
+`bun run test:blackbox:new-conversation-skeleton` against an isolated debug
+instance built from the task worktree and selected by `TAURI_PILOT_SOCKET`.
+The Vite origin must match that host's admitted development URL; navigating an
+older host to a different port disables the IPC callback used by tauri-pilot.
+The scenario mounts the actual ConversationSurface
+with deterministic props and never reads or writes Runtime data.
+
 Sidebar-only mode hides the transcript only while the active conversation branch
 has an available right-sidebar view. Project the saved conversation collapse
 request against sidebar availability for both the title bar and conversation

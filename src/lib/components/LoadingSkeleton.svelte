@@ -3,6 +3,9 @@
     variant = "list",
     rows = 6,
     label = "Loading content",
+    showApprovalMode = false,
+    showReasoningEffort = false,
+    showWorkspaceSwitcher = false,
   }: {
     variant?:
       | "list"
@@ -16,6 +19,9 @@
       | "composer";
     rows?: number;
     label?: string;
+    showApprovalMode?: boolean;
+    showReasoningEffort?: boolean;
+    showWorkspaceSwitcher?: boolean;
   } = $props();
 </script>
 
@@ -62,7 +68,11 @@
         </div>
         <div class="composer-toolbar">
           <span class="block composer-action"></span>
+          <span class="block composer-action"></span>
           <span class="block composer-model"></span>
+          {#if showReasoningEffort}<span class="block composer-option"></span>{/if}
+          {#if showApprovalMode}<span class="block composer-option"></span>{/if}
+          {#if showWorkspaceSwitcher}<span class="block composer-workspace"></span>{/if}
         </div>
       </div>
       <span class="block composer-send"></span>
@@ -473,6 +483,7 @@
 
   .composer-toolbar {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 6px;
     box-sizing: border-box;
@@ -493,8 +504,22 @@
 
   .composer-model {
     width: 92px;
-    height: 24px;
+    height: var(--composer-selector-height);
     border-radius: 8px;
+  }
+
+  .composer-option,
+  .composer-workspace {
+    height: var(--composer-selector-height);
+    border-radius: 8px;
+  }
+
+  .composer-option {
+    width: 60px;
+  }
+
+  .composer-workspace {
+    width: 96px;
   }
 
   /* The send action is a bottom-right 30px rounded square, not a toolbar item. */

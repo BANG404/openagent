@@ -362,7 +362,13 @@
       {/if}
       <div class="input-inner">
         {#if view.mainContentLoading}
-          <LoadingSkeleton variant="composer" label={$t("loadingContent")} />
+          <LoadingSkeleton
+            variant="composer"
+            label={$t("loadingContent")}
+            showApprovalMode
+            showReasoningEffort={composerPreferences.selectedModelSupportsReasoning}
+            showWorkspaceSwitcher={view.newConversationLayout && !view.activeConvId}
+          />
         {:else}
           {#if view.activeConvId}
             <ChatQueue
@@ -426,11 +432,12 @@
           />
         {/if}
       </div>
-      {#if view.newConversationLayout && !view.mainContentLoading}
+      {#if view.newConversationLayout}
         <FollowUpSuggestions
           suggestions={view.newConversationSuggestions}
           onSelect={actions.sendSuggestedMessage}
           variant="new-conversation"
+          loading={view.mainContentLoading}
           disabled={!view.tauriAvailable || composerPreferences.modelOptions.length === 0}
         />
       {/if}

@@ -1,6 +1,5 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
-  import LoadingSkeleton from "./LoadingSkeleton.svelte";
   import { t } from "$lib/i18n";
   import { motionDuration } from "$lib/motion";
 
@@ -11,19 +10,19 @@
     placement?: "overlay" | "stack";
   }
 
-  let { prompt: _prompt, loading, showApiKeyWarn, placement = "overlay" }: Props = $props();
+  let {
+    prompt: _prompt,
+    loading: _loading,
+    showApiKeyWarn,
+    placement = "overlay",
+  }: Props = $props();
 </script>
 
-<div class="new-conversation-context" class:stack={placement === "stack"}>
-  {#if loading}
-    <div transition:fade={{ duration: motionDuration(140) }}>
-      <LoadingSkeleton variant="memory-note" label={$t("loadingContent")} />
-    </div>
-  {/if}
-  {#if showApiKeyWarn}
+{#if showApiKeyWarn}
+  <div class="new-conversation-context" class:stack={placement === "stack"}>
     <p class="warn" transition:fade={{ duration: motionDuration(160) }}>{$t("configApiKey")}</p>
-  {/if}
-</div>
+  </div>
+{/if}
 
 <style>
   .new-conversation-context {

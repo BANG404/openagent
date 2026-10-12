@@ -193,6 +193,7 @@
   }
 
   :global(.composer-workspace-btn) {
+    height: var(--composer-selector-height);
     max-width: 190px;
     padding: 5px 8px;
     border-radius: 6px;
