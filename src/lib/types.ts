@@ -730,6 +730,7 @@ export interface AgentPluginTheme {
 }
 
 export interface AgentPluginSummary {
+  local_source?: string | null;
   plugin_type?: "agent" | "theme" | "integration";
   theme?: AgentPluginTheme | null;
   configuration?: import("@openagent/client/types").PluginConfiguration | null;

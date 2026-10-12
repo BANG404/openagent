@@ -84,6 +84,28 @@ pub(crate) async fn list_agent_plugins(
 }
 
 #[tauri::command]
+pub(crate) async fn refresh_local_agent_plugins(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    id: Option<String>,
+) -> Result<openagent_runtime::agent_plugins::LocalPluginRefreshReport, String> {
+    openagent_runtime::commands::refresh_local_agent_plugins(runtime.state(), id).await
+}
+
+#[tauri::command]
+pub(crate) async fn complete_local_plugin_refresh_preparation(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    token: String,
+    error: Option<String>,
+) -> Result<(), String> {
+    openagent_runtime::commands::complete_local_plugin_refresh_preparation(
+        runtime.state(),
+        token,
+        error,
+    )
+    .await
+}
+
+#[tauri::command]
 pub(crate) async fn list_agent_plugin_marketplaces(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
 ) -> Result<Vec<openagent_runtime::agent_plugins::AgentPluginMarketplaceSummary>, String> {

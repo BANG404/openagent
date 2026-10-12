@@ -1,5 +1,22 @@
 # Local plugin development and acceptance
 
+Local-directory installations record their source and automatically synchronize
+changed content through Runtime. Installed Settings cards display the source and
+offer Refresh; the toolbar refreshes all associated sources. Selecting the same
+ID's directory again associates an older installation without deleting settings
+or plugin data. Do not infer missing source associations. Local source copies
+remain distinct installed packages; Runtime owns staging, validation and idle
+activation, including across Runtime processes. Invalid or missing sources keep
+the installed package and show a recoverable refresh error. Release checks skip
+associated packages so release downloads cannot overwrite their source channel.
+
+Run `bun run test:blackbox:local-plugin-refresh` after preparing the source
+Runtime and Windows helpers. Its isolated native fixture covers automatic content
+sync, the actual Refresh controls, invalid-source recovery and retained data in
+light/dark and English/Chinese. `BLACKBOX_HOST_TARGET_DIR` selects a task-owned
+native compile cache; source associations and fixture data stay in the temporary
+report directory. The SDK owns the source registry, digest and activity leases.
+
 ## Resolve source locations from the project
 
 Locate the current project's root and read its instructions and existing plugin
@@ -106,9 +123,21 @@ calculating versions or repairing missing bumps.
 The index identifies source checkouts; it does not enable packages, modify
 release configuration, or replace Runtime installation policy. Use the resolved
 directory with the existing local-directory plugin installation action in an
-isolated development instance. Installation stages a package copy: reinstall
-the candidate after source changes; do not imply a live symlink or hot reload.
-Do not overwrite a developer's already installed package without authorization.
+isolated development instance. Local-directory installation stages a package copy
+and records a trusted source association outside plugin-writable data. Runtime
+detects content changes (including assets and changes without a version bump),
+validates and stages a complete copy, and activates after conversation tasks in
+every Runtime sharing that package root finish. MCP and host-owned daemons release
+the package before replacement; hooks and the UI refresh after activation.
+The Installed toolbar's Refresh and each associated card's Refresh run the same
+source synchronization. Configuration, private settings, grants and plugin data
+are retained. Missing, invalid, changed-identity or escaping-link sources preserve
+the installed package and report a recoverable error. An initial installation is
+authorization to follow that exact local source; release/archive installs do not
+gain a source association. Old installations have no inferred source: choose the
+local directory through Install once to refresh and associate the existing ID.
+Removing the plugin removes its association but retains data. `.git` is excluded
+from source digest/copy; there is no symlink mount or arbitrary directory scan.
 
 `bun run test:blackbox:plugin-functionality` reads the same index and validates
 all selected sources before touching fixture settings. Set `BLACKBOX_PLUGIN_IDS`

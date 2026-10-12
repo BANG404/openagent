@@ -62,6 +62,7 @@ export function createPluginSettings(
   let agentPluginRemoveId = $state<string | null>(null);
   let agentPluginRemoving = $state(false);
   let agentPluginsLoading = $state(false);
+  let localPluginRefreshing = $state(false);
   let agentPluginStatus = $state("");
   let agentPluginUpdateCheckStatus = $state<{
     tone: "success" | "error";
@@ -230,7 +231,7 @@ export function createPluginSettings(
     queueMicrotask(() => draft.saveDraftConfig().catch(console.error));
   });
 
-  async function refreshAgentPlugins() {
+  async function refreshAgentPlugins(preserveStatus = false) {
     if (!isTauri()) {
       agentPlugins = [];
       agentPluginMarketplaces = [];
@@ -238,10 +239,10 @@ export function createPluginSettings(
     }
     agentPluginsLoading = true;
     const sequence = ++agentPluginRefreshSequence;
-    agentPluginStatus = "";
+    if (!preserveStatus) agentPluginStatus = "";
     // The installed set is about to change, so the last explicit check result is
     // no longer a statement about the plugins on screen.
-    agentPluginUpdateCheckStatus = null;
+    if (!preserveStatus) agentPluginUpdateCheckStatus = null;
     try {
       const [plugins, marketplaces] = await Promise.allSettled([
         desktopOpenAgent.listAgentPlugins(),
@@ -284,9 +285,37 @@ export function createPluginSettings(
    * so the right sidebar rebuilds each mounted panel's package identity instead
    * of keeping the document it read before the plugin directory changed.
    */
-  async function reloadAgentPlugins(): Promise<void> {
-    await Promise.all([refreshAgentPlugins(), refreshOfficialPluginRegistry()]);
-    await emit("agent-plugins-changed").catch(() => {});
+  async function reloadAgentPlugins(pluginId?: string): Promise<void> {
+    if (!isTauri() || agentPluginsLoading || localPluginRefreshing) return;
+    localPluginRefreshing = true;
+    try {
+      const report = await desktopOpenAgent.refreshLocalAgentPlugins(pluginId);
+      await refreshAgentPlugins();
+      if (!pluginId) void refreshOfficialPluginRegistry();
+      if (Object.keys(report.errors).length) {
+        agentPluginUpdateCheckStatus = {
+          tone: "error",
+          message:
+            tr("pluginLocalRefreshFailed") +
+            " " +
+            Object.entries(report.errors)
+              .map(([id, error]) => `${id}: ${error}`)
+              .join("; "),
+        };
+      } else {
+        agentPluginStatus = report.deferred.length
+          ? tr("pluginLocalRefreshDeferred")
+          : tr("pluginLocalRefreshComplete");
+      }
+      await emit("agent-plugins-changed").catch(() => {});
+    } catch (error) {
+      agentPluginUpdateCheckStatus = {
+        tone: "error",
+        message: tr("pluginLocalRefreshFailed") + " " + String(error),
+      };
+    } finally {
+      localPluginRefreshing = false;
+    }
   }
 
   async function checkAgentPluginUpdates(): Promise<AgentPluginUpdateReport | null> {
@@ -559,10 +588,27 @@ export function createPluginSettings(
       options.visibleSections.has("channels") ||
       options.visibleSections.has("general")
         ? listen("agent-plugins-changed", () => {
-            void refreshAgentPlugins();
+            void refreshAgentPlugins(true);
           })
         : Promise.resolve(() => {});
+    const unlistenLocalStatus = listen<{ errors: Record<string, string>; deferred: string[] }>(
+      "agent-plugin-local-refresh-status",
+      ({ payload }) => {
+        agentPluginStatus = payload.deferred.length ? tr("pluginLocalRefreshDeferred") : "";
+        const errors = Object.entries(payload.errors);
+        agentPluginUpdateCheckStatus = errors.length
+          ? {
+              tone: "error",
+              message:
+                tr("pluginLocalRefreshFailed") +
+                " " +
+                errors.map(([id, error]) => `${id}: ${error}`).join("; "),
+            }
+          : null;
+      },
+    );
     return () => {
+      void unlistenLocalStatus.then((unlisten) => unlisten());
       ++officialPluginRegistrySequence;
       unlistenInstalls();
       unlistenAccess();
@@ -624,7 +670,7 @@ export function createPluginSettings(
     },
     agentPluginInstallMessage,
     get agentPluginsLoading() {
-      return agentPluginsLoading;
+      return agentPluginsLoading || localPluginRefreshing;
     },
     agentPluginEnabled,
     setAgentPluginEnabled,

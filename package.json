@@ -60,6 +60,7 @@
     "test:blackbox:conversation-ui": "bun scripts/test-conversation-ui-blackbox.mjs",
     "test:blackbox:plugin-process": "bun scripts/test-plugin-process-blackbox.mjs",
     "test:blackbox:plugin-update": "bun scripts/test-plugin-update-blackbox.mjs",
+    "test:blackbox:local-plugin-refresh": "bun scripts/test-local-plugin-refresh-blackbox.mjs",
     "test:blackbox:plugin-settings": "bun scripts/test-plugin-settings-blackbox.mjs",
     "test:blackbox:plugin-layout": "bun scripts/test-plugin-layout-blackbox.mjs",
     "test:blackbox:plugin-catalog": "bun scripts/test-plugin-catalog-blackbox.mjs",

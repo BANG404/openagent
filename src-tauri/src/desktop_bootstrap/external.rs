@@ -31,11 +31,60 @@ pub(crate) fn packaged_runtime_binary() -> Result<std::path::PathBuf, String> {
         let staged = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("binaries")
             .join(format!("openagent-server-{target}{extension}"));
-        Some(staged)
+        Some(selected_development_runtime(&staged, target)?)
     };
     #[cfg(not(debug_assertions))]
     let prepared: Option<std::path::PathBuf> = None;
     select_packaged_runtime_binary(binary, prepared.as_deref())
+}
+
+#[cfg(debug_assertions)]
+fn selected_development_runtime(
+    staged: &std::path::Path,
+    target: &str,
+) -> Result<std::path::PathBuf, String> {
+    use sha2::{Digest, Sha256};
+    let selection = std::path::PathBuf::from(format!("{}.selection.json", staged.display()));
+    let bytes = match std::fs::read(&selection) {
+        Ok(bytes) => bytes,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(staged.into()),
+        Err(error) => {
+            return Err(format!(
+                "Cannot read development Runtime selection: {error}"
+            ))
+        }
+    };
+    let value: serde_json::Value = serde_json::from_slice(&bytes)
+        .map_err(|error| format!("Invalid development Runtime selection: {error}"))?;
+    let digest = value["sha256"].as_str().unwrap_or_default();
+    if value["schema_version"] != 1
+        || digest.len() != 64
+        || !digest
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err("Invalid development Runtime selection identity".into());
+    }
+    let root = staged
+        .parent()
+        .and_then(std::path::Path::parent)
+        .and_then(std::path::Path::parent)
+        .ok_or("Development Runtime has no repository root")?;
+    let binary = root
+        .join(".cache/development-runtime")
+        .join(target)
+        .join(digest)
+        .join(if target.contains("windows") {
+            "openagent-server.exe"
+        } else {
+            "openagent-server"
+        });
+    let candidate = std::fs::read(&binary)
+        .map_err(|error| format!("Development Runtime candidate is unavailable: {error}"))?;
+    if format!("{:x}", Sha256::digest(candidate)) != digest {
+        return Err("Development Runtime candidate checksum mismatch".into());
+    }
+    Ok(binary)
 }
 
 fn select_packaged_runtime_binary(
@@ -127,6 +176,42 @@ pub(crate) async fn start_external_desktop_runtime(
 #[cfg(test)]
 mod tests {
     use super::select_packaged_runtime_binary;
+
+    #[cfg(debug_assertions)]
+    #[test]
+    fn development_selection_requires_a_complete_verified_immutable_candidate() {
+        use sha2::{Digest, Sha256};
+        let root = tempfile::tempdir().unwrap();
+        let staged = root.path().join("src-tauri/binaries/runtime.exe");
+        std::fs::create_dir_all(staged.parent().unwrap()).unwrap();
+        let digest = format!("{:x}", Sha256::digest(b"new Runtime"));
+        let binary = root
+            .path()
+            .join(".cache/development-runtime/x86_64-pc-windows-msvc")
+            .join(&digest)
+            .join("openagent-server.exe");
+        let selection = format!("{}.selection.json", staged.display());
+        std::fs::write(
+            &selection,
+            serde_json::json!({"schema_version":1,"sha256":digest}).to_string(),
+        )
+        .unwrap();
+        assert!(super::selected_development_runtime(&staged, "x86_64-pc-windows-msvc").is_err());
+        std::fs::create_dir_all(binary.parent().unwrap()).unwrap();
+        std::fs::write(&binary, b"new Runtime").unwrap();
+        assert_eq!(
+            super::selected_development_runtime(&staged, "x86_64-pc-windows-msvc").unwrap(),
+            binary
+        );
+        std::fs::write(&binary, b"tampered").unwrap();
+        assert!(super::selected_development_runtime(&staged, "x86_64-pc-windows-msvc").is_err());
+        std::fs::write(
+            &selection,
+            r#"{"schema_version":1,"sha256":"../../outside"}"#,
+        )
+        .unwrap();
+        assert!(super::selected_development_runtime(&staged, "x86_64-pc-windows-msvc").is_err());
+    }
 
     #[test]
     fn prepared_development_runtime_wins_over_an_existing_packaged_copy() {

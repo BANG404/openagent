@@ -130,6 +130,85 @@ pub(crate) fn plugin_daemon_supervisor() -> &'static PluginDaemonSupervisor {
         .get_or_init(|| PluginDaemonSupervisor::new(CUA_DRIVER_SHUTDOWN_TIMEOUT))
 }
 
+fn refreshing_daemons() -> &'static std::sync::Mutex<std::collections::BTreeSet<String>> {
+    static RELEASED: std::sync::OnceLock<std::sync::Mutex<std::collections::BTreeSet<String>>> =
+        std::sync::OnceLock::new();
+    RELEASED.get_or_init(Default::default)
+}
+
+pub(crate) fn release_refreshing_plugin_daemon(id: &str) -> Result<(), String> {
+    if id == "cua-driver"
+        && !plugin_daemon_supervisor().is_running(id)?
+        && cua_driver_endpoint_is_ready(&cua_driver_endpoint_path())
+    {
+        return Err("Refresh this plugin in the desktop window that owns its daemon".into());
+    }
+    if plugin_daemon_supervisor().stop(id)? {
+        refreshing_daemons()
+            .lock()
+            .map_err(|_| "Plugin refresh state is unavailable")?
+            .insert(id.into());
+    }
+    Ok(())
+}
+
+pub(crate) fn plugin_daemon_refresh_pending(id: &str) -> bool {
+    refreshing_daemons()
+        .lock()
+        .is_ok_and(|ids| ids.contains(id))
+}
+
+pub(crate) fn resume_refreshing_plugin_daemon(
+    id: &str,
+    launch: Option<PluginDaemonLaunch>,
+) -> Result<(), String> {
+    if !plugin_daemon_refresh_pending(id) {
+        return Ok(());
+    }
+    if let Some(launch) = launch {
+        if launch.plugin_id != id {
+            return Err("Plugin refresh launch identity changed".into());
+        }
+        if id == "cua-driver" {
+            ensure_cua_driver_serve_with_launch(launch)?;
+        } else {
+            let mut env = launch.environment;
+            let transport = match launch.transport.as_str() {
+                "socket" => {
+                    let endpoint = std::path::PathBuf::from(&launch.data_root)
+                        .join("daemon.sock")
+                        .to_string_lossy()
+                        .into_owned();
+                    env.push(("OPENAGENT_PLUGIN_ENDPOINT".into(), endpoint.clone()));
+                    PluginDaemonTransport::Socket {
+                        endpoint,
+                        startup_timeout: std::time::Duration::from_secs(15),
+                    }
+                }
+                "stdio" => PluginDaemonTransport::Stdio,
+                _ => return Err("Unsupported plugin daemon refresh transport".into()),
+            };
+            plugin_daemon_supervisor().start(
+                PluginDaemonSpec {
+                    plugin_id: id.into(),
+                    label: format!("Agent Plugin {id}"),
+                    command: launch.command,
+                    args: launch.args,
+                    cwd: std::path::PathBuf::from(launch.root),
+                    env,
+                    transport,
+                },
+                None,
+            )?;
+        }
+    }
+    refreshing_daemons()
+        .lock()
+        .map_err(|_| "Plugin refresh state is unavailable")?
+        .remove(id);
+    Ok(())
+}
+
 /// The reserved launcher, started the way this run resolved it.
 ///
 /// Every invocation of the package's launcher — provisioning it, serving it,

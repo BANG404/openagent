@@ -24,36 +24,76 @@ function isFrontendDevelopmentPath(file) {
   return relative.startsWith("src/") || relative.startsWith("static/");
 }
 
-/** @returns {import("vite").Plugin} */
-function tauriRuntimeUpdateBarrier() {
-  const pendingRuntimeStamp = runtimeServerPendingStampPath();
+/** @param {string} [root] @returns {import("vite").Plugin} */
+export function tauriRuntimeUpdateBarrier(root = repositoryRoot) {
+  const pendingRuntimeStamp = runtimeServerPendingStampPath(root);
   let pendingRuntimeRevision = 0;
+  let pendingRuntimeIdentity = "";
+  let handingOff = false;
 
   return {
     name: "openagent-tauri-runtime-update-barrier",
     configureServer(server) {
       server.watcher.add(pendingRuntimeStamp);
+      const notifyRuntime = async () => {
+        if (handingOff) return;
+        try {
+          const pending = JSON.parse(await readFile(pendingRuntimeStamp, "utf8"));
+          pendingRuntimeRevision = Number(pending.revision);
+          if (!Number.isSafeInteger(pendingRuntimeRevision) || pendingRuntimeRevision <= 0) return;
+          pendingRuntimeIdentity = JSON.stringify(pending);
+          server.ws.send({
+            type: "custom",
+            event: "openagent:component-update-pending",
+            data: { kind: "runtime" },
+          });
+        } catch (error) {
+          const code =
+            error && typeof error === "object" && "code" in error ? error.code : undefined;
+          if (code !== "ENOENT" && !(error instanceof SyntaxError)) {
+            server.config.logger.warn(`Runtime update signal could not be read: ${String(error)}`);
+          }
+        }
+      };
+      // New stamp files use `add`, and a ready build can predate the WebView.
+      // Keep offering the durable pending signal until an idle frontend accepts it.
+      /** @param {string} file */
+      const onRuntimeStamp = (file) => {
+        if (file === pendingRuntimeStamp) void notifyRuntime();
+      };
+      server.watcher.on("add", onRuntimeStamp);
+      server.watcher.on("change", onRuntimeStamp);
+      const retry = setInterval(() => void notifyRuntime(), 1000);
+      server.httpServer?.once("close", () => clearInterval(retry));
+      void notifyRuntime();
       server.ws.on("openagent:component-update-ready", async (payload) => {
         if (payload?.kind === "runtime" && pendingRuntimeRevision > 0) {
+          if (handingOff) return;
+          handingOff = true;
           const revision = pendingRuntimeRevision;
-          await writeRuntimeServerReloadStamp(undefined, {
-            revision,
-          });
-          // The pending stamp is a one-shot handoff. Leaving it behind makes
-          // a fresh Vite process observe the old signal and request another
-          // reload after every restart. Do not remove a newer pending build
-          // that may have arrived while this handoff was completing.
+          const identity = pendingRuntimeIdentity;
           try {
-            const pending = JSON.parse(await readFile(pendingRuntimeStamp, "utf8"));
-            if (Number(pending.revision) <= revision) {
-              await unlink(pendingRuntimeStamp);
+            await writeRuntimeServerReloadStamp(root, {
+              revision,
+            });
+            // The pending stamp is a one-shot handoff. Leaving it behind makes
+            // a fresh Vite process observe the old signal and request another
+            // reload after every restart. Do not remove a newer pending build
+            // that may have arrived while this handoff was completing.
+            try {
+              const pending = JSON.parse(await readFile(pendingRuntimeStamp, "utf8"));
+              if (JSON.stringify(pending) === identity) {
+                await unlink(pendingRuntimeStamp);
+              }
+            } catch (error) {
+              const code =
+                error && typeof error === "object" && "code" in error ? error.code : undefined;
+              if (code !== "ENOENT") throw error;
             }
-          } catch (error) {
-            const code =
-              error && typeof error === "object" && "code" in error ? error.code : undefined;
-            if (code !== "ENOENT") throw error;
+            if (pendingRuntimeRevision === revision) pendingRuntimeRevision = 0;
+          } finally {
+            handingOff = false;
           }
-          if (pendingRuntimeRevision === revision) pendingRuntimeRevision = 0;
           return;
         }
         if (payload?.kind === "frontend") {
@@ -63,17 +103,6 @@ function tauriRuntimeUpdateBarrier() {
     },
     async handleHotUpdate(context) {
       if (context.file === pendingRuntimeStamp) {
-        try {
-          const pending = JSON.parse(await readFile(pendingRuntimeStamp, "utf8"));
-          pendingRuntimeRevision = Number(pending.revision) || pendingRuntimeRevision + 1;
-        } catch {
-          pendingRuntimeRevision += 1;
-        }
-        context.server.ws.send({
-          type: "custom",
-          event: "openagent:component-update-pending",
-          data: { kind: "runtime" },
-        });
         return [];
       }
       if (!isFrontendDevelopmentPath(context.file)) return;

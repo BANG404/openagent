@@ -112,6 +112,8 @@ pub(crate) fn register(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<ta
         embedded_commands::plugins::check_agent_plugin_updates,
         embedded_commands::plugins::update_agent_plugin,
         embedded_commands::plugins::install_agent_plugin,
+        embedded_commands::plugins::refresh_local_agent_plugins,
+        embedded_commands::plugins::complete_local_plugin_refresh_preparation,
         embedded_commands::plugins::install_marketplace_agent_plugin,
         embedded_commands::plugins::install_official_agent_plugin,
         embedded_commands::plugins::uninstall_agent_plugin,

@@ -10,6 +10,7 @@ fn cua_driver_launch_fixture(data_root: &str) -> PluginDaemonLaunch {
     let launcher = "/packages/cua-driver/bin/cua-driver.mjs".to_string();
     PluginDaemonLaunch {
         plugin_id: "cua-driver".to_string(),
+        transport: "socket".to_string(),
         root: "/packages/cua-driver".to_string(),
         command: "node".to_string(),
         launcher_args: vec![launcher.clone()],

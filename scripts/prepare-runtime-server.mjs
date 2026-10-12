@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { copyFileIfChanged } from "./copy-if-changed.mjs";
 import { sourceCargoEnvironment, withSourceCargoLock } from "./source-cargo.mjs";
+import { stageDevelopmentRuntime } from "./stage-development-runtime.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const supportedTargets = new Set([
@@ -103,7 +104,18 @@ export async function prepareRuntimeServer({ profile = "dev", targetTriple } = {
     targetDirectory: environment.CARGO_TARGET_DIR,
   });
   if (process.env.OPENAGENT_RUNTIME_SERVER_PREBUILT === "1") {
-    return requirePreparedRuntimeServer({ ...paths, targetTriple: resolvedTarget });
+    const prepared = await requirePreparedRuntimeServer({ ...paths, targetTriple: resolvedTarget });
+    if (profile !== "dev") return prepared;
+    return {
+      ...prepared,
+      ...(await stageDevelopmentRuntime({
+        repositoryRoot: root,
+        targetTriple: resolvedTarget,
+        source: paths.destination,
+        destination: paths.destination,
+        resourcesDirectory: path.join(root, "src-tauri/resources/codex-resources"),
+      })),
+    };
   }
   const cargoArguments = [
     "build",
@@ -122,12 +134,21 @@ export async function prepareRuntimeServer({ profile = "dev", targetTriple } = {
       env: environment,
     });
     await mkdir(path.dirname(paths.destination), { recursive: true });
-    const changed = await copyFileIfChanged(paths.source, paths.destination);
+    const staged =
+      profile === "dev"
+        ? await stageDevelopmentRuntime({
+            repositoryRoot: root,
+            targetTriple: resolvedTarget,
+            ...paths,
+            resourcesDirectory: path.join(root, "src-tauri/resources/codex-resources"),
+          })
+        : { changed: await copyFileIfChanged(paths.source, paths.destination) };
+    const { changed } = staged;
     if (!resolvedTarget.includes("windows")) await chmod(paths.destination, 0o755);
     console.log(
       `${changed ? "Prepared" : "Reused"} fallback runtime server for ${resolvedTarget}.`,
     );
-    return { ...paths, targetTriple: resolvedTarget, changed };
+    return { ...paths, ...staged, targetTriple: resolvedTarget };
   });
 }
 

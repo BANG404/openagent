@@ -4,7 +4,18 @@
 watcher. Ordinary `bun tauri dev` uses the prepared public kit without watching
 SDK paths; the public-development reference owns that preparation. Changes beneath `sdk/rust` or to the SDK Cargo manifest/lockfile
 first rebuild and stage the debug `openagent-server`, then write an unwatched
-pending stamp. Vite asks the mounted Tauri frontend to acquire the Runtime's
+pending stamp. Debug preparation writes an immutable image
+under `.cache/development-runtime/<target>/<sha256>/` and publishes the selection
+beside the fixed sidecar only after staging completes. Preparation stages platform
+sandbox helpers under the image's adjacent `codex-resources`; helper failures
+also leave the selection unchanged. The debug host verifies
+that digest and launches the immutable image, so Windows never needs to overwrite
+a running EXE before requesting its restart. A locked legacy fixed image may
+remain until restart; it is not the selected candidate. Release staging still
+requires the exact fixed sidecar bytes. Invalid selections fail explicitly.
+Vite handles both new and changed pending files and reoffers an unconsumed stamp
+until the mounted frontend acknowledges it, including after reconnect/startup.
+Vite asks the mounted Tauri frontend to acquire the Runtime's
 graceful component-update barrier. While an Agent is active, frontend HMR and
 the Tauri reload stamp remain deferred without cancelling that execution. Once
 the Runtime drains naturally, frontend changes use one full reload and Runtime

@@ -12,6 +12,7 @@
   import Select from "../ui/Select.svelte";
   import SegmentedControl from "../ui/SegmentedControl.svelte";
   import Switch from "../ui/Switch.svelte";
+  import Tooltip from "../Tooltip.svelte";
   import SettingsActionButton from "../ui/SettingsActionButton.svelte";
   import ScrollArea from "../ui/ScrollArea.svelte";
   import { useSettingsContext } from "$lib/settings/context";
@@ -546,6 +547,15 @@
               {#if (update?.update_available && update.latest_version) || !plugin.builtin || plugin.repository || update?.error}
                 <div class="plugin-accordion-footer">
                   <div class="plugin-footer-meta">
+                    {#if plugin.local_source}
+                      <Tooltip text={plugin.local_source}>
+                        {#snippet trigger(props)}
+                          <span {...props} class="detail-hint" data-local-plugin-source>
+                            {$t("pluginLocalSource")}
+                          </span>
+                        {/snippet}
+                      </Tooltip>
+                    {/if}
                     {#if plugin.repository}
                       <a href={plugin.repository} target="_blank" rel="noreferrer">GitHub</a>
                     {/if}
@@ -575,6 +585,16 @@
                     {/if}
                   </div>
                   <div class="plugin-footer-actions">
+                    {#if plugin.local_source}
+                      <SettingsActionButton
+                        label={$t("pluginRefresh")}
+                        icon="refresh"
+                        tone="quiet"
+                        onclick={() => plugins.reloadAgentPlugins(plugin.id)}
+                        disabled={plugins.agentPluginsLoading ||
+                          plugins.agentPluginInstalling(plugin.id)}
+                      />
+                    {/if}
                     {#if update?.update_available && update.latest_version && update.asset_url}
                       <SettingsActionButton
                         label={$t("pluginUpdate")}

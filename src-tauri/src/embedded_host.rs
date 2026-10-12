@@ -114,10 +114,50 @@ pub(crate) fn install(
     tauri::async_runtime::spawn(openagent_runtime::commands::watch_config(runtime.clone()));
     let mut runtime_events = runtime.subscribe();
     let event_app = app.clone();
+    let event_runtime = Arc::downgrade(runtime);
     tauri::async_runtime::spawn(async move {
         loop {
             match runtime_events.recv().await {
                 Ok(event) => {
+                    if matches!(
+                        event.name.as_str(),
+                        "agent-plugin-refresh-prepare" | "agent-plugin-refresh-resume"
+                    ) {
+                        if let (Some(id), Some(token), Some(runtime)) = (
+                            event.payload["id"].as_str(),
+                            event.payload["token"].as_str(),
+                            event_runtime.upgrade(),
+                        ) {
+                            let result = if event.name == "agent-plugin-refresh-prepare" {
+                                crate::cua_driver::release_refreshing_plugin_daemon(id)
+                            } else if crate::cua_driver::plugin_daemon_refresh_pending(id) {
+                                let launch = if event.payload["restart"].as_bool().unwrap_or(false)
+                                {
+                                    openagent_runtime::commands::resolve_host_plugin_daemon(
+                                        runtime.state(),
+                                        id.into(),
+                                    )
+                                    .await
+                                    .and_then(|value| {
+                                        serde_json::from_value(value).map_err(|_| {
+                                            "Invalid plugin refresh launch descriptor".to_string()
+                                        })
+                                    })
+                                    .map(Some)
+                                } else {
+                                    Ok(None)
+                                };
+                                launch.and_then(|launch| {
+                                    crate::cua_driver::resume_refreshing_plugin_daemon(id, launch)
+                                })
+                            } else {
+                                Ok(())
+                            };
+                            let error = result.err();
+                            let _ = openagent_runtime::commands::complete_local_plugin_refresh_preparation(runtime.state(), token.into(), error).await;
+                        }
+                        continue;
+                    }
                     if let Err(error) = event_app.emit(&event.name, event.payload) {
                         tracing::warn!(
                             event = %event.name,

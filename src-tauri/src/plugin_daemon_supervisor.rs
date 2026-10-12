@@ -24,13 +24,13 @@ pub(crate) struct PluginDaemonLaunch {
     pub launcher_args: Vec<String>,
     pub args: Vec<String>,
     pub data_root: String,
+    pub transport: String,
     pub environment: Vec<(String, String)>,
     pub authorization_reason: String,
 }
 
 #[derive(Clone, Debug)]
 pub(crate) enum PluginDaemonTransport {
-    #[cfg(feature = "embedded-runtime")]
     Stdio,
     Socket {
         endpoint: String,
@@ -133,7 +133,6 @@ impl PluginDaemonSupervisor {
         }
     }
 
-    #[cfg(feature = "embedded-runtime")]
     pub(crate) fn start(
         &self,
         spec: PluginDaemonSpec,
@@ -205,7 +204,6 @@ impl PluginDaemonSupervisor {
                     return Err(error);
                 }
             }
-            #[cfg(feature = "embedded-runtime")]
             PluginDaemonTransport::Stdio => {}
         }
         daemons.insert(

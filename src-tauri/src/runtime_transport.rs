@@ -494,6 +494,17 @@ async fn relay_runtime_events(
                 Some((event, data)) if event == "runtime" => {
                     let projected: ProjectedRuntimeEvent = serde_json::from_str(&data)
                         .map_err(|error| format!("Runtime event payload was invalid: {error}"))?;
+                    if matches!(
+                        projected.name.as_str(),
+                        "agent-plugin-refresh-prepare" | "agent-plugin-refresh-resume"
+                    ) {
+                        if let Err(error) =
+                            handle_local_plugin_refresh(&endpoint, token, &projected).await
+                        {
+                            tracing::warn!(%error, "Plugin daemon refresh acknowledgement failed");
+                        }
+                        continue;
+                    }
                     app.emit(&projected.name, projected.payload)
                         .map_err(|error| format!("failed to emit Runtime event: {error}"))?;
                 }
@@ -510,6 +521,88 @@ async fn relay_runtime_events(
         }
     }
     Err("Runtime event stream closed".to_string())
+}
+
+async fn handle_local_plugin_refresh(
+    endpoint: &Url,
+    token: &str,
+    event: &ProjectedRuntimeEvent,
+) -> Result<(), String> {
+    let id = event.payload["id"]
+        .as_str()
+        .ok_or("Plugin refresh omitted id")?;
+    let request_token = event.payload["token"]
+        .as_str()
+        .ok_or("Plugin refresh omitted token")?;
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(20))
+        .build()
+        .map_err(|error| error.to_string())?;
+    let result = if event.name == "agent-plugin-refresh-prepare" {
+        let id = id.to_owned();
+        tauri::async_runtime::spawn_blocking(move || {
+            crate::cua_driver::release_refreshing_plugin_daemon(&id)
+        })
+        .await
+        .map_err(|error| error.to_string())?
+    } else {
+        resume_local_plugin_daemon(
+            &client,
+            endpoint,
+            token,
+            id,
+            event.payload["restart"].as_bool().unwrap_or(false),
+        )
+        .await
+    };
+    client.post(resolve_api_url(endpoint, "/api/desktop/operations")?).bearer_auth(token)
+        .json(&serde_json::json!({"operation": "complete_local_plugin_refresh_preparation", "args": {"token": request_token, "error": result.err()}}))
+        .send().await.map_err(|error| error.to_string())?.error_for_status().map_err(|error| format!("Plugin refresh acknowledgement was rejected: {}", error.status().map_or(0, |status| status.as_u16())))?;
+    Ok(())
+}
+
+async fn resume_local_plugin_daemon(
+    client: &reqwest::Client,
+    endpoint: &Url,
+    token: &str,
+    id: &str,
+    restart: bool,
+) -> Result<(), String> {
+    if !crate::cua_driver::plugin_daemon_refresh_pending(id) {
+        return Ok(());
+    }
+    let launch = if restart {
+        Some(
+            client
+                .post(resolve_api_url(
+                    endpoint,
+                    "/api/desktop/plugin-daemon-launch",
+                )?)
+                .bearer_auth(token)
+                .json(&serde_json::json!({"id": id}))
+                .send()
+                .await
+                .map_err(|error| error.to_string())?
+                .error_for_status()
+                .map_err(|error| {
+                    format!(
+                        "Plugin refresh launch was rejected: {}",
+                        error.status().map_or(0, |status| status.as_u16())
+                    )
+                })?
+                .json::<crate::plugin_daemon_supervisor::PluginDaemonLaunch>()
+                .await
+                .map_err(|_| "Plugin refresh launch descriptor was invalid")?,
+        )
+    } else {
+        None
+    };
+    let id = id.to_owned();
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::cua_driver::resume_refreshing_plugin_daemon(&id, launch)
+    })
+    .await
+    .map_err(|error| error.to_string())?
 }
 
 fn find_sse_frame(buffer: &[u8]) -> Option<(usize, usize)> {
