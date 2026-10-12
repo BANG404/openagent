@@ -28,6 +28,7 @@ export function configuration(env = process.env) {
     endpoint: `${baseUrl.href.replace(/\/$/, '')}/api/public/otel/v1/traces`,
     baseUrl: baseUrl.href,
     captureContent: value('CAPTURE_CONTENT') === 'true',
+    captureMessages: value('CAPTURE_MESSAGES') === 'true',
     environment: value('ENVIRONMENT', 'development'),
     userId: value('USER_ID'),
     tags: value('TAGS').split(',').map(tag => tag.trim()).filter(Boolean).slice(0, 32),

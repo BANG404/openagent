@@ -7,13 +7,14 @@ repository and immutable release are authorized and published; those indices
 qualify pinned published packages, not unpublished source directories.
 
 The package owns configuration, OTLP mapping, local pending records and retries.
-Use only public lifecycle hook routing and tool fields. Never scrape internal
+Use only public lifecycle routing, tool fields and explicitly consented
+[conversation observations](conversation-observations.md). Never scrape internal
 Inspector/provider traces, databases or model context to enrich an external
 observability integration. Current public hooks expose model timing but no model
 identity, prompt, reasoning, token usage or costs; absent values stay absent.
-Changing that boundary requires a separately designed SDK capability contract.
+Current-turn authored text is available only through `conversation-observations-v1`.
 
-Upload and tool-content capture are separate explicit opt-ins in the generic
+Upload, message capture and tool-content capture are separate explicit opt-ins in the generic
 plugin settings form. Normal network/process policy applies. The plugin does not
 request computer access. Hook stdout must remain empty because text would become
 model context. Diagnostics never include remote response bodies or credentials.
@@ -36,7 +37,7 @@ covers light/dark and English/Chinese, preserving secrets across save/reopen.
 External qualification uses the same verifier with `--live` and explicitly
 supplied process-only Langfuse environment variables. It authenticates the project,
 executes a fixture model/tool turn, reads Agent/generation/tool hierarchy back,
-and checks private-key redaction, content opt-out and disablement. Select
+and checks private-key redaction, content opt-out, opt-in, revocation and disablement. Select
 `--read-api=v1` only for deployments without observations v2. Remove the fixture's
 private credential settings and redact retained evidence. Never embed real keys
 in source, arguments, screenshots or reports. See the package README for limits.

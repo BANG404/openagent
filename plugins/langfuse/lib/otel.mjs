@@ -19,13 +19,21 @@ export function buildExport(state, config) {
   const traceId = stableId(['openagent', context.conversation_id, context.execution_id]);
   const rootId = stableId([traceId, 'execution'], 16);
   const phase = last.event.phase ?? 'unknown';
+  const observation = config.captureMessages && state.captureMessages ? last.observation : undefined;
+  const messages = observation?.version === 1 ? observation.messages : [];
+  const input = messages.filter(message => message.role === 'user');
+  const output = messages.filter(message => message.role === 'assistant');
+  const conversation = {
+    ...(input.length ? { 'langfuse.observation.input': JSON.stringify(input) } : {}),
+    ...(output.length ? { 'langfuse.observation.output': JSON.stringify(output) } : {}),
+  };
   const shared = {
     'langfuse.trace.name': context.parent_conv_id ? 'OpenAgent Subagent Execution' : 'OpenAgent Execution',
     'langfuse.session.id': context.parent_conv_id ?? context.conversation_id,
     'langfuse.user.id': config.userId,
     'langfuse.environment': config.environment,
     'langfuse.trace.tags': ['openagent', ...config.tags],
-    'langfuse.version': '0.1.1',
+    'langfuse.version': '0.2.0',
     'langfuse.trace.metadata.conversation_id': context.conversation_id,
     'langfuse.trace.metadata.branch_id': context.branch_id,
     'langfuse.trace.metadata.execution_id': context.execution_id,
@@ -41,6 +49,8 @@ export function buildExport(state, config) {
     });
   }
   span(rootId, shared['langfuse.trace.name'], 'agent', first.time, last.time, {
+    ...conversation,
+    ...(observation ? { 'langfuse.observation.metadata.messages_truncated': String(observation.truncated === true) } : {}),
     'langfuse.observation.metadata.phase': phase,
     'langfuse.observation.metadata.events_truncated': String(state.truncated === true),
   }, phase === 'final_failed', null);
@@ -70,8 +80,8 @@ export function buildExport(state, config) {
     span(stableId([traceId, key], 16), item.event.tool_name ?? 'Model call', key.startsWith('tool:') ? 'tool' : 'generation', item.time, last.time,
       { 'langfuse.observation.metadata.incomplete': 'true' }, phase === 'final_failed');
   }
-  return { resourceSpans: [{ resource: { attributes: attributes({ 'service.name': 'openagent-langfuse', 'service.version': '0.1.1' }) },
-    scopeSpans: [{ scope: { name: 'openagent.langfuse', version: '0.1.1' }, spans }],
+  return { resourceSpans: [{ resource: { attributes: attributes({ 'service.name': 'openagent-langfuse', 'service.version': '0.2.0' }) },
+    scopeSpans: [{ scope: { name: 'openagent.langfuse', version: '0.2.0' }, spans }],
   }] };
 }
 

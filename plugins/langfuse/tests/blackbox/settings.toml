@@ -8,15 +8,18 @@ name = "localized typed settings and independent content opt-in"
 action = "eval"
 script = '''(() => {
   const form = document.querySelector('[data-plugin-setup="langfuse"]');
-  if (!form || form.querySelectorAll('[data-config-field]').length !== 8) throw new Error('Langfuse settings missing');
+  if (!form || form.querySelectorAll('[data-config-field]').length !== 9) throw new Error('Langfuse settings missing');
   if (document.querySelector('[data-plugin-id="langfuse"] .plugin-accordion-trigger').getAttribute('aria-expanded') !== 'true') throw new Error('Settings must be expanded');
   if (!form.querySelector('input[type=password]')) throw new Error('Secret must use private field');
   const upload = form.querySelector('[data-config-field="enabled"] [role=switch]');
   const content = form.querySelector('[data-config-field="capture-content"] [role=switch]');
+  const messages = form.querySelector('[data-config-field="capture-messages"] [role=switch]');
+  if (!messages || messages === content || messages === upload || messages.getAttribute('aria-checked') !== 'false') throw new Error('Message capture must be an independent default-off opt-in');
   if (!upload || !content || upload === content) throw new Error('Upload/content opt-ins must be independent');
   if (content.getAttribute('aria-checked') !== 'false') throw new Error('Content capture must default off');
   const label = form.querySelector('[data-config-field="capture-content"] label').textContent;
   if (!/Capture tool content|采集工具内容/.test(label)) throw new Error('Localized content label missing');
+  if (!/Capture chat messages|采集聊天消息/.test(form.querySelector('[data-config-field="capture-messages"] label').textContent)) throw new Error('Localized message consent label missing');
   const endpoint = form.querySelector('[data-config-field="base-url"]').textContent;
   if (!/private IPv4|私有 IPv4/.test(endpoint)) throw new Error('Private HTTP endpoint guidance missing');
   return true;

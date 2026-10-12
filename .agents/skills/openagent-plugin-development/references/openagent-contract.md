@@ -378,7 +378,8 @@ semantics. Each hook declares a package-relative `command`; IDs must be namespac
 enablement and permission policy. A timeout, invalid response, or process error
 is isolated to that hook and appears in plugin diagnostics; it cannot stop
 ordinary Runtime finalization. Plugin hooks do not receive model context or
-Inspector/trace data. Command execution requires an explicit host permission;
+Inspector/trace data. The opt-in public text contract follows
+[conversation observations](conversation-observations.md). Command execution requires an explicit host permission;
 MCP-backed actions are preferred.
 
 ### Slash commands

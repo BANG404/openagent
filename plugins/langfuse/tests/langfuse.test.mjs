@@ -61,6 +61,48 @@ test('endpoint validation allows private IPv4 HTTP and rejects public HTTP, cred
   }
 });
 
+test('chat messages require separate capture consent and export only on the Agent root', async () => {
+  const observation = { version: 1, messages: [{ id: 'input', role: 'user', text: 'authored-input', truncated: false }, { id: 'reply', role: 'assistant', text: 'visible-output', truncated: false }], truncated: false };
+  const envelope = { ...event('Stop', { phase: 'final_completed' }), observation };
+  const off = config({ PLUGIN_CONFIG_CAPTURE_CONTENT: 'true' });
+  const disabled = await home();
+  await record(event('SessionStart'), off, disabled, 100);
+  await record(envelope, off, disabled, 140);
+  expect(JSON.stringify(await states(disabled))).not.toContain('authored-input');
+  const on = config({ PLUGIN_CONFIG_CAPTURE_MESSAGES: 'true' });
+  const enabled = await home();
+  await record(event('SessionStart'), on, enabled, 100);
+  await record(event('BeforeModel'), on, enabled, 110);
+  await record(event('AfterModel'), on, enabled, 120);
+  await record(envelope, on, enabled, 140);
+  const state = (await states(enabled))[0];
+  const spans = buildExport(state, on).resourceSpans[0].scopeSpans[0].spans;
+  expect(spans[0].attributes.find(a => a.key === 'langfuse.observation.input').value.stringValue).toContain('authored-input');
+  expect(spans[0].attributes.find(a => a.key === 'langfuse.observation.output').value.stringValue).toContain('visible-output');
+  expect(JSON.stringify(spans.slice(1))).not.toContain('visible-output');
+  expect(JSON.stringify(buildExport(state, off))).not.toContain('authored-input');
+  expect(JSON.stringify(buildExport((await states(disabled))[0], on))).not.toContain('authored-input');
+  await flush(off, enabled, async (_url, request) => {
+    expect(request.body).not.toContain('authored-input');
+    expect(request.body).not.toContain('visible-output');
+    return Response.json({});
+  });
+  expect(JSON.stringify(await states(enabled))).not.toContain('visible-output');
+});
+
+test('unknown observation versions and malformed messages do not retain extra fields', async () => {
+  const data = await home();
+  const on = config({ PLUGIN_CONFIG_CAPTURE_MESSAGES: 'true' });
+  await record(event('SessionStart'), on, data);
+  await record({ ...event('Stop'), observation: { version: 1, messages: [null, { role: 'system', id: 'sys', text: 'private-system' }, { role: 'assistant', id: 'answer', text: '界'.repeat(20000), reasoning: 'private-reasoning' }] } }, on, data);
+  const state = (await states(data))[0];
+  expect(JSON.stringify(state)).not.toContain('private-system');
+  expect(JSON.stringify(state)).not.toContain('private-reasoning');
+  expect(Buffer.byteLength(state.events.at(-1).observation.messages[0].text)).toBe(8190);
+  expect(state.events.at(-1).observation.messages[0].text).not.toContain('\ufffd');
+  expect(state.events.at(-1).observation.truncated).toBe(true);
+});
+
 test('OTLP exports hierarchy, timestamps, session metadata and no unavailable model data', async () => {
   const data = await home();
   await completed(data);

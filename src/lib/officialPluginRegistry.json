@@ -371,7 +371,7 @@
       "category": "development",
       "display_name": "Plugin Developer",
       "description": "Create plugins from Skills and templates, implement, test and qualify them with the production Runtime.",
-      "version": "1.9.0",
+      "version": "1.10.0",
       "repository": "https://github.com/BANG404/openagent-plugin-kit",
       "homepage": "https://github.com/BANG404/openagent-plugin-kit",
       "source_url": "https://github.com/BANG404/openagent-plugin-kit",

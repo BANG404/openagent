@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "langfuse",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Execution and tool observability through Langfuse OTLP.",
   "license": "MIT",
   "keywords": [
@@ -20,7 +20,8 @@
         },
         "features": [
           "configuration-v1",
-          "integration-v1"
+          "integration-v1",
+          "conversation-observations-v1"
         ]
       },
       "capabilities": [
@@ -63,6 +64,13 @@
             "key": "capture-content",
             "label": "Capture tool content",
             "description": "Stores and uploads tool inputs and outputs, which may contain sensitive data.",
+            "type": "boolean",
+            "default": false
+          },
+          {
+            "key": "capture-messages",
+            "label": "Capture chat messages",
+            "description": "Stores and uploads current-turn user text and visible assistant replies. Excludes system prompts, reasoning, attachments and history.",
             "type": "boolean",
             "default": false
           },
@@ -179,7 +187,9 @@
             "commands.test.label": "Test connection",
             "commands.test.description": "Send a synthetic test span to Langfuse",
             "commands.retry.label": "Retry uploads",
-            "commands.retry.description": "Retry completed pending executions"
+            "commands.retry.description": "Retry completed pending executions",
+            "configuration.capture-messages.label": "Capture chat messages",
+            "configuration.capture-messages.description": "Stores and uploads current-turn user text and visible assistant replies. Excludes system prompts, reasoning, attachments and history."
           },
           "zh": {
             "display_name": "Langfuse",
@@ -205,9 +215,15 @@
             "commands.test.label": "测试连接",
             "commands.test.description": "向 Langfuse 发送测试 span",
             "commands.retry.label": "重试上传",
-            "commands.retry.description": "重试已结束执行的待上传记录"
+            "commands.retry.description": "重试已结束执行的待上传记录",
+            "configuration.capture-messages.label": "采集聊天消息",
+            "configuration.capture-messages.description": "存储并上传当前轮用户文本和可见助手回复，不包含系统提示词、推理、附件或历史上下文。"
           }
         }
+      },
+      "conversation_observations": {
+        "version": 1,
+        "consent_field": "capture-messages"
       }
     }
   }

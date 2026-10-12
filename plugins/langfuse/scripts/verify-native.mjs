@@ -52,7 +52,7 @@ async function open() {
   await until(`!!document.querySelector('[data-plugin-id="langfuse"] .plugin-accordion-trigger')`);
   if (await evaluate(`document.querySelector('[data-plugin-id="langfuse"] .plugin-accordion-trigger').getAttribute('aria-expanded')==='true'`) !== 'true')
     await pilot(['click', '[data-plugin-id="langfuse"] .plugin-accordion-trigger']);
-  await until(`document.querySelectorAll('${form} [data-config-field]').length===8`);
+  await until(`document.querySelectorAll('${form} [data-config-field]').length===9`);
   await until(`document.querySelector('[data-plugin-id="langfuse"] .plugin-accordion-trigger').getAttribute('aria-expanded')==='true'`);
   await new Promise(resolve => setTimeout(resolve, 350));
   await pilot(['snapshot', '-i']);
@@ -90,6 +90,7 @@ try {
     assert.equal(saved.values.environment, `${theme}-${language}`);
     assert.equal(saved.values.enabled, true);
     assert.equal(saved.values['capture-content'], false);
+    assert.equal(saved.values['capture-messages'], false);
     assert(saved.secrets_set.includes('secret-key'));
     assert(!JSON.stringify(saved).includes('secret-fixture'));
     await close();
@@ -97,12 +98,30 @@ try {
     assert.equal(await evaluate(`document.querySelector('${form} input[type=password]').value==='' && document.querySelector('${form} [data-config-field="enabled"] [role=switch]').getAttribute('aria-checked')==='true'`), 'true');
     if (process.env.BLACKBOX_NATIVE_WINDOW_HANDLE) {
       const capture = path.join(artifacts, `${theme}-${language}.png`);
+      await evaluate(`document.querySelector('${form} [data-config-field="capture-messages"]').scrollIntoView({block:'center'});true`);
+      await new Promise(resolve => setTimeout(resolve, 150));
       process.env.BLACKBOX_NATIVE_WINDOW_ID = process.env.BLACKBOX_NATIVE_WINDOW_HANDLE;
       captureBlackboxScreenshot(pilot, capture);
       report.captures.push(capture);
     }
     report.checks.push({ theme, language, saved: true, reopened: true, secret_redacted: true });
   }
+  await pilot(['snapshot', '-i']);
+  await pilot(['click', `${form} [data-config-field="capture-messages"] [role=switch]`]);
+  await pilot(['click', `${form} [data-config-actions] button:first-of-type`]);
+  await until(`document.querySelector('${form} [data-config-actions] button:first-of-type').disabled`);
+  const captured = await operation('get_agent_plugin_configuration', { plugin_id: 'langfuse' });
+  assert.equal(captured.values['capture-messages'], true);
+  assert.equal(captured.values['capture-content'], false);
+  await close();
+  await open();
+  assert.equal(await evaluate(`document.querySelector('${form} [data-config-field="capture-messages"] [role=switch]').getAttribute('aria-checked')==='true'`), 'true');
+  await pilot(['snapshot', '-i']);
+  await pilot(['click', `${form} [data-config-field="capture-messages"] [role=switch]`]);
+  await pilot(['click', `${form} [data-config-actions] button:first-of-type`]);
+  await until(`document.querySelector('${form} [data-config-actions] button:first-of-type').disabled`);
+  assert.equal((await operation('get_agent_plugin_configuration', { plugin_id: 'langfuse' })).values['capture-messages'], false);
+  report.checks.push({ kind: 'message_capture_save_reopen_and_revoke', passed: true });
   await pilot(['click', `${form} .plugin-secret-actions button`]);
   await pilot(['click', `${form} [data-config-actions] button:first-of-type`]);
   await until(`!document.querySelector('${form} .plugin-secret-actions')`);

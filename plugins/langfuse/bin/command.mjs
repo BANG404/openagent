@@ -30,8 +30,8 @@ try {
   const config = configuration();
   if (action === 'status') {
     const counts = await status(process.env.PLUGIN_DATA);
-    say(`Langfuse: ${config.ready ? 'ready' : config.enabled ? 'credentials required' : 'upload disabled'}. Pending: ${counts.pending}; active: ${counts.active}; delivered: ${counts.delivered}. Configure Langfuse in Settings > Plugins. Model content and token usage are unavailable through the plugin interface.`,
-      `Langfuse：${config.ready ? '已就绪' : config.enabled ? '需要填写凭据' : '上传已关闭'}。待上传：${counts.pending}；进行中：${counts.active}；已上传：${counts.delivered}。请在设置 > 插件中配置 Langfuse。插件接口不提供模型内容和 token 用量。`);
+    say(`Langfuse: ${config.ready ? 'ready' : config.enabled ? 'credentials required' : 'upload disabled'}. Pending: ${counts.pending}; active: ${counts.active}; delivered: ${counts.delivered}. Configure Langfuse in Settings > Plugins. Chat messages require their separate capture switch; model prompts and token usage are unavailable through the plugin interface.`,
+      `Langfuse：${config.ready ? '已就绪' : config.enabled ? '需要填写凭据' : '上传已关闭'}。待上传：${counts.pending}；进行中：${counts.active}；已上传：${counts.delivered}。请在设置 > 插件中配置 Langfuse。聊天消息需单独开启采集；插件接口不提供模型提示词和 token 用量。`);
   } else if (!config.ready) {
     say('Enable upload and save the public/secret keys in Settings > Plugins > Langfuse.', '请在设置 > 插件 > Langfuse 中保存公钥、密钥并开启上传。');
   } else if (action === 'retry') {
@@ -41,7 +41,7 @@ try {
   } else if (action === 'test') {
     const time = Date.now();
     await upload({ resourceSpans: [{ resource: { attributes: [{ key: 'service.name', value: { stringValue: 'openagent-langfuse' } }] },
-      scopeSpans: [{ scope: { name: 'openagent.langfuse', version: '0.1.1' }, spans: [{
+      scopeSpans: [{ scope: { name: 'openagent.langfuse', version: '0.2.0' }, spans: [{
         traceId: stableId(['connection-test', time]), spanId: stableId(['test', time], 16), name: 'OpenAgent Langfuse Connection Test', kind: 1,
         startTimeUnixNano: (BigInt(time) * 1000000n).toString(), endTimeUnixNano: (BigInt(time) * 1000000n).toString(),
         attributes: [{ key: 'langfuse.observation.type', value: { stringValue: 'span' } }], status: { code: 1 },

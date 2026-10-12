@@ -72,7 +72,22 @@ function sanitized(envelope, config, time) {
       }
     }
   }
-  return { name: envelope.hook_event_name, event: selected, time };
+  let observation;
+  if (config.captureMessages && envelope.hook_event_name === 'Stop' && envelope.observation?.version === 1 && Array.isArray(envelope.observation.messages)) {
+    let remaining = 32768;
+    const messages = [];
+    for (const message of envelope.observation.messages.slice(0, 32)) {
+      if (!message || !['user', 'assistant'].includes(message.role) || typeof message.id !== 'string' || typeof message.text !== 'string' || remaining <= 0) continue;
+      const encoded = Buffer.from(message.text, 'utf8');
+      let boundary = Math.min(8192, remaining, encoded.length);
+      while (boundary > 0 && boundary < encoded.length && (encoded[boundary] & 0xc0) === 0x80) boundary--;
+      const text = encoded.subarray(0, boundary).toString('utf8');
+      remaining -= boundary;
+      messages.push({ id: message.id.slice(0, 256), role: message.role, text, truncated: message.truncated === true || text.length < message.text.length });
+    }
+    observation = { version: 1, messages, truncated: envelope.observation.truncated === true || envelope.observation.messages.length > 32 || messages.some(message => message.truncated) };
+  }
+  return { name: envelope.hook_event_name, event: selected, time, ...(observation ? { observation } : {}) };
 }
 
 export async function record(envelope, config, data, time = Date.now()) {
@@ -95,14 +110,15 @@ export async function record(envelope, config, data, time = Date.now()) {
         }
         if ((await readdir(dir)).filter(name => /^[a-f0-9]{32}\.json$/.test(name)).length >= MAX_RECORDS) throw new Error('storage_limit');
       }
-      state = { version: 1, events: [], captureContent: config.captureContent };
+      state = { version: 1, events: [], captureContent: config.captureContent, captureMessages: config.captureMessages };
     }
     const identity = entry => JSON.stringify([entry.name, entry.event.turn, entry.event.tool_use_id]);
+    if (!state.captureMessages) delete item.observation;
     if (state.events.some(entry => identity(entry) === identity(item))) return { duplicate: true };
     if (item.name === 'Stop') {
       state.events.push(item);
       state.complete = true;
-    } else if (state.events.length < MAX_EVENTS - 1 && Buffer.byteLength(JSON.stringify(state)) < MAX_BYTES - 40000) {
+    } else if (state.events.length < MAX_EVENTS - 1 && Buffer.byteLength(JSON.stringify(state)) < MAX_BYTES - 256000) {
       state.events.push(item);
     } else { state.truncated = true; }
     await save(file, state);

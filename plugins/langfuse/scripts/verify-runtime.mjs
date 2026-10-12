@@ -28,6 +28,7 @@ const artifacts = await mkdtemp(path.join(tmpdir(), 'openagent-langfuse-runtime-
 const workspace = path.join(artifacts, 'workspace');
 await mkdir(workspace);
 await writeFile(path.join(workspace, 'fixture.txt'), 'Langfuse runtime fixture');
+await writeFile(path.join(workspace, 'legacy-hook.mjs'), `import {appendFileSync} from 'node:fs';let input='';for await(const chunk of process.stdin)input+=chunk;const event=JSON.parse(input);appendFileSync('legacy-hooks.jsonl',JSON.stringify({has_observation:Object.hasOwn(event,'observation')})+'\\n');`);
 const payloads = [];
 let reject = true;
 let modelCalls = 0;
@@ -77,6 +78,7 @@ try {
       config.defaults.chat_model = config.defaults.flash_model = { provider_id: 'langfuse-fixture', model: 'fixture-model' };
       config.approval_mode = 'off';
       config.memory_retrieval_enabled = false;
+      config.automation_hooks.push({ id: 'legacy-observation-fixture', name: 'Ordinary hook fixture', enabled: true, event: 'stop', matcher: '*', timeout_secs: 10, action: { type: 'command', command: 'node legacy-hook.mjs' } });
       for (const agent of Object.values(config.flash_agents)) if (agent && typeof agent === 'object') agent.enabled = false;
       await operation('save_settings', { config });
       const convId = randomUUID();
@@ -106,6 +108,60 @@ try {
         const names = await readdir(data).catch(() => []);
         return Promise.all(names.filter(name => name.endsWith('.json')).map(async name => JSON.parse(await readFile(path.join(data, name), 'utf8'))));
       }
+      async function messageCaptureChecks() {
+        async function captureTurn(capture, text) {
+          const before = new Set((await records()).map(record => record.events[0].event.execution_id));
+          const current = await operation('get_agent_plugin_configuration', { plugin_id: 'langfuse' });
+          await operation('save_agent_plugin_configuration', { plugin_id: 'langfuse', revision: current.revision, values: { 'capture-messages': capture } });
+          await submit(text);
+          let receipt;
+          await until(async () => {
+            receipt = (await records()).find(record => record.delivered && !before.has(record.events[0].event.execution_id));
+            return !!receipt;
+          });
+          const execution = receipt.events[0].event;
+          const traceId = stableId(['openagent', execution.conversation_id, execution.execution_id]);
+          if (live) {
+            const deadline = Date.now() + 90000;
+            let observations;
+            do {
+              const query = new URLSearchParams({ traceId, limit: '100' });
+              if (readApi === 'v2') query.set('fields', 'core,basic,io');
+              observations = (await liveGet(`/api/public/${readApi === 'v2' ? 'v2/' : ''}observations?${query}`)).data ?? [];
+              const agent = observations.find(item => item.type === 'AGENT');
+              if (agent && (!capture || agent.input != null && agent.output != null)) break;
+              assert(Date.now() < deadline, 'Langfuse message observation readback timeout');
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            } while (true);
+            const agent = observations.find(item => item.type === 'AGENT');
+            if (capture) {
+              assert(JSON.stringify(agent.input).includes(text), 'authored input stored on Agent');
+              assert(JSON.stringify(agent.output).includes('Langfuse runtime fixture completed.'), 'visible reply stored on Agent');
+              assert(observations.filter(item => item.type !== 'AGENT').every(item => item.input == null && item.output == null), 'message projection belongs only to Agent root');
+            } else assert(observations.every(item => item.input == null && item.output == null), 'revoked message capture sends no bodies');
+          } else {
+            const spans = payloads.find(payload => payload.resourceSpans[0].scopeSpans[0].spans[0].traceId === traceId).resourceSpans[0].scopeSpans[0].spans;
+            const input = spans[0].attributes.find(attribute => attribute.key === 'langfuse.observation.input');
+            const output = spans[0].attributes.find(attribute => attribute.key === 'langfuse.observation.output');
+            if (capture) {
+              assert(JSON.parse(input.value.stringValue).some(message => message.role === 'user' && message.text === text), 'authored input projection required');
+              assert(JSON.parse(output.value.stringValue).some(message => message.role === 'assistant' && message.text === 'Langfuse runtime fixture completed.'), 'visible reply projection required');
+              assert(!input.value.stringValue.includes('Run the telemetry fixture'), 'prior user messages excluded');
+              assert(spans.slice(1).every(span => !span.attributes.some(attribute => ['langfuse.observation.input', 'langfuse.observation.output'].includes(attribute.key))), 'message projection belongs only to Agent root');
+            } else assert(!input && !output, 'revoked message capture sends no bodies');
+          }
+          assert(!JSON.stringify(receipt).includes(text), 'delivered receipts remove captured bodies');
+          return traceId;
+        }
+        const traceId = await captureTurn(true, 'Observe authored message fixture');
+        await captureTurn(false, 'Revoked message capture fixture');
+        await until(async () => {
+          const hooks = (await readFile(path.join(workspace, 'legacy-hooks.jsonl'), 'utf8').catch(() => '')).trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+          assert(hooks.every(hook => hook.has_observation === false), 'ordinary user hooks must never receive message observation');
+          return hooks.length >= 3;
+        });
+        return { kind: 'runtime_message_optin_scope_and_revocation', passed: true, trace_id: traceId, conversation_id: convId };
+      }
       await submit('Run the telemetry fixture');
       if (live) {
         await until(async () => (await records()).some(record => record.delivered));
@@ -129,14 +185,15 @@ try {
         const agent = observations.find(item => item.type === 'AGENT');
         assert(observations.filter(item => item.type !== 'AGENT').every(item => item.parentObservationId === agent.id), 'readback span hierarchy');
         assert(observations.every(item => item.input == null && item.output == null), 'tool content stays disabled');
+        const messageCheck = await messageCaptureChecks();
         const current = await operation('get_agent_plugin_configuration', { plugin_id: 'langfuse' });
         await operation('save_agent_plugin_configuration', { plugin_id: 'langfuse', revision: current.revision, values: { enabled: false } });
         await submit('Telemetry disabled fixture');
         await new Promise(resolve => setTimeout(resolve, 1000));
-        assert.equal((await records()).length, 1, 'disabled hooks create no telemetry');
+        assert.equal((await records()).length, 3, 'disabled hooks create no telemetry');
         return [{ kind: 'authenticated_project', passed: true }, { kind: 'live_runtime_trace_readback', passed: true,
           trace_id: traceId, observations: observations.length, types: observations.map(item => item.type), model_calls: modelCalls, read_api: readApi },
-          { kind: 'live_secret_redaction_content_optout_and_disable', passed: true }];
+          { kind: 'live_secret_redaction_content_optout_and_disable', passed: true }, messageCheck];
       }
       await until(async () => payloads.length > 0 && (await records()).some(record => record.complete));
       assert((await records()).some(record => record.complete && !record.delivered), 'failed upload remains queued');
@@ -148,6 +205,11 @@ try {
       await submit('/langfuse:retry');
       await until(async () => (await records()).some(record => record.delivered));
       assert.deepEqual(payloads[0], payloads[1], 'retry preserves payload and span IDs');
+      await until(async () => {
+        const completed = await records();
+        return completed.length >= 2 && completed.every(record => record.delivered);
+      });
+      const messageCheck = await messageCaptureChecks();
       const beforeDisable = payloads.length;
       const current = await operation('get_agent_plugin_configuration', { plugin_id: 'langfuse' });
       await operation('save_agent_plugin_configuration', { plugin_id: 'langfuse', revision: current.revision, values: { enabled: false } });
@@ -155,7 +217,7 @@ try {
       await new Promise(resolve => setTimeout(resolve, 1000));
       assert.equal(payloads.length, beforeDisable, 'disabled upload sends nothing');
       return [{ kind: 'configuration_secret_redaction', passed: true }, { kind: 'real_agent_model_and_tool_hooks', passed: true, model_calls: modelCalls, spans: spans.length },
-        { kind: 'failed_upload_retry_and_disable', passed: true }];
+        { kind: 'failed_upload_retry_and_disable', passed: true }, messageCheck];
     },
   });
   if (live) {
