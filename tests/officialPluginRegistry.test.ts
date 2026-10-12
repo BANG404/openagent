@@ -2,6 +2,9 @@ import { describe, expect, test } from "bun:test";
 import bundledRegistry from "../src/lib/officialPluginRegistry.json";
 import {
   fetchOfficialPluginRegistry,
+  OFFICIAL_PLUGIN_REGISTRY_MAX_BYTES,
+  OFFICIAL_PLUGIN_REGISTRY_URL,
+  type OfficialPluginRegistryFetcher,
   findOfficialPlugin,
   parseOfficialPluginRegistry,
   projectOfficialPluginCatalog,
@@ -251,11 +254,13 @@ describe("official plugin registry", () => {
 
   test("fetches a public registry without an authorization header", async () => {
     let request: Request | undefined;
+    let requestInit: RequestInit | undefined;
     const registry = await fetchOfficialPluginRegistry(
       "https://registry.example.com/plugins.json",
       {
         fetchImpl: async (input, init) => {
           request = new Request(input, init);
+          requestInit = init;
           return new Response(
             JSON.stringify({
               schema_version: 1,
@@ -276,5 +281,70 @@ describe("official plugin registry", () => {
     expect(registry.plugins[0]?.id).toBe("demo-plugin");
     expect(request?.headers.has("authorization")).toBe(false);
     expect(request?.headers.get("accept")).toBe("application/json");
+    expect(requestInit?.credentials).toBe("omit");
+    expect(requestInit?.cache).toBe("no-store");
+  });
+
+  test("reads the current public catalog on every request", async () => {
+    let requests = 0;
+    const fetchImpl: OfficialPluginRegistryFetcher = async (input) => {
+      expect(String(input)).toBe(OFFICIAL_PLUGIN_REGISTRY_URL);
+      const plugin = { ...bundledRegistry.plugins[0], version: `1.0.${requests++}` };
+      return new Response(JSON.stringify({ schema_version: 1, plugins: [plugin] }));
+    };
+    const first = await fetchOfficialPluginRegistry(undefined, { fetchImpl });
+    const second = await fetchOfficialPluginRegistry(undefined, { fetchImpl });
+    expect(first.plugins[0].version).toBe("1.0.0");
+    expect(second.plugins[0].version).toBe("1.0.1");
+    expect(requests).toBe(2);
+  });
+
+  test("rejects duplicate remote plugin IDs", () => {
+    expect(() =>
+      parseOfficialPluginRegistry({
+        schema_version: 1,
+        plugins: [bundledRegistry.plugins[0], bundledRegistry.plugins[0]],
+      }),
+    ).toThrow("duplicates");
+  });
+
+  test.each([
+    ["HTTP failure", () => new Response("Unavailable", { status: 503 }), "HTTP 503"],
+    ["invalid JSON", () => new Response("{"), "invalid JSON"],
+    ["invalid schema", () => new Response('{"schema_version":2,"plugins":[]}'), "schema_version"],
+    [
+      "declared oversized body",
+      () =>
+        new Response("{}", {
+          headers: { "content-length": String(OFFICIAL_PLUGIN_REGISTRY_MAX_BYTES + 1) },
+        }),
+      "2 MiB",
+    ],
+    [
+      "streamed oversized body",
+      () => new Response(" ".repeat(OFFICIAL_PLUGIN_REGISTRY_MAX_BYTES + 1)),
+      "2 MiB",
+    ],
+  ] as const)("reports %s without a bundled fallback", async (_label, response, error) => {
+    await expect(
+      fetchOfficialPluginRegistry(undefined, {
+        fetchImpl: async () => response(),
+      }),
+    ).rejects.toThrow(error);
+  });
+
+  test("aborts a stalled request at its deadline", async () => {
+    let signal: AbortSignal | null | undefined;
+    await expect(
+      fetchOfficialPluginRegistry(undefined, {
+        timeoutMs: 10,
+        fetchImpl: async (_input, init) =>
+          new Promise<Response>((_resolve, reject) => {
+            signal = init?.signal;
+            signal?.addEventListener("abort", () => reject(new Error("Timed out")), { once: true });
+          }),
+      }),
+    ).rejects.toThrow("Timed out");
+    expect(signal?.aborted).toBe(true);
   });
 });

@@ -1,15 +1,24 @@
+<script lang="ts">
+  let { cardsOnly = false }: { cardsOnly?: boolean } = $props();
+</script>
+
 <div class="plugin-skeleton-container" aria-hidden="true">
-  <main class="plugin-skeleton-content">
-    <div class="plugin-skeleton-heading">
-      <span class="block heading"></span>
-      <span class="block tabs"></span>
-    </div>
-    <div class="plugin-skeleton-store">
-      <div class="plugin-skeleton-toolbar">
-        <span class="block search"></span>
-        <span class="block category"></span>
-        <span class="block filter"></span>
+  <div class="plugin-skeleton-content" class:cards-only={cardsOnly}>
+    {#if !cardsOnly}
+      <div class="plugin-skeleton-heading">
+        <span class="block heading"></span>
+        <span class="block tabs"></span>
       </div>
+    {/if}
+    <div class="plugin-skeleton-store">
+      {#if !cardsOnly}
+        <div class="plugin-skeleton-toolbar">
+          <span class="block refresh"></span>
+          <span class="block search"></span>
+          <span class="block category"></span>
+          <span class="block filter"></span>
+        </div>
+      {/if}
       <div class="plugin-skeleton-grid">
         {#each Array(6) as _, index (index)}
           <article class="plugin-skeleton-card">
@@ -29,7 +38,7 @@
         {/each}
       </div>
     </div>
-  </main>
+  </div>
 </div>
 
 <style>
@@ -44,6 +53,13 @@
       var(--settings-content-padding),
       calc((100% - var(--plugin-content-max-width)) / 2)
     );
+  }
+  .plugin-skeleton-content.cards-only {
+    padding: 0;
+  }
+  .refresh {
+    width: 68px;
+    height: 28px;
   }
   .block {
     display: block;

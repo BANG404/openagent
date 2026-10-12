@@ -4,6 +4,7 @@
   import { agentPluginUpdateErrorKey } from "$lib/agentPluginUpdateCheck";
   import type { PluginInstallTask } from "$lib/agentPluginInstallQueue";
   import PluginLanguageSupport from "../PluginLanguageSupport.svelte";
+  import PluginMarketplaceSkeleton from "../PluginMarketplaceSkeleton.svelte";
   import { pluginText } from "$lib/pluginI18n";
   import { PLUGIN_CATEGORIES, pluginCategoryKeys, isPluginCategory } from "$lib/pluginCategories";
   import type { OfficialPluginCatalogItem } from "$lib/officialPluginRegistry";
@@ -79,6 +80,13 @@
     {#if plugins.pluginManagementView === "marketplace"}
       <section class="official-plugin-store" aria-label={$t("pluginOfficialMarketplace")}>
         <div class="official-plugin-store-toolbar">
+          <SettingsActionButton
+            label={$t("pluginRefresh")}
+            icon="refresh"
+            tone="quiet"
+            onclick={() => plugins.refreshOfficialPluginRegistry()}
+            disabled={plugins.officialPluginRegistryLoading}
+          />
           <label class="official-plugin-search">
             <span class="sr-only">{$t("pluginOfficialSearch")}</span>
             <input
@@ -125,7 +133,17 @@
             onValueChange={(value) => (plugins.officialPluginFilter = value)}
           />
         </div>
-        {#if plugins.officialPluginCards.length > 0}
+        {#if plugins.officialPluginRegistryLoading}
+          <div role="status" aria-label={$t("pluginOfficialLoading")} aria-live="polite">
+            <span class="sr-only">{$t("pluginOfficialLoading")}</span>
+            <PluginMarketplaceSkeleton cardsOnly />
+          </div>
+        {:else if plugins.officialPluginRegistryError}
+          <div class="provider-status error" role="alert">
+            <span>{$t("pluginOfficialLoadFailed")}</span>
+            <p class="detail-hint">{plugins.officialPluginRegistryError}</p>
+          </div>
+        {:else if plugins.officialPluginCards.length > 0}
           <div class="official-plugin-grid">
             {#each plugins.officialPluginCards as plugin (plugin.id)}
               <article

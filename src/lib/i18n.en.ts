@@ -363,6 +363,9 @@ const en: Record<TranslationKeys, string> = {
   pluginCategoryDesign: "Design",
   pluginCategoryOther: "Other",
   pluginOfficialMarketplace: "Plugin store",
+  pluginOfficialLoading: "Loading the plugin catalog…",
+  pluginOfficialLoadFailed:
+    "Could not load the plugin catalog. Check your connection and refresh to retry.",
   pluginOfficialBadge: "Verified sources",
   pluginOfficialMarketplaceHint: "Discover and install plugins to add more features to OpenAgent.",
   pluginOfficialCatalogSummary: "{count} plugins in this catalog",

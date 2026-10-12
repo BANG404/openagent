@@ -95,6 +95,6 @@ key = "Enter"
 action = "eval"
 script = '''(async () => {
   await new Promise(resolve => setTimeout(resolve, 150));
-  if (document.querySelectorAll('.official-plugin-card').length !== 20) throw new Error('all categories did not restore the catalog');
+  if (document.querySelectorAll('.official-plugin-card').length !== window.__officialCatalogCount) throw new Error('all categories did not restore the catalog');
   return true;
 })()'''

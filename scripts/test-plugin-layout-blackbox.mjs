@@ -72,6 +72,13 @@ evaluate(`(async () => {
   const config = await desktopOpenAgent.invokeProduct('get_settings', {});
   const {getCurrentWindow} = await import('/node_modules/@tauri-apps/api/window.js');
   const current = getCurrentWindow();
+  const {OFFICIAL_PLUGIN_REGISTRY_URL} = await import('/src/lib/officialPluginRegistry.ts');
+  const {default:catalog} = await import('/src/lib/officialPluginRegistry.json');
+  window.__pluginLayoutFetch = window.fetch;
+  window.__officialCatalogCount = catalog.plugins.length;
+  window.fetch = (input,init) => String(input) === OFFICIAL_PLUGIN_REGISTRY_URL
+    ? Promise.resolve(new Response(JSON.stringify(catalog)))
+    : window.__pluginLayoutFetch(input,init);
   window.__pluginLayoutOriginal = {
     theme: config.theme, language: config.language,
     size: await current.innerSize(), maximized: await current.isMaximized(),
@@ -155,6 +162,7 @@ try {
   close();
   evaluate(`(async () => {
     const original = window.__pluginLayoutOriginal;
+    window.fetch = window.__pluginLayoutFetch;
     const {desktopOpenAgent, emit} = await import('/src/lib/openagent/tauriClient.ts');
     const config = await desktopOpenAgent.invokeProduct('get_settings', {});
     Object.assign(config, {theme:original.theme, language:original.language});

@@ -7,9 +7,16 @@ global_timeout_ms = 30000
 name = "start a failing catalog source alongside a valid package"
 action = "eval"
 script = '''(async () => {
-  const { BUNDLED_OFFICIAL_PLUGIN_REGISTRY } = await import('/src/lib/officialPluginRegistry.ts');
-  const graph = BUNDLED_OFFICIAL_PLUGIN_REGISTRY.plugins.find(plugin => plugin.id === 'graph');
-  const original = graph.sourceUrl;
+  const { desktopOpenAgent } = await import('/src/lib/openagent/tauriClient.ts');
+  const original = desktopOpenAgent.installOfficialAgentPlugin;
+  // Inject one invalid source at the typed install boundary; discovery stays remote.
+  desktopOpenAgent.installOfficialAgentPlugin = function(id, name, sourceUrl) {
+    if (id === 'graph') {
+      desktopOpenAgent.installOfficialAgentPlugin = original;
+      sourceUrl = 'https://github.com/BANG404/openagent-blackbox-missing-package.git';
+    }
+    return original.call(this, id, name, sourceUrl);
+  };
   const search = document.querySelector('.official-plugin-search input');
   const query = async value => {
     search.value = value;
@@ -17,13 +24,13 @@ script = '''(async () => {
     await new Promise(resolve => setTimeout(resolve, 0));
   };
   try {
-    graph.sourceUrl = 'https://github.com/BANG404/openagent-blackbox-missing-package.git';
     await query('graph');
     document.querySelector('.official-plugin-card[data-plugin-id="graph"] button').click();
-  } finally {
-    graph.sourceUrl = original;
-    await query('');
+  } catch (error) {
+    desktopOpenAgent.installOfficialAgentPlugin = original;
+    throw error;
   }
+  await query('');
   const goal = document.querySelector('.official-plugin-card[data-plugin-id="goal"] button');
   if (!goal || goal.disabled) throw new Error('the other package was blocked');
   goal.click();

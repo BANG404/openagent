@@ -6,12 +6,15 @@
  * policy remain owned by the Runtime's marketplace installer.
  */
 
-import bundledRegistry from "./officialPluginRegistry.json";
 import { parsePluginI18n, pluginText, type AgentPluginI18n } from "./pluginI18n";
 import { isPluginCategory, type PluginCategory } from "./pluginCategories";
 
 export const OFFICIAL_PLUGIN_REGISTRY_SCHEMA =
   "https://openagent.dev/schemas/plugin-registry/v1" as const;
+
+/** Reviewed discovery metadata from the public default branch, independent of app releases. */
+export const OFFICIAL_PLUGIN_REGISTRY_URL =
+  "https://raw.githubusercontent.com/BANG404/openagent/main/src/lib/officialPluginRegistry.json";
 
 const PLUGIN_ID_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;
 const SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/i;
@@ -66,9 +69,6 @@ export type OfficialPluginRegistryFetcher = (
   input: RequestInfo | URL,
   init?: RequestInit,
 ) => Promise<Response>;
-
-/** The reviewed catalog shipped with this OpenAgent build. */
-export const BUNDLED_OFFICIAL_PLUGIN_REGISTRY = parseOfficialPluginRegistry(bundledRegistry);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -168,7 +168,8 @@ export function parseOfficialPluginRegistry(input: unknown): OfficialPluginRegis
   const plugins = input.plugins.map(parseEntry);
   const ids = new Set<string>();
   for (const plugin of plugins) {
-    if (!ids.add(plugin.id)) throw new Error(`official plugin registry duplicates '${plugin.id}'`);
+    if (ids.has(plugin.id)) throw new Error(`official plugin registry duplicates '${plugin.id}'`);
+    ids.add(plugin.id);
   }
   const generatedAt = optionalString(
     input.generated_at ?? input.generatedAt,
@@ -256,7 +257,7 @@ export function projectOfficialPluginCatalog(
  * are attached; the endpoint is a public catalog and may be served by a CDN.
  */
 export async function fetchOfficialPluginRegistry(
-  url: string,
+  url: string = OFFICIAL_PLUGIN_REGISTRY_URL,
   options: {
     fetchImpl?: OfficialPluginRegistryFetcher;
     timeoutMs?: number;
@@ -271,6 +272,8 @@ export async function fetchOfficialPluginRegistry(
     const response = await fetchImpl(endpoint, {
       method: "GET",
       headers: { accept: "application/json" },
+      cache: "no-store",
+      credentials: "omit",
       signal: controller.signal,
     });
     if (!response.ok) throw new Error(`official plugin registry returned HTTP ${response.status}`);
@@ -278,9 +281,26 @@ export async function fetchOfficialPluginRegistry(
     if (length && Number(length) > OFFICIAL_PLUGIN_REGISTRY_MAX_BYTES) {
       throw new Error("official plugin registry exceeds the 2 MiB limit");
     }
-    const text = await response.text();
-    if (new TextEncoder().encode(text).byteLength > OFFICIAL_PLUGIN_REGISTRY_MAX_BYTES) {
-      throw new Error("official plugin registry exceeds the 2 MiB limit");
+    // Bound the body while streaming, including responses without Content-Length.
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("official plugin registry returned an empty body");
+    const decoder = new TextDecoder();
+    let text = "";
+    let bytes = 0;
+    try {
+      while (true) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        bytes += chunk.value.byteLength;
+        if (bytes > OFFICIAL_PLUGIN_REGISTRY_MAX_BYTES) {
+          await reader.cancel();
+          throw new Error("official plugin registry exceeds the 2 MiB limit");
+        }
+        text += decoder.decode(chunk.value, { stream: true });
+      }
+      text += decoder.decode();
+    } finally {
+      reader.releaseLock();
     }
     let parsed: unknown;
     try {

@@ -5,12 +5,30 @@ Official publication and catalog qualification must satisfy the
 and coverage of the platform's complete language set.
 
 OpenAgent keeps the official plugin source list in a small registry contract so
-clients can discover package addresses without querying the GitHub API. The
-bundled reference is `src/lib/officialPluginRegistry.json`; its parser and
-marketplace projection live in `src/lib/officialPluginRegistry.ts`.
-Vite emits the reviewed JSON as a dedicated catalog chunk. Settings keeps its
-existing synchronous projection and bundle budget while the growing catalog
-remains in the main route's transitive dependency budget.
+clients can discover package addresses without querying the GitHub API.
+`src/lib/officialPluginRegistry.json` is the reviewed publication source; clients
+fetch its public `main` revision from
+`https://raw.githubusercontent.com/BANG404/openagent/main/src/lib/officialPluginRegistry.json`.
+Its parser and marketplace projection live in `src/lib/officialPluginRegistry.ts`.
+The catalog is never imported into the product bundle or used as an offline fallback.
+Adding, withdrawing or relocating entries takes effect after publication to `main`,
+independently of the application version. Release-update information continues to
+use the dynamically fetched rolling release feed described below.
+
+Opening Plugins and explicit Refresh fetch discovery with no credentials or browser
+cache. Keep catalog loading and failure independent of installed-directory reads,
+optional marketplaces and update checks. While loading, show the shared card-grid
+skeleton; on failure show localized connection/retry guidance and keep Refresh
+available. Clear old catalog cards on refresh so failed refreshes cannot leave
+outdated install addresses actionable. Reject stale responses after newer requests
+or disposal. Search/category/availability remain local projections of the fetched
+snapshot. Requests time out after eight seconds; bound streamed responses to 2 MiB
+and validate the complete registry, including duplicate IDs, before showing cards.
+Verify remote loading, HTTP/schema failure, retry with replaced entries, independent
+installed management and re-fetch on reopening through
+`bun run test:blackbox:plugin-catalog` against an isolated `plugin-catalog` instance
+with explicit `TAURI_PILOT_SOCKET`. Its network boundary fixtures drive the real
+Plugins controls in light/dark and English/Chinese; no packages are installed.
 
 Each entry requires a lowercase plugin id, a display name, an HTTPS repository,
 and an HTTPS `source_url`. The checked-in `version` is copied from that
@@ -22,7 +40,7 @@ an archive that the existing Runtime marketplace installer understands. Optional
 fragments, duplicate ids, unsupported schema versions, and oversized catalogs
 are rejected before a source is passed to the installer.
 
-Advance a package gitlink, its bundled catalog version and the explicit catalog
+Advance a package gitlink, its reviewed catalog version and the explicit catalog
 test expectations together. Source-manifest parity remains a required check.
 This applies to release-qualification fixes in package state or tests as well;
 the parent catalog must advertise the newly pinned source version before full
@@ -48,7 +66,7 @@ endpoint without exposing a GitHub token to the client. When archive digests are
 published, the Runtime installer integration must verify them before activation;
 the current projection preserves the field for that adapter.
 
-The Settings Plugins surface projects the bundled registry into the official
+The Settings Plugins surface projects the remotely fetched registry into the official
 plugin marketplace. Search and availability filters are pure client-side
 projections. The marketplace starts with search, category and availability filters, followed
 by plugin cards; omit the introductory heading, description, and catalog count.
@@ -75,7 +93,7 @@ package implementation bindings or package flows. A contract migration must
 increment the manifest version even when only an extension field is removed,
 so installed packages receive a release update.
 
-The bundled registry is discovery metadata, not a live release feed. A dedicated
+The registry is discovery metadata, independent of the release feed. A dedicated
 workflow publishes `plugin-releases.json` from the registry repositories' latest 100
 releases; workflow, artifact and authentication are owned by
 [plugin release index](../../openagent-release-engineering/references/plugin-release-index.md).
@@ -86,7 +104,7 @@ repositories use public GitHub metadata only after the feed is readable. An inde
 failure must not trigger per-package API fallback. The registry and marketplace
 installer accept credential-free HTTPS URLs without a query or fragment.
 
-Update the bundled catalog and this contract together when an official plugin is
+Update the reviewed catalog and this contract together when an official plugin is
 published, renamed, withdrawn, or moved. Keep private provider credentials out
 of the registry. Focused coverage lives in `tests/officialPluginRegistry.test.ts`.
 
@@ -237,7 +255,6 @@ the real MCP App frame's first-mount and live locale while retaining input.
 The same scenario mounts a real sidebar fixture and asserts its first/live locale,
 translated title, stable iframe identity, and retained entered draft.
 The runner verifies both switch directions in all theme/language combinations.
-
 
 Catalog entries may carry an optional `category` matching the package discovery
 IDs in [package format](package-format.md#discovery-categories). Missing values

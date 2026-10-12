@@ -356,6 +356,8 @@ export const zh = {
   pluginCategoryDesign: "设计创作",
   pluginCategoryOther: "其他",
   pluginOfficialMarketplace: "插件商店",
+  pluginOfficialLoading: "正在加载插件目录…",
+  pluginOfficialLoadFailed: "插件目录加载失败，请检查网络并点击刷新重试。",
   pluginOfficialBadge: "已验证来源",
   pluginOfficialMarketplaceHint: "发现并安装插件，为 OpenAgent 添加更多功能。",
   pluginOfficialCatalogSummary: "目录中有 {count} 个插件",

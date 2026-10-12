@@ -1,0 +1,68 @@
+[scenario]
+name = "Dynamic official plugin discovery"
+fail_fast = true
+global_timeout_ms = 30000
+description = "Remote loading, failures, retry, changed discovery and independent installed management"
+
+[[step]]
+action = "eval"
+name = "show a skeleton while fetching, then render only remote entries"
+script = '''
+(async () => {
+  const store=document.querySelector('.official-plugin-store');
+  if (!store.querySelector('.plugin-skeleton-grid') || store.querySelector('.official-plugin-card')) throw new Error('catalog did not wait for remote discovery');
+  if (!store.querySelector('[role=status]')?.textContent.includes(window.__catalogCopy.loading)) throw new Error('loading text is not localized');
+  if (!store.querySelector('.official-plugin-store-toolbar button').disabled) throw new Error('refresh must be disabled while loading');
+  const probe=window.__catalogProbe;
+  probe.plugins=[{id:'catalog-old',display_name:'Remote plugin',category:'development',version:'1.0.0',repository:'https://example.com/catalog-old',source_url:'https://example.com/catalog-old.git'}];
+  probe.mode='ok';
+  probe.resolve(new Response(JSON.stringify({schema_version:1,plugins:probe.plugins})));
+  const deadline=Date.now()+5000;
+  while (!store.querySelector('[data-plugin-id="catalog-old"]') && Date.now()<deadline) await new Promise(resolve=>setTimeout(resolve,20));
+  if (store.querySelectorAll('.official-plugin-card').length!==1) throw new Error('store mixed remote entries with bundled discovery');
+  return true;
+})()
+'''
+
+[[step]]
+action = "eval"
+name = "failed refresh clears obsolete install addresses and offers retry"
+script = '''
+(async () => {
+  const store=document.querySelector('.official-plugin-store');
+  window.__catalogProbe.mode='fail';
+  store.querySelector('.official-plugin-store-toolbar button').click();
+  const deadline=Date.now()+5000;
+  while (!store.querySelector('[role=alert]') && Date.now()<deadline) await new Promise(resolve=>setTimeout(resolve,20));
+  if (!store.querySelector('[role=alert]')?.textContent.includes(window.__catalogCopy.failed)) throw new Error('network failure was not shown');
+  if (store.querySelector('.official-plugin-card')) throw new Error('failed refresh retained obsolete install actions');
+  if (store.querySelector('.official-plugin-store-toolbar button').disabled) throw new Error('retry is disabled');
+  document.querySelector('.plugin-management-tabs button:nth-of-type(2)').click();
+  await new Promise(resolve=>setTimeout(resolve,30));
+  if (!document.querySelector('.plugin-directory-actions button')) throw new Error('catalog failure blocked installed management');
+  document.querySelector('.plugin-management-tabs button:nth-of-type(1)').click();
+  await new Promise(resolve=>setTimeout(resolve,30));
+  return true;
+})()
+'''
+
+[[step]]
+action = "eval"
+name = "reject invalid catalogs, then retry with newly published entries"
+script = '''
+(async () => {
+  const store=document.querySelector('.official-plugin-store');
+  const probe=window.__catalogProbe;
+  probe.mode='invalid';
+  store.querySelector('.official-plugin-store-toolbar button').click();
+  await new Promise(resolve=>setTimeout(resolve,100));
+  if (!store.querySelector('[role=alert]')?.textContent.includes('schema_version')) throw new Error('invalid catalog was accepted');
+  probe.mode='ok';
+  probe.plugins=[{id:'catalog-new',display_name:'New remote plugin',category:'communication',version:'2.0.0',repository:'https://example.com/catalog-new',source_url:'https://example.com/catalog-new.git'}];
+  store.querySelector('.official-plugin-store-toolbar button').click();
+  const deadline=Date.now()+5000;
+  while (!store.querySelector('[data-plugin-id="catalog-new"]') && Date.now()<deadline) await new Promise(resolve=>setTimeout(resolve,20));
+  if (!store.querySelector('[data-plugin-id="catalog-new"]') || store.querySelector('[data-plugin-id="catalog-old"]') || store.querySelector('[role=alert]')) throw new Error('retry did not use the latest catalog');
+  return true;
+})()
+'''

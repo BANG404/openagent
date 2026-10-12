@@ -8,16 +8,16 @@ import {
   pluginCommandText,
 } from "../src/lib/pluginI18n";
 import {
-  BUNDLED_OFFICIAL_PLUGIN_REGISTRY,
+  parseOfficialPluginRegistry,
   projectOfficialPluginCatalog,
 } from "../src/lib/officialPluginRegistry";
+import registryDocument from "../src/lib/officialPluginRegistry.json";
 import { PLATFORM_LOCALES } from "../src/lib/platformLocales";
+const reviewedRegistry = parseOfficialPluginRegistry(registryDocument);
 test("message board declares complete platform metadata before installation", () => {
-  const plugin = BUNDLED_OFFICIAL_PLUGIN_REGISTRY.plugins.find(
-    (plugin) => plugin.id === "message-board",
-  )!;
+  const plugin = reviewedRegistry.plugins.find((plugin) => plugin.id === "message-board")!;
   expect([...plugin.i18n!.supported_locales].sort()).toEqual([...PLATFORM_LOCALES].sort());
-  const cards = projectOfficialPluginCatalog(BUNDLED_OFFICIAL_PLUGIN_REGISTRY, {
+  const cards = projectOfficialPluginCatalog(reviewedRegistry, {
     installed: new Map(),
     locale: "zh",
     query: "订阅",
@@ -38,7 +38,7 @@ test("configuration presentation keys are admitted and localized", () => {
   expect(pluginText(i18n, "zh", "configuration.client-id.label", "fallback")).toBe("客户端 ID");
 });
 test("every official package source and marketplace entry declares the complete platform locale set", () => {
-  for (const entry of BUNDLED_OFFICIAL_PLUGIN_REGISTRY.plugins) {
+  for (const entry of reviewedRegistry.plugins) {
     const manifest = JSON.parse(
       readFileSync(new URL(`../plugins/${entry.id}/plugin.json`, import.meta.url), "utf8"),
     );
@@ -68,7 +68,7 @@ test("locale resolves exact, base, and declared fallback without inventing suppo
   expect(pluginText(undefined, "zh", "description", "Legacy")).toBe("Legacy");
 });
 test("installed manifests refresh catalog language authority, including unknown support", () => {
-  const registry = BUNDLED_OFFICIAL_PLUGIN_REGISTRY;
+  const registry = reviewedRegistry;
   const projected = projectOfficialPluginCatalog(registry, {
     installed: new Map([["message-board", "1.0.0"]]),
     installedI18n: new Map([["message-board", null]]),
@@ -77,9 +77,7 @@ test("installed manifests refresh catalog language authority, including unknown 
   expect(projected.find((plugin) => plugin.id === "message-board")!.i18n).toBeUndefined();
 });
 test("declarations reject misleading language lists and incomplete translations", () => {
-  const good = BUNDLED_OFFICIAL_PLUGIN_REGISTRY.plugins.find(
-    (plugin) => plugin.id === "message-board",
-  )!.i18n!;
+  const good = reviewedRegistry.plugins.find((plugin) => plugin.id === "message-board")!.i18n!;
   for (const mutate of [
     (i: typeof good) => i.supported_locales.push("EN"),
     (i: typeof good) => (i.default_locale = "fr"),

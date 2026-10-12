@@ -32,7 +32,8 @@ import {
   type AgentPluginUpdateFailure,
 } from "$lib/agentPluginUpdateCheck";
 import {
-  BUNDLED_OFFICIAL_PLUGIN_REGISTRY,
+  fetchOfficialPluginRegistry,
+  type OfficialPluginRegistry,
   projectOfficialPluginCatalog,
   type OfficialPluginCatalogFilter,
   type OfficialPluginCatalogItem,
@@ -52,6 +53,10 @@ export function createPluginSettings(
   const setup = createPluginSetup();
   let agentPlugins = $state<AgentPluginSummary[]>([]);
   let agentPluginMarketplaces = $state<AgentPluginMarketplaceSummary[]>([]);
+  let officialPluginRegistry = $state<OfficialPluginRegistry | null>(null);
+  let officialPluginRegistryLoading = $state(true);
+  let officialPluginRegistryError = $state("");
+  let officialPluginRegistrySequence = 0;
   let agentPluginUpdates = $state<AgentPluginUpdateSummary[]>([]);
   let agentPluginUpdatesLoading = $state(false);
   let agentPluginRemoveId = $state<string | null>(null);
@@ -102,7 +107,7 @@ export function createPluginSettings(
     return tr(pluginInstallStageKeys[task.progress.stage]);
   }
   const officialPluginCards = $derived.by<OfficialPluginCatalogItem[]>(() =>
-    projectOfficialPluginCatalog(BUNDLED_OFFICIAL_PLUGIN_REGISTRY, {
+    projectOfficialPluginCatalog(officialPluginRegistry ?? { schemaVersion: 1, plugins: [] }, {
       locale: language.current,
       installedI18n: new Map(agentPlugins.map((plugin) => [plugin.id, plugin.i18n])),
       installed: new Map(agentPlugins.map((plugin) => [plugin.id, plugin.version])),
@@ -257,13 +262,30 @@ export function createPluginSettings(
     }
   }
 
+  /** Fetch discovery independently of installed packages and update checks. */
+  async function refreshOfficialPluginRegistry(): Promise<void> {
+    const sequence = ++officialPluginRegistrySequence;
+    officialPluginRegistryLoading = true;
+    officialPluginRegistryError = "";
+    // Never keep old install addresses actionable after a failed refresh.
+    officialPluginRegistry = null;
+    try {
+      const registry = await fetchOfficialPluginRegistry();
+      if (sequence === officialPluginRegistrySequence) officialPluginRegistry = registry;
+    } catch (error: unknown) {
+      if (sequence === officialPluginRegistrySequence) officialPluginRegistryError = String(error);
+    } finally {
+      if (sequence === officialPluginRegistrySequence) officialPluginRegistryLoading = false;
+    }
+  }
+
   /**
    * Re-read the installed plugins for an explicit user refresh and announce it,
    * so the right sidebar rebuilds each mounted panel's package identity instead
    * of keeping the document it read before the plugin directory changed.
    */
   async function reloadAgentPlugins(): Promise<void> {
-    await refreshAgentPlugins();
+    await Promise.all([refreshAgentPlugins(), refreshOfficialPluginRegistry()]);
     await emit("agent-plugins-changed").catch(() => {});
   }
 
@@ -518,6 +540,7 @@ export function createPluginSettings(
     );
   }
   onMount(() => {
+    if (options.visibleSections.has("plugins")) void refreshOfficialPluginRegistry();
     if (!isTauri()) return;
     if (
       options.visibleSections.has("plugins") ||
@@ -540,6 +563,7 @@ export function createPluginSettings(
           })
         : Promise.resolve(() => {});
     return () => {
+      ++officialPluginRegistrySequence;
       unlistenInstalls();
       unlistenAccess();
       void unlistenChanges.then((dispose) => dispose());
@@ -559,6 +583,12 @@ export function createPluginSettings(
     },
     get officialPluginCards() {
       return officialPluginCards;
+    },
+    get officialPluginRegistryLoading() {
+      return officialPluginRegistryLoading;
+    },
+    get officialPluginRegistryError() {
+      return officialPluginRegistryError;
     },
     get officialPluginCategory() {
       return officialPluginCategory;
@@ -650,6 +680,7 @@ export function createPluginSettings(
     confirmUninstallAgentPlugin,
     refreshAgentPlugins,
     reloadAgentPlugins,
+    refreshOfficialPluginRegistry,
     runAgentPluginUpdateCheck,
     pluginSidebarLifecycleFor,
     set agentPluginStatus(value: string) {
