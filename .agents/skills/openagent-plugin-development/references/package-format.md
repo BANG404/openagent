@@ -123,8 +123,8 @@ loading path; the presentation type does not create a channel transport.
 
 Plugin Kit mirrors these declarations in its validator, presentation JSON
 schema and `theme`/`integration` starter templates. Its messaging importer
-marks channel packages as integrations. The pinned Discord source declares
-this type; its release archives must carry the updated manifest to expose it.
+marks channel packages as integrations. Deterministic integration fixtures
+qualify this presentation contract without requiring a platform account.
 
 Qualify with `test:blackbox:plugin-presentation`: install deterministic theme
 and integration fixtures, inspect colors and geometry in light/dark and both

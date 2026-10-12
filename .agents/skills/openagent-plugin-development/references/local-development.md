@@ -60,8 +60,8 @@ edits and staged files are preserved. Provenance hashes remain byte-exact and
 must never be regenerated merely to accommodate Windows checkout conversion.
 
 The reviewed Claude external adaptations follow the same ownership: Asana,
-Context7, Discord, Fakechat, Firebase, GitHub, GitLab, iMessage, Laravel Boost,
-Linear, Playwright, Serena, Telegram and Terraform live at `plugins/<id>` and
+Context7, Fakechat, Firebase, GitHub, GitLab, iMessage, Laravel Boost,
+Linear, Playwright, Serena and Terraform live at `plugins/<id>` and
 publish independently as `BANG404/openagent-<id>`. Their immutable upstream
 revision, source digest and bundled adapter hashes are recorded in each
 `provenance.json`; retain upstream licenses. Plugin Kit's

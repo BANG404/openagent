@@ -7,7 +7,6 @@
   "openagent-plugin-kit": "openagent-plugin-kit",
   "asana": "asana",
   "context7": "context7",
-  "discord": "discord",
   "fakechat": "fakechat",
   "firebase": "firebase",
   "github": "github",
@@ -17,6 +16,5 @@
   "linear": "linear",
   "playwright": "playwright",
   "serena": "serena",
-  "telegram": "telegram",
   "terraform": "terraform"
 }

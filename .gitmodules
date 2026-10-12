@@ -25,9 +25,6 @@
 [submodule "plugins/context7"]
 	path = plugins/context7
 	url = https://github.com/BANG404/openagent-context7.git
-[submodule "plugins/discord"]
-	path = plugins/discord
-	url = https://github.com/BANG404/openagent-discord.git
 [submodule "plugins/fakechat"]
 	path = plugins/fakechat
 	url = https://github.com/BANG404/openagent-fakechat.git
@@ -55,9 +52,6 @@
 [submodule "plugins/serena"]
 	path = plugins/serena
 	url = https://github.com/BANG404/openagent-serena.git
-[submodule "plugins/telegram"]
-	path = plugins/telegram
-	url = https://github.com/BANG404/openagent-telegram.git
 [submodule "plugins/terraform"]
 	path = plugins/terraform
 	url = https://github.com/BANG404/openagent-terraform.git

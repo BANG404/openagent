@@ -80,7 +80,6 @@ describe("official plugin registry", () => {
       "openagent-plugin-kit",
       "asana",
       "context7",
-      "discord",
       "fakechat",
       "firebase",
       "github",
@@ -90,7 +89,6 @@ describe("official plugin registry", () => {
       "linear",
       "playwright",
       "serena",
-      "telegram",
       "terraform",
     ]);
     expect(findOfficialPlugin(registry, "goal")?.sourceUrl).toBe(
@@ -105,7 +103,6 @@ describe("official plugin registry", () => {
       "1.9.0",
       "0.2.0",
       "0.1.1",
-      "0.2.1",
       "0.2.0",
       "0.1.2",
       "0.2.0",
@@ -116,7 +113,6 @@ describe("official plugin registry", () => {
       "0.1.1",
       "0.1.1",
       "0.2.0",
-      "0.2.0",
     ]);
     expect(findOfficialPlugin(registry, "message-board")?.sourceUrl).toBe(
       "https://github.com/BANG404/message-board.git",
@@ -125,10 +121,8 @@ describe("official plugin registry", () => {
       "https://github.com/BANG404/openagent-plugin-kit",
     );
     expect(findOfficialPlugin(registry, "openagent-plugin-kit")?.sha256).toBeUndefined();
-    expect(findOfficialPlugin(registry, "discord")?.sourceUrl).toBe(
-      "https://github.com/BANG404/openagent-discord",
-    );
-    expect(findOfficialPlugin(registry, "discord")?.sha256).toBeUndefined();
+    expect(findOfficialPlugin(registry, "discord")).toBeUndefined();
+    expect(findOfficialPlugin(registry, "telegram")).toBeUndefined();
   });
 
   test("distinguishes the development assistant and message board in localized search", () => {

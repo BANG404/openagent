@@ -24,6 +24,11 @@ Installed packages declaring the integration type also appear in this list.
 Their names, configuration and enablement come from the ordinary plugin
 contract; see [package types](../../openagent-plugin-development/references/package-format.md#theme-and-integration-package-types).
 Package entries and built-in platform entries have independent identities.
+Discord and Telegram use the built-in adapters; their duplicate packages are
+excluded from the official plugin catalog and tracked development sources.
+iMessage extends platform coverage, and Fakechat remains a local test channel.
+Removing catalog entries does not uninstall packages already installed in a
+user data directory; remove those through the ordinary plugin lifecycle.
 
 ## Platform setup
 

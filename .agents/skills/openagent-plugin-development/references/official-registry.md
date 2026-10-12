@@ -154,7 +154,7 @@ running progress surface. The lifecycle runner combines authoritative queue
 completion with the actual installed card rather than waiting for a success
 attribute on a progress node that has already been removed.
 
-The fourteen independently maintained Claude external adaptations use immutable
+The twelve independently maintained Claude external adaptations use immutable
 release archive URLs and SHA-256 catalog entries. Lifecycle qualification calls
 their `integration_status` setup tool so missing external accounts cannot be
 mistaken for broken package installation. Fakechat additionally requires Plugin

@@ -383,9 +383,10 @@ Start `bun tauri dev --multi-instance plugin-presentation` with an isolated
 `OPENAGENT_HOME`, verified embedding resources and an active fixture workspace,
 then select that instance's `TAURI_PILOT_SOCKET` and run
 `bun run test:blackbox:plugin-presentation`. The runner installs process-free
-theme/configuration fixtures and accepts the pinned Discord manifest through
-the real Runtime. It drives all light/dark and English/Chinese combinations,
+theme/configuration fixtures through the real Runtime. It verifies that
+Discord and Telegram remain built-in channel entries and are absent from the
+official plugin marketplace. It drives all light/dark and English/Chinese combinations,
 appearance selection, per-mode color/font/size overrides, persistence and
 standalone-window synchronization, override reset, enablement, theme restoration and removal of the
 selected integration. Use `BLACKBOX_NATIVE_WINDOW_ID` for native captures.
-No live Discord credentials or account operation is part of this scenario.
+No live messaging credentials or account operation is part of this scenario.
