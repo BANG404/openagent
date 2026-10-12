@@ -10,6 +10,37 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.79.0-beta.1] - 2026-10-12
+
+### Features
+- **plugins**: Publish Langfuse per-model observability
+- **plugins**: Refresh local packages and restart development runtime safely
+- **plugins**: Group observability by branch context sessions
+- **plugins**: Standardize opt-in conversation observations
+- **plugins**: Fetch the official catalog dynamically
+- **prompt**: Declare terminal environment and required file tools
+- **skills**: Enable task-driven terminal utility setup
+- **chat**: Infer file changes from checkpoints without replay
+- **plugins**: Add theme selection and channel integrations
+
+### Bug Fixes
+- **updates**: Verify complete runtime resources and isolate release helpers
+- **chat**: Align new conversation loading skeleton with its layout
+- **prompt**: Omit sd from terminal command conventions
+- **plugins**: Remove duplicate Discord and Telegram channels
+- **chat**: Render file edits and remove patch tool
+- **settings**: Stabilize appearance edits and align controls
+- **chat**: Preserve source lines in narrow file previews
+- **chat**: Show complete files with inline diffs in collapsible rows
+- **chat**: Show cumulative file changes and complete recorded content
+- **chat**: Keep composer suggestions within clipped surfaces
+
+### Refactoring
+- **sdk**: Retire legacy filesystem tool implementations
+
+### Miscellaneous
+- **toolchain**: Upgrade Bun to 1.3.14 across development and CI
+
 ## [0.78.3-beta.1] - 2026-10-11
 
 ### Bug Fixes
