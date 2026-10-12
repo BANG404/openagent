@@ -60,6 +60,7 @@
 
 <style>
   :global(.reasoning-effort-trigger) {
+    height: var(--composer-selector-height);
     width: auto;
     max-width: 210px;
     border: 0;

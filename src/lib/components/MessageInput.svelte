@@ -940,6 +940,7 @@
 
   :global(.composer-model-trigger) {
     flex: 0 1 auto;
+    height: var(--composer-selector-height);
     width: auto;
     max-width: 260px;
     min-width: 0;

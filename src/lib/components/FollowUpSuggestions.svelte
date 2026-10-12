@@ -8,20 +8,34 @@
     onSelect: (suggestion: string) => void | Promise<void>;
     variant?: "turn" | "new-conversation";
     disabled?: boolean;
+    loading?: boolean;
   }
 
-  let { suggestions, onSelect, variant = "turn", disabled = false }: Props = $props();
+  let {
+    suggestions,
+    onSelect,
+    variant = "turn",
+    disabled = false,
+    loading = false,
+  }: Props = $props();
 </script>
 
 {#if suggestions.length === 3}
   <div
     class="follow-up-suggestions"
     class:new-conversation={variant === "new-conversation"}
-    aria-label={$t("followUpSuggestions")}
+    class:loading
+    aria-label={loading ? $t("loadingContent") : $t("followUpSuggestions")}
+    aria-busy={loading}
     transition:fade={{ duration: motionDuration(160) }}
   >
     {#each suggestions as suggestion (suggestion)}
-      <button type="button" {disabled} onclick={() => onSelect(suggestion)}>
+      <button
+        type="button"
+        disabled={disabled || loading}
+        aria-hidden={loading}
+        onclick={() => onSelect(suggestion)}
+      >
         <span aria-hidden="true">↳</span>
         <span>{suggestion}</span>
       </button>
@@ -96,5 +110,20 @@
     grid-template-columns: 12px minmax(0, 1fr);
     gap: 6px;
     padding-inline: 4px;
+  }
+
+  .loading button {
+    opacity: 1;
+    pointer-events: none;
+  }
+
+  .loading button > span {
+    color: transparent;
+    border-radius: 5px;
+    background: color-mix(in srgb, var(--text) 7%, transparent);
+  }
+
+  .loading button > span:last-child {
+    justify-self: start;
   }
 </style>

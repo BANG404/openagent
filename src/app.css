@@ -21,6 +21,7 @@
     --composer-input-narrow-min-height: 78px;
     --composer-toolbar-min-height: 38px;
     --composer-control-size: 30px;
+    --composer-selector-height: calc(12px * 1.6 + 10px);
     --composer-control-radius: 8px;
     --composer-send-inset: 9px;
     --conversation-surface: var(--surface);

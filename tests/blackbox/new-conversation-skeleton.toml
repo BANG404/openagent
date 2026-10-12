@@ -1,0 +1,103 @@
+[scenario]
+name = "new conversation loading preserves the real composer and suggestion layout"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+action = "eval"
+script = '''(async () => {
+  const compiled = await (await fetch('/src/routes/remote/+page.svelte')).text();
+  const runtime = /import \{ onMount \} from "([^"]+)"/.exec(compiled)?.[1];
+  if (!runtime) throw new Error('Svelte runtime module missing');
+  const {mount, unmount} = await import(runtime);
+  const {default: Surface} = await import('/src/lib/devFixtures/NewConversationSkeleton.svelte');
+  const {normalizeConfigShape} = await import('/src/lib/config.ts');
+  const {get} = await import('/node_modules/svelte/src/store/index-client.js');
+  const {locale} = await import('/src/lib/i18n.ts');
+  const assert = (condition, message) => {if (!condition) throw new Error(message);};
+  const host = document.createElement('div');
+  host.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;background:var(--bg)';
+  document.body.append(host);
+  let instance;
+  let selected = 0;
+  const noop = () => {};
+  const actions = new Proxy({sendSuggestedMessage: () => selected++}, {
+    get: (target, key) => target[key] ?? noop,
+  });
+  const preferences = {
+    selectedModel: 'fixture', modelOptions: [{value:'fixture', label:'Fixture model'}],
+    selectedModelSupportsReasoning:false, selectedModelSupportsVision:true,
+    selectedContextCompactionThreshold:0, selectedReasoningEffort:'medium',
+    handleModelChange:noop, handleReasoningEffortChange:noop, handleApprovalModeChange:noop,
+  };
+  const settle = () => new Promise(resolve => setTimeout(resolve, 60));
+  const render = async (loading, suggestions, warning) => {
+    if (instance) await unmount(instance);
+    instance = mount(Surface, {target:host, props:{
+      view: {
+        activeBranchId:null, activeConvId:null, activeTree:undefined, browserModeNotice:'',
+        checkpointFlow:null, checkpointLoadError:null, config:warning ? normalizeConfigShape({}) : null,
+        currentStreamItems:[], currentStreamMessageId:null, pendingCheckpointId:null,
+        debugMode:false, fileChanges:[], followTail:true, isAwaitingStreamOutput:false,
+        streamStartedAt:null, isPaused:false, isStreaming:false, mainContentLoading:loading,
+        memoryRetrievalCanSkip:false, memoryRetrievalStage:null, mermaidConfig:{}, messages:[],
+        newConversationLayout:true, followUpSuggestionsByMessageId:{}, newConversationGreeting:'',
+        newConversationSuggestions:suggestions, queuedMessages:[], restoringSurface:'new-conversation',
+        shikiTheme:'github-light', slashCommands:[], taskUsagesByCheckpointId:{}, liveContextUsage:null,
+        tailAnchorToken:null, tauriAvailable:true, workspace:null, workspacePath:'', recentWorkspaces:[],
+      },
+      actions, composerPreferences:preferences, messagesElement:null, inputAreaHeight:120,
+      checkpointFlowPanelCollapsed:true, conversationPanelCollapsed:false,
+      rightSidebarPanel:'status', terminalSessionCount:0, onTerminalSummaryChange:noop,
+      composerDraft:{text:'', attachments:[], contexts:[]}, focusRequest:0,
+    }});
+    await settle();
+  };
+  const rect = selector => host.querySelector(selector).getBoundingClientRect();
+  const compare = (before, after, name) => {
+    for (const field of ['x','y','width','height']) {
+      assert(Math.abs(before[field] - after[field]) <= 1, `${name} ${field}: ${before[field]} -> ${after[field]} (heights ${before.height} -> ${after.height}; toolbar ${host.querySelector('.composer-toolbar')?.getBoundingClientRect().height}; input ${host.querySelector('.input')?.getBoundingClientRect().height})`);
+    }
+  };
+  const zh = get(locale) === 'zh';
+  const short = zh ? ['检查项目结构', '解释这段代码', '帮我定位问题'] : ['Review the project', 'Explain this code', 'Help debug an issue'];
+  const long = short.map(text => `${text} — ${text} — ${text} — ${text}`);
+  try {
+    for (const width of [1000, 680, 440]) {
+      host.style.width = `${width}px`;
+      for (const suggestions of [[], short, long]) {
+        for (const warning of [false, true]) {
+          await render(true, suggestions, warning);
+          assert(!host.querySelector('.memory-note, .new-conversation-copy'), 'loading invents content above the composer');
+          assert(Boolean(host.querySelector('.new-conversation-context')) === warning, 'empty context occupies space');
+          const composer = rect('.composer-copy');
+          const rows = [...host.querySelectorAll('.follow-up-suggestions button')];
+          assert(rows.length === suggestions.length, 'loading suggestion slots do not match the destination');
+          const suggestionRects = rows.map(row => row.getBoundingClientRect());
+          for (const row of rows) {
+            assert(row.disabled && row.getAttribute('aria-hidden') === 'true', 'loading suggestion is actionable or announced');
+            row.click();
+          }
+          assert(selected === 0, 'loading submitted a suggestion');
+          await render(false, suggestions, warning);
+          compare(composer, rect('.composer'), `${width}px composer`);
+          [...host.querySelectorAll('.follow-up-suggestions button')].forEach((row, index) => {
+            compare(suggestionRects[index], row.getBoundingClientRect(), `${width}px suggestion ${index}`);
+          });
+          assert(host.scrollWidth <= host.clientWidth + 1, 'new conversation overflows horizontally');
+        }
+      }
+    }
+    host.querySelector('.follow-up-suggestions button').click();
+    assert(selected === 1, 'settled suggestion did not become actionable');
+    // Leave a representative loading state mounted for the runner's native capture.
+    host.style.width = '100%';
+    await render(true, short, false);
+    window.__newConversationSkeletonCleanup = async () => {await unmount(instance); host.remove();};
+    return true;
+  } catch (error) {
+    if (instance) await unmount(instance);
+    host.remove();
+    throw error;
+  }
+})()'''
