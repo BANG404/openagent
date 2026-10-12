@@ -180,6 +180,9 @@ the installed card and completion toast; `data-install-status` belongs to the
 running progress surface. The lifecycle runner combines authoritative queue
 completion with the actual installed card rather than waiting for a success
 attribute on a progress node that has already been removed.
+Small archives can finish while the surface is closed: the retained queue task
+and installed card qualify completion, and the absence of another Install action
+qualifies duplicate protection after the progress button disappears.
 
 The twelve independently maintained Claude external adaptations use immutable
 release archive URLs and SHA-256 catalog entries. Lifecycle qualification calls
@@ -194,9 +197,11 @@ existing time limits. A successful Settings connection test can precede the
 Runtime pool's asynchronous reconnect; qualification still requires a real
 `get_screen_size` result after granting access and after restoring a revoked grant.
 
-When the lifecycle runner selects appearance through Settings, it waits for each
-theme and language value to persist in Runtime before closing the surface or
-making the next selection. A preview alone does not qualify the saved setting.
+When the lifecycle runner selects appearance through Settings, it targets the
+appearance-mode attribute and localized Language control; general settings row
+positions can change when theme controls are added. It waits for each theme and
+language value to persist in Runtime before closing the surface or making the
+next selection. A preview alone does not qualify the saved setting.
 
 Use `bun run test:blackbox:plugin-installation` for installation and card
 qualification independently of package MCP/daemon functionality. It verifies

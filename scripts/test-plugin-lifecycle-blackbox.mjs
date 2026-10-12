@@ -122,15 +122,22 @@ if (process.env.BLACKBOX_THEME && process.env.BLACKBOX_LANGUAGE) {
     `!!document.querySelector('${general} .settings-card-row button')`,
     "appearance settings did not open",
   );
-  for (const [row, value] of [
-    [1, process.env.BLACKBOX_THEME],
-    [2, process.env.BLACKBOX_LANGUAGE],
+  for (const [property, selector, value] of [
+    ["theme", "[data-appearance-mode] button", process.env.BLACKBOX_THEME],
+    [
+      "language",
+      'button[aria-label="Language"], button[aria-label="语言"]',
+      process.env.BLACKBOX_LANGUAGE,
+    ],
   ]) {
     pilot(["snapshot", "-i"]);
-    pilot(["click", `${general} .settings-card-row:nth-child(${row}) button`]);
+    const trigger = selector
+      .split(", ")
+      .map((part) => `${general} ${part}`)
+      .join(", ");
+    pilot(["click", trigger]);
     pilot(["snapshot", "-i"]);
     pilot(["click", `[role=option][data-value="${value}"]`]);
-    const property = row === 1 ? "theme" : "language";
     await waitFor(
       `(async () => {
         const {desktopOpenAgent} = await import('/src/lib/openagent/tauriClient.ts');
