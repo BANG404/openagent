@@ -12,13 +12,28 @@ const attributes = values => Object.entries(values).filter(([, value]) => value 
 }));
 
 export function buildExport(state, config) {
+  const segments = new Map();
+  for (const event of state.events) {
+    const key = event.event.context_session?.id;
+    if (segments.has(key)) segments.get(key).events.push(event);
+    else segments.set(key, { ...state, events: [event] });
+  }
+  return { resourceSpans: [...segments.values()].flatMap(segment => buildSegment(segment, config).resourceSpans) };
+}
+
+function buildSegment(state, config) {
   const events = state.events;
   const first = events[0];
   const last = events.at(-1);
   const context = first.event;
-  const traceId = stableId(['openagent', context.conversation_id, context.execution_id]);
+  // Existing pending 0.2 records keep their original trace/session identities.
+  // They have no durable context identity and cannot be enriched retroactively.
+  const session = context.context_session ?? { id: context.parent_conv_id ?? context.conversation_id };
+  const traceId = stableId(context.context_session
+    ? ['openagent', context.conversation_id, context.execution_id, session.id]
+    : ['openagent', context.conversation_id, context.execution_id]);
   const rootId = stableId([traceId, 'execution'], 16);
-  const phase = last.event.phase ?? 'unknown';
+  const phase = last.event.phase ?? 'context_compacted';
   const observation = config.captureMessages && state.captureMessages ? last.observation : undefined;
   const messages = observation?.version === 1 ? observation.messages : [];
   const input = messages.filter(message => message.role === 'user');
@@ -29,16 +44,19 @@ export function buildExport(state, config) {
   };
   const shared = {
     'langfuse.trace.name': context.parent_conv_id ? 'OpenAgent Subagent Execution' : 'OpenAgent Execution',
-    'langfuse.session.id': context.parent_conv_id ?? context.conversation_id,
+    'langfuse.session.id': session.id,
     'langfuse.user.id': config.userId,
     'langfuse.environment': config.environment,
     'langfuse.trace.tags': ['openagent', ...config.tags],
-    'langfuse.version': '0.2.0',
+    'langfuse.version': '0.3.0',
     'langfuse.trace.metadata.conversation_id': context.conversation_id,
     'langfuse.trace.metadata.branch_id': context.branch_id,
     'langfuse.trace.metadata.execution_id': context.execution_id,
     'langfuse.trace.metadata.parent_conv_id': context.parent_conv_id,
     'langfuse.trace.metadata.role_id': context.role_id,
+    'langfuse.trace.metadata.previous_session_id': session.previous_id,
+    'langfuse.trace.metadata.compaction_message_id': session.compaction_message_id,
+    'langfuse.trace.metadata.context_identity': context.context_session ? 'durable' : 'legacy_unknown',
   };
   const spans = [];
   function span(id, name, type, start, end, extra = {}, failed = false, parent = rootId) {
@@ -80,8 +98,8 @@ export function buildExport(state, config) {
     span(stableId([traceId, key], 16), item.event.tool_name ?? 'Model call', key.startsWith('tool:') ? 'tool' : 'generation', item.time, last.time,
       { 'langfuse.observation.metadata.incomplete': 'true' }, phase === 'final_failed');
   }
-  return { resourceSpans: [{ resource: { attributes: attributes({ 'service.name': 'openagent-langfuse', 'service.version': '0.2.0' }) },
-    scopeSpans: [{ scope: { name: 'openagent.langfuse', version: '0.2.0' }, spans }],
+  return { resourceSpans: [{ resource: { attributes: attributes({ 'service.name': 'openagent-langfuse', 'service.version': '0.3.0' }) },
+    scopeSpans: [{ scope: { name: 'openagent.langfuse', version: '0.3.0' }, spans }],
   }] };
 }
 

@@ -379,7 +379,10 @@ enablement and permission policy. A timeout, invalid response, or process error
 is isolated to that hook and appears in plugin diagnostics; it cannot stop
 ordinary Runtime finalization. Plugin hooks do not receive model context or
 Inspector/trace data. The opt-in public text contract follows
-[conversation observations](conversation-observations.md). Command execution requires an explicit host permission;
+[conversation observations](conversation-observations.md). Content-free branch
+and compaction identity follows the Plugin Kit's
+[context sessions](../../../../plugins/openagent-plugin-kit/docs/plugin-format.md#context-sessions).
+Command execution requires an explicit host permission;
 MCP-backed actions are preferred.
 
 ### Slash commands

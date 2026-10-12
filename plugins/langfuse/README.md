@@ -3,7 +3,7 @@
 An installable, dependency-free observability integration inspired by
 [Langfuse's Codex plugin](https://github.com/langfuse/codex-observability-plugin).
 Requires Node.js 22+ and an OpenAgent Runtime supporting plugin protocol 1,
-`configuration-v1`, `integration-v1`, and `conversation-observations-v1`.
+`configuration-v1`, `integration-v1`, `conversation-observations-v1`, and `context-sessions-v1`.
 
 Install the `plugins/langfuse` directory through **Settings > Plugins > Install
 local directory**. Installation copies the package; reinstall after source changes.
@@ -19,10 +19,13 @@ Secrets use OpenAgent's private plugin settings store. Do not put them in this p
 - `/langfuse:test` sends a synthetic span to verify authentication and OTLP ingestion.
 - `/langfuse:retry` uploads up to three completed pending executions.
 
-Each Runtime execution becomes a trace with an Agent root, model timing generations,
-and tool spans. Conversation IDs group traces into sessions; child conversations
-carry parent/role metadata and use the known parent conversation as their session.
-Branch and execution identities distinguish forks and approval resumes. Successful,
+Each conversation branch and durable context stage becomes one session, following
+[Langfuse sessions](https://langfuse.com/docs/observability/features/sessions).
+Normal turns, tools, retries, approval resumes and restart keep the same ID.
+Successful compaction starts a new session with `previous_session_id` metadata;
+staging and failed compaction do not. Forks and child conversations are independent.
+An execution crossing compaction exports one trace per context stage, each with
+an Agent root, model timing generations and tool spans. Successful,
 failed, cancelled and interrupted execution phases are retained. Child traces are
 correlated by metadata; the plugin does not infer cross-execution parent span IDs.
 
@@ -69,6 +72,8 @@ task-owned records or upload the backlog. A crashed process lock expires after
 30 seconds. Queued records survive updates and uninstall. Configuration changes
 apply to subsequent hooks and pending uploads, so flush the queue before switching
 Langfuse projects.
+Pending records from 0.2.0 keep their original trace/session IDs and mark context
+identity as `legacy_unknown`; the plugin cannot infer their historical stage.
 
 ## 中文使用说明
 
@@ -79,8 +84,11 @@ Langfuse projects.
 开启“采集工具内容”后，工具输入输出会写入本地待上传队列并发送到 Langfuse。
 开启独立的“采集聊天消息”后，当前轮用户文本与可见助手回复会写入 Agent 根观测的
 输入和输出。不包含历史上下文、系统提示词、推理或附件；旧记录不会补采。
-升级需同时使用支持新能力的 Runtime 并重新安装 0.2.0 插件，原有密钥配置保留。
+升级需同时使用支持新能力的 Runtime 并重新安装 0.3.0 插件，原有密钥配置保留。
 网络权限仍由 OpenAgent 控制；切换 Langfuse 项目前请先处理待上传队列。
+同一分支与同一上下文阶段共用 session；压缩成功后创建新 session，并通过
+`previous_session_id` 关联前一阶段。续聊、重试、审批恢复和重启保持 session；
+分支和子会话独立归属。执行中压缩会拆成前后两条 trace，保留相同 execution ID。
 
 ## Verification
 
@@ -100,9 +108,12 @@ Reports stay under the system temporary directory.
 
 To qualify an actual project, provide `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`
 and `LANGFUSE_BASE_URL` only to the verifier process, then run
-`bun plugins/langfuse/scripts/verify-runtime.mjs --live`. This writes three fixture
+`bun plugins/langfuse/scripts/verify-runtime.mjs --live`. This writes nine fixture
 executions into that project: content opt-out, message capture enabled, and
-message capture revoked. It polls the observations API to verify Agent/generation/
+message capture revoked, failed/successful compaction, restoration, provider-limit
+recovery across two context traces, a fork, and switching back to the original branch.
+It reads trace sessions back, checks the previous-session link and polls
+the observations API to verify Agent/generation/
 tool hierarchy and the root's authored input/visible reply. If the deployment does
 not expose observations v2, select `--read-api=v1`. The production plugin still
 uses private settings bindings, never these ambient variables. The verifier

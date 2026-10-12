@@ -21,7 +21,8 @@ async function home() {
 const env = (extra = {}) => ({ PLUGIN_CONFIG_ENABLED: 'true', PLUGIN_CONFIG_PUBLIC_KEY: 'public-fixture', PLUGIN_CONFIG_SECRET_KEY: 'secret-fixture', ...extra });
 const config = (extra = {}) => configuration(env(extra));
 const event = (name, extra = {}) => ({ hook_event_name: name, cwd: '/must-not-export', event: {
-  conversation_id: 'conversation', branch_id: 'branch', execution_id: 'execution', turn: 1, ...extra,
+  conversation_id: 'conversation', branch_id: 'branch', execution_id: 'execution', turn: 1,
+  context_session: { version: 1, id: 'a'.repeat(64) }, ...extra,
 } });
 async function completed(data, conf = config(), execution = 'execution', phase = 'final_completed') {
   await record(event('SessionStart', { execution_id: execution }), conf, data, 100);
@@ -117,7 +118,7 @@ test('OTLP exports hierarchy, timestamps, session metadata and no unavailable mo
   for (const span of spans) {
     expect(span.traceId).toMatch(/^[a-f0-9]{32}$/);
     expect(span.spanId).toMatch(/^[a-f0-9]{16}$/);
-    expect(span.attributes.some(a => a.key === 'langfuse.session.id' && a.value.stringValue === 'conversation')).toBe(true);
+    expect(span.attributes.some(a => a.key === 'langfuse.session.id' && a.value.stringValue === 'a'.repeat(64))).toBe(true);
   }
   const raw = JSON.stringify(payload);
   expect(raw).not.toContain('usage_details');
@@ -202,6 +203,47 @@ test('execution IDs isolate approval resumes and branches even with identical co
   const payloads = (await states(data)).map(state => buildExport(state, conf));
   expect(new Set(payloads.map(p => p.resourceSpans[0].scopeSpans[0].spans[0].traceId)).size).toBe(2);
   expect((await status(data)).pending).toBe(2);
+  expect(new Set(payloads.map(p => p.resourceSpans[0].scopeSpans[0].spans[0].attributes.find(a => a.key === 'langfuse.session.id').value.stringValue)).size).toBe(1);
+});
+
+test('compaction splits one execution into linked traces with stable session propagation and retry', async () => {
+  const data = await home();
+  const conf = config();
+  const before = { version: 1, id: 'a'.repeat(64) };
+  const after = { version: 1, id: 'b'.repeat(64), previous_id: before.id, compaction_message_id: 'durable-boundary' };
+  await record(event('SessionStart', { context_session: before }), conf, data, 100);
+  await record(event('BeforeModel', { context_session: before }), conf, data, 110);
+  await record(event('AfterModel', { context_session: before }), conf, data, 120);
+  await record(event('BeforeModel', { context_session: after, turn: 2 }), conf, data, 130);
+  await record(event('AfterModel', { context_session: after, turn: 2 }), conf, data, 140);
+  await record(event('Stop', { context_session: after, phase: 'final_completed' }), conf, data, 150);
+  const payload = buildExport((await states(data))[0], conf);
+  expect(payload.resourceSpans.length).toBe(2);
+  const groups = payload.resourceSpans.map(resource => resource.scopeSpans[0].spans);
+  expect(groups[0][0].traceId).not.toBe(groups[1][0].traceId);
+  for (const [index, spans] of groups.entries()) {
+    expect(spans.every(span => span.traceId === spans[0].traceId)).toBe(true);
+    expect(spans.every(span => span.attributes.some(a => a.key === 'langfuse.session.id' && a.value.stringValue === [before, after][index].id))).toBe(true);
+    expect(spans.slice(1).every(span => span.parentSpanId === spans[0].spanId)).toBe(true);
+  }
+  expect(groups[1][0].attributes).toContainEqual({ key: 'langfuse.trace.metadata.previous_session_id', value: { stringValue: before.id } });
+  let rejected;
+  await flush(conf, data, async (_url, request) => { rejected = request.body; return new Response(null, { status: 503 }); });
+  await flush(conf, data, async (_url, request) => { expect(request.body).toBe(rejected); return Response.json({}); });
+});
+
+test('new hooks require durable context identities and old pending records keep their original IDs', async () => {
+  const data = await home();
+  await expect(record(event('SessionStart', { context_session: undefined }), config(), data)).rejects.toThrow('invalid_event');
+  await expect(record(event('SessionStart', { context_session: { version: 2, id: 'a'.repeat(64) } }), config(), data)).rejects.toThrow('invalid_event');
+  const old = { version: 1, events: [
+    { name: 'SessionStart', time: 100, event: { conversation_id: 'old', execution_id: 'pending', turn: 1 } },
+    { name: 'Stop', time: 110, event: { conversation_id: 'old', execution_id: 'pending', turn: 1, phase: 'final_completed' } },
+  ] };
+  const span = buildExport(old, config()).resourceSpans[0].scopeSpans[0].spans[0];
+  expect(span.traceId).toBe(stableId(['openagent', 'old', 'pending']));
+  expect(span.attributes).toContainEqual({ key: 'langfuse.session.id', value: { stringValue: 'old' } });
+  expect(span.attributes).toContainEqual({ key: 'langfuse.trace.metadata.context_identity', value: { stringValue: 'legacy_unknown' } });
 });
 
 test('child session association, cancellation and failure phases retain honest status', async () => {
@@ -211,7 +253,7 @@ test('child session association, cancellation and failure phases retain honest s
   await record(event('Stop', { phase: 'final_cancelled' }), conf, data, 110);
   const spans = buildExport((await states(data))[0], conf).resourceSpans[0].scopeSpans[0].spans;
   expect(spans[0].name).toBe('OpenAgent Subagent Execution');
-  expect(spans[0].attributes).toContainEqual({ key: 'langfuse.session.id', value: { stringValue: 'parent' } });
+  expect(spans[0].attributes).toContainEqual({ key: 'langfuse.session.id', value: { stringValue: 'a'.repeat(64) } });
   expect(spans[1].attributes).toContainEqual({ key: 'langfuse.observation.metadata.incomplete', value: { stringValue: 'true' } });
   await completed(data, conf, 'failed', 'final_failed');
   const failed = (await states(data)).find(state => state.events[0].event.execution_id === 'failed');

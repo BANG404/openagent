@@ -60,7 +60,13 @@ function sanitized(envelope, config, time) {
   if (!names.has(envelope.hook_event_name) || !event ||
     !['conversation_id', 'execution_id'].every(key => typeof event[key] === 'string' && event[key].length > 0 && event[key].length <= 256) ||
     !Number.isSafeInteger(event.turn) || event.turn < 0) throw new Error('invalid_event');
-  const selected = { conversation_id: event.conversation_id, execution_id: event.execution_id, turn: event.turn };
+  const session = event.context_session;
+  if (session?.version !== 1 || typeof session.id !== 'string' || !/^[a-f0-9]{64}$/.test(session.id) ||
+    session.previous_id !== undefined && (typeof session.previous_id !== 'string' || !/^[a-f0-9]{64}$/.test(session.previous_id))) throw new Error('invalid_event');
+  const selected = { conversation_id: event.conversation_id, execution_id: event.execution_id, turn: event.turn,
+    context_session: { version: 1, id: session.id,
+      ...(session.previous_id ? { previous_id: session.previous_id } : {}),
+      ...(typeof session.compaction_message_id === 'string' ? { compaction_message_id: session.compaction_message_id.slice(0, 256) } : {}) } };
   for (const key of ['branch_id', 'parent_conv_id', 'role_id', 'phase', 'tool_name', 'tool_use_id']) {
     if (typeof event[key] === 'string') selected[key] = event[key].slice(0, 256);
   }
@@ -112,7 +118,7 @@ export async function record(envelope, config, data, time = Date.now()) {
       }
       state = { version: 1, events: [], captureContent: config.captureContent, captureMessages: config.captureMessages };
     }
-    const identity = entry => JSON.stringify([entry.name, entry.event.turn, entry.event.tool_use_id]);
+    const identity = entry => JSON.stringify([entry.name, entry.event.turn, entry.event.tool_use_id, entry.event.context_session?.id]);
     if (!state.captureMessages) delete item.observation;
     if (state.events.some(entry => identity(entry) === identity(item))) return { duplicate: true };
     if (item.name === 'Stop') {
@@ -142,7 +148,8 @@ export async function flush(config, data, fetcher = fetch) {
       try {
         await upload(buildExport(state, config), config, fetcher);
         // Compact receipts retain deduplication without retaining captured content.
-        const receipt = { ...state.events[0], event: { conversation_id: state.events[0].event.conversation_id, execution_id: state.events[0].event.execution_id } };
+        const receipt = { ...state.events[0], event: { conversation_id: state.events[0].event.conversation_id, execution_id: state.events[0].event.execution_id,
+          ...(state.events.at(-1).event.context_session ? { context_session: state.events.at(-1).event.context_session } : {}) } };
         await locked(dir, 'store', () => save(file, { version: 1, events: [receipt], delivered: true, complete: true }));
         uploaded++;
       } catch (error) { return { uploaded, error: errorCode(error) }; }

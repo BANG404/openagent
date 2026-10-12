@@ -49,7 +49,8 @@ When the pinned source version has no published archive, use its published Git
 repository as `source_url` and omit the archive digest. Do not advertise an older
 release archive under a newer catalog version. Replace the Git source with the
 verified archive URL and digest when that version is released.
-Plugin Kit 1.10.0 defines the explicit conversation-observation declaration.
+Plugin Kit 1.11.0 defines explicit conversation observations and content-free
+context session identity.
 Its catalog source follows published Git while the immutable package archive is
 unreleased; Langfuse remains a local candidate outside this catalog.
 

@@ -32,6 +32,8 @@ await writeFile(path.join(workspace, 'legacy-hook.mjs'), `import {appendFileSync
 const payloads = [];
 let reject = true;
 let modelCalls = 0;
+let rejectCompaction = false;
+let contextRejected = false;
 const ingestion = Bun.serve({ hostname: '127.0.0.1', port: 0, async fetch(request) {
   assert.equal(request.headers.get('authorization'), `Basic ${Buffer.from('public-fixture:secret-fixture').toString('base64')}`);
   payloads.push(await request.json());
@@ -45,7 +47,13 @@ const model = Bun.serve({ hostname: '127.0.0.1', port: 0, async fetch(request) {
   const hasToolResult = messages.slice(lastUser + 1).some(message => message.role === 'tool');
   const message = { role: 'assistant', content: 'Langfuse runtime fixture completed.' };
   const tool = body.tools?.find(tool => tool.function.name === 'exec_command');
-  if (tool && !hasToolResult && JSON.stringify(messages[lastUser]).includes('Run the telemetry fixture')) {
+  if (JSON.stringify(messages).includes('Return the summary directly as Markdown')) {
+    if (rejectCompaction) return new Response(JSON.stringify({ error: 'fixture compaction rejected' }), { status: 400 });
+    message.content = '## Current progress\n- Fixture completed.\n\n## Key decisions\n- Preserve context stages.\n\n## Constraints and user preferences\n- Synthetic data only.\n\n## Next steps\n- Verify session.';
+  } else if (!contextRejected && JSON.stringify(messages[lastUser]).includes('Recover context limit fixture')) {
+    contextRejected = true;
+    return new Response(JSON.stringify({ error: 'Context size has been exceeded.' }), { status: 400 });
+  } else if (tool && !hasToolResult && JSON.stringify(messages[lastUser]).includes('Run the telemetry fixture')) {
     message.content = '';
     message.tool_calls = [{ function: { name: tool.function.name, arguments: { cmd: 'Write-Output langfuse-runtime-fixture' } } }];
   }
@@ -78,12 +86,15 @@ try {
       config.defaults.chat_model = config.defaults.flash_model = { provider_id: 'langfuse-fixture', model: 'fixture-model' };
       config.approval_mode = 'off';
       config.memory_retrieval_enabled = false;
+      config.model_retry.retry_count = 0;
+      config.context_compaction_enabled = true;
       config.automation_hooks.push({ id: 'legacy-observation-fixture', name: 'Ordinary hook fixture', enabled: true, event: 'stop', matcher: '*', timeout_secs: 10, action: { type: 'command', command: 'node legacy-hook.mjs' } });
       for (const agent of Object.values(config.flash_agents)) if (agent && typeof agent === 'object') agent.enabled = false;
       await operation('save_settings', { config });
       const convId = randomUUID();
       await operation('create_conversation', { id: convId, title: 'Langfuse qualification', workspace });
-      await operation('create_branch', { id: randomUUID(), convId });
+      const branchId = randomUUID();
+      await operation('create_branch', { id: branchId, convId });
       async function submit(text) {
         let accepted;
         await until(async () => {
@@ -108,6 +119,109 @@ try {
         const names = await readdir(data).catch(() => []);
         return Promise.all(names.filter(name => name.endsWith('.json')).map(async name => JSON.parse(await readFile(path.join(data, name), 'utf8'))));
       }
+      async function sessionCaptureChecks() {
+        async function restoreCurrent() {
+          const checkpointId = await operation('get_active_branch_tip', { convId });
+          assert(checkpointId, 'restoration requires the selected checkpoint');
+          await operation('restore_agent_history', { convId, checkpointId });
+        }
+        async function turn(text, start = () => submit(text)) {
+          const before = new Set((await records()).map(record => record.events[0].event.execution_id));
+          await until(async () => {
+            try { await start(); return true; }
+            catch (error) { if (!/already active|while a chat run is active/i.test(error.message)) throw error; return false; }
+          });
+          let receipt;
+          await until(async () => {
+            receipt = (await records()).find(record => record.delivered && !before.has(record.events[0].event.execution_id));
+            return !!receipt;
+          });
+          // Stop upload precedes terminal branch-head publication and guard release.
+          // Wait for the real restore boundary before reading a fork source.
+          await until(async () => {
+            try { await restoreCurrent(); return true; }
+            catch (error) { if (!error.message.includes('while a chat run is active')) throw error; return false; }
+          });
+          const execution = receipt.events[0].event;
+          const traceId = stableId(['openagent', execution.conversation_id, execution.execution_id, execution.context_session.id]);
+          if (live) {
+            await until(async () => {
+              const result = await liveGet(`/api/public/traces/${traceId}`).catch(() => null);
+              if (!result) return false;
+              assert.equal(result.sessionId, execution.context_session.id, 'server session matches Runtime identity');
+              if (execution.context_session.previous_id) assert.equal(result.metadata.previous_session_id, execution.context_session.previous_id, 'server retains previous session link');
+              return true;
+            });
+          } else {
+            const payload = payloads.find(payload => payload.resourceSpans.some(resource => resource.scopeSpans[0].spans[0].traceId === traceId));
+            assert(payload, 'session trace uploaded');
+            for (const resource of payload.resourceSpans) {
+              const spans = resource.scopeSpans[0].spans;
+              const id = spans[0].attributes.find(attribute => attribute.key === 'langfuse.session.id').value.stringValue;
+              assert(spans.every(span => span.attributes.some(attribute => attribute.key === 'langfuse.session.id' && attribute.value.stringValue === id)), 'stage session propagated to every observation');
+            }
+          }
+          return { trace_id: traceId, session: execution.context_session };
+        }
+        const original = (await records())[0].events[0].event.context_session;
+        assert((await records()).every(record => record.events[0].event.context_session.id === original.id), 'ordinary turns keep one session');
+        rejectCompaction = true;
+        try { await submit('/compact'); assert.fail('failed compaction must reject'); }
+        catch (error) { assert(!error.message.includes('failed compaction must reject'), 'failed compaction must reject'); }
+        finally { rejectCompaction = false; }
+        const failed = await turn('Continue after failed compaction fixture');
+        assert.equal(failed.session.id, original.id, 'failed compaction does not advance session');
+        await submit('/compact');
+        const compacted = await turn('After successful context compaction fixture');
+        assert.notEqual(compacted.session.id, original.id, 'successful manual compaction starts new session');
+        assert.equal(compacted.session.previous_id, original.id, 'compaction links previous session');
+        await until(async () => {
+          try { await restoreCurrent(); return true; }
+          catch (error) { if (!error.message.includes('while a chat run is active')) throw error; return false; }
+        });
+        const restored = await turn('Restored same context fixture');
+        assert.equal(restored.session.id, compacted.session.id, 'restoration retains session');
+        const recovered = await turn('Recover context limit fixture');
+        assert(contextRejected, 'provider context-limit recovery exercised');
+        assert.notEqual(recovered.session.id, restored.session.id, 'in-flight recovery compaction advances session');
+        assert.equal(recovered.session.previous_id, restored.session.id, 'in-flight recovery links previous session');
+        const recoveryRecord = (await records()).find(record => record.events[0].event.context_session.id === recovered.session.id);
+        const recoveryExecution = recoveryRecord.events[0].event;
+        const beforeRecoveryTrace = stableId(['openagent', convId, recoveryExecution.execution_id, restored.session.id]);
+        if (live) {
+          const prior = await liveGet(`/api/public/traces/${beforeRecoveryTrace}`);
+          assert.equal(prior.sessionId, restored.session.id, 'pre-compaction segment keeps previous session');
+          assert.equal(prior.metadata.execution_id, recoveryExecution.execution_id, 'both stage traces retain execution identity');
+        } else {
+          const payload = payloads.find(payload => payload.resourceSpans.some(resource => resource.scopeSpans[0].spans[0].traceId === beforeRecoveryTrace));
+          assert.equal(payload.resourceSpans.length, 2, 'one recovery execution exports two context traces');
+        }
+        const beforeFork = await operation('get_branches', { convId });
+        const current = beforeFork.find(branch => branch.id === branchId);
+        const checkpoints = await operation('get_renderable_checkpoints', { convId });
+        const head = checkpoints.find(checkpoint => checkpoint.meta.checkpoint_id === current.head_checkpoint_id);
+        const user = head.data.messages.findLast(message => message.role === 'user' && !(message.tags ?? []).length);
+        const lineage = [];
+        let cursor = head;
+        while (cursor) {
+          lineage.push(cursor);
+          cursor = checkpoints.find(checkpoint => checkpoint.meta.checkpoint_id === cursor.meta.parent_checkpoint_id);
+        }
+        const firstWithUser = lineage.reverse().find(checkpoint => checkpoint.data.messages.some(message => message.id === user.id));
+        const fork = await turn('Independent branch session fixture', () => request(`/api/conversations/${convId}/fork-runs`, {
+          text: 'Independent branch session fixture', source_checkpoint_id: current.head_checkpoint_id,
+          parent_checkpoint_id: firstWithUser.meta.parent_checkpoint_id, forked_from_message_id: user.id,
+          user_message_id: randomUUID(), assistant_message_id: randomUUID(), attachments: [], contexts: [],
+          model_binding: { providerId: 'langfuse-fixture', model: 'fixture-model' },
+        }));
+        assert.notEqual(fork.session.id, recovered.session.id, 'fork has independent session');
+        await operation('set_active_branch_tip', { convId, checkpointId: current.head_checkpoint_id });
+        const switched = await turn('Back to original branch fixture');
+        assert.equal(switched.session.id, recovered.session.id, 'switching back resumes the original branch context session');
+        return { kind: 'runtime_branch_compaction_restore_sessions', passed: true, conversation_id: convId,
+          original_session_id: original.id, compacted_session_id: compacted.session.id, recovered_session_id: recovered.session.id,
+          fork_session_id: fork.session.id, trace_id: compacted.trace_id, recovery_trace_id: recovered.trace_id };
+      }
       async function messageCaptureChecks() {
         async function captureTurn(capture, text) {
           const before = new Set((await records()).map(record => record.events[0].event.execution_id));
@@ -120,7 +234,7 @@ try {
             return !!receipt;
           });
           const execution = receipt.events[0].event;
-          const traceId = stableId(['openagent', execution.conversation_id, execution.execution_id]);
+          const traceId = stableId(['openagent', execution.conversation_id, execution.execution_id, execution.context_session.id]);
           if (live) {
             const deadline = Date.now() + 90000;
             let observations;
@@ -167,7 +281,7 @@ try {
         await until(async () => (await records()).some(record => record.delivered));
         const receipt = (await records()).find(record => record.delivered);
         const execution = receipt.events[0].event;
-        const traceId = stableId(['openagent', execution.conversation_id, execution.execution_id]);
+        const traceId = stableId(['openagent', execution.conversation_id, execution.execution_id, execution.context_session.id]);
         let observations;
         const from = new Date(Date.now() - 300000).toISOString();
         const deadline = Date.now() + 90000;
@@ -186,14 +300,15 @@ try {
         assert(observations.filter(item => item.type !== 'AGENT').every(item => item.parentObservationId === agent.id), 'readback span hierarchy');
         assert(observations.every(item => item.input == null && item.output == null), 'tool content stays disabled');
         const messageCheck = await messageCaptureChecks();
+        const sessionCheck = await sessionCaptureChecks();
         const current = await operation('get_agent_plugin_configuration', { plugin_id: 'langfuse' });
         await operation('save_agent_plugin_configuration', { plugin_id: 'langfuse', revision: current.revision, values: { enabled: false } });
         await submit('Telemetry disabled fixture');
         await new Promise(resolve => setTimeout(resolve, 1000));
-        assert.equal((await records()).length, 3, 'disabled hooks create no telemetry');
+        assert.equal((await records()).length, 9, 'disabled hooks create no telemetry');
         return [{ kind: 'authenticated_project', passed: true }, { kind: 'live_runtime_trace_readback', passed: true,
           trace_id: traceId, observations: observations.length, types: observations.map(item => item.type), model_calls: modelCalls, read_api: readApi },
-          { kind: 'live_secret_redaction_content_optout_and_disable', passed: true }, messageCheck];
+          { kind: 'live_secret_redaction_content_optout_and_disable', passed: true }, messageCheck, sessionCheck];
       }
       await until(async () => payloads.length > 0 && (await records()).some(record => record.complete));
       assert((await records()).some(record => record.complete && !record.delivered), 'failed upload remains queued');
@@ -210,6 +325,7 @@ try {
         return completed.length >= 2 && completed.every(record => record.delivered);
       });
       const messageCheck = await messageCaptureChecks();
+      const sessionCheck = await sessionCaptureChecks();
       const beforeDisable = payloads.length;
       const current = await operation('get_agent_plugin_configuration', { plugin_id: 'langfuse' });
       await operation('save_agent_plugin_configuration', { plugin_id: 'langfuse', revision: current.revision, values: { enabled: false } });
@@ -217,7 +333,7 @@ try {
       await new Promise(resolve => setTimeout(resolve, 1000));
       assert.equal(payloads.length, beforeDisable, 'disabled upload sends nothing');
       return [{ kind: 'configuration_secret_redaction', passed: true }, { kind: 'real_agent_model_and_tool_hooks', passed: true, model_calls: modelCalls, spans: spans.length },
-        { kind: 'failed_upload_retry_and_disable', passed: true }, messageCheck];
+        { kind: 'failed_upload_retry_and_disable', passed: true }, messageCheck, sessionCheck];
     },
   });
   if (live) {

@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "langfuse",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Execution and tool observability through Langfuse OTLP.",
   "license": "MIT",
   "keywords": [
@@ -21,7 +21,8 @@
         "features": [
           "configuration-v1",
           "integration-v1",
-          "conversation-observations-v1"
+          "conversation-observations-v1",
+          "context-sessions-v1"
         ]
       },
       "capabilities": [

@@ -23,8 +23,13 @@ for self-hosted services. HTTP sends project authentication without encryption;
 private hostnames and all public addresses still require HTTPS. Redirects stay
 disabled, including redirects from a private endpoint to a public service.
 
-Each execution ID maps to a deterministic trace, grouped by conversation session.
-Branch IDs and child parent/role IDs are metadata. Stop exports completed,
+Require `context-sessions-v1`. Each conversation/branch/durable context stage is
+one session; successful compaction starts a new session linked by
+`previous_session_id`. Normal turns, retries, approval resumes and restart retain
+the ID. Child conversations stay independent, with parent/role IDs in metadata.
+An execution crossing compaction exports separate deterministic traces per stage.
+Old pending records without context identity retain their original trace/session
+IDs and declare `legacy_unknown`; they are not enriched retroactively. Stop exports completed,
 failed, cancelled and interrupted executions without waking the Agent. Model and
 tool hook pairs establish timing; unfinished pairs are marked incomplete.
 Queued content is bounded, receipts compacted only after complete OTLP acceptance,

@@ -3,6 +3,9 @@
 This unpublished local package owns external observability configuration,
 public hook collection, OTLP conversion and bounded pending telemetry.
 Use the host's `openagent-plugin-development` and `deliver-via-owt` skills.
+Session ownership uses Runtime `context-sessions-v1`, including the selected
+branch and durable compaction stage. Never infer it from hook counts, prompts,
+timestamps or parent conversation IDs. Split an execution at context boundaries.
 Never extend internal SDK telemetry access implicitly. Do not add this candidate
 to published source/release indices before an independent repository is authorized.
 
