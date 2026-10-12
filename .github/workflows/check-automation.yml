@@ -6,6 +6,9 @@ on:
       base_sha:
         type: string
         default: ""
+      full:
+        type: boolean
+        default: false
     secrets:
       OPENAGENT_CI_REPORTER_PRIVATE_KEY:
         required: false
@@ -101,21 +104,11 @@ jobs:
         run: bun run format:check
 
       - name: Test automation policy and release logic
-        run: >-
-          bun test
-          tests/ciChanges.test.js
-          tests/ciReuse.test.js
-          tests/ciResults.test.js
-          tests/docsSync.test.js
-          tests/privateSdkDiagnostic.test.js
-          tests/releaseCi.test.js
-          tests/releaseVersion.test.js
-          scripts/prepare-worktree.test.mjs
-          scripts/release-candidate-artifacts.test.mjs
-          scripts/release-workflow.test.mjs
-          scripts/plugin-release.test.mjs
-          scripts/plugin-release-index.test.mjs
-          scripts/publish-plugin-release-index.test.mjs
+        env:
+          TEST_BASE_SHA: ${{ inputs.base_sha }}
+          TEST_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+          TEST_FULL: ${{ inputs.full }}
+        run: bun scripts/run-selected-tests.mjs --scope automation
 
       - name: Verify generated release metadata
         shell: bash

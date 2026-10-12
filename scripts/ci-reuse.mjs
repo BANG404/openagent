@@ -110,6 +110,11 @@ export function selectCiModules(requested, reusable, full) {
       if (name === "nativePlatform" && !full) {
         return [name, false];
       }
+      // These tests now depend on the base-to-head delta. A successful tree
+      // status alone cannot prove coverage for a different baseline.
+      if (name === "automation" || (name === "frontend" && !full)) {
+        return [name, requested[name] === true];
+      }
       return [name, requested[name] === true && reusable[name] !== true];
     }),
   );
@@ -122,6 +127,7 @@ export function selectCiModules(requested, reusable, full) {
 export function reusableCapabilitiesFromStatuses(statuses, full) {
   const reusable = emptyCapabilities();
   for (const capability of CI_CAPABILITIES) {
+    if (capability === "automation" || (capability === "frontend" && !full)) continue;
     if (capability === "nativePlatform" && !full) {
       continue;
     }
@@ -374,7 +380,9 @@ function selectCommand() {
     ]),
   );
   const selected = selectCiModules(requested, reusable, process.env.CI_FULL === "true");
-  const reused = CI_CAPABILITIES.filter((name) => requested[name] && reusable[name]);
+  const reused = CI_CAPABILITIES.filter(
+    (name) => requested[name] && reusable[name] && !selected[name],
+  );
   writeOutputs({ ...selected, reused: reused.join(",") });
 }
 

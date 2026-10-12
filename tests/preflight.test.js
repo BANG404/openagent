@@ -58,6 +58,22 @@ describe("local preflight plan", () => {
     expect(commandIds({ frontend: true })).toContain("test-types");
   });
 
+  test("shares affected-test selection with CI and preserves explicit full qualification", () => {
+    const affected = buildPreflightCommands({ ...nothing, frontend: true }, { base: "abc123" });
+    expect(affected.find(({ id }) => id === "frontend-tests").args).toEqual([
+      "scripts/run-selected-tests.mjs",
+      "--scope",
+      "frontend",
+      "--base",
+      "abc123",
+    ]);
+    const full = buildPreflightCommands(
+      { ...nothing, automation: true },
+      { base: "abc123", full: true },
+    );
+    expect(full.find(({ id }) => id === "automation-tests").args).toContain("--all");
+  });
+
   test("deduplicates shared checks when automation and frontend are selected", () => {
     expect(commandIds({ automation: true, frontend: true })).toEqual([
       "skill-contract",

@@ -62,7 +62,7 @@ describe("verified CI tree reuse", () => {
       embedding: true,
     };
     expect(selectCiModules(requested, { ...requested, frontend: false }, false)).toEqual({
-      automation: false,
+      automation: true,
       frontend: true,
       nativeQuality: false,
       nativePlatform: false,
@@ -72,7 +72,7 @@ describe("verified CI tree reuse", () => {
 
   test("never lets fast statuses satisfy full-only capabilities", () => {
     expect(reusableCapabilitiesFromStatuses(successfulFastStatuses(), true)).toEqual({
-      automation: true,
+      automation: false,
       frontend: false,
       nativeQuality: false,
       nativePlatform: false,
@@ -99,8 +99,8 @@ describe("verified CI tree reuse", () => {
     expect(result.sourceSha).toBe(targetSha);
     expect(result.sourceTree).toBe(tree);
     expect(result.reusable).toEqual({
-      automation: true,
-      frontend: true,
+      automation: false,
+      frontend: false,
       nativeQuality: true,
       nativePlatform: false,
       embedding: true,
@@ -181,5 +181,14 @@ describe("verified CI tree reuse", () => {
     });
 
     expect(Object.values(result.reusable).some(Boolean)).toBe(false);
+  });
+
+  test("tree-only statuses cannot skip baseline-dependent JavaScript test selections", () => {
+    const requested = { automation: true, frontend: true };
+    expect(selectCiModules(requested, requested, false)).toMatchObject(requested);
+    expect(reusableCapabilitiesFromStatuses(successfulFastStatuses(), false)).toMatchObject({
+      automation: false,
+      frontend: false,
+    });
   });
 });
