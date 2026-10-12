@@ -42,9 +42,12 @@ project, and enabled plugin skills. Models inspect candidate SKILL.md metadata
 and instructions progressively. Categories are not required or generated.
 
 Product-bundled skills are owned and seeded by the SDK bootstrap into the global
-skill directory, preserving existing user instructions. Terminal utility setup
-is task-driven skill guidance, not unconditional binary installation or a
-replacement for file creation/editing tools. Bundled skills retain ordinary
+skill directory, preserving existing user instructions. The fixed terminal
+command conventions apply independently of skill discovery and role filtering;
+the contextual terminal declaration identifies the workspace's default shell
+and measured version. Utility setup remains task-driven skill guidance, not
+unconditional binary installation or a replacement for file creation/editing
+tools. Bundled skills retain ordinary
 role association and discovery rules; host routing skills do not install them.
 
 ## Change and verification contract

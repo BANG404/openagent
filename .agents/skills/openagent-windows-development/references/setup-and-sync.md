@@ -63,6 +63,23 @@ The runtime also bounds and incrementally drains terminal output, so high-output
 commands such as `cargo check` do not accumulate unbounded foreground output or
 repeatedly copy a full background output buffer.
 
+## Memory during local verification
+
+Distinguish linker allocation failures from Bun's `spawnSync` errors. Inspect
+available physical and committed memory plus the largest processes; the text
+`Out of memory` alone does not establish that physical RAM is exhausted.
+Stabilize a failing case in isolation before rerunning full qualification.
+Avoid overlapping full verification with development Runtime rebuilds.
+
+For a memory-constrained local preflight, set `CARGO_BUILD_JOBS=1` and
+`BUN_OPTIONS=--smol` only in the verification process environment. The former
+serializes Cargo jobs; Bun's supported `--smol` flag uses a smaller JavaScript
+heap and more frequent garbage collection. Confirm the installed Bun accepts
+it (`bun --help`); `process.execArgv` can confirm `BUN_OPTIONS` reaches child
+Bun invocations. Keep the complete test set and timeout unchanged. These are
+local verification settings, not product Runtime defaults or global machine
+changes, and they do not replace investigating a persistent failure.
+
 ## Syncing commits from WSL
 
 The post-commit hook tests prefer the installed `bash.exe` on PATH, with the
