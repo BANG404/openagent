@@ -34,7 +34,12 @@
 - `scripts/check-update-data-compatibility.mjs` uses task-owned temporary homes
   and a loopback model fixture without external model credentials. It creates
   nonempty conversation checkpoints, a branch tip, pinned metadata, an attachment,
-  settings and user memory through product APIs. Candidate bootstrap must be
+  settings and user memory through product APIs.
+  The fixture resolves its workspace's real path before launch and settings;
+  HTTP workspace-scoped creation uses that same path spelling. Windows runner
+  casing and macOS temporary-directory symlinks must not create two different
+  workspace scopes. Baseline startup must expose the fixture conversation before
+  taking its snapshot or starting the upgrade. Candidate bootstrap must be
   ready without a destructive transition; the first start and a second restart
   must expose the existing values and records, including startup's conversation
   list. Additive object fields are allowed, dropped or changed existing values

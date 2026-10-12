@@ -1,7 +1,17 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { chmod, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  cp,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  realpath,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -248,11 +258,14 @@ async function assertNoReset(home) {
 export async function checkUpdateDataCompatibility({ baselineBinary, candidateBinary }) {
   const fixture = await mkdtemp(path.join(tmpdir(), "openagent-update-data-"));
   const home = path.join(fixture, "home");
-  const workspace = path.join(fixture, "workspace");
+  const workspaceDirectory = path.join(fixture, "workspace");
   const model = await startModelFixture();
   try {
     await mkdir(home);
-    await mkdir(workspace);
+    await mkdir(workspaceDirectory);
+    // HTTP workspace-scoped creation resolves real paths. Use that same spelling
+    // for launch/configuration so runner temp aliases do not invalidate the baseline.
+    const workspace = await realpath(workspaceDirectory);
     inspectHome(baselineBinary, home);
     const baseline = await startRuntime(baselineBinary, home, workspace);
     let expected;
@@ -323,6 +336,11 @@ export async function checkUpdateDataCompatibility({ baselineBinary, candidateBi
         assert(Date.now() < deadline, "Baseline did not persist a complete conversation");
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
+      const bootstrap = await baseline.request("/api/desktop/bootstrap");
+      assert(
+        bootstrap.conversations.some((conversation) => conversation.id === id),
+        "Baseline startup omitted the fixture conversation",
+      );
       expected = await snapshot(baseline, id, locator);
       assert(expected.history.checkpoints.length > 0, "Empty history cannot qualify compatibility");
       assert.equal(expected.memory, MEMORY_TEXT);
