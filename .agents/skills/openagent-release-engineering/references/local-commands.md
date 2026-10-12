@@ -1,9 +1,14 @@
 # Local development and release commands
 
-Use Bun 1.2.21, matching `package.json` and CI, plus Node.js for scripts that
+Use Bun 1.3.14, matching `package.json` and CI, plus Node.js for scripts that
 invoke `node`. Native builds use a current stable Rust toolchain and the
 platform's Tauri dependencies. Complete source preparation requires access to
 the pinned private SDK and the public plugin submodules.
+Keep every workflow's Bun setup and the README prerequisites aligned with
+`package.json`. Preflight checks the actual Bun version before launching any
+checks and rejects mismatches with an upgrade instruction. Bun 1.3.14 is the
+qualified Windows runner for the bounded Bash publication tests; older 1.2.x
+runners can fail in `spawnSync` with an apparent allocation error.
 
 ## Prepare and run
 

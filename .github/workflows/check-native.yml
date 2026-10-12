@@ -177,7 +177,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         if: runner.os == 'Windows'
         with:
-          bun-version: 1.2.21
+          bun-version: 1.3.14
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -310,7 +310,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.2.21
+          bun-version: 1.3.14
 
       - name: Verify bundled embedding resources
         run: bun run check:embedding-model
@@ -365,7 +365,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.2.21
+          bun-version: 1.3.14
 
       - name: Materialize Runtime sidecar for Tauri macros
         run: node scripts/prepare-runtime-server.mjs --placeholder

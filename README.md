@@ -117,7 +117,7 @@ Local host and Runtime logs live in `<OPENAGENT_HOME>/logs`, with up to 15 files
 
 ### Public frontend development (no private SDK access)
 
-Install Bun **1.2.21** and Node.js; native debugging also requires Rust and your
+Install Bun **1.3.14** and Node.js; native debugging also requires Rust and your
 platform's Tauri build dependencies. Choose a source tag with a published kit:
 
 ```bash

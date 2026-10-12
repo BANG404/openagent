@@ -1,6 +1,16 @@
 // @ts-nocheck -- legacy fixture typing is tracked separately from the strict test surface.
 import { describe, expect, test } from "bun:test";
-import { buildPreflightCommands, selectPreflightBase } from "../scripts/preflight.mjs";
+import {
+  buildPreflightCommands,
+  selectPreflightBase,
+  verifyBunVersion,
+} from "../scripts/preflight.mjs";
+
+test("preflight rejects an old or absent Bun runtime before launching checks", () => {
+  expect(() => verifyBunVersion("1.2.21", "1.3.14")).toThrow("Bun 1.3.14 is required");
+  expect(() => verifyBunVersion(undefined, "1.3.14")).toThrow("not Bun");
+  expect(() => verifyBunVersion("1.3.14", "1.3.14")).not.toThrow();
+});
 
 const nothing = {
   automation: false,

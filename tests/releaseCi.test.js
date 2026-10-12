@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { TOML } from "bun";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
@@ -137,6 +137,23 @@ const privateRunnerEnvironment = readText(
   new URL("../scripts/ci/self-hosted-runner/.env.example", import.meta.url),
 );
 describe("release CI verification", () => {
+  test("every workflow uses the Bun version declared in package.json", () => {
+    const manifest = JSON.parse(readText(new URL("../package.json", import.meta.url)));
+    const version = manifest.packageManager.replace(/^bun@/, "");
+    const directory = new URL("../.github/workflows/", import.meta.url);
+    for (const name of readdirSync(directory).filter((name) => name.endsWith(".yml"))) {
+      const workflow = readText(new URL(name, directory));
+      for (const [, configured] of workflow.matchAll(/^\s+bun-version:\s*(.+)$/gm)) {
+        const value = configured.trim();
+        if (value === "${{ env.BUN_VERSION }}") {
+          expect(workflow).toContain(`  BUN_VERSION: ${version}\n`);
+        } else {
+          expect(value).toBe(version);
+        }
+      }
+    }
+  });
+
   test("prepares Bun and preserves embedding retries under Bash errexit", () => {
     const embeddingJob = nativeWorkflow
       .split("  embedding-platform:\n")[1]
@@ -145,7 +162,7 @@ describe("release CI verification", () => {
     const exercise = embeddingJob.indexOf("name: Exercise bundled embedding model");
     expect(setup).toBeGreaterThan(-1);
     expect(setup).toBeLessThan(exercise);
-    expect(embeddingJob).toContain("bun-version: 1.2.21");
+    expect(embeddingJob).toContain("bun-version: 1.3.14");
     const retryScript = embeddingJob
       .slice(exercise)
       .split("        run: |\n")[1]

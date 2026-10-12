@@ -117,7 +117,7 @@ OpenAgent 提供 Beta、RC 与 Stable 更新频道。前端、受监督的 Runti
 
 ### 公开前端开发（无需私有 SDK 权限）
 
-需要 Bun **1.2.21** 与 Node.js；原生调试另需 Rust 和对应平台的 Tauri 构建依赖。
+需要 Bun **1.3.14** 与 Node.js；原生调试另需 Rust 和对应平台的 Tauri 构建依赖。
 选择已有公开开发包的源码标签，不要递归克隆私有子模块：
 
 ```bash

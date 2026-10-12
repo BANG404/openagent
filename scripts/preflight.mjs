@@ -1,9 +1,19 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
+import { readFileSync } from "node:fs";
 
 import { classifyChangedModules } from "./ci-changes.mjs";
 import { documentationSyncErrors } from "./check-docs-sync.mjs";
+
+/** @param {string|undefined} actual @param {string} expected */
+export function verifyBunVersion(actual, expected) {
+  if (actual !== expected) {
+    throw new Error(
+      `Bun ${expected} is required by package.json; current runtime is ${actual ?? "not Bun"}. Install the pinned Bun version before running preflight.`,
+    );
+  }
+}
 
 const AUTOMATION_TESTS = [
   "tests/ciChanges.test.js",
@@ -180,6 +190,8 @@ function parseArguments() {
 }
 
 function main() {
+  const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  verifyBunVersion(process.versions.bun, manifest.packageManager.replace(/^bun@/, ""));
   const { baseRef, dryRun, all } = parseArguments();
   const { baseSha, files } = collectPreflightChanges(baseRef);
   const modules = classifyChangedModules(files, all);
