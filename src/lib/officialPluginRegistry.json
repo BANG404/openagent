@@ -477,46 +477,6 @@
       "sha256": "sha256:2a0c0da8e85ccd52ba83604066cec10db722055d32c21197a9dac5a3d4c48d04"
     },
     {
-      "id": "discord",
-      "category": "communication",
-      "display_name": "discord",
-      "description": "Discord messaging connected to OpenAgent conversations.",
-      "version": "0.2.1",
-      "repository": "https://github.com/BANG404/openagent-discord",
-      "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/discord",
-      "source_url": "https://github.com/BANG404/openagent-discord",
-      "i18n": {
-        "supported_locales": ["en", "zh"],
-        "default_locale": "en",
-        "translations": {
-          "en": {
-            "display_name": "discord",
-            "description": "Discord messaging connected to OpenAgent conversations.",
-            "commands.setup.label": "Setup",
-            "commands.setup.description": "Review connection prerequisites",
-            "commands.start.label": "Start channel",
-            "commands.start.description": "Bind this channel to the desktop owner",
-            "commands.access.label": "Access policy",
-            "commands.access.description": "Inspect or change pairing and allowed senders",
-            "configuration.token.label": "Bot token",
-            "configuration.token.description": "Saved privately for this plugin. Leave the password field blank to keep its saved value."
-          },
-          "zh": {
-            "display_name": "discord",
-            "description": "将 Discord 消息连接到 OpenAgent 会话。",
-            "commands.setup.label": "配置",
-            "commands.setup.description": "查看连接要求",
-            "commands.start.label": "启动通道",
-            "commands.start.description": "将通道绑定到本机管理会话",
-            "commands.access.label": "访问策略",
-            "commands.access.description": "查看或调整配对和允许发送者",
-            "configuration.token.label": "访问令牌",
-            "configuration.token.description": "此插件的密钥私有保存；密码框留空表示保留已保存的密钥。"
-          }
-        }
-      }
-    },
-    {
       "id": "fakechat",
       "category": "communication",
       "display_name": "fakechat",
@@ -814,47 +774,6 @@
         }
       },
       "sha256": "sha256:9c7e7e057aed6407d0472d51b374905e9fd0437ec1b8668450fb212c4224ff3f"
-    },
-    {
-      "id": "telegram",
-      "category": "communication",
-      "display_name": "telegram",
-      "description": "Telegram messaging connected to OpenAgent conversations.",
-      "version": "0.2.0",
-      "repository": "https://github.com/BANG404/openagent-telegram",
-      "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/telegram",
-      "source_url": "https://github.com/BANG404/openagent-telegram/releases/download/v0.2.0/telegram-0.2.0.zip",
-      "i18n": {
-        "supported_locales": ["en", "zh"],
-        "default_locale": "en",
-        "translations": {
-          "en": {
-            "display_name": "telegram",
-            "description": "Telegram messaging connected to OpenAgent conversations.",
-            "commands.setup.label": "Setup",
-            "commands.setup.description": "Review connection prerequisites",
-            "commands.start.label": "Start channel",
-            "commands.start.description": "Bind this channel to the desktop owner",
-            "commands.access.label": "Access policy",
-            "commands.access.description": "Inspect or change pairing and allowed senders",
-            "configuration.token.label": "Bot token",
-            "configuration.token.description": "Saved privately for this plugin. Leave the password field blank to keep its saved value."
-          },
-          "zh": {
-            "display_name": "telegram",
-            "description": "将 Telegram 消息连接到 OpenAgent 会话。",
-            "commands.setup.label": "配置",
-            "commands.setup.description": "查看连接要求",
-            "commands.start.label": "启动通道",
-            "commands.start.description": "将通道绑定到本机管理会话",
-            "commands.access.label": "访问策略",
-            "commands.access.description": "查看或调整配对和允许发送者",
-            "configuration.token.label": "访问令牌",
-            "configuration.token.description": "此插件的密钥私有保存；密码框留空表示保留已保存的密钥。"
-          }
-        }
-      },
-      "sha256": "sha256:031d6df36f943ea8b9fda4dca396d9439a63dc6fc51125ae0b3e3168eb75c436"
     },
     {
       "id": "terraform",

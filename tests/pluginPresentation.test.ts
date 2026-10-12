@@ -103,7 +103,7 @@ test("override normalization rejects unsafe values and bounds typography", () =>
 });
 
 test("integrations remain discoverable when disabled and exclude ordinary packages", () => {
-  const integration = plugin("discord", "integration");
+  const integration = plugin("integration-probe", "integration");
   integration.enabled = false;
   expect(integrationPlugins([plugin("theme"), plugin("agent", "agent"), integration])).toEqual([
     integration,

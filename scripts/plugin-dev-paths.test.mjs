@@ -107,7 +107,6 @@ describe("tracked plugin development index", () => {
       "openagent-plugin-kit",
       "asana",
       "context7",
-      "discord",
       "fakechat",
       "firebase",
       "github",
@@ -117,7 +116,6 @@ describe("tracked plugin development index", () => {
       "linear",
       "playwright",
       "serena",
-      "telegram",
       "terraform",
     ]);
     expect(result.stdout).not.toContain("absent.env");

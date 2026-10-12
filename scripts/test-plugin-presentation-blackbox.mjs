@@ -213,6 +213,7 @@ try {
         `window.__TAURI_INTERNALS__.invoke('plugin:window|hide',{label:'settings-general'}); true`,
         "settings-general",
       );
+      await open("general");
       pilot(["click", "[data-appearance-reset] button"]);
       await waitExpression(
         `document.documentElement.style.getPropertyValue('--primary')==='${primary}' && !document.documentElement.style.getPropertyValue('--app-font-size') && !document.documentElement.style.getPropertyValue('--code-font-size')`,
@@ -230,7 +231,22 @@ try {
       await waitExpression(
         `document.documentElement.style.getPropertyValue('--primary')==='${primary}'`,
       );
+      await open("plugins");
+      pilot(["click", ".plugin-management-tabs button:nth-of-type(1)"]);
+      await waitExpression(`document.querySelectorAll(".official-plugin-card").length > 0`);
+      assert.ok(
+        evaluate(
+          `!document.querySelector('.official-plugin-card[data-plugin-id="discord"], .official-plugin-card[data-plugin-id="telegram"]')`,
+        ).includes("true"),
+        "Built-in Discord and Telegram must not be offered as official plugins",
+      );
       await open("channels");
+      assert.ok(
+        evaluate(
+          `Boolean(document.querySelector('img[src="/assets/channels/discord.svg"]') && document.querySelector('img[src="/assets/channels/telegram.png"]'))`,
+        ).includes("true"),
+        "Built-in Discord and Telegram channel entries must remain available",
+      );
       pilot([
         "wait",
         "--selector",
@@ -335,27 +351,6 @@ try {
   );
   await operation(
     `const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts'); const config=await c.invokeProduct('get_settings',{}); if(config.theme_plugin!=='${themeId}')throw new Error('Uninstall erased the selected theme preference'); return true;`,
-  );
-  // Accept the real Discord package's changed manifest through the Runtime and channel UI.
-  await operation(`const {desktopOpenAgent:c,emit}=await import('/src/lib/openagent/tauriClient.ts');
-    const catalog=await c.listAgentPlugins(); if(catalog.some(p=>p.id==='discord'))throw new Error('Discord already exists in fixture home');
-    const plugin=await c.installAgentPlugin(${JSON.stringify(join(repo, "plugins/discord"))});
-    if(plugin.plugin_type!=='integration' || plugin.error)throw new Error('Discord integration projection failed');
-    await emit('agent-plugins-changed'); return true;`);
-  installed.push("discord");
-  await open("channels");
-  await waitExpression(`document.querySelector('[data-integration-plugin="discord"]')`);
-  pilot(["snapshot", "-i"]);
-  pilot(["click", '[data-integration-plugin="discord"]']);
-  pilot([
-    "wait",
-    "--selector",
-    '[data-integration-detail="discord"] [data-config-field="token"]',
-    "--timeout",
-    "20000",
-  ]);
-  await waitExpression(
-    `document.querySelector('[data-integration-detail="discord"] h4').textContent.trim()==='discord'`,
   );
   for (const window of ["main", "settings-integrations", "settings-general"]) {
     const parsed = JSON.parse(pilot(["logs", "--level", "error", "--json"], window));
