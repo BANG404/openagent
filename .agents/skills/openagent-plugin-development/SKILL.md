@@ -9,3 +9,5 @@ metadata:
 
 Read `references/` contracts and [conversation UI](references/conversation-ui.md).
 Clients own trust and sandbox policy.
+
+For the local observability integration, read [Langfuse](references/langfuse.md).

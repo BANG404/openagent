@@ -1,0 +1,214 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "langfuse",
+  "version": "0.1.0",
+  "description": "Execution and tool observability through Langfuse OTLP.",
+  "license": "MIT",
+  "keywords": [
+    "observability",
+    "langfuse",
+    "otel"
+  ],
+  "extensions": {
+    "openagent": {
+      "type": "integration",
+      "category": "development",
+      "compatibility": {
+        "plugin_protocol": {
+          "min": 1,
+          "max": 1
+        },
+        "features": [
+          "configuration-v1",
+          "integration-v1"
+        ]
+      },
+      "capabilities": [
+        "automation",
+        "commands"
+      ],
+      "configuration": {
+        "version": 1,
+        "fields": [
+          {
+            "key": "enabled",
+            "label": "Enable upload",
+            "description": "Uploads execution telemetry to the configured Langfuse project.",
+            "type": "boolean",
+            "default": false
+          },
+          {
+            "key": "public-key",
+            "label": "Project public key",
+            "description": "Public key from Langfuse project settings.",
+            "type": "string",
+            "required": true
+          },
+          {
+            "key": "secret-key",
+            "label": "Project secret key",
+            "description": "Stored privately by OpenAgent.",
+            "type": "string",
+            "secret": true,
+            "required": true
+          },
+          {
+            "key": "base-url",
+            "label": "Langfuse base URL",
+            "description": "HTTPS base URL; loopback HTTP is supported for local deployments.",
+            "type": "string",
+            "default": "https://cloud.langfuse.com"
+          },
+          {
+            "key": "capture-content",
+            "label": "Capture tool content",
+            "description": "Stores and uploads tool inputs and outputs, which may contain sensitive data.",
+            "type": "boolean",
+            "default": false
+          },
+          {
+            "key": "environment",
+            "label": "Environment",
+            "description": "Environment label for every observation.",
+            "type": "string",
+            "default": "development"
+          },
+          {
+            "key": "user-id",
+            "label": "User ID",
+            "description": "Optional user identity; no account information is inferred.",
+            "type": "string"
+          },
+          {
+            "key": "tags",
+            "label": "Tags",
+            "description": "Optional comma-separated trace tags.",
+            "type": "string"
+          }
+        ]
+      },
+      "commands": [
+        {
+          "id": "status",
+          "label": "Status",
+          "description": "Review readiness and pending telemetry",
+          "argument": "none",
+          "command": "bin/command.mjs"
+        },
+        {
+          "id": "test",
+          "label": "Test connection",
+          "description": "Send a synthetic test span to Langfuse",
+          "argument": "none",
+          "command": "bin/command.mjs"
+        },
+        {
+          "id": "retry",
+          "label": "Retry uploads",
+          "description": "Retry completed pending executions",
+          "argument": "none",
+          "command": "bin/command.mjs"
+        }
+      ],
+      "automation": [
+        {
+          "id": "session-start",
+          "event": "session_start",
+          "command": "bin/hook.mjs",
+          "timeout_secs": 20
+        },
+        {
+          "id": "before-model",
+          "event": "before_model",
+          "command": "bin/hook.mjs",
+          "timeout_secs": 20
+        },
+        {
+          "id": "after-model",
+          "event": "after_model",
+          "command": "bin/hook.mjs",
+          "timeout_secs": 20
+        },
+        {
+          "id": "before-tool",
+          "event": "before_tool",
+          "command": "bin/hook.mjs",
+          "timeout_secs": 20
+        },
+        {
+          "id": "after-tool",
+          "event": "after_tool",
+          "command": "bin/hook.mjs",
+          "timeout_secs": 20
+        },
+        {
+          "id": "stop",
+          "event": "stop",
+          "command": "bin/hook.mjs",
+          "timeout_secs": 20
+        }
+      ],
+      "i18n": {
+        "supported_locales": [
+          "en",
+          "zh"
+        ],
+        "default_locale": "en",
+        "translations": {
+          "en": {
+            "display_name": "Langfuse",
+            "description": "Execution and tool observability through Langfuse OTLP.",
+            "configuration.enabled.label": "Enable upload",
+            "configuration.enabled.description": "Uploads execution telemetry to the configured Langfuse project.",
+            "configuration.public-key.label": "Project public key",
+            "configuration.public-key.description": "Public key from Langfuse project settings.",
+            "configuration.secret-key.label": "Project secret key",
+            "configuration.secret-key.description": "Stored privately by OpenAgent.",
+            "configuration.base-url.label": "Langfuse base URL",
+            "configuration.base-url.description": "HTTPS base URL; loopback HTTP is supported for local deployments.",
+            "configuration.capture-content.label": "Capture tool content",
+            "configuration.capture-content.description": "Stores and uploads tool inputs and outputs, which may contain sensitive data.",
+            "configuration.environment.label": "Environment",
+            "configuration.environment.description": "Environment label for every observation.",
+            "configuration.user-id.label": "User ID",
+            "configuration.user-id.description": "Optional user identity; no account information is inferred.",
+            "configuration.tags.label": "Tags",
+            "configuration.tags.description": "Optional comma-separated trace tags.",
+            "commands.status.label": "Status",
+            "commands.status.description": "Review readiness and pending telemetry",
+            "commands.test.label": "Test connection",
+            "commands.test.description": "Send a synthetic test span to Langfuse",
+            "commands.retry.label": "Retry uploads",
+            "commands.retry.description": "Retry completed pending executions"
+          },
+          "zh": {
+            "display_name": "Langfuse",
+            "description": "通过 Langfuse OTLP 观测执行过程和工具调用。",
+            "configuration.enabled.label": "开启上传",
+            "configuration.enabled.description": "将执行遥测上传到所配置的 Langfuse 项目。",
+            "configuration.public-key.label": "项目公钥",
+            "configuration.public-key.description": "Langfuse 项目设置中的公钥。",
+            "configuration.secret-key.label": "项目密钥",
+            "configuration.secret-key.description": "由 OpenAgent 私有保存。",
+            "configuration.base-url.label": "Langfuse 服务地址",
+            "configuration.base-url.description": "HTTPS 服务地址；本地部署可使用回环 HTTP 地址。",
+            "configuration.capture-content.label": "采集工具内容",
+            "configuration.capture-content.description": "保存并上传工具输入输出，其中可能包含敏感数据。",
+            "configuration.environment.label": "环境",
+            "configuration.environment.description": "每条观测的环境标签。",
+            "configuration.user-id.label": "用户 ID",
+            "configuration.user-id.description": "可选用户标识；不会自动推断账户信息。",
+            "configuration.tags.label": "标签",
+            "configuration.tags.description": "可选的逗号分隔 trace 标签。",
+            "commands.status.label": "状态",
+            "commands.status.description": "查看就绪状态和待上传遥测",
+            "commands.test.label": "测试连接",
+            "commands.test.description": "向 Langfuse 发送测试 span",
+            "commands.retry.label": "重试上传",
+            "commands.retry.description": "重试已结束执行的待上传记录"
+          }
+        }
+      }
+    }
+  }
+}
