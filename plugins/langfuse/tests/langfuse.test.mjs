@@ -51,11 +51,14 @@ test('upload requires explicit enablement and credentials; no ambient Langfuse c
   expect((await flush(configuration({}), data)).skipped).toBe(true);
 });
 
-test('HTTPS endpoint validation rejects embedded credentials, queries, remote HTTP and unsafe schemes', () => {
-  for (const endpoint of ['http://example.com', 'https://user:password@example.com', 'https://example.com?q=x', 'https://example.com/#x', 'file:///tmp', 'invalid']) {
+test('endpoint validation allows private IPv4 HTTP and rejects public HTTP, credentials and unsafe schemes', () => {
+  for (const endpoint of ['http://example.com', 'http://8.8.8.8', 'http://172.15.0.1', 'http://172.32.0.1', 'http://192.169.1.1', 'http://169.254.1.1', 'http://[::]', 'https://user:password@example.com', 'https://example.com?q=x', 'https://example.com/#x', 'file:///tmp', 'invalid']) {
     expect(() => config({ PLUGIN_CONFIG_BASE_URL: endpoint })).toThrow('invalid_endpoint');
   }
   expect(config({ PLUGIN_CONFIG_BASE_URL: 'http://127.0.0.1:1234/' }).endpoint).toBe('http://127.0.0.1:1234/api/public/otel/v1/traces');
+  for (const host of ['10.0.0.1', '172.16.0.1', '172.31.255.254', '192.168.123.47']) {
+    expect(config({ PLUGIN_CONFIG_BASE_URL: `http://${host}:3033/` }).endpoint).toBe(`http://${host}:3033/api/public/otel/v1/traces`);
+  }
 });
 
 test('OTLP exports hierarchy, timestamps, session metadata and no unavailable model data', async () => {

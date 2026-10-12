@@ -12,7 +12,7 @@ This is an unpublished candidate, with no GitHub update subscription or catalog 
 In the plugin configuration, save your Langfuse project public key and secret key,
 choose the base URL (default EU: `https://cloud.langfuse.com`), then enable upload.
 US: `https://us.cloud.langfuse.com`; Japan: `https://jp.cloud.langfuse.com`.
-HTTPS is required except for loopback HTTP self-hosted/test endpoints.
+HTTPS is required except for loopback and literal private IPv4 HTTP endpoints (10/8, 172.16/12, 192.168/16). Use HTTP only on a trusted local network: authentication is unencrypted.
 Secrets use OpenAgent's private plugin settings store. Do not put them in this package.
 
 - `/langfuse:status` reports readiness and queue counts without exposing credentials.
@@ -82,6 +82,15 @@ The Runtime verifier uses the source-prepared server, a fresh isolated home,
 fake credentials and loopback model/OTLP endpoints. It exercises installation,
 saved configuration, real model/tool hooks, upload failure/retry and disablement.
 Reports stay under the system temporary directory.
+
+To qualify an actual project, provide `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`
+and `LANGFUSE_BASE_URL` only to the verifier process, then run
+`bun plugins/langfuse/scripts/verify-runtime.mjs --live`. This writes one test
+execution into that project and polls the observations API to verify the Agent,
+generation and tool hierarchy with content capture off. If the deployment does
+not expose observations v2, select `--read-api=v1`. The production plugin still
+uses private settings bindings, never these ambient variables. The verifier
+removes its isolated credential settings and redacts its retained evidence.
 
 For native settings qualification, launch a source-prepared Tauri instance with
 a fresh temporary home containing `openagent-langfuse-native-` in its path. Set

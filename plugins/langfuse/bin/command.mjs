@@ -41,7 +41,7 @@ try {
   } else if (action === 'test') {
     const time = Date.now();
     await upload({ resourceSpans: [{ resource: { attributes: [{ key: 'service.name', value: { stringValue: 'openagent-langfuse' } }] },
-      scopeSpans: [{ scope: { name: 'openagent.langfuse', version: '0.1.0' }, spans: [{
+      scopeSpans: [{ scope: { name: 'openagent.langfuse', version: '0.1.1' }, spans: [{
         traceId: stableId(['connection-test', time]), spanId: stableId(['test', time], 16), name: 'OpenAgent Langfuse Connection Test', kind: 1,
         startTimeUnixNano: (BigInt(time) * 1000000n).toString(), endTimeUnixNano: (BigInt(time) * 1000000n).toString(),
         attributes: [{ key: 'langfuse.observation.type', value: { stringValue: 'span' } }], status: { code: 1 },

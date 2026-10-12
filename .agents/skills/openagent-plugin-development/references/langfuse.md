@@ -17,6 +17,10 @@ Upload and tool-content capture are separate explicit opt-ins in the generic
 plugin settings form. Normal network/process policy applies. The plugin does not
 request computer access. Hook stdout must remain empty because text would become
 model context. Diagnostics never include remote response bodies or credentials.
+Endpoints require HTTPS except loopback and literal RFC1918 IPv4 HTTP addresses
+for self-hosted services. HTTP sends project authentication without encryption;
+private hostnames and all public addresses still require HTTPS. Redirects stay
+disabled, including redirects from a private endpoint to a public service.
 
 Each execution ID maps to a deterministic trace, grouped by conversation session.
 Branch IDs and child parent/role IDs are metadata. Stop exports completed,
@@ -29,5 +33,10 @@ Run the package validator with the platform locales and package-owned tests, the
 qualify actual Runtime installation/configuration and an Agent turn against a
 loopback mock OTLP receiver in an isolated home. Native settings qualification
 covers light/dark and English/Chinese, preserving secrets across save/reopen.
-Real Langfuse credentials and project readback remain separate external-service
-qualification. See the package README for installation and limits.
+External qualification uses the same verifier with `--live` and explicitly
+supplied process-only Langfuse environment variables. It authenticates the project,
+executes a fixture model/tool turn, reads Agent/generation/tool hierarchy back,
+and checks private-key redaction, content opt-out and disablement. Select
+`--read-api=v1` only for deployments without observations v2. Remove the fixture's
+private credential settings and redact retained evidence. Never embed real keys
+in source, arguments, screenshots or reports. See the package README for limits.

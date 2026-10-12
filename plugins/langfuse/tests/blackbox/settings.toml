@@ -17,5 +17,7 @@ script = '''(() => {
   if (content.getAttribute('aria-checked') !== 'false') throw new Error('Content capture must default off');
   const label = form.querySelector('[data-config-field="capture-content"] label').textContent;
   if (!/Capture tool content|采集工具内容/.test(label)) throw new Error('Localized content label missing');
+  const endpoint = form.querySelector('[data-config-field="base-url"]').textContent;
+  if (!/private IPv4|私有 IPv4/.test(endpoint)) throw new Error('Private HTTP endpoint guidance missing');
   return true;
 })()'''

@@ -1,3 +1,12 @@
+// Literal RFC1918 addresses only: hostnames must use HTTPS unless loopback.
+function localHttpHost(hostname) {
+  if (['localhost', '127.0.0.1', '[::1]'].includes(hostname)) return true;
+  const octets = hostname.split('.').map(Number);
+  if (octets.length !== 4 || octets.some(value => !Number.isInteger(value) || value < 0 || value > 255)) return false;
+  return octets[0] === 10 || (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
+    (octets[0] === 192 && octets[1] === 168);
+}
+
 export function configuration(env = process.env) {
   const value = (key, fallback = '') => env[`PLUGIN_CONFIG_${key}`] ?? fallback;
   const enabled = value('ENABLED') === 'true';
@@ -8,7 +17,7 @@ export function configuration(env = process.env) {
   catch { throw new Error('invalid_endpoint'); }
   if (baseUrl.username || baseUrl.password || baseUrl.search || baseUrl.hash ||
       (baseUrl.protocol !== 'https:' && !(baseUrl.protocol === 'http:' &&
-        ['localhost', '127.0.0.1', '[::1]'].includes(baseUrl.hostname)))) {
+        localHttpHost(baseUrl.hostname)))) {
     throw new Error('invalid_endpoint');
   }
   baseUrl.pathname = baseUrl.pathname.replace(/\/$/, '');

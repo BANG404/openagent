@@ -25,7 +25,7 @@ export function buildExport(state, config) {
     'langfuse.user.id': config.userId,
     'langfuse.environment': config.environment,
     'langfuse.trace.tags': ['openagent', ...config.tags],
-    'langfuse.version': '0.1.0',
+    'langfuse.version': '0.1.1',
     'langfuse.trace.metadata.conversation_id': context.conversation_id,
     'langfuse.trace.metadata.branch_id': context.branch_id,
     'langfuse.trace.metadata.execution_id': context.execution_id,
@@ -70,8 +70,8 @@ export function buildExport(state, config) {
     span(stableId([traceId, key], 16), item.event.tool_name ?? 'Model call', key.startsWith('tool:') ? 'tool' : 'generation', item.time, last.time,
       { 'langfuse.observation.metadata.incomplete': 'true' }, phase === 'final_failed');
   }
-  return { resourceSpans: [{ resource: { attributes: attributes({ 'service.name': 'openagent-langfuse', 'service.version': '0.1.0' }) },
-    scopeSpans: [{ scope: { name: 'openagent.langfuse', version: '0.1.0' }, spans }],
+  return { resourceSpans: [{ resource: { attributes: attributes({ 'service.name': 'openagent-langfuse', 'service.version': '0.1.1' }) },
+    scopeSpans: [{ scope: { name: 'openagent.langfuse', version: '0.1.1' }, spans }],
   }] };
 }
 
