@@ -350,6 +350,22 @@ manifests must include their exact SDK's helpers. Future-release download does
 not replace the running process's embedding seed. Bootstrap persistence inspection
 uses the verified candidate directly before committing its Runtime selection.
 
+Product distributions use `<sdk version>+desktop.<product version>` as the
+Runtime installation identity. The build metadata separates product releases
+that reuse one SDK binary but rebuild Windows helpers; it does not change SDK
+SemVer precedence. Compare SDK precedence first, then product `release_version`
+when SDK precedence is equal, including Beta/RC/Stable transitions. Standalone
+SDK manifests retain their independent version. At every staging commit and
+rename-race recovery, reuse requires a verified installed signature, the exact
+candidate manifest bytes, executable hash and all helper hashes. A matching
+executable alone must not discard staged helper or manifest repair. Legacy
+same-version distributions are repaired through this complete check. Preserve
+the installed directory on rename failure; candidate admission failures happen
+before installation commit. The signed Runtime helper-update fixture covers
+same-binary helper replacement, helper corruption, manifest/signature repair and
+verified reuse. Native shell-resource coverage repeats a cached handoff with
+only a corrupted installed helper and proves it returns to the product window.
+
 The packaged application embeds `src/bootstrap/`, built independently with
 `bootstrap.vite.config.js`. It renders the shared `OnboardingFlow` welcome step
 with native resource progress, retry and offline import. The component receives

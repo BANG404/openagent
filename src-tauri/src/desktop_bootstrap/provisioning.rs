@@ -471,12 +471,7 @@ async fn provision_inner(
     // Selection remains reversible; Runtime retains ownership of data inspection
     // and the interactive backup/transition consent boundary.
     let selected_runtime = match runtime_manager.active_resource().await? {
-        Some(active)
-            if semver::Version::parse(&active.version).ok()
-                > semver::Version::parse(&runtime.version).ok() =>
-        {
-            active
-        }
+        Some(active) if active.is_newer_than(&runtime)? => active,
         _ => runtime,
     };
     start_installed_resources(app, &selected_runtime, Some(&frontend.version)).await

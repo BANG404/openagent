@@ -57,8 +57,14 @@
   update fixed channels, or publish the GitHub Release.
 - Treat SDK server releases as independent desktop Runtime process resources.
   Keep their machine-readable manifest, target matrix,
-  protocol range, byte sizes, and SHA-256 values aligned. Desktop release builds
-  first resolve the exact SDK gitlink SHA and either reuse its newest valid
+  protocol range, byte sizes, and SHA-256 values aligned. Desktop resource staging
+  stamps a product-specific Runtime installation identity while preserving SDK
+  ordering and exact binary bytes; the [update owner](../../openagent-update-delivery/references/component-updates.md#independent-shell-provisioning-and-shell-first-continuation)
+  defines directory reuse and comparison. Independently rebuilt helpers must
+  never share an installation directory across product releases.
+  Changes to `stage-release-runtime.mjs` select Runtime channel publication.
+  Desktop release builds first resolve the exact SDK gitlink SHA and either
+  reuse its newest valid
   ancestor release when no SDK Conventional Commit requires a bump, or trigger
   an immutable release tag on that exact SHA, explicitly dispatch current SDK CI
   automation with the immutable SHA, and stage the exact manifest, Runtime

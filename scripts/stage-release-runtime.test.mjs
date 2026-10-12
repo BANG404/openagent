@@ -11,7 +11,7 @@ import {
 
 const sdkSha = "a".repeat(40);
 
-async function fixture() {
+async function fixture(version = "1.1.1") {
   const directory = await mkdtemp(path.join(os.tmpdir(), "openagent-release-runtime-"));
   const artifacts = {};
   for (const [target, file] of Object.entries(RELEASE_RUNTIME_ARTIFACTS)) {
@@ -27,6 +27,7 @@ async function fixture() {
     path.join(directory, "openagent-sdk-manifest.json"),
     JSON.stringify({
       schema_version: 1,
+      version,
       sdk_sha: sdkSha,
       protocol: { min: 7, max: 7 },
       artifacts,
@@ -69,6 +70,31 @@ describe("release Runtime staging", () => {
       await readFile(path.join(outputDirectory, "openagent-sdk-manifest.json"), "utf8"),
     );
     expect(manifest.release_version).toBe("0.63.0");
+    expect(manifest.version).toBe("1.1.1+desktop.0.63.0");
+  });
+
+  test("isolates product releases that reuse one SDK without changing its source manifest", async () => {
+    const artifactsDirectory = await fixture();
+    const outputDirectory = await mkdtemp(path.join(os.tmpdir(), "openagent-runtime-output-"));
+    const versions = [];
+    for (const releaseVersion of ["0.78.2-beta.1", "0.78.3-beta.1"]) {
+      await stageReleaseRuntime({ artifactsDirectory, sdkSha, releaseVersion, outputDirectory });
+      const manifest = JSON.parse(
+        await readFile(path.join(outputDirectory, "openagent-sdk-manifest.json"), "utf8"),
+      );
+      versions.push(manifest.version);
+      expect(manifest.artifacts).toEqual(
+        JSON.parse(
+          await readFile(path.join(artifactsDirectory, "openagent-sdk-manifest.json"), "utf8"),
+        ).artifacts,
+      );
+    }
+    expect(versions).toEqual(["1.1.1+desktop.0.78.2-beta.1", "1.1.1+desktop.0.78.3-beta.1"]);
+    expect(
+      JSON.parse(
+        await readFile(path.join(artifactsDirectory, "openagent-sdk-manifest.json"), "utf8"),
+      ).version,
+    ).toBe("1.1.1");
   });
 
   test("rejects a binary whose bytes do not match the manifest", async () => {
@@ -78,6 +104,21 @@ describe("release Runtime staging", () => {
     expect(validateReleaseRuntime({ artifactsDirectory, sdkSha })).rejects.toThrow(
       /mismatch for macos-x64/,
     );
+  });
+
+  test("preserves existing SDK build metadata in the installation identity", async () => {
+    const artifactsDirectory = await fixture("1.1.1+sdk.abcd");
+    const outputDirectory = await mkdtemp(path.join(os.tmpdir(), "openagent-runtime-output-"));
+    await stageReleaseRuntime({
+      artifactsDirectory,
+      sdkSha,
+      releaseVersion: "0.78.3-beta.1",
+      outputDirectory,
+    });
+    const manifest = JSON.parse(
+      await readFile(path.join(outputDirectory, "openagent-sdk-manifest.json"), "utf8"),
+    );
+    expect(manifest.version).toBe("1.1.1+sdk.abcd.desktop.0.78.3-beta.1");
   });
 
   test("rejects a candidate from another SDK revision", async () => {

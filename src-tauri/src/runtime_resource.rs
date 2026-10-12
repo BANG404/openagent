@@ -69,6 +69,29 @@ pub struct InstalledRuntimeResource {
     pub sha256: String,
 }
 
+impl InstalledRuntimeResource {
+    pub(crate) fn is_newer_than(&self, baseline: &Self) -> Result<bool, String> {
+        let candidate_sdk = semver::Version::parse(&self.version)
+            .map_err(|error| format!("Runtime candidate version is invalid: {error}"))?;
+        let baseline_sdk = semver::Version::parse(&baseline.version)
+            .map_err(|error| format!("Runtime baseline version is invalid: {error}"))?;
+        match candidate_sdk.cmp_precedence(&baseline_sdk) {
+            std::cmp::Ordering::Greater => Ok(true),
+            std::cmp::Ordering::Less => Ok(false),
+            std::cmp::Ordering::Equal => match (&self.release_version, &baseline.release_version) {
+                (Some(candidate), Some(baseline)) => {
+                    let candidate =
+                        semver::Version::parse(candidate).map_err(|error| error.to_string())?;
+                    let baseline =
+                        semver::Version::parse(baseline).map_err(|error| error.to_string())?;
+                    Ok(candidate.cmp_precedence(&baseline).is_gt())
+                }
+                _ => Ok(false),
+            },
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 struct RuntimeResourceSelectionEntry {
     version: String,
@@ -223,20 +246,7 @@ impl RuntimeResourceManager {
 
         let version_dir = self.resources_dir.join(&manifest.version).join(&target);
         let installed = installed_resource(&version_dir, &manifest, &target, &artifact);
-        if self
-            .load_installed(&manifest.version, &target)
-            .await
-            .is_ok()
-            && read_bounded_file(
-                &installed.manifest_path,
-                MAX_MANIFEST_BYTES,
-                "cached runtime manifest",
-            )
-            .await
-            .is_ok_and(|bytes| bytes == manifest_bytes)
-            && verify_installed(&installed, &artifact).await
-            && verify_helpers(&version_dir, &manifest, &target).await?
-        {
+        if self.matches_manifest(&installed, &manifest_bytes).await {
             return Ok(installed);
         }
 
@@ -274,7 +284,7 @@ impl RuntimeResourceManager {
             tokio::fs::write(staging.join(SIGNATURE_FILE), &signature_bytes)
                 .await
                 .map_err(|error| format!("failed to stage runtime signature: {error}"))?;
-            self.commit_staging(&staging, &version_dir, &installed, &artifact)
+            self.commit_staging(&staging, &version_dir, &installed, &manifest_bytes)
                 .await
         }
         .await;
@@ -448,7 +458,7 @@ impl RuntimeResourceManager {
         staging: &Path,
         version_dir: &Path,
         installed: &InstalledRuntimeResource,
-        artifact: &RuntimeResourceArtifact,
+        manifest_bytes: &[u8],
     ) -> Result<(), String> {
         let parent = version_dir
             .parent()
@@ -456,7 +466,7 @@ impl RuntimeResourceManager {
         tokio::fs::create_dir_all(parent)
             .await
             .map_err(|error| format!("failed to create runtime version directory: {error}"))?;
-        if verify_installed(installed, artifact).await {
+        if self.matches_manifest(installed, manifest_bytes).await {
             let _ = tokio::fs::remove_dir_all(staging).await;
             return Ok(());
         }
@@ -475,7 +485,7 @@ impl RuntimeResourceManager {
                 })?;
         }
         if let Err(error) = tokio::fs::rename(staging, version_dir).await {
-            if verify_installed(installed, artifact).await {
+            if self.matches_manifest(installed, manifest_bytes).await {
                 let _ = tokio::fs::remove_dir_all(staging).await;
                 if had_existing {
                     let _ = tokio::fs::remove_dir_all(&backup).await;
@@ -491,6 +501,25 @@ impl RuntimeResourceManager {
             let _ = tokio::fs::remove_dir_all(backup).await;
         }
         Ok(())
+    }
+
+    /// Reuse requires the exact signed manifest, executable and every helper.
+    /// Matching only the executable can discard a staged helper repair.
+    async fn matches_manifest(
+        &self,
+        installed: &InstalledRuntimeResource,
+        manifest_bytes: &[u8],
+    ) -> bool {
+        self.load_installed(&installed.version, &installed.target)
+            .await
+            .is_ok_and(|verified| verified.binary_path == installed.binary_path)
+            && read_bounded_file(
+                &installed.manifest_path,
+                MAX_MANIFEST_BYTES,
+                "cached runtime manifest",
+            )
+            .await
+            .is_ok_and(|bytes| bytes == manifest_bytes)
     }
 }
 
@@ -1000,6 +1029,150 @@ y/rUw2y8/hOUYjZU71eHp/Wo1KZ40fGy2VJEDl34XMJM+TX48Ss/17u3IvIfbVR1FkZZSNCisQbuQY+b
         assert!(validate_manifest(&manifest, 2).is_err());
     }
 
+    async fn write_helper_update_fixture(directory: &Path, stage: &str) -> &'static str {
+        let (manifest, signature, helper) = match stage {
+            "old" => (
+                include_str!("../../tests/fixtures/runtime-helper-update/old.json"),
+                include_str!("../../tests/fixtures/runtime-helper-update/old.json.sig"),
+                b"old-helper".as_slice(),
+            ),
+            "new" => (
+                include_str!("../../tests/fixtures/runtime-helper-update/new.json"),
+                include_str!("../../tests/fixtures/runtime-helper-update/new.json.sig"),
+                b"new-helper".as_slice(),
+            ),
+            _ => panic!("Unexpected fixture stage"),
+        };
+        for (name, bytes) in [
+            (MANIFEST_FILE, manifest.as_bytes()),
+            (SIGNATURE_FILE, signature.as_bytes()),
+            ("openagent-server.bin", b"runtime-fixture\n".as_slice()),
+            ("codex-command-runner.exe", helper),
+            ("codex-windows-sandbox-setup.exe", helper),
+            ("codex-bwrap-linux-x64", helper),
+        ] {
+            tokio::fs::write(directory.join(name), bytes).await.unwrap();
+        }
+        manifest
+    }
+
+    async fn assert_invalid_helper_preserves_active(
+        manager: &RuntimeResourceManager,
+        directory: &Path,
+    ) {
+        let helper_name = match current_runtime_resource_target().unwrap() {
+            "windows-x64" => Some("codex-command-runner.exe"),
+            "linux-x64" => Some("codex-bwrap-linux-x64"),
+            _ => None,
+        };
+        if let Some(helper) = helper_name {
+            tokio::fs::write(directory.join(helper), b"invalid")
+                .await
+                .unwrap();
+            assert!(manager.install_latest(|_| {}).await.is_err());
+            assert_eq!(
+                manager
+                    .active_resource()
+                    .await
+                    .unwrap()
+                    .unwrap()
+                    .release_version
+                    .as_deref(),
+                Some("0.78.2-beta.1")
+            );
+            write_helper_update_fixture(directory, "new").await;
+        }
+    }
+
+    #[tokio::test]
+    async fn repairs_helpers_and_manifest_when_the_runtime_binary_is_unchanged() {
+        let home = tempfile::tempdir().unwrap();
+        let source = tempfile::tempdir().unwrap();
+        let public_key = include_str!("../../tests/fixtures/runtime-helper-update/public-key.txt");
+        let manager = RuntimeResourceManager::new(
+            home.path().to_path_buf(),
+            RuntimeResourceSource {
+                manifest_url: Url::from_file_path(source.path().join(MANIFEST_FILE))
+                    .unwrap()
+                    .to_string(),
+                signature_url: Url::from_file_path(source.path().join(SIGNATURE_FILE))
+                    .unwrap()
+                    .to_string(),
+                public_key: public_key.to_string(),
+            },
+            2,
+        );
+        for stage in ["old", "new"] {
+            let manifest = write_helper_update_fixture(source.path(), stage).await;
+            if stage == "new" {
+                assert_invalid_helper_preserves_active(&manager, source.path()).await;
+            }
+            let installed = manager.install_latest(|_| {}).await.unwrap();
+            manager.activate(&installed).await.unwrap();
+            assert_eq!(
+                installed.release_version.as_deref(),
+                if stage == "old" {
+                    Some("0.78.2-beta.1")
+                } else {
+                    Some("0.78.3-beta.1")
+                }
+            );
+            assert_eq!(
+                tokio::fs::read(&installed.manifest_path).await.unwrap(),
+                manifest.as_bytes()
+            );
+            assert_eq!(
+                tokio::fs::read(&installed.signature_path).await.unwrap(),
+                tokio::fs::read(source.path().join(SIGNATURE_FILE))
+                    .await
+                    .unwrap()
+            );
+            assert_eq!(
+                tokio::fs::read(&installed.binary_path).await.unwrap(),
+                b"runtime-fixture\n"
+            );
+        }
+        let installed = manager.active_resource().await.unwrap().unwrap();
+        let manifest = tokio::fs::read(&installed.manifest_path).await.unwrap();
+        let signature = tokio::fs::read(&installed.signature_path).await.unwrap();
+        let helper_directory = installed
+            .binary_path
+            .parent()
+            .unwrap()
+            .join("codex-resources");
+        if helper_directory.is_dir() {
+            for file in std::fs::read_dir(&helper_directory).unwrap() {
+                tokio::fs::write(file.unwrap().path(), b"corrupt-helper")
+                    .await
+                    .unwrap();
+            }
+            manager.install_latest(|_| {}).await.unwrap();
+            for file in std::fs::read_dir(&helper_directory).unwrap() {
+                assert_eq!(
+                    tokio::fs::read(file.unwrap().path()).await.unwrap(),
+                    b"new-helper"
+                );
+            }
+        }
+        for (path, expected) in [
+            (&installed.manifest_path, manifest),
+            (&installed.signature_path, signature),
+        ] {
+            tokio::fs::write(path, b"invalid").await.unwrap();
+            manager.install_latest(|_| {}).await.unwrap();
+            assert_eq!(tokio::fs::read(path).await.unwrap(), expected);
+        }
+        let mut progress = Vec::new();
+        manager
+            .install_latest(|event| progress.push(event))
+            .await
+            .unwrap();
+        assert!(
+            progress.is_empty(),
+            "verified resources should be reused without downloading"
+        );
+    }
+
     #[tokio::test]
     async fn replaces_a_corrupt_immutable_version_with_verified_staging() {
         let temp = tempfile::tempdir().unwrap();
@@ -1048,7 +1221,7 @@ y/rUw2y8/hOUYjZU71eHp/Wo1KZ40fGy2VJEDl34XMJM+TX48Ss/17u3IvIfbVR1FkZZSNCisQbuQY+b
         let installed = installed_resource(&version_dir, &manifest, "windows-x64", &artifact);
 
         manager
-            .commit_staging(&staging, &version_dir, &installed, &artifact)
+            .commit_staging(&staging, &version_dir, &installed, b"manifest")
             .await
             .unwrap();
 

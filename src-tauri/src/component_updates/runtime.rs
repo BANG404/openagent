@@ -13,7 +13,7 @@ fn runtime_update_available(candidate: &str, baseline: &str) -> Result<bool, Str
         .map_err(|error| format!("Runtime candidate version is invalid: {error}"))?;
     let baseline = semver::Version::parse(baseline)
         .map_err(|error| format!("Runtime baseline version is invalid: {error}"))?;
-    Ok(candidate > baseline)
+    Ok(candidate.cmp_precedence(&baseline).is_gt())
 }
 
 fn validate_runtime_bootstrap(value: &serde_json::Value) -> Result<(), String> {
@@ -82,10 +82,13 @@ pub(crate) async fn prepare_runtime_resource(
         .as_ref()
         .map(|value| value.version.as_str())
         .or_else(|| running.as_ref().map(|value| value.version.as_str()));
-    let update_available = baseline
-        .map(|baseline| runtime_update_available(&candidate.version, baseline))
-        .transpose()?
-        .unwrap_or(false);
+    let update_available = match active.as_ref() {
+        Some(active) => candidate.is_newer_than(active)?,
+        None => baseline
+            .map(|baseline| runtime_update_available(&candidate.version, baseline))
+            .transpose()?
+            .unwrap_or(false),
+    };
     let current_version = baseline.map(str::to_string);
     tracing::info!(
         target: "openagent::component_update",
@@ -405,7 +408,47 @@ mod modular_runtime_update_tests {
         assert!(runtime_update_available("1.2.0", "1.1.9").unwrap());
         assert!(!runtime_update_available("1.2.0", "1.2.0").unwrap());
         assert!(!runtime_update_available("1.1.9", "1.2.0").unwrap());
+        assert!(!runtime_update_available("1.1.1+desktop.0.78.3-beta.1", "1.1.1").unwrap());
+        assert!(runtime_update_available(
+            "1.1.2+desktop.0.78.4-beta.1",
+            "1.1.1+desktop.0.78.3-beta.1"
+        )
+        .unwrap());
         assert!(runtime_update_available("1.2.0", "invalid").is_err());
+    }
+
+    #[test]
+    fn same_sdk_updates_follow_product_semver_instead_of_build_metadata() {
+        let resource =
+            |version: &str, release: &str| crate::runtime_resource::InstalledRuntimeResource {
+                version: version.into(),
+                release_version: Some(release.into()),
+                target: "windows-x64".into(),
+                binary_path: "runtime".into(),
+                manifest_path: "manifest".into(),
+                signature_path: "signature".into(),
+                protocol_min: 2,
+                protocol_max: 2,
+                size: 1,
+                sha256: "0".repeat(64),
+            };
+        for (candidate, baseline, expected) in [
+            ("0.78.3-beta.1", "0.78.2-beta.1", true),
+            ("0.78.3-beta.10", "0.78.3-beta.9", true),
+            ("0.78.3-rc.1", "0.78.3-beta.10", true),
+            ("0.78.3", "0.78.3-rc.1", true),
+            ("0.78.3", "0.78.3", false),
+            ("0.78.2-beta.1", "0.78.3", false),
+        ] {
+            let active = resource(&format!("1.1.1+desktop.{baseline}"), baseline);
+            let candidate = resource(&format!("1.1.1+desktop.{candidate}"), candidate);
+            assert_eq!(candidate.is_newer_than(&active).unwrap(), expected);
+        }
+        let legacy = resource("1.1.1", "0.78.2-beta.1");
+        let candidate = resource("1.1.1+desktop.0.78.3-beta.1", "0.78.3-beta.1");
+        assert!(candidate.is_newer_than(&legacy).unwrap());
+        let newer_sdk = resource("1.1.2", "0.78.2-beta.1");
+        assert!(!candidate.is_newer_than(&newer_sdk).unwrap());
     }
 
     #[test]
