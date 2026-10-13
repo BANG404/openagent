@@ -9,10 +9,43 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 MAX_BYTES = 64 * 1024 * 1024
+MAX_LOG_BYTES = 1024 * 1024
+
+
+def validate_logs(logs):
+    if not isinstance(logs, list) or len(logs) > 4:
+        raise ValueError("Invalid logs")
+    names = set()
+    families = [0, 0]
+    for log in logs:
+        if not isinstance(log, dict) or set(log) != {"fileName", "content", "truncated"}:
+            raise ValueError("Invalid log")
+        name = log["fileName"]
+        if not isinstance(name, str) or name in names:
+            raise ValueError("Invalid log name")
+        if name.startswith("openagent.") and name.endswith(".jsonl"):
+            family, date = 0, name[len("openagent."):-len(".jsonl")]
+        elif name.startswith("openagent-host.jsonl."):
+            family, date = 1, name[len("openagent-host.jsonl."):]
+        else:
+            raise ValueError("Invalid log name")
+        parsed = datetime.strptime(date, "%Y-%m-%d")
+        if parsed.strftime("%Y-%m-%d") != date:
+            raise ValueError("Invalid log date")
+        families[family] += 1
+        if families[family] > 2:
+            raise ValueError("Too many logs")
+        names.add(name)
+        if (not isinstance(log["content"], str)
+                or len(log["content"].encode("utf-8")) > MAX_LOG_BYTES
+                or not isinstance(log["truncated"], bool)):
+            raise ValueError("Invalid log content")
+    return logs
 
 
 def archive(payload, directory):
-    if not isinstance(payload, dict) or payload.get("schemaVersion") != 1:
+    if (not isinstance(payload, dict) or type(payload.get("schemaVersion")) is not int
+            or payload["schemaVersion"] not in (1, 2)):
         raise ValueError("Invalid report schema")
     description = payload.get("description")
     if not isinstance(description, str) or not description.strip() or len(description) > 20_000:
@@ -20,6 +53,7 @@ def archive(payload, directory):
     trace = payload.get("conversationTrace")
     if trace is not None and not isinstance(trace, dict):
         raise ValueError("Invalid trace")
+    logs = validate_logs(payload.get("logs")) if payload["schemaVersion"] == 2 else None
     for key in ("runtimeVersion", "os", "arch"):
         if not isinstance(payload.get(key), str) or len(payload[key]) > 128:
             raise ValueError("Invalid metadata")
@@ -28,6 +62,8 @@ def archive(payload, directory):
               ("schemaVersion", "description", "runtimeVersion", "os", "arch")}
     record.update(conversationTrace=trace, reportId=report_id,
                   receivedAt=datetime.now(timezone.utc).isoformat())
+    if logs is not None:
+        record["logs"] = logs
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     temporary = None
     try:

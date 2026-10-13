@@ -38,7 +38,14 @@ and verify OTLP still authenticates and archives synthetic logs. Storage failure
 return 503; no partial write receives a success receipt.
 
 Reports contain descriptions, optional complete traces, environment fields and
-server receipt timestamps. Operators own backups and retention; complete reports
+server receipt timestamps. Version-2 reports also contain a `logs` array with up
+to two Runtime and two desktop-host dated log basenames, UTF-8 content of at most
+1 MiB each, and boolean truncation flags. The receiver validates this envelope
+before writing and preserves logs in the same UUID record, never in access logs.
+Version-1 reports from existing clients remain accepted without log attachments.
+Deploy the receiver before distributing a version-2 client; an older receiver
+rejects version-2 reports, so the client retains the draft for retry.
+Operators own backups and retention; complete reports
 are retained without automatic deletion. Investigate by UUID with authorized
 server access. Never paste full user traces into ordinary issues or logs.
 

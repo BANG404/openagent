@@ -17,6 +17,10 @@ services without Responses support. Settings and onboarding accept
 a host, API root, or complete OpenAI endpoint as `base_url` and continuously
 show the normalized final request URL beneath the input, including the selected
 `/responses` or `/chat/completions` suffix.
+Connection detection and model-list fetching use that same API root with
+`/models`: a host automatically gains `/v1`, while complete endpoint inputs
+have their existing suffix replaced. Detection checks the catalog endpoint;
+the preview continues to show the selected inference endpoint.
 
 Every successful in-app save publishes a payload-free configuration-change
 notification after persistence. Each open frontend surface then reloads through

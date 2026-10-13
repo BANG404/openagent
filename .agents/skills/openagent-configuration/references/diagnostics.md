@@ -125,6 +125,11 @@ opened, explains the model/tool and message content included, and sends only
 through the typed Runtime `submit_problem_report` operation. The confirmation
 button uploads; failures retain the draft and never show a success receipt.
 Explicit reports are independent of the automatic diagnostic-log preference.
+Every confirmed report attaches bounded recent Runtime and desktop-host logs,
+even when the optional conversation trace is off. The dialog explains that logs
+may contain error details and local paths. Missing logs are allowed; a log read
+failure preserves the description and prevents a success receipt. The private
+attachment contract belongs in `sdk/docs/support-reports.md`.
 
 Runtime exports the complete durable snapshot without truncation and keeps report
 payloads out of telemetry. See `sdk/docs/support-reports.md` for the private
@@ -133,6 +138,9 @@ live in `deploy/support-reports/README.md`; the automatic OTLP collector remains
 bounded diagnostic metadata only. Verify actual Help interactions in the Tauri
 window in Chinese/English and light/dark, including default-off trace consent,
 description-only and full-trace receipts, plus a retry after network failure.
+The native support scenario also asserts localized log disclosure, both log
+families in reports while automatic collection is disabled, and no upload on a
+log-read failure followed by successful retry without losing the description.
 
 Run `bun scripts/test-problem-reports-blackbox.mjs` with the same temporary
 `OPENAGENT_HOME` and pilot socket as the native fixture, plus
