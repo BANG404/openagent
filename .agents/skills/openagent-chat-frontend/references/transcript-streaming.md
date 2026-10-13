@@ -225,7 +225,13 @@
   hydration advances; a stale refresh must not remove the Files entry or its
   title-bar toggle while changes on the selected ancestry remain observable. Its
   top-level Status and Files tabs preserve one
-  full-height body. Files keeps the terminal-style vertical collapsible rows, one
+  full-height body. Status keeps its header above a flex body with `min-height: 0`;
+  the shared ScrollArea fills the remaining height and contains both items and
+  summary. Do not use intrinsic `max-content` grid rows for that viewport: long
+  Goal projections would expand the scroll area and be clipped by the sidebar.
+  Verify long/short/empty content, tab switching and reload in all themes/locales
+  with `bun run test:blackbox:goal-scroll`; `checkpoint-flow-preview-long` provides
+  the deterministic overflow fixture. Files keeps the terminal-style vertical collapsible rows, one
   expanded file at a time, without tabs or a Diff / Full file switch. Known complete
   content shows unchanged lines and inline additions/removals. Keep the asynchronous
   panel-body skeleton, Bits UI Accordion keyboard navigation, per-conversation/branch

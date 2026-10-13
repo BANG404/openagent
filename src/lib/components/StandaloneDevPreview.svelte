@@ -697,6 +697,14 @@
     ],
     summary: "插件自行维护状态机，宿主只显示通用投影。",
   };
+  if (query.has("checkpoint-flow-preview-long")) {
+    checkpointFlow.items = Array.from({ length: 48 }, (_, index) => ({
+      id: `task-${index + 1}`,
+      label: `Goal task ${index + 1} / 目标任务 ${index + 1}`,
+      status: index === 0 ? "completed" : "pending",
+    }));
+    checkpointFlow.summary = "Goal summary / 目标总结。".repeat(80);
+  }
   if (query.has("checkpoint-flow-preview-empty")) {
     checkpointFlow.items = [];
   }
