@@ -13,9 +13,15 @@ All notable changes to this project will be documented in this file.
 ## [0.80.0-beta.1] - 2026-10-13
 
 ### Features
+- **diagnostics**: Add problem reporting and repair remote log delivery
+- **compaction**: Integrate multimodal Flash summaries
+- **chat**: Export complete conversation traces in debug mode
+- **compaction**: Restore Flash settings and align context indicators
 - **terminal**: Adopt refreshed SDK command environments
 
 ### Bug Fixes
+- **graph**: Restore plugin dependency diagram and branch sidebar selection
+- **ui**: Keep goal status content in a bounded scroll area
 - **chat**: Restore complete snapshots after compaction
 - **chat**: Preserve visible trajectory after context compaction
 - Keep completed turn footer usage scoped to its records
