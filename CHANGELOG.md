@@ -10,6 +10,20 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.81.0-beta.1] - 2026-10-13
+
+### Features
+- **support**: Include recent logs in problem reports
+- **release**: Add isolated Windows Alpha publishing
+
+### Bug Fixes
+- **dev**: Prepare Tauri resources before native checks
+- **desktop**: Keep configured startup behind the product window
+- **providers**: Align model detection with normalized API roots
+
+### Performance
+- **conversation**: Load shared history and image attachments
+
 ## [0.80.0-beta.1] - 2026-10-13
 
 ### Features
