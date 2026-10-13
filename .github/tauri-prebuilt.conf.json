@@ -1,0 +1,5 @@
+{
+  "build": {
+    "beforeBuildCommand": "node scripts/release-build-artifacts.mjs frontend-verify --directory .cache/frontend-build --installed && bun scripts/prepare-node-runtime.mjs && bun scripts/prepare-terminal-tools.mjs"
+  }
+}

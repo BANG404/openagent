@@ -10,6 +10,10 @@ on:
         required: false
         default: false
         type: boolean
+      external_frontend_build:
+        description: Release caller gates on its own qualified frontend build
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       base_sha:
@@ -192,6 +196,7 @@ jobs:
     with:
       base_sha: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
       full: ${{ needs.changes.outputs.full == 'true' }}
+      external_build: ${{ inputs.external_frontend_build || false }}
     permissions:
       contents: read
     secrets:

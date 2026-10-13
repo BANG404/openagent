@@ -1,0 +1,94 @@
+name: Frontend production assets
+
+on:
+  workflow_call:
+    inputs:
+      source_sha:
+        type: string
+        default: ""
+    secrets:
+      OPENAGENT_CI_REPORTER_PRIVATE_KEY:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and qualify static assets
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+      - name: Resolve pinned SDK revision
+        id: sdk
+        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
+      - name: Create private SDK read token
+        id: sdk-token
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
+          owner: BANG404
+          repositories: openagent-sdk
+          permission-contents: read
+      - uses: actions/checkout@v7
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        with:
+          repository: BANG404/openagent-sdk
+          ref: ${{ steps.sdk.outputs.sha }}
+          path: sdk
+          token: ${{ steps.sdk-token.outputs.token }}
+          persist-credentials: false
+      - name: Fetch public TypeScript SDK for fork pull request
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+        run: |
+          archive="$RUNNER_TEMP/openagent-typescript-sdk.tar.gz"
+          node scripts/fetch-public-typescript-sdk.mjs --sdk-sha "${{ steps.sdk.outputs.sha }}" --output "$archive"
+          mkdir -p sdk/typescript
+          tar -xzf "$archive" -C sdk/typescript
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-public-${{ runner.os }}-1.3.14-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-public-${{ runner.os }}-1.3.14-
+      - run: bun install --frozen-lockfile
+      - name: Resolve exact frontend cache identity
+        id: identity
+        run: node scripts/release-build-artifacts.mjs key >> "$GITHUB_OUTPUT"
+      - name: Restore qualified frontend cache
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/frontend-build
+          key: ${{ steps.identity.outputs.key }}
+      - name: Build frontend and bootstrap and enforce bundle budgets
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          bun run build
+          bun run build:bootstrap
+          bun run check:bundle-size
+          node scripts/release-build-artifacts.mjs frontend-pack --directory .cache/frontend-build --cache-key "${{ steps.identity.outputs.key }}"
+      - name: Verify qualified frontend bytes
+        run: node scripts/release-build-artifacts.mjs frontend-verify --directory .cache/frontend-build --cache-key "${{ steps.identity.outputs.key }}"
+      - uses: actions/cache/save@v4
+        if: steps.cache.outputs.cache-hit != 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          path: .cache/frontend-build
+          key: ${{ steps.identity.outputs.key }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qualified-frontend-build
+          path: .cache/frontend-build
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7

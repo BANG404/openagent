@@ -198,8 +198,8 @@ describe("release CI verification", () => {
     expect(ciWorkflow).toContain("steps.tier.outputs.integration == 'true'");
     expect(ciWorkflow).toContain("full: ${{ needs.changes.outputs.full == 'true' }}");
 
-    expect(frontendWorkflow).toContain("if: inputs.full\n        run: bun run build");
-    expect(frontendWorkflow).toContain("if: inputs.full\n        run: bun run check:bundle-size");
+    expect(frontendWorkflow).toContain("if: inputs.full && !inputs.external_build");
+    expect(frontendWorkflow).toContain("uses: ./.github/workflows/build-frontend.yml");
     expect(nativeWorkflow).toContain("if: inputs.full && inputs.platform");
     expect(nativeWorkflow).toContain("if: inputs.full && inputs.embedding");
   });
@@ -445,7 +445,7 @@ describe("release CI verification", () => {
     expect(buildJob).not.toContain("tagName:");
     expect(buildJob).not.toContain("releaseDraft:");
     expect(buildJob).not.toContain("gh release upload");
-    expect(buildJob).toContain("release-candidate-artifacts.mjs stage-tauri");
+    expect(buildJob).toContain("release-candidate-artifacts.mjs stage-lightweight");
     expect(buildJob).toContain("name: Download release-qualified SDK Runtime");
     expect(buildJob).toContain("scripts/stage-release-runtime.mjs");
     expect(buildJob).toContain('OPENAGENT_RUNTIME_SERVER_PREBUILT: "1"');
@@ -563,7 +563,10 @@ describe("release CI verification", () => {
       expect(job).not.toContain("needs.detect.outputs.runtime");
       expect(job).toContain("outputs.published != 'true'");
     }
-    expect(releaseWorkflow).toContain("id: tauri\n        uses: tauri-apps/tauri-action@v0");
+    expect(releaseWorkflow).toContain("--no-bundle --config .github/tauri-prebuilt.conf.json");
+    expect(releaseWorkflow).toContain(
+      "name: Bundle lightweight release candidate from compiled shell",
+    );
     expect(releaseWorkflow).not.toContain("name: Build runtime candidate");
     expect(releaseWorkflow).toContain("name: Verify and stage runtime candidate");
     expect(releaseWorkflow).toContain("name: pinned-sdk-runtime");

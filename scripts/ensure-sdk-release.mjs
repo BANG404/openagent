@@ -104,6 +104,22 @@ export function sdkReleaseVersionInvocation(sdkDirectory, sdkSha) {
   };
 }
 
+/** @param {{sdkSha?: string, releaseSha: string, tag: string, version: string, releaseRequired: boolean}} plan @param {string} sdkSha */
+export function validateSdkReleasePlan(plan, sdkSha) {
+  if (
+    plan.sdkSha !== sdkSha ||
+    !/^[0-9a-f]{40}$/.test(sdkSha) ||
+    !/^[0-9a-f]{40}$/.test(plan.releaseSha) ||
+    !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(plan.version) ||
+    plan.tag !== `sdk-v${plan.version}` ||
+    typeof plan.releaseRequired !== "boolean" ||
+    (plan.releaseRequired && plan.releaseSha !== sdkSha)
+  ) {
+    throw new Error("SDK release plan source or identity mismatch");
+  }
+  return plan;
+}
+
 async function publishedRelease(repository, plan, artifactsDirectory = null) {
   let isDraft;
   try {
@@ -325,27 +341,44 @@ async function main() {
   const output = value("--output");
   const mode = value("--mode");
   const artifactsDirectory = value("--artifacts-dir");
+  const planFile = value("--plan-file");
   if (
     !sdkDirectory ||
     !sdkSha ||
     !hostVersion ||
     !repository ||
     !output ||
-    !["stage", "publish"].includes(mode) ||
+    !["plan", "stage", "publish"].includes(mode) ||
     (mode === "stage" && !artifactsDirectory)
   ) {
     throw new Error(
       "Usage: ensure-sdk-release.mjs --sdk-dir <dir> --sdk-sha <sha> " +
         "--host-version <version> --repository <owner/repo> --output <github-output> " +
-        "--mode <stage|publish> [--artifacts-dir <dir>]",
+        "--mode <plan|stage|publish> [--plan-file <file>] [--artifacts-dir <dir>]",
     );
   }
 
   const releaseVersion = sdkReleaseVersionInvocation(sdkDirectory, sdkSha);
-  const plan = JSON.parse(run(process.execPath, releaseVersion.args, { cwd: releaseVersion.cwd }));
+  const plan =
+    mode === "stage" && planFile
+      ? JSON.parse(await readFile(planFile, "utf8"))
+      : JSON.parse(run(process.execPath, releaseVersion.args, { cwd: releaseVersion.cwd }));
+  if (mode === "stage" && planFile) {
+    validateSdkReleasePlan(plan, sdkSha);
+    run("git", ["merge-base", "--is-ancestor", plan.releaseSha, sdkSha], {
+      cwd: releaseVersion.cwd,
+    });
+  }
   report(
     `Resolved SDK ${sdkSha} to ${plan.tag} at release source ${plan.releaseSha}; release required: ${plan.releaseRequired}.`,
   );
+  if (mode === "plan") {
+    if (!planFile || !/^[0-9a-f]{40}$/.test(plan.releaseSha))
+      throw new Error("A valid SDK plan file is required");
+    await writeFile(planFile, `${JSON.stringify({ ...plan, sdkSha }, null, 2)}\n`);
+    await writeFile(output, `sdk_release_sha=${plan.releaseSha}\n`, { flag: "a" });
+    return;
+  }
   let manifest = await publishedRelease(repository, plan, artifactsDirectory);
   if (manifest) report(`Reusing published SDK release ${plan.tag}.`);
   if (!manifest && mode === "stage") {

@@ -58,6 +58,7 @@ describe("release workflow publication gates", () => {
       },
       "sdk-release": { result: "success" },
       qualify: { result: "success" },
+      "frontend-build": { result: "success" },
       "data-compatibility": { result: "success" },
       build: { result: "success" },
       "runtime-components": { result: "success" },
@@ -89,6 +90,9 @@ describe("release workflow publication gates", () => {
     const tag = await releaseJobSource("tag", "data-compatibility");
     expect(jobCondition(tag, needs)).toBe(true);
     expect(jobCondition(tag, { ...needs, build: { result: "skipped" } })).toBe(false);
+    for (const result of ["failure", "skipped", "cancelled"]) {
+      expect(jobCondition(tag, { ...needs, "frontend-build": { result } })).toBe(false);
+    }
     for (const result of ["failure", "skipped", "cancelled"]) {
       expect(jobCondition(tag, { ...needs, "data-compatibility": { result } })).toBe(false);
       expect(

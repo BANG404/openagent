@@ -354,6 +354,12 @@ async function main() {
       outputDirectory: path.resolve(option(args, "--output")),
       target: option(args, "--target"),
     });
+  } else if (command === "stage-lightweight") {
+    await stageTauriArtifacts({
+      artifactPaths: await collectFiles(path.resolve(option(args, "--bundle-root"))),
+      outputDirectory: path.resolve(option(args, "--output")),
+      target: option(args, "--target"),
+    });
   } else if (command === "stage-full") {
     await stageFullInstaller({
       bundleRoot: path.resolve(option(args, "--bundle-root")),

@@ -164,6 +164,50 @@
   restart against a stale sidecar. A failed server build keeps the current
   process running and retries on the next source change.
 
+## Parallel release construction and frontend cache
+
+`build-frontend.yml` owns the platform-independent production frontend and shell
+bootstrap. It runs both builds and Node-based bundle budgets once, then packs
+only `build/` and `.cache/bootstrap-dist/` into `qualified-frontend-build`.
+Release qualification delegates this build to the release caller; ordinary full
+CI runs invoke it alongside frontend type/lint/test checks. The release tag gate
+requires the qualified build even when resuming an already published release.
+
+Bun download caches use the runner OS, pinned Bun version and frozen lockfile.
+The frontend output cache is an exact-match optimization: its key binds the
+desktop commit, pinned client SDK commit, product version, Bun and Node versions.
+Only trusted default-branch runs save production output. No fallback prefix may
+restore a different frontend; version and Git revision are embedded in its bytes.
+On a miss, build and budget checks run before saving. On a hit, verify source
+identity, required entrypoints, the complete file inventory, sizes and SHA-256
+before reusing it. Corrupt caches fail qualification rather than silently shipping.
+Never cache private SDK sources, Rust outputs, signing keys or fixture state.
+
+`sdk-plan` resolves and persists the SDK release plan once. Runtime staging and
+Windows/Linux distribution-helper jobs consume that same plan, including an
+ancestor SDK release selected for reuse. Helpers start as soon as that source
+is known and compile cold concurrently with SDK qualification. Do not independently
+resolve their source after tags change; SDK staging validates the saved plan and
+its ancestry against the exact client gitlink.
+
+The four `shell-build` jobs start after the qualified bootstrap, without waiting
+for SDK or offline resources. `.github/tauri-prebuilt.conf.json` verifies the
+restored frontend and prepares target-specific Node and terminal tools; it never
+rebuilds frontend assets. `tauri build --no-bundle` compiles each shell once.
+Its run-scoped artifact contains only the main executable, sibling DLLs and
+portable resources, with source/target/version identity and file digests.
+Private compiler outputs and Cargo target directories are excluded.
+
+Platform packaging waits for the signed distribution and its compiled shell,
+verifies every handoff before restoration, restores executable permissions, then
+runs `tauri bundle` for lightweight and full layouts using the same executable.
+Store staging uses the same signed `bootstrap-release/` resources. All existing
+qualification, data compatibility, candidate verification, signing and publication
+gates remain required. Validate artifact corruption, wrong source/SDK/target,
+missing or escaping paths, executable permissions and the workflow dependency
+graph when changing these boundaries. A real hosted release must confirm all four
+installer targets and cache-hit/miss timings before claiming a measured speedup.
+
 ## Online and offline distributions
 
 The ordinary updater/install package embeds only the standalone shell bootstrap.

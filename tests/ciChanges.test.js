@@ -10,6 +10,15 @@ const nothing = {
 };
 
 describe("CI module classification", () => {
+  test("qualifies shared frontend artifact inputs through frontend checks", () => {
+    for (const file of [
+      ".github/workflows/build-frontend.yml",
+      "scripts/release-build-artifacts.mjs",
+      "bootstrap.vite.config.js",
+    ]) {
+      expect(classifyChangedModules([file]).frontend).toBe(true);
+    }
+  });
   test("runs only frontend checks for UI and frontend test changes", () => {
     expect(classifyChangedModules(["src/lib/chatStream.ts", "tests/chatStream.test.ts"])).toEqual({
       ...nothing,

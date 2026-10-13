@@ -8,6 +8,7 @@ import {
   selectDispatchedWorkflowRun,
   selectSdkQualificationStatus,
   validateSdkManifest,
+  validateSdkReleasePlan,
   workflowDispatchInvocation,
   workflowRunProgress,
 } from "./ensure-sdk-release.mjs";
@@ -24,6 +25,21 @@ describe("SDK release version invocation", () => {
 });
 
 describe("SDK release manifest verification", () => {
+  test("pins helpers and staging to the same resolved ancestor plan", () => {
+    const source = "a".repeat(40);
+    const plan = {
+      sdkSha: source,
+      releaseSha: "b".repeat(40),
+      tag: "sdk-v0.6.3",
+      version: "0.6.3",
+      releaseRequired: false,
+    };
+    expect(validateSdkReleasePlan(plan, source)).toEqual(plan);
+    expect(() => validateSdkReleasePlan(plan, "c".repeat(40))).toThrow(/mismatch/);
+    expect(() => validateSdkReleasePlan({ ...plan, tag: "sdk-v0.6.4" }, source)).toThrow(
+      /mismatch/,
+    );
+  });
   const plan = { version: "0.6.3", releaseSha: "0123456789abcdef0123456789abcdef01234567" };
 
   test("accepts the exact SDK source and protocol range", () => {
@@ -124,7 +140,7 @@ describe("SDK release workflow orchestration", () => {
 
   test("requires staged and published modes explicitly", () => {
     const source = readFileSync(new URL("./ensure-sdk-release.mjs", import.meta.url), "utf8");
-    expect(source).toContain('!["stage", "publish"].includes(mode)');
+    expect(source).toContain('!["plan", "stage", "publish"].includes(mode)');
     expect(source).toContain('value("--artifacts-dir")');
     expect(source).toContain('mode === "stage" && !artifactsDirectory');
     expect(source).toContain('"operation=stage"');

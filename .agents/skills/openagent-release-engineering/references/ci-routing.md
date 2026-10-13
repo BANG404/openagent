@@ -27,7 +27,11 @@ three verification routes:
   module through complete qualification: frontend production build and bundle
   budgets, Windows/macOS native compilation, and embedding runtime tests.
   Full runs never consume prior fast coverage. Frontend
-  bundle budgets resolve both direct Vite manifest entries and source modules
+  production assets and bootstrap build in `build-frontend.yml` concurrently with
+  type/lint/test qualification. Formal releases provide that same-source build
+  through the caller's mandatory tag gate instead of rebuilding it inside CI.
+  Cache and run-scoped handoff invariants live in [artifacts](artifacts.md#parallel-release-construction-and-frontend-cache).
+  Bundle budgets resolve both direct Vite manifest entries and source modules
   emitted through a manifest entry's dynamic imports, so code splitting does
   not fail a valid budget target before size measurement. The settings view
   budget is 208 KiB raw and 64 KiB gzip; the main route dependency graph is

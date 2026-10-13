@@ -146,8 +146,7 @@ jobs:
           fi
           if job_succeeded "Frontend / Type and test"; then
             contexts+=("Verified CI / frontend-fast")
-            if step_succeeded "Frontend / Type and test" "Build frontend" \
-              && step_succeeded "Frontend / Type and test" "Check frontend bundle budgets"; then
+            if job_succeeded "Frontend / Production assets / Build and qualify static assets"; then
               contexts+=("Verified CI / frontend-full")
             fi
           fi

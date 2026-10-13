@@ -221,9 +221,51 @@ jobs:
             done
           fi
 
+  sdk-plan:
+    name: Resolve immutable SDK release plan
+    needs: detect
+    if: needs.detect.outputs.active == 'true'
+    runs-on: ubuntu-24.04
+    outputs:
+      sdk_release_sha: ${{ steps.plan.outputs.sdk_release_sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.detect.outputs.sha }}
+      - id: sdk
+        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
+      - id: sdk-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
+          owner: BANG404
+          repositories: openagent-sdk
+          permission-contents: read
+      - uses: actions/checkout@v7
+        with:
+          repository: BANG404/openagent-sdk
+          ref: ${{ steps.sdk.outputs.sha }}
+          path: sdk
+          fetch-depth: 0
+          token: ${{ steps.sdk-token.outputs.token }}
+          persist-credentials: false
+      - name: Resolve exact Runtime and helper source
+        id: plan
+        run: >-
+          node scripts/ensure-sdk-release.mjs --sdk-dir sdk --sdk-sha "${{ steps.sdk.outputs.sha }}"
+          --host-version "${{ needs.detect.outputs.version }}" --repository BANG404/openagent-sdk
+          --output "$GITHUB_OUTPUT" --mode plan --plan-file sdk-release-plan.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdk-release-plan
+          path: sdk-release-plan.json
+          retention-days: 7
+          if-no-files-found: error
+
   sdk-release:
     name: Stage or reuse pinned SDK release
-    needs: detect
+    needs: [detect, sdk-plan]
     if: needs.detect.outputs.active == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 190
@@ -266,6 +308,10 @@ jobs:
           token: ${{ steps.sdk-read-token.outputs.token }}
           persist-credentials: false
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: sdk-release-plan
+
       - name: Ensure independent SDK release
         id: release
         env:
@@ -279,6 +325,7 @@ jobs:
           --output "$GITHUB_OUTPUT"
           --artifacts-dir "$RUNNER_TEMP/sdk-runtime"
           --mode stage
+          --plan-file sdk-release-plan.json
 
       - name: Upload release-qualified SDK Runtime
         uses: actions/upload-artifact@v4
@@ -296,6 +343,7 @@ jobs:
     with:
       base_sha: ${{ github.event.before }}
       full: true
+      external_frontend_build: true
     secrets: inherit
 
   tag:
@@ -308,11 +356,13 @@ jobs:
       - build
       - runtime-components
       - frontend-components
+      - frontend-build
     if: >-
       always()
       && needs.detect.outputs.active == 'true'
       && needs.sdk-release.result == 'success'
       && needs.qualify.result == 'success'
+      && needs.frontend-build.result == 'success'
       && needs.data-compatibility.result == 'success'
       && (needs.detect.outputs.published == 'true' || needs.build.result == 'success')
       && (needs.detect.outputs.published == 'true' || needs.runtime-components.result == 'success')
@@ -436,12 +486,105 @@ jobs:
           fi
           echo "published=$published" >> "$GITHUB_OUTPUT"
 
+  frontend-build:
+    name: Qualified frontend and bootstrap
+    needs: detect
+    if: needs.detect.outputs.active == 'true'
+    uses: ./.github/workflows/build-frontend.yml
+    with:
+      source_sha: ${{ needs.detect.outputs.sha }}
+    secrets: inherit
+
+  shell-build:
+    name: Compile shell ${{ matrix.name }}
+    needs: [detect, frontend-build]
+    if: needs.detect.outputs.published != 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS arm64
+            runner: macos-latest
+            args: --target aarch64-apple-darwin
+            rust_target: aarch64-apple-darwin
+            sidecar_target: aarch64-apple-darwin
+            runtime_target: macos-arm64
+          - name: macOS Intel
+            runner: macos-latest
+            args: --target x86_64-apple-darwin
+            rust_target: x86_64-apple-darwin
+            sidecar_target: x86_64-apple-darwin
+            runtime_target: macos-x64
+          - name: Linux x64
+            runner: ubuntu-24.04
+            args: ""
+            rust_target: ""
+            sidecar_target: x86_64-unknown-linux-gnu
+            runtime_target: linux-x64
+          - name: Windows x64
+            runner: windows-2025
+            args: ""
+            rust_target: ""
+            sidecar_target: x86_64-pc-windows-msvc
+            runtime_target: windows-x64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.detect.outputs.sha }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-public-${{ runner.os }}-1.3.14-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-public-${{ runner.os }}-1.3.14-
+      - run: bun install --frozen-lockfile
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: ./src-tauri -> target
+          shared-key: public-host-release-${{ matrix.runtime_target }}
+          cache-targets: false
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev pkg-config
+      - uses: actions/download-artifact@v4
+        with:
+          name: qualified-frontend-build
+          path: .cache/frontend-build
+      - name: Restore verified frontend and bootstrap
+        run: node scripts/release-build-artifacts.mjs frontend-restore --directory .cache/frontend-build
+      - name: Compile shell without waiting for SDK or offline resources
+        env:
+          OPENAGENT_NODE_TARGET: ${{ matrix.sidecar_target }}
+          OPENAGENT_TERMINAL_TOOLS_TARGET: ${{ matrix.sidecar_target }}
+        run: bun run tauri:build -- --no-bundle --config .github/tauri-prebuilt.conf.json ${{ matrix.args }}
+      - name: Bind compiled shell and portable resources to source
+        run: node scripts/release-build-artifacts.mjs shell-pack --directory .cache/shell-build --target ${{ matrix.runtime_target }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: compiled-shell-${{ matrix.runtime_target }}
+          path: .cache/shell-build
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+
   build:
     name: Build ${{ matrix.name }}
     needs:
       - detect
       - sdk-release
       - distribution-resources
+      - shell-build
     # Component flags select update channels; every product version needs installers.
     if: needs.detect.outputs.published != 'true'
     strategy:
@@ -487,34 +630,9 @@ jobs:
         shell: bash
         run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
 
-      - name: Create private SDK read token
-        id: sdk-read-token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
-          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
-          owner: BANG404
-          repositories: openagent-sdk
-          permission-contents: read
-
-      - name: Check out private SDK
-        uses: actions/checkout@v7
-        with:
-          repository: BANG404/openagent-sdk
-          ref: ${{ steps.sdk.outputs.sha }}
-          path: sdk
-          token: ${{ steps.sdk-read-token.outputs.token }}
-          persist-credentials: false
-
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.rust_target }}
-
-      - uses: swatinem/rust-cache@v2
-        with:
-          workspaces: ./src-tauri -> target
-          shared-key: public-host-release-${{ matrix.runtime_target }}
-          cache-targets: false
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -526,8 +644,31 @@ jobs:
           && needs.detect.outputs.prerelease != 'true'
         uses: microsoft/setup-WinAppCli@v0.1
 
-      - name: Install frontend dependencies
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-public-${{ runner.os }}-1.3.14-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-public-${{ runner.os }}-1.3.14-
+
+      - name: Install packaging dependencies
         run: bun install --frozen-lockfile
+
+      - name: Download compiled shell
+        uses: actions/download-artifact@v4
+        with:
+          name: compiled-shell-${{ matrix.runtime_target }}
+          path: .cache/shell-build
+
+      - name: Restore verified shell and portable resources
+        run: node scripts/release-build-artifacts.mjs shell-restore --directory .cache/shell-build --target ${{ matrix.runtime_target }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: qualified-frontend-build
+          path: .cache/frontend-build
+
+      - name: Restore verified bootstrap for packaging
+        run: node scripts/release-build-artifacts.mjs frontend-restore --directory .cache/frontend-build
 
       - name: Download release-qualified SDK Runtime
         uses: actions/download-artifact@v4
@@ -557,15 +698,6 @@ jobs:
             libssl-dev \
             pkg-config
 
-      - name: Prepare pinned Linux sandbox helper
-        if: matrix.runner_os == 'Linux'
-        shell: bash
-        run: |
-          if ! node scripts/prepare-linux-sandbox-helper.mjs --profile release --github-env >"$RUNNER_TEMP/linux-sandbox-helper-build.log" 2>&1; then
-            echo "::error::Linux sandbox helper build failed; diagnostic output was suppressed."
-            exit 1
-          fi
-
       - name: Download complete signed resource distribution
         uses: actions/download-artifact@v4
         with:
@@ -580,20 +712,15 @@ jobs:
           --output src-tauri/resources/bootstrap-release
           --target "${{ matrix.runtime_target }}"
 
-      # This is the authoritative full product compilation for the immutable
-      # release SHA. Pull-request and main CI validate source-level modules.
-      - name: Build lightweight release candidate
-        id: tauri
-        uses: tauri-apps/tauri-action@v0
+      # Package the source-bound shell compiled earlier in the same run.
+      - name: Bundle lightweight release candidate from compiled shell
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           OPENAGENT_RUNTIME_TARGET: ${{ matrix.sidecar_target }}
           OPENAGENT_NODE_TARGET: ${{ matrix.sidecar_target }}
           OPENAGENT_TERMINAL_TOOLS_TARGET: ${{ matrix.sidecar_target }}
           OPENAGENT_RUNTIME_SERVER_PREBUILT: "1"
-        with:
-          retryAttempts: 2
-          args: ${{ matrix.args }}
+        run: bun run tauri:bundle -- ${{ matrix.args }}
 
       - name: Verify Windows release executable
         if: matrix.runner_os == 'Windows'
@@ -609,10 +736,9 @@ jobs:
 
       - name: Stage lightweight release candidate
         shell: bash
-        env:
-          TAURI_ARTIFACT_PATHS: ${{ steps.tauri.outputs.artifactPaths }}
         run: >-
-          node scripts/release-candidate-artifacts.mjs stage-tauri
+          node scripts/release-candidate-artifacts.mjs stage-lightweight
+          --bundle-root src-tauri/target
           --output "$RUNNER_TEMP/native-release"
           --target "${{ matrix.runtime_target }}"
 
@@ -620,8 +746,7 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           OPENAGENT_RUNTIME_TARGET: ${{ matrix.sidecar_target }}
-        # The online build compiled the shell and its independent bootstrap UI. Bundle the full installer from those existing outputs;
-        # running `tauri build` here would repeat beforeBuildCommand.
+        # Both layouts reuse the verified executable; bundling never recompiles.
         run: bun run tauri:bundle -- --config src-tauri/tauri.full.conf.json ${{ matrix.args }}
 
       - name: Stage full first-install candidate
@@ -668,16 +793,10 @@ jobs:
           }
           New-Item -ItemType Directory -Path $stage -Force | Out-Null
           Copy-Item "src-tauri\target\release\openagent.exe" $stage
-          Copy-Item "src-tauri\target\release\openagent-agent-server.exe" $stage
-          Copy-Item "src-tauri\binaries\openagent-server-x86_64-pc-windows-msvc.exe" `
-            (Join-Path $stage "openagent-server.exe")
           Get-ChildItem "src-tauri\target\release" -Filter *.dll -File |
             Copy-Item -Destination $stage
-          Copy-Item "src-tauri\resources\models\all-MiniLM-L6-v2-q" `
-            (Join-Path $stage "models\all-MiniLM-L6-v2-q") `
-            -Recurse
-          Copy-Item "src-tauri\resources\codex-resources" `
-            (Join-Path $stage "codex-resources") `
+          Copy-Item "src-tauri\resources\bootstrap-release" `
+            (Join-Path $stage "bootstrap-release") `
             -Recurse
           Copy-Item "src-tauri\resources\node-runtime" `
             (Join-Path $stage "node-runtime") `
@@ -781,7 +900,7 @@ jobs:
 
   distribution-helpers:
     name: Qualify distribution helpers (${{ matrix.os }})
-    needs: [detect, sdk-release]
+    needs: [detect, sdk-plan]
     if: needs.detect.outputs.published != 'true'
     strategy:
       matrix:
@@ -807,7 +926,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           repository: BANG404/openagent-sdk
-          ref: ${{ needs.sdk-release.outputs.sdk_release_sha }}
+          ref: ${{ needs.sdk-plan.outputs.sdk_release_sha }}
           path: sdk
           token: ${{ steps.sdk-token.outputs.token }}
           persist-credentials: false
@@ -962,7 +1081,7 @@ jobs:
 
   frontend-components:
     name: Prepare signed frontend candidate
-    needs: detect
+    needs: [detect, frontend-build]
     if: needs.detect.outputs.published != 'true'
     runs-on: ubuntu-24.04
     steps:
@@ -998,10 +1117,15 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
 
-      - name: Build release frontend
-        run: |
-          bun install --frozen-lockfile
-          bun run build
+      - run: bun install --frozen-lockfile
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: qualified-frontend-build
+          path: .cache/frontend-build
+
+      - name: Restore the qualified release frontend
+        run: node scripts/release-build-artifacts.mjs frontend-restore --directory .cache/frontend-build
 
       - name: Create and sign frontend component
         shell: bash

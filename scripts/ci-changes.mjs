@@ -81,6 +81,9 @@ export function classifyChangedModules(files, forceAll = false) {
       "scripts/check-bundle-size.mjs",
       "scripts/bundle-manifest.mjs",
       "scripts/bundle-manifest.test.mjs",
+      "scripts/release-build-artifacts.mjs",
+      "scripts/release-build-artifacts.test.mjs",
+      ".github/workflows/build-frontend.yml",
     ].includes(file),
   );
   const automationTests = new Set([
@@ -136,6 +139,7 @@ export function classifyChangedModules(files, forceAll = false) {
         "bunfig.toml",
         "eslint.config.js",
         "vite.config.js",
+        "bootstrap.vite.config.js",
         "sdk",
       ]),
     ) ||
