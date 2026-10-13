@@ -21,6 +21,10 @@ configuration values, credentials, file contents, raw frontend error messages,
 and stack traces. Model-context spans remain isolated in the optional Langfuse
 pipeline and are not application logs.
 
+Frontend error reports use the shared SDK product operation so the supervised
+Runtime owns their local recording and consent-controlled remote upload.
+Component-update lifecycle records remain a desktop-host capability.
+
 Release builds receive the write-only ingestion credential from the
 `OPENAGENT_LOGS_INGEST_TOKEN` repository secret. Local builds may set the same
 environment variable and may override the default

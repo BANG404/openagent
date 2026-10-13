@@ -35,6 +35,16 @@ the provider transcript. Only the tagged compaction boundary enters the durable
 transcript while the complete visible
 checkpoint transcript remains available.
 
+Flash compaction can read historical user images and image-bearing tool results
+when the actual Flash model has vision enabled. Retries and fallbacks each use
+their own model capability. Unsupported media receives an explicit omission
+marker; plain text attachments remain readable. PDF input requires a supported
+visual API (Anthropic, Gemini or OpenAI Responses). Audio/video are currently
+omitted.
+The compressed boundary stays textual and original attachments remain durable.
+Runtime ownership and verification live in the SDK conversation-runtime skill's
+`references/context-budget.md`.
+
 The runtime estimate is Unicode-aware: ASCII text uses an approximate
 four-characters-per-token ratio, while non-ASCII text is counted closer to one
 token per character. This keeps automatic compaction from underestimating
