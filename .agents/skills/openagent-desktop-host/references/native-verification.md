@@ -96,6 +96,30 @@ bun run test:blackbox:plugins
 
 ## Agent plugin process coverage
 
+For shared tool-image storage, run `bun run test:blackbox:tool-image-storage`
+(`tests/blackbox/tool-image-storage.toml`) against the image-storage streaming preview in an
+isolated debug window. Its fixture uploads synthetic bytes through the SDK and
+renders an actual ToolCallCard with a blob reference below the viewport. Assert
+zero preview reads before scrolling, a stable loading container, successful
+image decoding after scrolling, reload from the same stored reference, and the
+unavailable state for a missing blob, and two decoded images when the same blob
+appears twice in one result. Capture light/dark and Chinese/English.
+The fixture must never use installed data; pair it with Runtime migration and
+provider-hydration coverage for durable checkpoint restoration.
+
+For lazy branch restore and paginated trace details, seed an empty stopped
+`trace-export-storage` temporary home with
+`bun scripts/seed-storage-native-fixture.mjs`, then start the current source
+Runtime and run `bun run test:blackbox:storage-history`. The seed refuses a
+populated store, writes only synthetic schema-10 branches and traces, and lets
+the SDK perform its backed-up migration at startup. Before launch, complete the
+fixture's onboarding configuration and select the exact workspace path emitted
+by the seed; Windows slash spellings must match the conversation workspace.
+Use `BLACKBOX_NATIVE_WINDOW_ID` for native Windows captures. Its committed
+`storage-history.toml` scenario switches both branches through the visible
+controls; the wrapper checks reference-only selected views, 100-row trace
+pages, loading older requests and selected detail in all theme/locale pairs.
+
 `bun run test:blackbox:plugin-node-runtime` owns a fresh Windows Tauri fixture
 whose PATH has every system Node directory removed. It runs the committed
 installation and host-access scenarios with light/English and dark/Chinese,
@@ -349,7 +373,6 @@ The credential-free shape is deliberately absent: an endpoint that needs no
 authorization is proven by an anonymous handshake that _succeeds_, which needs a
 real MCP server rather than an HTTP fixture. That mapping is covered by the
 runtime's own `McpOAuthCapability::NotRequired` test, not here.
-
 
 ## Independent shell resources
 

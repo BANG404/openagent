@@ -15,7 +15,7 @@
   import FileDiffView from "./FileDiffView.svelte";
   import Tooltip from "./Tooltip.svelte";
   import ToolApprovalActions from "./ToolApprovalActions.svelte";
-  import McpAppFrame from "./McpAppFrame.svelte";
+  import ToolResultImage from "./ToolResultImage.svelte";
 
   interface Props {
     name: string;
@@ -324,7 +324,13 @@
       {/if}
 
       {#if mcpUi && mountMcpApp}
-        <McpAppFrame invocation={mcpUi} />
+        {#await import("./McpAppFrame.svelte")}
+          <div class="mcp-app-loading" aria-busy="true" aria-label={$t("mcpApp")}></div>
+        {:then module}
+          <module.default invocation={mcpUi} />
+        {:catch}
+          <div class="mcp-app-loading" role="status">{$t("mcpAppUnavailable")}</div>
+        {/await}
       {/if}
 
       {#if expanded}
@@ -424,9 +430,9 @@
             {/if}
             {#if images.length > 0}
               <div class="tool-image-results">
-                {#each images as image (image.src)}
-                  <img
-                    src={image.src}
+                {#each images as image, index (`${index}:${image.src}`)}
+                  <ToolResultImage
+                    {image}
                     alt={name === "view_image" ? $t("viewedWorkspaceImage") : $t("toolResultImage")}
                   />
                 {/each}
@@ -442,9 +448,9 @@
           {/if}
           {#if images.length > 0}
             <div class="tool-image-results">
-              {#each images as image (image.src)}
-                <img
-                  src={image.src}
+              {#each images as image, index (`${index}:${image.src}`)}
+                <ToolResultImage
+                  {image}
                   alt={name === "view_image" ? $t("viewedWorkspaceImage") : $t("toolResultImage")}
                 />
               {/each}
@@ -457,6 +463,16 @@
 {/if}
 
 <style>
+  .mcp-app-loading {
+    height: 280px;
+    margin: 6px 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    display: grid;
+    place-items: center;
+    color: var(--text-muted);
+  }
   .tool-call-card {
     margin: 0;
     border: none;
@@ -757,15 +773,6 @@
     padding: 8px;
     border-top: 1px solid var(--border);
     background: var(--bg);
-  }
-
-  .tool-image-results img {
-    display: block;
-    max-width: 100%;
-    max-height: 420px;
-    object-fit: contain;
-    border-radius: 6px;
-    background: var(--surface);
   }
 
   @keyframes pulse {

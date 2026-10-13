@@ -154,8 +154,18 @@ pub(crate) async fn export_conversation_trace(
 #[tauri::command]
 pub(crate) async fn get_task_traces(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
-) -> Result<Vec<TaskTrace>, String> {
-    openagent_runtime::commands::get_task_traces(runtime.state()).await
+    cursor: Option<openagent_runtime::checkpoint::TaskTraceCursor>,
+    limit: Option<usize>,
+) -> Result<openagent_runtime::checkpoint::TaskTracePage, String> {
+    openagent_runtime::commands::get_task_traces(runtime.state(), cursor, limit).await
+}
+
+#[tauri::command]
+pub(crate) async fn get_task_trace(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    id: String,
+) -> Result<Option<TaskTrace>, String> {
+    openagent_runtime::commands::get_task_trace(runtime.state(), id).await
 }
 
 #[tauri::command]
@@ -188,6 +198,15 @@ pub(crate) async fn get_renderable_checkpoints(
     conv_id: String,
 ) -> Result<Vec<RenderableCheckpoint>, String> {
     runtime.facade().renderable_checkpoints(conv_id).await
+}
+
+#[tauri::command]
+pub(crate) async fn get_checkpoint_view(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    conv_id: String,
+    checkpoint_id: Option<String>,
+) -> Result<Vec<RenderableCheckpoint>, String> {
+    openagent_runtime::commands::get_checkpoint_view(runtime.state(), conv_id, checkpoint_id).await
 }
 
 #[tauri::command]

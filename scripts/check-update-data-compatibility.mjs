@@ -42,7 +42,7 @@ export function assertPreserved(expected, actual, label = "data") {
   }
 }
 
-/** @param {string} binary @param {string} home @param {string} [expectedStatus] */
+/** @param {string} binary @param {string} home @param {string | string[]} [expectedStatus] */
 export function inspectHome(binary, home, expectedStatus = "ready") {
   const result = spawnSync(binary, ["--desktop-bootstrap", "inspect"], {
     env: { ...process.env, OPENAGENT_HOME: home },
@@ -53,7 +53,10 @@ export function inspectHome(binary, home, expectedStatus = "ready") {
   assert.equal(result.status, 0, "Runtime bootstrap inspection failed");
   const response = JSON.parse(result.stdout);
   assert.equal(response.schema_version, 1, "Unsupported bootstrap response");
-  assert.equal(response.status, expectedStatus, "Unexpected startup data transition");
+  assert(
+    (Array.isArray(expectedStatus) ? expectedStatus : [expectedStatus]).includes(response.status),
+    "Unexpected startup data transition",
+  );
   return response;
 }
 
@@ -350,7 +353,7 @@ export async function checkUpdateDataCompatibility({ baselineBinary, candidateBi
     }
 
     for (let restart = 0; restart < 2; restart += 1) {
-      inspectHome(candidateBinary, home);
+      inspectHome(candidateBinary, home, restart === 0 ? ["ready", "restart_required"] : "ready");
       const candidate = await startRuntime(candidateBinary, home, workspace);
       try {
         assertPreserved(expected, await snapshot(candidate, id, locator));

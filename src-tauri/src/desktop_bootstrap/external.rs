@@ -107,6 +107,12 @@ async fn start_runtime_spec(
     supervisor: &RuntimeProcessSupervisor,
     spec: RuntimeLaunchSpec,
 ) -> Result<(), String> {
+    let inspection =
+        crate::runtime_process::inspect_runtime_bootstrap(&spec.binary_path, &spec.openagent_home)
+            .await?;
+    if inspection.requires_persistence_transition() {
+        return Err("Runtime startup refused incompatible persisted data; preserve its migration backup and complete the explicit startup transition".into());
+    }
     supervisor.start(spec).await?;
     if let Err(error) = validate_supervised_runtime_bootstrap(supervisor).await {
         let _ = supervisor.stop().await;

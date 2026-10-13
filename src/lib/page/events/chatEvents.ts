@@ -9,6 +9,7 @@ import {
   attachToolResult,
 } from "$lib/chatStream";
 import type { PageEventOptions } from "./context";
+import { toolImageAttachments } from "$lib/toolImageAttachments";
 
 /** Projects the shared SDK chat event stream into the existing page state. */
 export function subscribePageChatEvents(options: PageEventOptions) {
@@ -81,7 +82,7 @@ export function subscribePageChatEvents(options: PageEventOptions) {
       };
       options.persistStreamDraft(conv_id).catch(() => {});
     },
-    onToolResult: (conv_id, result, toolUseId, mcpUi) => {
+    onToolResult: (conv_id, result, toolUseId, mcpUi, imageAttachments) => {
       const pendingToolCall = toolUseId
         ? (options.chatStreams.itemsByConversation[conv_id] ?? []).find(
             (item) =>
@@ -94,7 +95,17 @@ export function subscribePageChatEvents(options: PageEventOptions) {
             .find((item) => item.type === "tool_call" && item.result === undefined);
       const rolesMayHaveChanged =
         pendingToolCall?.type === "tool_call" && pendingToolCall.name === "create_role";
+      const images = toolImageAttachments(imageAttachments);
       if (options.attachApprovedToolResult(conv_id, result, toolUseId)) {
+        if (images.length && toolUseId) {
+          options.applyStreamMutation(conv_id, (items) =>
+            items.map((item) =>
+              item.type === "tool_call" && item.toolUseId === toolUseId
+                ? { ...item, images }
+                : item,
+            ),
+          );
+        }
         if (rolesMayHaveChanged) void options.loadAvailableRoles();
         return;
       }
@@ -105,6 +116,7 @@ export function subscribePageChatEvents(options: PageEventOptions) {
           result,
           toolUseId,
           mcpUi,
+          images,
         ),
       };
       if (rolesMayHaveChanged) void options.loadAvailableRoles();

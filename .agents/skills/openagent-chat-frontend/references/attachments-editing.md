@@ -1,5 +1,12 @@
 # Attachments and editing
 
+Tool image references load previews only when their card approaches the viewport.
+Keep the same bounded image container geometry during loading, success and
+unavailable states so lazy byte retrieval does not move the transcript. A mounted
+MCP App hydrates only referenced images; ordinary tool state remains immediate.
+Load the MCP App frame module only for eligible app cards. Reserve its initial
+280px frame while loading and show a localized failure if loading fails.
+
 Image attachments are offered by the composer only when the selected model's
 visual multimodality setting is enabled. Text and document attachments remain
 available independently; the runtime enforces the same model capability when
@@ -83,6 +90,16 @@ must never be offered while the Runtime is drained for component replacement.
   create leading or trailing blank lines.
 - Restored previews load blob bytes on demand. Do not embed bytes in checkpoint
   IPC payloads.
+- Tool-result images follow the same attachment boundary. Live and restored
+  cards retain opaque blob locators, load authenticated previews only when the
+  expanded image enters the viewport, and show a stable skeleton or unavailable
+  state. Desktop and paired browser surfaces use their own shared client
+  capability. Keep ordinary tool results and original image order intact.
+  Preserve repeated image positions even when their bytes share one blob;
+  key rendered entries by position and locator so repeated images mount safely.
+  A mounted MCP App hydrates referenced images before forwarding its tool-result
+  envelope to the iframe, rejects stale asynchronous responses, and reports an
+  unavailable preview without replaying the Agent tool call.
 - Removing a restored attachment is a staged edit: cancel restores it; send
   creates a new branch and preserves the original.
 - Repair an app-managed pasted attachment only by checkpoint SHA-256 match.

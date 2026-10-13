@@ -134,6 +134,8 @@
   import { renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
   import {
     ROOT_KEY,
+    buildTreeFromCheckpoints,
+    selectActivePathToCheckpoint,
     computeActivePath,
     getActiveTipNode,
     findForkParentCheckpointId,
@@ -1466,7 +1468,7 @@
     branchSelectionVersions.set(convId, (branchSelectionVersions.get(convId) ?? 0) + 1);
 
     const override = { ...tree.activeChild, [parentKey]: targetIdx };
-    const updatedTree: ConvTree = { ...tree, activeChild: override };
+    let updatedTree: ConvTree = { ...tree, activeChild: override };
     const targetTipCheckpoint = getActiveTipNode(updatedTree)?.ckId;
     if (!targetTipCheckpoint) return;
 
@@ -1489,6 +1491,20 @@
     }
 
     if (tauriAvailable) {
+      // Hydrate the selected body before exposing a metadata-only branch.
+      try {
+        const checkpoints = await fetchRenderableCheckpoints(convId, targetTipCheckpoint);
+        updatedTree = selectActivePathToCheckpoint(
+          buildTreeFromCheckpoints(checkpoints, updatedTree),
+          targetTipCheckpoint,
+        );
+      } catch (error) {
+        checkpointLoadErrors = {
+          ...checkpointLoadErrors,
+          [convId]: `${tr("checkpointLoadFailed")} ${String(error)}`,
+        };
+        return;
+      }
       // Restore the agent's in-memory history to the tip of the newly-active path
       // so the next message continues from where the user is now looking.
       await openAgent
@@ -1504,7 +1520,9 @@
       // A branch switch rebuilds messages from checkpoint records. Re-project a
       // pending ask_user from the selected tip's tool_use plus interrupt state,
       // just as a full conversation load does.
-      const checkpoints = await fetchRenderableCheckpoints(convId).catch(() => []);
+      const checkpoints = await fetchRenderableCheckpoints(convId, targetTipCheckpoint).catch(
+        () => [],
+      );
       const pendingProjection = restorePendingUserInputFromCheckpoint(
         convId,
         branchMessages,

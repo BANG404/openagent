@@ -7,6 +7,7 @@ import { appendChunk } from "./chatStream";
 import { normalizeCheckpointFlow, type CheckpointFlow } from "./checkpointFlow";
 import { isUnansweredToolResult, toolCallStatus } from "./toolCallGroups";
 import { parseToolResultJson } from "./toolResultJson";
+import { toolImageAttachments } from "./toolImageAttachments";
 import type {
   ChatMessage,
   ChatToolImage,
@@ -116,6 +117,8 @@ export interface CkTreeNode {
   timelineMessages: ChatMessage[];
   /** Whether timelineMessages contains the complete parent snapshot as well. */
   isSelfContainedSnapshot: boolean;
+  /** False means this branch node has metadata but its snapshot is not loaded. */
+  dataLoaded?: boolean;
   childIds: string[]; // sorted by createdAt ASC
 }
 
@@ -279,6 +282,18 @@ function recordToMessage( // NOSONAR: checkpoint projection handles legacy and c
           mimeType: typeof part.mime_type === "string" ? part.mime_type : undefined,
         },
       });
+    } else if (part.type === "image_attachment") {
+      const image = toolImageAttachments([part.image])[0];
+      if (image?.blobId)
+        derivedItems.push({
+          type: "attachment",
+          attachment: {
+            path: image.blobId,
+            name: image.name ?? "image.bin",
+            kind: "image",
+            mimeType: image.mimeType,
+          },
+        });
     } else if (part.type === "quote" && typeof part.text === "string") {
       derivedItems.push({
         type: "quote",
@@ -309,7 +324,7 @@ function recordToMessage( // NOSONAR: checkpoint projection handles legacy and c
         name: "tool_result",
         args: JSON.stringify({ tool_use_id: part.tool_use_id ?? "" }),
         result: toolResultText(part.content),
-        images: toolResultImages(part.content),
+        images: toolResultImages(part.content, part.meta),
       });
     } else if (part.type === "runtime_error" || part.type === "runtime_interrupted") {
       derivedItems.push({
@@ -362,7 +377,7 @@ export function checkpointRecordsToMessages( // NOSONAR: checkpoint normalizatio
             messages,
             toolUseId,
             toolResultText(part.content),
-            toolResultImages(part.content),
+            toolResultImages(part.content, part.meta),
           )
         );
       })
@@ -407,11 +422,29 @@ function toolResultText(content: unknown): string {
     .join("\n");
 }
 
-function toolResultImages(content: unknown): ChatToolImage[] {
+function toolResultImages(content: unknown, meta?: unknown): ChatToolImage[] {
   if (!Array.isArray(content)) return [];
-  return content.flatMap((item) => {
+  const ordered = [...content];
+  const references =
+    meta && typeof meta === "object" ? (meta as Record<string, unknown>).image_attachments : null;
+  if (Array.isArray(references)) {
+    for (const reference of references) {
+      const images = toolImageAttachments([reference]);
+      if (
+        images.length &&
+        typeof reference.position === "number" &&
+        Number.isInteger(reference.position) &&
+        reference.position >= 0 &&
+        reference.position <= ordered.length
+      ) {
+        ordered.splice(reference.position, 0, { type: "blob_image", image: images[0] });
+      }
+    }
+  }
+  return ordered.flatMap((item) => {
     if (!item || typeof item !== "object" || Array.isArray(item)) return [];
     const value = item as Record<string, unknown>;
+    if (value.type === "blob_image") return [value.image as ChatToolImage];
     if (value.type !== "image" || !value.data || typeof value.data !== "object") return [];
     const data = value.data as Record<string, unknown>;
     if (data.type !== "base64" || typeof data.value !== "string") return [];
@@ -539,6 +572,7 @@ export function buildTreeFromCheckpoints( // NOSONAR: tree construction applies 
       turn: checkpointTurnMetadata(m.metadata),
       timelineMessages: [],
       isSelfContainedSnapshot: false,
+      dataLoaded: checkpoint.data_loaded !== false,
       childIds: [],
     };
   }
@@ -546,6 +580,18 @@ export function buildTreeFromCheckpoints( // NOSONAR: tree construction applies 
   for (const checkpoint of checkpoints) {
     const ckId = checkpoint.meta.checkpoint_id;
     const node = nodes[ckId];
+    if (checkpoint.data_loaded === false) {
+      const previous = previousTree?.nodes[ckId];
+      if (previous?.dataLoaded !== false && previous) {
+        node.timelineMessages = previous.timelineMessages;
+        node.user = previous.user;
+        node.assistant = previous.assistant;
+        node.systemMessages = previous.systemMessages;
+        node.isSelfContainedSnapshot = previous.isSelfContainedSnapshot;
+        node.dataLoaded = true;
+      } else node.isSelfContainedSnapshot = true;
+      continue;
+    }
     const records = orderCheckpointRecords(checkpoint.data.messages);
     for (const record of records) {
       const isCompactionBoundaryRecord =
@@ -568,7 +614,7 @@ export function buildTreeFromCheckpoints( // NOSONAR: tree construction applies 
               node.timelineMessages,
               toolUseId,
               toolResultText(part.content),
-              toolResultImages(part.content),
+              toolResultImages(part.content, part.meta),
             )
           );
         })
@@ -815,7 +861,8 @@ function findUserMessageIntroduction(
     const node = tree.nodes[ckId];
     if (
       node &&
-      (node.user?.id === userMessageId ||
+      (node.turn?.input_message_id === userMessageId ||
+        node.user?.id === userMessageId ||
         node.timelineMessages.some(
           (message) =>
             message.role === "user" && !isPluginMessage(message) && message.id === userMessageId,

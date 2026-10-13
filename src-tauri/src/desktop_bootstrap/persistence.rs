@@ -120,7 +120,7 @@ pub(crate) fn parse_desktop_bootstrap_response(
         );
     }
     match response.status.as_str() {
-        "ready" => response
+        "ready" | "restart_required" => response
             .launch
             .map(DesktopBootstrapStatus::Ready)
             .ok_or_else(|| anyhow::anyhow!("Runtime bootstrap omitted launch inputs")),

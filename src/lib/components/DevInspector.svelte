@@ -14,7 +14,7 @@
     readMainDebugComponentsVisible,
     writeMainDebugComponentsVisible,
   } from "$lib/devDebugVisibility";
-  import type { ConversationMeta, TaskTrace } from "$lib/types";
+  import type { ConversationMeta, TaskTrace, TaskTraceSummary, TaskTracePage } from "$lib/types";
 
   type TimelineKind = "user" | "assistant" | "thinking" | "tool" | "toolset" | "system";
   type TimelineEvent = {
@@ -28,7 +28,7 @@
     result?: string;
   };
   type TraceFilter = "all" | string;
-  type InspectorTrace = { id: string; title: string; timestamp: number; task: TaskTrace };
+  type InspectorTrace = { id: string; title: string; timestamp: number; task: TaskTraceSummary };
   type ToolDefinition = { name?: unknown; description?: unknown; parameters?: unknown };
 
   const COLLAPSE_LENGTH = 800;
@@ -37,7 +37,11 @@
   let appVersion = $state("loading...");
   let mainDebugComponentsVisible = $state(readMainDebugComponentsVisible());
   let conversations = $state<ConversationMeta[]>([]);
-  let taskTraces = $state<TaskTrace[]>([]);
+  let taskTraces = $state<TaskTraceSummary[]>([]);
+  let traceCursor = $state<TaskTracePage["next_cursor"]>(null);
+  let selectedTaskTrace = $state<TaskTrace | null>(null);
+  let traceLoading = $state(false);
+  let traceRequest = 0;
   let traceFilter = $state<TraceFilter>("all");
   let selectedTaskTraceId = $state<string | null>(null);
   let selectedEventId = $state<string | null>(null);
@@ -54,9 +58,6 @@
   );
   let creatingCompactionDiagnostic = $state(false);
 
-  const selectedTaskTrace = $derived(
-    taskTraces.find((item) => item.id === selectedTaskTraceId) ?? null,
-  );
   const requestTraces = $derived(taskTraces.filter((task) => task.task_kind === "chat_request"));
   const sessions = $derived(
     [...new Set(requestTraces.map((task) => task.session_id ?? "legacy"))].sort(),
@@ -280,12 +281,21 @@
     loading = true;
     error = null;
     try {
-      [conversations, taskTraces] = await Promise.all([
+      const [nextConversations, page] = await Promise.all([
         desktopOpenAgent
           .invokeProduct("get_conversations", { workspace: null })
           .then((value) => value as ConversationMeta[]),
-        desktopOpenAgent.invokeProduct("get_task_traces", {}).then((value) => value as TaskTrace[]),
+        desktopOpenAgent
+          .invokeProduct("get_task_traces", { limit: 100 })
+          .then((value) => value as TaskTracePage),
       ]);
+      conversations = nextConversations;
+      taskTraces = page.items;
+      traceCursor = page.next_cursor;
+      if (selectedTaskTraceId) {
+        const selected = traces.find((item) => item.id === selectedTaskTraceId);
+        if (selected) void selectTrace(selected);
+      }
     } catch (cause) {
       error = String(cause);
     } finally {
@@ -293,10 +303,43 @@
     }
   }
 
-  function selectTrace(trace: InspectorTrace) {
+  async function selectTrace(trace: InspectorTrace) {
+    const request = ++traceRequest;
     selectedTaskTraceId = trace.id;
+    selectedTaskTrace = null;
     selectedEventId = null;
     expandedEventIds = new Set();
+    traceLoading = true;
+    try {
+      const detail = (await desktopOpenAgent.invokeProduct("get_task_trace", {
+        id: trace.id,
+      })) as TaskTrace | null;
+      if (request !== traceRequest) return;
+      if (!detail) throw new Error("Request trace is unavailable");
+      selectedTaskTrace = detail;
+    } catch (cause) {
+      if (request === traceRequest) error = String(cause);
+    } finally {
+      if (request === traceRequest) traceLoading = false;
+    }
+  }
+
+  async function loadMoreTraces() {
+    if (!traceCursor || loading) return;
+    loading = true;
+    try {
+      const page = (await desktopOpenAgent.invokeProduct("get_task_traces", {
+        cursor: traceCursor,
+        limit: 100,
+      })) as TaskTracePage;
+      const existing = new Set(taskTraces.map((trace) => trace.id));
+      taskTraces = [...taskTraces, ...page.items.filter((trace) => !existing.has(trace.id))];
+      traceCursor = page.next_cursor;
+    } catch (cause) {
+      error = String(cause);
+    } finally {
+      loading = false;
+    }
   }
 
   async function checkForUpdate() {
@@ -427,6 +470,7 @@
     await loadConversations();
   });
   onDestroy(() => {
+    traceRequest += 1;
     if (downloadPreviewTimer) clearInterval(downloadPreviewTimer);
   });
 </script>
@@ -506,6 +550,9 @@
               {/snippet}
             </Tooltip>
           {:else}<p class="muted empty">No traces match this filter.</p>{/each}
+          {#if traceCursor}<button onclick={loadMoreTraces} disabled={loading}
+              >Load older requests</button
+            >{/if}
         </div>
       </aside>
 
@@ -552,7 +599,24 @@
             {/if}
           </div>
         </div>
-        <div class="message-timeline">
+        <div class="message-timeline" aria-busy={traceLoading}>
+          {#if traceLoading}
+            <div class="trace-skeleton" role="status" aria-label="Loading request…">
+              {#each [0, 1, 2] as row (row)}
+                <div class="timeline-event" aria-hidden="true">
+                  <div class="event-rail"><span class="event-dot"></span></div>
+                  <div class="event-body">
+                    <div class="skeleton-line skeleton-title"></div>
+                    <div class="skeleton-line"></div>
+                    <div
+                      class="skeleton-line skeleton-last"
+                      style:width={`${70 - row * 10}%`}
+                    ></div>
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {/if}
           {#each messageTimeline as event, index (event.id)}
             {@const expanded = isExpanded(event.id)}
             {@const collapsible = event.kind !== "toolset" && isLong(event.content)}
@@ -978,6 +1042,20 @@
     display: grid;
     grid-template-columns: 24px minmax(0, 1fr);
     cursor: pointer;
+  }
+  .trace-skeleton .timeline-event {
+    cursor: default;
+  }
+  .skeleton-line {
+    height: 12px;
+    margin: 8px 0;
+    border-radius: 4px;
+    background: var(--border);
+  }
+  .skeleton-title {
+    width: 40%;
+    height: 16px;
+    margin-bottom: 14px;
   }
   .event-rail {
     position: relative;

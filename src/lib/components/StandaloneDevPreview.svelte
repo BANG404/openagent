@@ -1451,6 +1451,10 @@
   </main>
 {:else if preview === "streaming-transcript" && query.has("streaming-transcript-preview-trace-export")}
   <ConversationTraceExportPreview {theme} />
+{:else if preview === "streaming-transcript" && query.has("streaming-transcript-preview-image-storage")}
+  {#await import("$lib/components/ToolImageStoragePreview.svelte") then module}
+    <module.default />
+  {/await}
 {:else if preview === "streaming-transcript" && query.has("streaming-transcript-preview-runtime-status")}
   <RuntimeStatusPreview {theme} />
 {:else if preview === "user-message-markdown"}

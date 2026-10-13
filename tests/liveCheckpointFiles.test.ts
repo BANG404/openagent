@@ -11,7 +11,7 @@ const checkpoint = (id: string, parent: string | null): RenderableCheckpoint => 
     created_at: 1,
     metadata: "{}",
   },
-  data: { messages: [], file_change_ids: [], phase: "before_completion" },
+  data: { messages: [], file_change_ids: [], phase: "final_completed" },
 });
 const file = (id: string): FileChange => ({
   id,
@@ -73,14 +73,27 @@ test("live checkpoint files refresh before completion and reject stale or off-br
   const checkpoints = [checkpoint("first", null), checkpoint("second", "first")];
   const pending: Array<(files: FileChange[]) => void> = [];
   let failFiles = false;
-  const invoke = spyOn(desktopOpenAgent, "invokeProduct").mockImplementation((operation) => {
-    if (operation === "get_renderable_checkpoints") return Promise.resolve(checkpoints) as never;
-    if (operation === "get_file_changes") {
-      if (failFiles) return Promise.reject(new Error("offline")) as never;
-      return new Promise<FileChange[]>((resolve) => pending.push(resolve)) as never;
-    }
-    throw new Error(`Unexpected operation: ${operation}`);
-  });
+  const requestedTips: Array<string | undefined> = [];
+  const invoke = spyOn(desktopOpenAgent, "invokeProduct").mockImplementation(
+    (operation, params) => {
+      if (operation === "get_checkpoint_view") {
+        expect(params).toMatchObject({ convId: "conv" });
+        const tip = (params as { checkpointId?: string }).checkpointId;
+        requestedTips.push(tip);
+        return Promise.resolve(
+          checkpoints.map((checkpoint) => ({
+            ...checkpoint,
+            data_loaded: checkpoint.meta.checkpoint_id === tip,
+          })),
+        ) as never;
+      }
+      if (operation === "get_file_changes") {
+        if (failFiles) return Promise.reject(new Error("offline")) as never;
+        return new Promise<FileChange[]>((resolve) => pending.push(resolve)) as never;
+      }
+      throw new Error(`Unexpected operation: ${operation}`);
+    },
+  );
   try {
     const older = controller.refreshLiveCheckpointTip("conv", "first", "branch");
     const newer = controller.refreshLiveCheckpointTip("conv", "second", "branch");
@@ -106,6 +119,7 @@ test("live checkpoint files refresh before completion and reject stale or off-br
     failFiles = true;
     await controller.refreshLiveCheckpointTip("conv", "second", "branch");
     expect(options.fileChangesPerConv.conv).toEqual([file("second")]);
+    expect(requestedTips).toEqual(["first", "second", "first", "second"]);
   } finally {
     invoke.mockRestore();
   }

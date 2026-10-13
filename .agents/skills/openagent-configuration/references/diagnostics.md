@@ -1,5 +1,12 @@
 ## Software error collection
 
+Inspector lists request metadata in bounded pages and loads provider content
+only for the selected request. Show loading state while details are read;
+switching requests must discard stale responses. An explicit older-page control
+keeps retained history accessible. Conversation export remains complete and
+includes referenced attachments, so its opt-in support consent covers image
+data as well as provider context. Keep these payloads out of normal logs.
+
 For MCP tools disappearing during a run, correlate the local Runtime's refresh
 source, changed configuration field names, active-run warning and old/new
 connection IDs with initialization, catalog and disconnect records. A scheduled

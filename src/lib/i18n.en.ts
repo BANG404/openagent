@@ -151,6 +151,7 @@ const en: Record<TranslationKeys, string> = {
   checkoutCancelled: "Checkout cancelled",
   mcpApp: "MCP App",
   mcpAppDialog: "MCP App dialog",
+  mcpAppUnavailable: "This MCP App could not be loaded",
   selectFiles: "Select files",
   backToChat: "Back",
   more: "More",

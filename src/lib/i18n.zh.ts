@@ -142,6 +142,7 @@ export const zh = {
   checkoutCancelled: "结算已取消",
   mcpApp: "MCP 应用",
   mcpAppDialog: "MCP 应用对话框",
+  mcpAppUnavailable: "此 MCP 应用无法加载",
   selectFiles: "选择文件",
   backToChat: "返回对话",
   more: "更多",

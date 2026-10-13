@@ -1,6 +1,6 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import path from "node:path";
-import { mkdir, open, readFile, unlink } from "node:fs/promises";
+import { mkdir, open, readFile, readdir, unlink, writeFile } from "node:fs/promises";
 import { setTimeout } from "node:timers/promises";
 
 /** Private development builds share dependency output across this repository's
@@ -95,4 +95,84 @@ export async function withSourceCargoLock(targetDirectory, operation) {
     await handle.close();
     await unlink(lockPath);
   }
+}
+
+/** Cargo's relative dep-info can consider another worktree's newer local crate
+ * fresh. Preserve shared dependencies, but invalidate SDK packages when the
+ * source checkout changes, under the same build and staging lock.
+ * @template T
+ * @param {{ repositoryRoot: string; environment: NodeJS.ProcessEnv;
+ * cleanWorkspace?: () => Promise<void> }} options
+ * @param {() => Promise<T>} operation
+ * @returns {Promise<T>}
+ */
+export async function withSourceCargoWorkspaceLock(
+  { repositoryRoot, environment, cleanWorkspace },
+  operation,
+) {
+  const targetDirectory = environment.CARGO_TARGET_DIR;
+  if (!targetDirectory) throw new Error("Source Cargo target directory is required");
+  const sourceRoot = path.resolve(repositoryRoot);
+  const identity = process.platform === "win32" ? sourceRoot.toLowerCase() : sourceRoot;
+  return withSourceCargoLock(targetDirectory, async () => {
+    const marker = path.join(targetDirectory, ".openagent-source-worktree");
+    const previous = await readFile(marker, "utf8").catch((error) => {
+      if (error.code !== "ENOENT") throw error;
+      return null;
+    });
+    if (previous !== identity || (await foreignWorkspaceArtifacts(targetDirectory, sourceRoot))) {
+      if (cleanWorkspace) await cleanWorkspace();
+      else {
+        const args = ["clean", "--manifest-path", path.join(sourceRoot, "sdk", "Cargo.toml")];
+        for (const name of ["protocol", "runtime", "app", "server", "benchmark"])
+          args.push("--package", `openagent-${name}`);
+        const result = spawnSync(environment.CARGO ?? "cargo", args, {
+          cwd: sourceRoot,
+          env: environment,
+          stdio: "inherit",
+          windowsHide: true,
+        });
+        if (result.error) throw result.error;
+        if (result.status !== 0) throw new Error("Could not invalidate SDK worktree artifacts");
+      }
+      await writeFile(marker, identity);
+    }
+    return operation();
+  });
+}
+
+/** Detect builds from older launchers that share the lock but do not update
+ * the source marker. Cargo records CARGO_MANIFEST_DIR in local dep-info.
+ * @param {string} targetDirectory
+ * @param {string} sourceRoot
+ */
+async function foreignWorkspaceArtifacts(targetDirectory, sourceRoot) {
+  const roots = [targetDirectory];
+  for (const entry of await readdir(targetDirectory, { withFileTypes: true }))
+    if (entry.isDirectory() && entry.name !== "debug" && entry.name !== "release")
+      roots.push(path.join(targetDirectory, entry.name));
+  for (const root of roots) {
+    for (const profile of ["debug", "release"]) {
+      const directory = path.join(root, profile, "deps");
+      const files = await readdir(directory).catch((error) => {
+        if (error.code !== "ENOENT") throw error;
+        return [];
+      });
+      for (const file of files) {
+        if (!/^openagent_(protocol|runtime|app|server|benchmark)-.*\.d$/.test(file)) continue;
+        const info = await readFile(path.join(directory, file), "utf8");
+        const manifest = /^# env-dep:CARGO_MANIFEST_DIR=(.+)$/m.exec(info)?.[1];
+        if (!manifest) continue;
+        const actual = path.resolve(
+          manifest.trim().replaceAll("\\\\", "\\").replaceAll("\\ ", " "),
+        );
+        const normalized = process.platform === "win32" ? actual.toLowerCase() : actual;
+        const crate = file.match(/^openagent_(\w+)-/)?.[1];
+        const expected = path.join(sourceRoot, "sdk", "rust", `openagent-${crate}`);
+        if (normalized !== (process.platform === "win32" ? expected.toLowerCase() : expected))
+          return true;
+      }
+    }
+  }
+  return false;
 }

@@ -143,7 +143,8 @@ function dispatchShortcut(key, code, modifiers = {}) {
 }
 
 const THEME_ROW = '[role=tabpanel][data-value="general"] .settings-card-row:nth-child(1) button';
-const LANGUAGE_ROW = '[role=tabpanel][data-value="general"] .settings-card-row:nth-child(2) button';
+const LANGUAGE_ROW =
+  '[role=tabpanel][data-value="general"] button[aria-label="Language"], [role=tabpanel][data-value="general"] button[aria-label="语言"]';
 
 /**
  * @param {string} selector
@@ -151,6 +152,7 @@ const LANGUAGE_ROW = '[role=tabpanel][data-value="general"] .settings-card-row:n
  */
 function chooseGeneralOption(selector, value) {
   pilot(["click", selector, "--window", windowLabel]);
+  waitForElement(`[role=option][data-value=${value}]`);
   pilot(["click", `[role=option][data-value=${value}]`, "--window", windowLabel]);
 }
 

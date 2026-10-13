@@ -12,7 +12,7 @@ const READY_TIMEOUT: Duration = Duration::from_secs(15);
 const BOOTSTRAP_INSPECT_TIMEOUT: Duration = Duration::from_secs(15);
 const HEALTH_TIMEOUT: Duration = Duration::from_secs(5);
 const TOKEN_ENV: &str = "OPENAGENT_DESKTOP_RUNTIME_TOKEN";
-pub const DESKTOP_RUNTIME_PROTOCOL_VERSION: u32 = 2;
+pub const DESKTOP_RUNTIME_PROTOCOL_VERSION: u32 = 3;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RuntimeLaunchSpec {
@@ -73,6 +73,10 @@ struct RuntimePersistenceTransition {
 impl RuntimeBootstrapInspection {
     pub fn requires_persistence_transition(&self) -> bool {
         self.status == "transition_required"
+    }
+
+    pub fn requires_restart(&self) -> bool {
+        self.status == "restart_required"
     }
 
     pub fn transition_scope(&self) -> Option<&'static str> {
@@ -149,7 +153,7 @@ fn parse_runtime_bootstrap_inspection(bytes: &[u8]) -> Result<RuntimeBootstrapIn
         ));
     }
     match inspection.status.as_str() {
-        "ready" if inspection.transition.is_none() => Ok(inspection),
+        "ready" | "restart_required" if inspection.transition.is_none() => Ok(inspection),
         "transition_required" if inspection.transition.is_some() => Ok(inspection),
         status => Err(format!(
             "Runtime bootstrap inspection returned invalid status {status}"
@@ -259,6 +263,12 @@ impl RuntimeProcessSupervisor {
         &self,
         candidate_spec: RuntimeLaunchSpec,
     ) -> Result<RuntimeProcessStatus, String> {
+        let inspection =
+            inspect_runtime_bootstrap(&candidate_spec.binary_path, &candidate_spec.openagent_home)
+                .await?;
+        if inspection.requires_restart() || inspection.requires_persistence_transition() {
+            return Err("Runtime replacement requires a desktop restart or a confirmed persistence transition; the previous process remains active".into());
+        }
         let mut running = self.running.lock().await;
         let previous = running.take();
         let previous_spec = previous.as_ref().map(|runtime| runtime.spec.clone());
@@ -587,6 +597,21 @@ mod tests {
                 .unwrap();
         assert!(!inspection.requires_persistence_transition());
         assert_eq!(inspection.transition_scope(), None);
+        assert!(!inspection.requires_restart());
+    }
+
+    #[test]
+    fn restart_required_refuses_online_replacement_without_resetting_data() {
+        let inspection = parse_runtime_bootstrap_inspection(
+            br#"{"schema_version":1,"status":"restart_required"}"#,
+        )
+        .unwrap();
+        assert!(inspection.requires_restart());
+        assert!(!inspection.requires_persistence_transition());
+        assert_eq!(inspection.transition_scope(), None);
+        // Older hosts reject this status rather than attempting a migration
+        // that their automatic old-process rollback cannot read.
+        assert!(parse_runtime_bootstrap_inspection(br#"{"schema_version":1,"status":"restart_required","transition":{"reset_config":false,"reset_conversations":true}}"#).is_err());
     }
 
     #[test]

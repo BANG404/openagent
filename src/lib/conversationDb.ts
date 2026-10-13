@@ -68,8 +68,11 @@ export async function fetchChildConversations(
   return metadata.map(metaToConversation);
 }
 
-export async function fetchRenderableCheckpoints(convId: string): Promise<RenderableCheckpoint[]> {
-  return desktopOpenAgent.invokeProduct("get_renderable_checkpoints", { convId });
+export async function fetchRenderableCheckpoints(
+  convId: string,
+  checkpointId?: string | null,
+): Promise<RenderableCheckpoint[]> {
+  return desktopOpenAgent.invokeProduct("get_checkpoint_view", { convId, checkpointId });
 }
 
 export async function fetchFileChanges(convId: string): Promise<FileChange[]> {

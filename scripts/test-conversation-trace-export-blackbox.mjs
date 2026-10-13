@@ -48,9 +48,15 @@ try {
         const path = pilot(["text", "[data-export-path]"]);
         const snapshot = JSON.parse(readFileSync(path, "utf8"));
         assert.equal(snapshot.format, "openagent.conversation-trace");
-        assert.equal(snapshot.format_version, 1);
+        assert.equal(snapshot.format_version, 2);
         assert.equal(snapshot.conversation.title, "Trace export fixture");
-        for (const key of ["branches", "checkpoints", "task_traces", "follow_up_suggestions"])
+        for (const key of [
+          "branches",
+          "checkpoints",
+          "attachment_blobs",
+          "task_traces",
+          "follow_up_suggestions",
+        ])
           assert(Array.isArray(snapshot[key]));
         unlinkSync(path);
         pilot(["screenshot", join(artifacts, `${theme}-${locale}.png`)]);

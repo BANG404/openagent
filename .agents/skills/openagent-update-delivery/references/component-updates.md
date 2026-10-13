@@ -25,6 +25,25 @@ and SHA-256 as one verified candidate; the desktop supervisor installs it into a
 versioned directory and explicitly reloads the process. If the replacement
 fails to start, the supervisor restarts the prior binary.
 
+Supported conversation-schema upgrades are performed during desktop startup,
+after the shell restart closes the old Runtime and its workspace children.
+The candidate's SDK bootstrap reports `restart_required` before opening or
+migrating the database. Online activation and the supervisor's replacement
+entrypoint reject this status before stopping the active process; install the
+desktop update to proceed. Older hosts reject the unknown status as well.
+This prevents an unsuccessful online candidate from leaving a database its
+automatic old-binary rollback cannot read. Startup understands that status as
+launch-ready, preserving the ordinary backed-up, non-destructive migration.
+Fallback binaries must pass SDK compatibility inspection before launch and
+must never reset a newer database or replace its migration backup.
+
+The schema-11 lazy checkpoint, image-reference and trace-page release uses SDK
+protocol 3. The frontend and native Runtime supervisor must agree with that
+version. Signed manifests derive the exact Runtime range from the SDK constant;
+protocol-2 installations receive this combination through the coupled desktop
+update, before its frontend or Runtime can activate. Plugin protocol 1 is a
+separate contract and does not change with conversation storage.
+
 When a release contains the frontend, Runtime, and native shell together, the
 desktop checks aggregate them into one update notification. Runtime and frontend
 preparation starts after the shell check; the shell and its exact distribution

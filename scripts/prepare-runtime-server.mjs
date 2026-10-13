@@ -5,7 +5,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import { copyFileIfChanged } from "./copy-if-changed.mjs";
-import { sourceCargoEnvironment, withSourceCargoLock } from "./source-cargo.mjs";
+import { sourceCargoEnvironment, withSourceCargoWorkspaceLock } from "./source-cargo.mjs";
 import { stageDevelopmentRuntime } from "./stage-development-runtime.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -128,7 +128,7 @@ export async function prepareRuntimeServer({ profile = "dev", targetTriple } = {
     resolvedTarget,
   ];
   if (profile === "release") cargoArguments.push("--release");
-  return withSourceCargoLock(environment.CARGO_TARGET_DIR, async () => {
+  return withSourceCargoWorkspaceLock({ repositoryRoot: root, environment }, async () => {
     run(cargo, cargoArguments, {
       stdio: "inherit",
       env: environment,

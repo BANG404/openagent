@@ -31,7 +31,12 @@ so a delayed response cannot restore configuration from before that save.
 When language and/or appearance are the only configuration changes, both in-app saves
 and valid external reloads preserve MCP connections and plugin automation.
 Plugin locale context reads the updated shared configuration on each request.
-Other changes retain the usual service refresh path; language switching must
+Unchanged saves also skip service refresh. Other changes reconcile the effective
+MCP servers and preserve unchanged transports; catalog/mounting metadata alone
+does not reconnect a server. A normal replacement lets active turns finish on
+their original connections. Disable, credential and permission revocation still
+invalidate affected tools immediately. The SDK owns those lifecycle rules in
+`docs/plugin-mcp-tool-modes.md`. Language switching must
 not make already connected tools unavailable or reset package state.
 
 Version 1 configuration additively persists `theme_plugin` (empty selects the

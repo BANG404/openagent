@@ -1,5 +1,14 @@
 # Startup and restore
 
+Product history uses the SDK checkpoint-view operation: branch metadata plus
+the selected complete snapshot. `data_loaded: false` identifies an unloaded
+node, never a genuinely empty transcript. Preserve cached loaded nodes and
+hydrate a selected branch before rendering it. Turn metadata identifies the
+checkpoint that introduced an authored message, including when its parent
+body has not been loaded. Inspector's full-history operation stays explicit.
+The same boundary applies to startup, workspace switches, live reconciliation
+and paired browser history; attachment bytes remain on-demand previews.
+
 The page composes `src/lib/page/checkpoints.ts` for durable hydration, branch
 selection, live checkpoint refresh, and file-change reconciliation.
 `pendingInputProjection.ts` restores pending forms from the selected durable

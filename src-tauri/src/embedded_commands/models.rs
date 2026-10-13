@@ -97,7 +97,8 @@ pub(crate) async fn logout_chatgpt() -> Result<bool, String> {
 pub(crate) async fn refresh_mcp_servers(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
 ) -> Result<(), String> {
-    openagent_runtime::commands::refresh_mcp_servers(runtime.state()).await
+    openagent_runtime::commands::refresh_mcp_servers(runtime.state(), "embedded_manual_refresh")
+        .await
 }
 
 #[tauri::command]

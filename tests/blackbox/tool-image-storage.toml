@@ -1,0 +1,30 @@
+[scenario]
+name = "reload persisted screenshot and show missing attachment"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+action = "click"
+target = "[data-reload-image]"
+
+[[step]]
+action = "eval"
+script = '''(async () => {
+  document.querySelector('[data-image-fixture]').scrollIntoView();
+  for(let i=0;i<100 && !(document.querySelector('.image-storage-preview').dataset.reads==='2' && document.querySelector('.tool-image img')?.naturalWidth);i++) await new Promise(r=>setTimeout(r,100));
+  if(!document.querySelector('.tool-image img')?.naturalWidth)throw new Error('stored screenshot did not reload');
+  return true;
+})()'''
+
+[[step]]
+action = "click"
+target = "[data-missing-image]"
+
+[[step]]
+action = "eval"
+script = '''(async () => {
+  document.querySelector('[data-image-fixture]').scrollIntoView();
+  for(let i=0;i<100 && !document.querySelector('.tool-image [role=status]');i++) await new Promise(r=>setTimeout(r,100));
+  if(!document.querySelector('.tool-image [role=status]'))throw new Error('missing attachment feedback absent');
+  return true;
+})()'''

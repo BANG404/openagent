@@ -4,6 +4,7 @@ import {
   buildTreeFromCheckpoints,
   computeActivePath,
   selectActivePathToCheckpoint,
+  findForkParentCheckpointId,
 } from "../src/lib/checkpointTree";
 import type { CheckpointMessage, RenderableCheckpoint } from "../src/lib/types";
 
@@ -37,6 +38,39 @@ function input(hidden: boolean): CheckpointMessage {
     tools: null,
   };
 }
+
+test("metadata-only ancestors preserve ownership while rendering only the selected complete body", () => {
+  const root = checkpoint("root", []);
+  root.data_loaded = false;
+  root.data.format_version = 2;
+  root.meta.metadata = JSON.stringify({
+    turn: {
+      id: "turn",
+      input_message_id: "input",
+      response_message_id: "reply",
+      status: "completed",
+      started_at: 1,
+    },
+  });
+  const selected = checkpoint("selected", [input(false)]);
+  selected.meta.parent_checkpoint_id = "root";
+  selected.data_loaded = true;
+  selected.data.format_version = 2;
+  const tree = buildTreeFromCheckpoints([root, selected]);
+  expect(computeActivePath(tree).map((message) => message.id)).toEqual(["input"]);
+  expect(tree.nodes.root.dataLoaded).toBe(false);
+  expect(findForkParentCheckpointId(tree, "input")).toBe(null);
+});
+
+test("refreshing metadata retains a previously loaded branch snapshot", () => {
+  const loaded = checkpoint("branch", [input(false)]);
+  const previous = buildTreeFromCheckpoints([loaded]);
+  const header = checkpoint("branch", []);
+  header.data_loaded = false;
+  const tree = buildTreeFromCheckpoints([header], previous);
+  expect(tree.nodes.branch.dataLoaded).toBe(true);
+  expect(computeActivePath(tree).map((message) => message.id)).toEqual(["input"]);
+});
 
 test("hidden-only history restores its selected durable tip even with an empty transcript", () => {
   const tree = buildTreeFromCheckpoints([checkpoint("hidden-tip", [input(true)])]);

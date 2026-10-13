@@ -10,6 +10,7 @@ interface AttachmentOptions {
     | "readWorkspaceTextSnippet"
     | "resolveWorkspaceMedia"
     | "repairAttachmentBlob"
+    | "getRemoteAttachmentPreview"
     | "uploadRemoteAttachment"
     | "readConversationUiAsset"
     | "setConversationUiProps"
@@ -56,6 +57,8 @@ export function createRemoteAttachmentController(options: AttachmentOptions) {
   const previewUrls = new Set<string>();
   let disposed = false;
   const capabilities: OpenAgentUiCapabilities = {
+    readAttachmentPreview: (locator, name) =>
+      options.client.getRemoteAttachmentPreview(locator, name),
     readPluginUiAsset: (pluginId, entry) => {
       const convId = options.activeConversationId();
       if (!convId) return Promise.reject(new Error("Conversation unavailable"));

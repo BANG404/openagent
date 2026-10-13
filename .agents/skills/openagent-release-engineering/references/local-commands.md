@@ -59,6 +59,20 @@ formatting, client, benchmark or real-model qualification. Source corrections
 require a new focused pass before any broad checks. Final host preflight follows
 the stabilized affected cases; do not run full preflight repeatedly as a debugger.
 
+Runtime preparation and verification record the source worktree in the shared
+Cargo target directory. Switching source directories invalidates only the five
+SDK workspace packages under the build/staging lock; third-party dependencies
+remain cached. This prevents Cargo's relative dependency timestamps from treating
+a newer artifact compiled from another worktree as the current SDK interface.
+An unknown existing cache receives the same one-time workspace invalidation.
+The guard also checks local crate dep-info's source directory, so an already
+running older launcher cannot silently overwrite that cache behind its marker.
+
+For an owner-required ignored fixture test, add `--ignored` explicitly. This
+selects only the exact case and retains the same nonzero-pass, isolated-data and
+source-change gates. Fixture source paths must name exported copies, never an
+installed application's database; the SDK test owns further temporary copies.
+
 Inspect the complete diff, stage intended paths, and run `bun run preflight`.
 It selects the applicable type, lint, format, test, build, and contract checks.
 Native selections prepare and revalidate the shell's Node.js and terminal tools

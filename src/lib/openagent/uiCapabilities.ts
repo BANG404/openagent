@@ -13,6 +13,14 @@ export interface SavedDownload {
 }
 
 export interface OpenAgentUiCapabilities {
+  readAttachmentPreview?: (
+    locator: string,
+    name: string,
+  ) => Promise<{
+    kind: "image" | "text" | "file";
+    data_url?: string | null;
+    text?: string | null;
+  }>;
   readPluginUiAsset?: (
     pluginId: string,
     entry: string,
@@ -38,6 +46,8 @@ export interface OpenAgentUiCapabilities {
 const UI_CAPABILITIES_CONTEXT = Symbol("openagent-ui-capabilities");
 
 const desktopCapabilities: OpenAgentUiCapabilities = {
+  readAttachmentPreview: (locator, name) =>
+    desktopOpenAgent.invokeProduct("read_attachment_preview", { locator, name }),
   readPluginUiAsset: (pluginId, entry) => desktopOpenAgent.readAgentPluginAsset(pluginId, entry),
   setConversationUiProps: (convId, branchId, messageId, props) =>
     desktopOpenAgent.invokeProduct("set_conversation_ui_props", {

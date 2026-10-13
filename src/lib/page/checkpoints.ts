@@ -149,7 +149,7 @@ export function createCheckpointController(options: CheckpointOptions) {
     };
     try {
       const [checkpoints, fileChanges] = await Promise.all([
-        fetchRenderableCheckpoints(convId),
+        fetchRenderableCheckpoints(convId, checkpointId),
         fetchFileChanges(convId).catch(() => null),
       ]);
       const currentGuard: LiveCheckpointRefreshGuard = {

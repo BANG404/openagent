@@ -225,7 +225,7 @@ fn schedule_mcp_connections(
             }
         }
         let launch = state.plugin_process_launch().await;
-        let mcp_handles = mcp::connect_mcp_servers(&servers, Some(&launch));
+        let mcp_handles = mcp::connect_mcp_servers_for_runtime(state, &servers, Some(&launch));
         *state.mcp_join_handles.lock().await = mcp_handles;
         tracing::info!(
             target: "openagent::startup",

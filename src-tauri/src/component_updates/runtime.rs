@@ -217,6 +217,12 @@ pub(crate) async fn activate_runtime_resource(
                 );
                 error
             })?;
+    if bootstrap.requires_restart() {
+        tracing::warn!(target: "openagent::component_update", component = "runtime",
+            stage = "candidate_restart_required", candidate_version = candidate.version,
+            "Runtime database upgrade requires desktop restart; previous process remains active");
+        return Err("Runtime candidate requires a desktop restart to upgrade conversation storage; install the desktop update before activating it".into());
+    }
     if bootstrap.requires_persistence_transition() {
         let scope = bootstrap.transition_scope().unwrap_or("persisted data");
         tracing::warn!(

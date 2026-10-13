@@ -43,7 +43,8 @@
   casing and macOS temporary-directory symlinks must not create two different
   workspace scopes. Baseline startup must expose the fixture conversation before
   taking its snapshot or starting the upgrade. Candidate bootstrap must be
-  ready without a destructive transition; the first start and a second restart
+  ready or `restart_required` without a destructive transition on first startup;
+  the second inspection must be ready after the supported migration. Both starts
   must expose the existing values and records, including startup's conversation
   list. Additive object fields are allowed, dropped or changed existing values
   are not. Automatic schema snapshots are allowed; backup-and-reset directories

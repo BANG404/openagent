@@ -5,6 +5,7 @@
   import { useOpenAgentUiCapabilities } from "$lib/openagent/uiCapabilities";
   import { t, locale } from "$lib/i18n";
   import type { McpUiInvocation } from "$lib/types";
+  import { hydrateMcpToolImages } from "$lib/toolImageAttachments";
 
   let { invocation }: { invocation: McpUiInvocation } = $props();
 
@@ -27,6 +28,7 @@
   let _modelContextUpdate = $state<unknown>(undefined);
   let hostContextVersion = $state(0);
   let requestId = 1;
+  let toolStateVersion = 0;
   let viewAvailableDisplayModes: string[] = ["inline", "fullscreen", "pip"];
   let pendingCheckout: { id: unknown; session: unknown } | null = null;
   const requestTargets = new Map<unknown, Window>();
@@ -349,7 +351,44 @@ ${scriptClose}`;
       result.structuredContent ??= invocation.structured_content;
     result._meta ??= invocation.result_meta ?? invocation.meta;
     result.isError ??= invocation.is_error ?? false;
-    post({ jsonrpc: "2.0", method: "ui/notifications/tool-result", params: result });
+    const version = ++toolStateVersion;
+    const content = Array.isArray(result.content) ? result.content : [];
+    if (
+      !content.some(
+        (entry) =>
+          entry &&
+          typeof entry === "object" &&
+          (entry as Record<string, unknown>).type === "image" &&
+          ((entry as Record<string, unknown>).data as Record<string, unknown> | undefined)?.type ===
+            "attachment",
+      )
+    ) {
+      post({ jsonrpc: "2.0", method: "ui/notifications/tool-result", params: result });
+      return;
+    }
+    void hydrateMcpToolImages(content, async (locator, name) => {
+      if (!uiCapabilities.readAttachmentPreview) throw new Error("Attachment preview unavailable");
+      return uiCapabilities.readAttachmentPreview(locator, name);
+    })
+      .then((content) => {
+        if (!initialized || version !== toolStateVersion) return;
+        post({
+          jsonrpc: "2.0",
+          method: "ui/notifications/tool-result",
+          params: { ...result, content },
+        });
+      })
+      .catch(() => {
+        if (!initialized || version !== toolStateVersion) return;
+        post({
+          jsonrpc: "2.0",
+          method: "ui/notifications/tool-result",
+          params: {
+            ...result,
+            content: [{ type: "text", text: $t("attachmentPreviewUnavailable") }],
+          },
+        });
+      });
   }
 
   // MCP Apps protocol dispatch is intentionally centralized so every request

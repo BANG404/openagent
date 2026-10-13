@@ -22,6 +22,8 @@ export interface ChatAttachment {
 export interface ChatToolImage {
   src: string;
   mimeType: string;
+  blobId?: string;
+  name?: string;
 }
 
 export type UserMessageContext = {
@@ -289,6 +291,15 @@ export interface TaskTrace {
   created_at: number;
 }
 
+export type TaskTraceSummary = Omit<
+  TaskTrace,
+  "system_prompt" | "tools" | "prompt" | "completion" | "error"
+>;
+export interface TaskTracePage {
+  items: TaskTraceSummary[];
+  next_cursor: { created_at: number; id: string } | null;
+}
+
 export interface TaskTokenUsage {
   input_tokens: number;
   output_tokens: number;
@@ -387,6 +398,7 @@ export interface PluginFlowUpdatedEvent {
 export interface RenderableCheckpoint {
   meta: CheckpointMeta;
   data: CheckpointData;
+  data_loaded?: boolean;
   follow_up_suggestions?: string[];
 }
 

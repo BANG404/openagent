@@ -6,6 +6,7 @@ import type {
   McpUiInvocation,
   StreamItem,
   UserInputRequest,
+  ChatToolImage,
 } from "./types";
 import { toolCallStatus } from "./toolCallGroups";
 
@@ -89,6 +90,7 @@ export function attachToolResult(
   result: string,
   toolUseId?: string,
   mcpUi?: McpUiInvocation,
+  images?: ChatToolImage[],
 ): StreamItem[] {
   const next = [...items];
   if (toolUseId) {
@@ -98,7 +100,7 @@ export function attachToolResult(
     if (exact >= 0) {
       const item = next[exact];
       if (item.type === "tool_call" && item.result === undefined) {
-        next[exact] = toolCallWithResult(item, result, mcpUi);
+        next[exact] = toolCallWithResult(item, result, mcpUi, images);
       }
       return next;
     }
@@ -106,7 +108,7 @@ export function attachToolResult(
   for (let i = next.length - 1; i >= 0; i--) {
     const it = next[i];
     if (it.type === "tool_call" && it.result === undefined) {
-      next[i] = toolCallWithResult(it, result, mcpUi);
+      next[i] = toolCallWithResult(it, result, mcpUi, images);
       return next;
     }
   }
@@ -117,8 +119,10 @@ function toolCallWithResult(
   item: Extract<StreamItem, { type: "tool_call" }>,
   result: string,
   mcpUi?: McpUiInvocation,
+  images?: ChatToolImage[],
 ): Extract<StreamItem, { type: "tool_call" }> {
   const next = mcpUi ? { ...item, result, mcpUi } : { ...item, result };
+  if (images?.length) next.images = images;
   if (!item.approval) return next;
   const status = toolCallStatus(next, false);
   let state: "unanswered" | "cancelled" | "answered" = "answered";

@@ -17,6 +17,40 @@ const record = (overrides) => ({
 });
 
 describe("checkpoint record projection", () => {
+  test("restores legacy user image references as ordinary attachment previews without inline bytes", () => {
+    const blob = `sha256:${"a".repeat(64)}`;
+    const [message] = checkpointRecordsToMessages(
+      [
+        record({
+          id: "user-image",
+          role: "user",
+          content: [
+            { type: "text", text: "Inspect this image" },
+            {
+              type: "image_attachment",
+              image: {
+                blob_id: blob,
+                mime_type: "image/jpeg",
+                position: 0,
+                byte_length: 10,
+                source_kind: "base64",
+              },
+            },
+          ],
+        }),
+      ],
+      "checkpoint",
+      "conversation",
+    );
+    expect(message.content).toBe("Inspect this image");
+    expect(message.items.find((item) => item.type === "attachment").attachment).toEqual({
+      path: blob,
+      name: "tool-image.jpg",
+      kind: "image",
+      mimeType: "image/jpeg",
+    });
+    expect(JSON.stringify(message)).not.toContain("base64,");
+  });
   test("hides terminal wake user input and retains the Agent reply after reload", () => {
     const messages = checkpointRecordsToMessages(
       [
