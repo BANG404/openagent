@@ -15,6 +15,7 @@ mod invoke_handlers;
 mod native_commands;
 mod node_runtime;
 mod runtime_proxy_commands;
+mod terminal_tools;
 use desktop_bootstrap::instances::*;
 use desktop_bootstrap::{
     prepare_host_runtime, prepare_interactive_persistence, start_external_desktop_runtime,
@@ -244,6 +245,7 @@ fn run_with_mode(agent_server: bool) {
         .manage(frontend_manager)
         .setup(move |app| {
             node_runtime::initialize(app.handle()).map_err(std::io::Error::other)?;
+            terminal_tools::initialize(app.handle()).map_err(std::io::Error::other)?;
             if is_parent_controlled_workspace_window_process() {
                 install_parent_shutdown_monitor(app.handle().clone());
             } else if cfg!(debug_assertions)

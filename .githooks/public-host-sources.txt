@@ -57,5 +57,6 @@ src-tauri/src/runtime_process.rs
 src-tauri/src/runtime_proxy_commands.rs
 src-tauri/src/runtime_resource.rs
 src-tauri/src/runtime_transport.rs
+src-tauri/src/terminal_tools.rs
 src-tauri/src/workspace_process.rs
 src-tauri/src/wsl.rs
