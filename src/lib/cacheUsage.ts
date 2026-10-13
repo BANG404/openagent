@@ -23,12 +23,14 @@ export function summarizeCacheUsage(usage: TaskTokenUsage): CacheUsageSummary {
 }
 
 /**
- * Return the provider input size represented by one usage record. Providers
+ * Return active context when provided, otherwise the provider input size.
+ * Providers
  * differ on whether cached and cache-write tokens are included in
  * `input_tokens`, so prefer the aggregate when available and reconstruct a
  * complete input total when the aggregate is missing.
  */
 export function contextUsageTokens(usage: TaskTokenUsage): number {
+  if (usage.active_context_tokens != null) return usage.active_context_tokens;
   if (usage.context_tokens != null && usage.context_tokens > 0) {
     return usage.context_tokens;
   }

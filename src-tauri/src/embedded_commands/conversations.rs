@@ -144,6 +144,14 @@ pub(crate) async fn delete_conversation(
 }
 
 #[tauri::command]
+pub(crate) async fn export_conversation_trace(
+    runtime: State<'_, Arc<OpenAgentRuntime>>,
+    conv_id: String,
+) -> Result<String, String> {
+    openagent_runtime::commands::export_conversation_trace(runtime.state(), conv_id).await
+}
+
+#[tauri::command]
 pub(crate) async fn get_task_traces(
     runtime: State<'_, Arc<OpenAgentRuntime>>,
 ) -> Result<Vec<TaskTrace>, String> {

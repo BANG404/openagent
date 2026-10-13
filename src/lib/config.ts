@@ -98,6 +98,15 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
     const openai_api_mode: OpenAiApiMode =
       provider.openai_api_mode === "chat_completions" ? "chat_completions" : "responses";
     const configuredModels = new Set(provider.models ?? []);
+    const model_context_windows = Object.fromEntries(
+      Object.entries(provider.model_context_windows ?? {}).filter(
+        ([model, window]) =>
+          configuredModels.has(model) &&
+          Number.isInteger(window) &&
+          window >= 1_000 &&
+          window <= 10_000_000,
+      ),
+    );
     const model_context_compaction_thresholds = Object.fromEntries(
       Object.entries(provider.model_context_compaction_thresholds ?? {})
         .filter(([model]) => configuredModels.has(model))
@@ -128,6 +137,7 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
       openai_api_mode,
       models: provider.models ?? [],
       model_context_compaction_thresholds,
+      model_context_windows,
       model_reasoning_efforts,
       model_reasoning_effort_enabled,
       model_vision_enabled,

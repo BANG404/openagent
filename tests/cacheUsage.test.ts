@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   chatTaskUsagesByCheckpoint,
   latestContextUsageTokens,
+  contextUsageTokens,
   summarizeCacheUsage,
   summarizeCacheUsages,
 } from "../src/lib/cacheUsage";
@@ -31,6 +32,20 @@ function taskUsage(overrides: Partial<ChatTaskUsage>): ChatTaskUsage {
 }
 
 describe("cache usage normalization", () => {
+  test("active context uses the latest request plus output without changing cumulative cache totals", () => {
+    const record = usage({
+      input_tokens: 500_000,
+      output_tokens: 20_000,
+      total_tokens: 520_000,
+      context_tokens: 100_000,
+      active_context_tokens: 105_000,
+    });
+    expect(contextUsageTokens(record)).toBe(105_000);
+    expect(contextUsageTokens(usage({ context_tokens: 100_000 }))).toBe(100_000);
+    expect(contextUsageTokens(usage({ active_context_tokens: 0, context_tokens: 100_000 }))).toBe(
+      0,
+    );
+  });
   test("uses provider input totals when cached tokens are included in input", () => {
     expect(
       summarizeCacheUsage(

@@ -27,6 +27,7 @@ A missing credential fails the Runtime artifact build; injecting it only while
 packaging the desktop shell cannot enable a precompiled Runtime.
 Frontend diagnostics use the shared authenticated Runtime operation, so filtering,
 local JSONL recording and remote export share the same collection switch.
+Component-update lifecycle records remain a desktop-host capability.
 Local builds may set the same environment variable and may override the default
 `https://openagentlogs.ibat.ac.cn/v1/logs` destination with
 `OPENAGENT_LOGS_ENDPOINT`.

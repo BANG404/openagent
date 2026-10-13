@@ -41,6 +41,8 @@ export interface PluginSidebarContext {
   hasConversation: boolean;
   /** Tool names projected from the selected branch, including its live stream. */
   toolNames?: readonly string[];
+  /** Selected branch's opaque package projection, without package data. */
+  flow?: { pluginId?: string; flowId: string };
 }
 
 /**
@@ -50,7 +52,7 @@ export interface PluginSidebarContext {
  */
 export function pluginSidebarLifecycle(
   view: AgentPluginSidebarViewSummary,
-  plugin: Pick<AgentPluginSummary, "enabled" | "error">,
+  plugin: Pick<AgentPluginSummary, "id" | "enabled" | "error">,
   context: PluginSidebarContext,
 ): PluginSidebarLifecycle {
   if (!plugin.enabled) return "disabled";
@@ -60,10 +62,26 @@ export function pluginSidebarLifecycle(
   if (
     view.activation_tools !== undefined &&
     (!context.hasConversation ||
-      !view.activation_tools.some((name) => context.toolNames?.includes(name)))
+      (!view.activation_tools.some((name) => context.toolNames?.includes(name)) &&
+        !(context.flow?.pluginId === plugin.id && context.flow.flowId === view.id)))
   )
     return "inactive";
   return "available";
+}
+
+/** A package can route its common projection to its own declared sidebar view. */
+export function flowPluginSidebarPanel(
+  entries: readonly PluginSidebarEntry[],
+  flow: PluginSidebarContext["flow"],
+): PluginSidebarPanel | null {
+  return (
+    entries.find(
+      (entry) =>
+        entry.lifecycle === "available" &&
+        entry.pluginId === flow?.pluginId &&
+        entry.panel === flow?.flowId,
+    )?.panel ?? null
+  );
 }
 
 /** Only actual assistant tool calls activate panels; text and discovery do not. */

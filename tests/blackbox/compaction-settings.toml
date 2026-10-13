@@ -1,119 +1,166 @@
 [scenario]
-name = "compaction belongs to general settings"
+name = "Flash compaction settings"
 fail_fast = true
 global_timeout_ms = 120000
 
 [[step]]
-name = "verify settings location, disabled inputs, persistence and visual states"
+name = "save fixture values and verify General excludes compaction"
 action = "eval"
 script = '''(async () => {
   const wait = async (read, description) => {
-    const deadline = Date.now() + 7000;
+    const deadline = Date.now() + 3000;
     while (Date.now() < deadline) {
-      const result = read();
-      if (result) return result;
-      await new Promise(resolve => setTimeout(resolve, 100));
+      const value = read(); if (value) return value;
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
     throw new Error(description);
   };
   const shortcut = (key, code, shiftKey = false) => window.dispatchEvent(
-    new KeyboardEvent('keydown', { key, code, ctrlKey: true, shiftKey, bubbles: true })
-  );
-  const openGeneral = async () => {
-    shortcut(',', 'Comma');
-    return await wait(() => document.querySelector('[data-settings-section="context-compaction"]'),
-      'general settings did not expose compaction');
-  };
+    new KeyboardEvent('keydown', { key, code, ctrlKey: true, shiftKey, bubbles: true }));
   const close = async () => {
     const button = document.querySelector('[role=dialog] button[aria-label="Close"], [role=dialog] button[aria-label="关闭"]');
-    if (!(button instanceof HTMLElement)) throw new Error('settings close control is missing');
-    button.click();
+    if (button) button.click();
     await wait(() => !document.querySelector('[role=dialog]'), 'settings did not close');
   };
+  const general = async () => {
+    shortcut(',', 'Comma');
+    const panel = await wait(() => document.querySelector('[data-value=general][data-state=active]'), 'General did not open');
+    if (panel.querySelector('[data-settings-section=context-compaction]')) throw new Error('General still owns compaction');
+    return panel;
+  };
+  const flash = async () => {
+    shortcut('3', 'Digit3', true);
+    return wait(() => document.querySelector('[data-value=agents][data-state=active] [data-settings-section=context-compaction]'), 'Flash did not expose compaction');
+  };
   const fill = (input, value) => {
-    if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) {
-      throw new Error('compaction field is missing');
-    }
-    input.value = value;
-    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.value = value; input.dispatchEvent(new Event('input', {bubbles:true}));
   };
-  let section = await openGeneral();
-  const fields = section.querySelectorAll('input[type=number]');
-  const toggle = section.querySelector('[role=switch]');
-  const prompt = section.querySelector('textarea');
-  const original = {
-    enabled: toggle.getAttribute('aria-checked') === 'true',
-    threshold: fields[0].value, count: fields[1].value, prompt: prompt.value,
+  const settle = () => new Promise(resolve => setTimeout(resolve, 1100));
+  const appearance = () => [
+    document.querySelector('[data-value=general] [data-appearance-mode] .ui-select-trigger'),
+    document.querySelector('[data-value=general] button[aria-label="Language"], [data-value=general] button[aria-label="语言"]'),
+  ];
+  const select = async (button, value) => {
+    button.dispatchEvent(new PointerEvent('pointerdown', {bubbles:true,button:0,pointerType:'mouse'}));
+    const option = await wait(() => document.querySelector(`[role=option][data-value="${value}"]`), 'appearance option is missing');
+    option.dispatchEvent(new PointerEvent('pointerup', {bubbles:true,button:0,pointerType:'mouse'}));
+    await wait(() => !document.querySelector('[role=listbox]'), 'select did not close');
   };
-  const appearance = document.querySelector('[data-value=general] .settings-card');
-  const appearanceButtons = appearance.querySelectorAll('.ui-select-trigger');
-  const selectedValue = async button => {
-    button.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerType: 'mouse' }));
-    const selected = await wait(() => document.querySelector('[role=option][aria-selected=true]'), 'selected appearance option is missing');
-    const value = selected.getAttribute('data-value');
-    selected.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, pointerType: 'mouse' }));
-    await wait(() => !document.querySelector('[role=listbox]'), 'appearance menu did not close');
+  await close(); await general();
+  const readSelected = async button => {
+    button.dispatchEvent(new PointerEvent('pointerdown', {bubbles:true,button:0,pointerType:'mouse'}));
+    const option = await wait(() => document.querySelector('[role=option][aria-selected=true]'), 'selected option is missing');
+    const value = option.dataset.value;
+    option.dispatchEvent(new PointerEvent('pointerup', {bubbles:true,button:0,pointerType:'mouse'}));
+    await wait(() => !document.querySelector('[role=listbox]'), 'select did not close');
     return value;
   };
-  const originalTheme = await selectedValue(appearanceButtons[0]);
-  const originalLanguage = await selectedValue(appearanceButtons[1]);
-  try {
-    if (toggle.getAttribute('aria-checked') === 'true') toggle.click();
-    await wait(() => [...fields].every(input => input.disabled), 'disabled compaction left editable numeric fields');
-    toggle.click();
-    await wait(() => [...fields].every(input => !input.disabled), 'enabled compaction kept numeric fields disabled');
-    fill(fields[0], '210000'); fill(fields[1], '0');
-    section.querySelector('summary').click();
-    fill(prompt, 'Preserve unfinished work.');
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    await close();
-    section = await openGeneral();
-    const restored = section.querySelectorAll('input[type=number]');
-    await wait(() => restored[0].value === '210000' && restored[1].value === '0' &&
-        section.querySelector('textarea').value === 'Preserve unfinished work.', 'saved compaction fields did not reload');
-    if (restored[0].value !== '210000' || restored[1].value !== '0' ||
-        section.querySelector('textarea').value !== 'Preserve unfinished work.' ||
-        !section.querySelector('details').open) throw new Error('compaction fields did not survive reopening');
-    await close();
-    shortcut('3', 'Digit3', true);
-    const flash = await wait(() => document.querySelector('[data-value=agents]'), 'Flash settings did not open');
-    if (/Compaction|压缩/.test(flash.textContent)) throw new Error('Flash still owns compaction controls or description');
-    await close();
-    for (const [theme, language] of [['light', 'en'], ['dark', 'zh']]) {
-      section = await openGeneral();
-      for (const [index, value] of [[0, theme], [1, language]]) {
-        const buttons = document.querySelector('[data-value=general] .settings-card').querySelectorAll('.ui-select-trigger');
-        buttons[index].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerType: 'mouse' }));
-        const option = await wait(() => document.querySelector(`[role=option][data-value="${value}"]`), 'appearance option is missing');
-        option.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, pointerType: 'mouse' }));
-      }
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      await close();
-      section = await openGeneral();
-      await wait(() => document.documentElement.classList.contains(theme) &&
-        section.textContent.includes(language === 'en' ? 'selected Chat model' : '当前 Chat 模型'),
-        'compaction model copy or theme did not follow appearance settings');
-      section.scrollIntoView({ block: 'center' });
-      await close();
-    }
-  } finally {
-    if (document.querySelector('[role=dialog]')) await close();
-    section = await openGeneral();
-    const inputs = section.querySelectorAll('input[type=number]');
-    const control = section.querySelector('[role=switch]');
-    if (control.getAttribute('aria-checked') !== 'true') control.click();
-    await wait(() => !inputs[0].disabled, 'cleanup could not enable inputs');
-    fill(inputs[0], original.threshold); fill(inputs[1], original.count);
-    fill(section.querySelector('textarea'), original.prompt);
-    if (!original.enabled) control.click();
-    for (const [index, value] of [[0, originalTheme], [1, originalLanguage]]) {
-      if (!value) continue;
-      document.querySelector('[data-value=general] .settings-card').querySelectorAll('.ui-select-trigger')[index].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerType: 'mouse' }));
-      const option = await wait(() => document.querySelector(`[role=option][data-value="${value}"]`), 'cleanup appearance option is missing');
-      option.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, pointerType: 'mouse' }));
-    }
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    await close();
-  }
-  return 'general location, Flash exclusion, disabled fields, persistence, light/en and dark/zh passed';
+  const theme = await readSelected(appearance()[0]);
+  const language = await readSelected(appearance()[1]);
+  await close(); const section = await flash();
+  const fields = section.querySelectorAll('input[type=number]'),toggle=section.querySelector('[role=switch]');
+  const original = {theme,language,enabled:toggle.getAttribute('aria-checked')==='true',threshold:fields[0].value,count:fields[1].value,prompt:section.querySelector('textarea').value};
+  window.__compactionSettingsFixture = {wait,shortcut,close,general,flash,fill,settle,appearance,select,original};
+  return true;
+})()'''
+
+[[step]]
+name = "verify disabled fields and persist Flash settings"
+action = "eval"
+script = '''(async () => {
+  const f=window.__compactionSettingsFixture;
+  const section=document.querySelector('[data-value=agents][data-state=active] [data-settings-section=context-compaction]');
+  const fields=section.querySelectorAll('input[type=number]'),toggle=section.querySelector('[role=switch]');
+  if(toggle.getAttribute('aria-checked')==='true') toggle.click();
+  await f.wait(()=>[...fields].every(input=>input.disabled),'disabled compaction left editable fields');
+  toggle.click(); await f.wait(()=>[...fields].every(input=>!input.disabled),'enabled compaction kept fields disabled');
+  f.fill(fields[0],'210000'); f.fill(fields[1],'0');
+  if(!section.querySelector('details').open) section.querySelector('summary').click();
+  f.fill(section.querySelector('textarea'),'Preserve unfinished work.');
+  await f.settle(); await f.close(); const restored=await f.flash();
+  await f.wait(()=>restored.querySelectorAll('input')[0].value==='210000' && restored.querySelectorAll('input')[1].value==='0' && restored.querySelector('textarea').value==='Preserve unfinished work.','saved compaction values did not reload');
+  if(!restored.querySelector('details').open)throw new Error('saved prompt did not expand');
+  await f.close(); return true;
+})()'''
+
+[[step]]
+name = "verify light theme and English Flash copy"
+action = "eval"
+script = '''(async () => {
+  const f=window.__compactionSettingsFixture; await f.general();
+  await f.select(f.appearance()[0],'light'); await f.select(f.appearance()[1],'en');
+  await f.settle(); await f.close(); const section=await f.flash();
+  await f.wait(()=>document.documentElement.classList.contains('light') && section.textContent.includes('Flash model') && section.textContent.includes('structured summary'),'English Flash copy or theme is stale');
+  section.scrollIntoView({block:'center',behavior:'instant'}); await f.settle(); return true;
+})()'''
+
+[[step]]
+name = "capture light English compaction settings"
+action = "screenshot"
+path = "compaction-light-en.png"
+
+[[step]]
+name = "verify English model window controls"
+action = "eval"
+script = '''(async () => {
+  const f=window.__compactionSettingsFixture;await f.close();f.shortcut('1','Digit1',true);
+  const panel=await f.wait(()=>document.querySelector('[data-value=providers][data-state=active]'),'provider settings did not open');
+  const configure=[...panel.querySelectorAll('.model-item button')].find(button=>button.textContent.trim()==='Configure');
+  if(!configure)throw new Error('fixture requires a configured model');configure.click();
+  const field=await f.wait(()=>document.querySelector('#model-config-context-window'),'model window field is missing');
+  if(!field.closest('label').textContent.includes('90%'))throw new Error('model headroom hint is missing');
+  const cancel=document.querySelector('.model-config-cancel');cancel.click();await f.close();await f.flash();return true;
+})()'''
+
+[[step]]
+name = "verify dark theme and Chinese Flash copy"
+action = "eval"
+script = '''(async () => {
+  const f=window.__compactionSettingsFixture; await f.close(); await f.general();
+  await f.select(f.appearance()[0],'dark'); await f.select(f.appearance()[1],'zh');
+  await f.settle(); await f.close(); const section=await f.flash();
+  await f.wait(()=>document.documentElement.classList.contains('dark') && section.textContent.includes('Flash 模型') && section.textContent.includes('结构化摘要'),'Chinese Flash copy or theme is stale');
+  section.scrollIntoView({block:'center',behavior:'instant'}); await f.settle(); return true;
+})()'''
+
+[[step]]
+name = "capture dark Chinese compaction settings"
+action = "screenshot"
+path = "compaction-dark-zh.png"
+
+[[step]]
+name = "verify model window validation and persistence"
+action = "eval"
+script = '''(async () => {
+  const f=window.__compactionSettingsFixture;await f.close();
+  f.shortcut('1','Digit1',true);
+  const panel=await f.wait(()=>document.querySelector('[data-value=providers][data-state=active]'),'provider settings did not open');
+  const configure=[...panel.querySelectorAll('.model-item button')].find(button=>/^(Configure|配置)$/.test(button.textContent.trim()));
+  if(!configure)throw new Error('fixture requires a configured model');
+  configure.click();await f.wait(()=>document.querySelector('#model-config-context-window'),'model window field did not open');
+  const field=document.querySelector('#model-config-context-window');
+  const originalWindow=field.value,threshold=document.querySelector('#model-config-threshold').value;
+  f.fill(field,'-1');
+  await f.wait(()=>document.querySelector('.model-config-actions button[data-tone=primary]')?.disabled || document.querySelector('.dialog-error'),'invalid window did not block saving');
+  if(!document.querySelector('.dialog-error'))throw new Error('invalid window has no explanation');
+  f.fill(field,'128000');
+  const save=()=>[...document.querySelectorAll('.model-config-actions button')].find(button=>/^(Save|保存)$/.test(button.textContent.trim()));
+  await f.wait(()=>!save().disabled,'valid window cannot be saved');save().click();await f.settle();
+  configure.click();await f.wait(()=>document.querySelector('#model-config-context-window')?.value==='128000','model window did not survive reopening');
+  if(document.querySelector('#model-config-threshold').value!==threshold)throw new Error('window overwrote the explicit threshold');
+  f.fill(document.querySelector('#model-config-context-window'),originalWindow);save().click();await f.settle();await f.close();await f.flash();return true;
+})()'''
+
+[[step]]
+name = "restore compaction and appearance settings"
+action = "eval"
+script = '''(async () => {
+  const f=window.__compactionSettingsFixture,section=document.querySelector('[data-settings-section=context-compaction]');
+  const fields=section.querySelectorAll('input[type=number]'),toggle=section.querySelector('[role=switch]');
+  if(toggle.getAttribute('aria-checked')!=='true')toggle.click();
+  await f.wait(()=>!fields[0].disabled,'cannot enable fixture fields');
+  f.fill(fields[0],f.original.threshold);f.fill(fields[1],f.original.count);f.fill(section.querySelector('textarea'),f.original.prompt);
+  if(!f.original.enabled)toggle.click(); await f.settle(); await f.close(); await f.general();
+  await f.select(f.appearance()[0],f.original.theme);await f.select(f.appearance()[1],f.original.language);
+  await f.settle();await f.close();delete window.__compactionSettingsFixture;return true;
 })()'''

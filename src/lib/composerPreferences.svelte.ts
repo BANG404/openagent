@@ -1,5 +1,6 @@
 import { decodeModelBinding, encodeModelBinding } from "$lib/modelBinding";
 import { modelSupportsVision } from "$lib/modelCapabilities";
+import { contextCompactionThreshold } from "$lib/contextBudget";
 import { desktopOpenAgent } from "$lib/openagent/tauriClient";
 import { showToast } from "$lib/toast";
 import { tr } from "$lib/i18n";
@@ -67,11 +68,10 @@ export class ComposerPreferences {
     const config = this.dependencies.getConfig();
     const binding = decodeModelBinding(this.selectedModel);
     if (!config || !binding) return 0;
-    return (
-      config.providers.find((provider) => provider.id === binding.providerId)
-        ?.model_context_compaction_thresholds?.[binding.model] ??
-      config.context_compaction_threshold
-    );
+    return contextCompactionThreshold(config, {
+      provider_id: binding.providerId,
+      model: binding.model,
+    });
   }
 
   syncFromConfig(): void {

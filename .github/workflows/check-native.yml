@@ -388,6 +388,12 @@ jobs:
           shared-key: embedding-${{ matrix.cache_key }}
           cache-targets: false
 
+      - name: Prepare bundled plugin Node.js
+        run: node scripts/prepare-node-runtime.mjs
+
+      - name: Prepare bundled terminal tools
+        run: node scripts/prepare-terminal-tools.mjs
+
       - name: Exercise bundled embedding model
         env:
           CARGO_TARGET_DIR: sdk/target/desktop-host/target

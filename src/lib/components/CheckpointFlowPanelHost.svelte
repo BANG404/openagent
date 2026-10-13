@@ -15,6 +15,7 @@
 
   let {
     flow,
+    scopeLoading = false,
     changes,
     collapsed = true,
     activePanel = $bindable<RightSidebarPanel>("status"),
@@ -32,6 +33,7 @@
     onConversationCollapse = () => {},
   }: {
     flow: CheckpointFlow | null;
+    scopeLoading?: boolean;
     changes: FileChange[];
     collapsed?: boolean;
     activePanel?: RightSidebarPanel;
@@ -143,6 +145,7 @@
 
 <CheckpointFlowStatus
   {flow}
+  {scopeLoading}
   {changes}
   {width}
   {collapsed}

@@ -149,6 +149,14 @@ retain report paths and record tested Git revisions. Index validation alone
 does not prove Runtime functionality or qualify a published release.
 
 For Graph, select `BLACKBOX_PLUGIN_IDS=graph` with the functionality runner.
+The Graph package owns the layered diagram and read-only `graph_view` tool.
+Its declared sidebar ID matches its opaque flow ID so parent and child branches
+can activate the same package view. Native qualification checks dependency paths,
+status/count/results, restore, resizing and all four theme/locale combinations.
+The runner installs a temporary source copy with a DOM-only postMessage probe;
+the sandbox remains opaque and no product instrumentation is added.
+On Windows, set `BLACKBOX_NATIVE_WINDOW_ID` to the verified fixture main HWND
+for screenshots; WebView captures can omit SVG strokes and marker colors.
 Start the isolated instance with its existing `<fixture>/workspace` directory
 as the configured workspace. The runner temporarily enables networking for
 the local model and plugin bridge, then restores the original settings.

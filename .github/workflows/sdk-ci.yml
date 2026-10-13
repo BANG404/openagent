@@ -550,6 +550,12 @@ jobs:
       - name: Materialize Runtime sidecar for Tauri macros
         working-directory: host
         run: node scripts/prepare-runtime-server.mjs --placeholder
+      - name: Prepare bundled plugin Node.js
+        working-directory: host
+        run: node scripts/prepare-node-runtime.mjs
+      - name: Prepare bundled terminal tools
+        working-directory: host
+        run: node scripts/prepare-terminal-tools.mjs
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: ./host/src-tauri -> target
