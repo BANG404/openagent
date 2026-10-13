@@ -1,5 +1,6 @@
 <script lang="ts">
   import { DropdownMenu } from "bits-ui";
+  import { tick } from "svelte";
   import { appUpdateState, checkForAppUpdate } from "$lib/appUpdater";
   import { t } from "$lib/i18n";
   import type { SettingsNav, SettingsWindowKind } from "$lib/settingsWindows";
@@ -34,6 +35,7 @@
     onCreateRole,
     onConfigureRole,
     onOpenAbout,
+    onReportProblem,
     debugMode,
     onToggleDebugMode,
     onOpenLogsFolder,
@@ -55,6 +57,7 @@
     onOpenSettingsWindow: (kind: SettingsWindowKind, section?: SettingsNav) => void;
     onCreateRole: () => void;
     onConfigureRole: (role: AgentRole) => void;
+    onReportProblem: () => void;
     onOpenAbout: () => void;
     debugMode: boolean;
     onToggleDebugMode: () => void;
@@ -67,6 +70,7 @@
   let otherRecent = $derived(recentWorkspaces.filter((item) => item.path !== workspacePath));
   let selectedRole = $derived(roles.find((role) => role.id === selectedRoleKey) ?? null);
   let editContext = $state<EditContext | null>(null);
+  let helpMenuOpen = $state(false);
   let editAvailability = $state<Record<EditCommand, boolean>>({
     undo: false,
     redo: false,
@@ -497,7 +501,7 @@
     </DropdownMenu.Portal>
   </DropdownMenu.Root>
 
-  <DropdownMenu.Root>
+  <DropdownMenu.Root bind:open={helpMenuOpen}>
     <DropdownMenu.Trigger id="application-help-menu" class="application-menu-trigger" accesskey="h"
       >{$t("helpMenu")}</DropdownMenu.Trigger
     >
@@ -520,6 +524,16 @@
           <span class="application-menu-shortcut">{primaryModifier}+Shift+U</span>
         </DropdownMenu.Item>
         <DropdownMenu.Separator class="application-menu-separator" />
+        <DropdownMenu.Item
+          class="application-menu-item"
+          onSelect={async () => {
+            helpMenuOpen = false;
+            await tick();
+            onReportProblem();
+          }}
+        >
+          <span>{$t("reportProblem")}…</span>
+        </DropdownMenu.Item>
         <DropdownMenu.Item class="application-menu-item" onSelect={onOpenLogsFolder}>
           <span>{$t("openLogsFolder")}</span>
         </DropdownMenu.Item>

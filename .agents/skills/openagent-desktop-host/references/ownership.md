@@ -10,8 +10,10 @@ the host.
 ## Host module composition
 
 `lib.rs` composes Tauri plugins, managed state, and command registrations.
-`diagnostics.rs` owns host tracing and the allowlists for frontend-originated
-records. `desktop_exit.rs` owns shell-install preparation, exit phases, bounded
+`diagnostics.rs` owns host tracing and forwards frontend diagnostics to the
+shared authenticated Runtime operation. Runtime owns their allowlists and export;
+the host must not leave frontend diagnostics in its local-only tracing subscriber.
+`desktop_exit.rs` owns shell-install preparation, exit phases, bounded
 child teardown, and parent-liveness monitors; quit and restart share that owner.
 `component_updates/` composes one update state with separate barrier, Runtime
 replacement, frontend activation, resource source, and version identity adapters.
@@ -253,7 +255,6 @@ endpoint>`. Pass the same values again through
   deadline. Discarding it on sight left the frontend behind the Runtime and
   shell that had already updated and re-offered the same update on every
   launch.
-
 
 The normal release shell creates its window before Runtime persistence inspection.
 The independent bootstrap and `desktop_bootstrap/provisioning.rs` recover missing

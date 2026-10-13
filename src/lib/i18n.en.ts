@@ -66,6 +66,27 @@ const en: Record<TranslationKeys, string> = {
   agentMenu: "Agent",
   integrationsMenu: "Integrations",
   helpMenu: "Help",
+  reportProblem: "Report a problem",
+  reportProblemDescription: "Describe the problem and upload it to the OpenAgent support server.",
+  reportProblemDetails: "Problem description",
+  reportProblemPlaceholder:
+    "What happened? Include steps to reproduce, expected behavior and actual results.",
+  reportProblemIncludeTrace: "Include the complete current conversation trace",
+  reportProblemTracePrivacy:
+    "Uploads all saved branches, messages, model requests and responses, and tool arguments and results for this conversation. This may include sensitive content. Provider configuration and attachment file contents are not read separately.",
+  reportProblemNoConversation:
+    "No saved conversation is open. Only your description and application environment will be uploaded.",
+  reportProblemSubmit: "Confirm upload",
+  reportProblemSubmitting: "Uploading…",
+  reportProblemSuccess: "Your report was uploaded. Thank you for the feedback.",
+  reportProblemId: "Report ID",
+  reportProblemFailed:
+    "Upload failed. Your description is preserved; check your connection and retry.",
+  reportProblemTooLarge:
+    "The complete report exceeds 64 MB and was not uploaded. Turn off the trace option to submit your description.",
+  reportProblemTraceFailed:
+    "The complete conversation trace could not be read. Nothing was uploaded. Retry or turn off the trace option.",
+
   newWindow: "New window",
   undo: "Undo",
   redo: "Redo",

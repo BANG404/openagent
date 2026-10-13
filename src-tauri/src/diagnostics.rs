@@ -78,27 +78,6 @@ pub(crate) fn shutdown_host_tracing() {
     openagent_runtime::tracing_setup::shutdown_tracing();
 }
 
-fn diagnostic_event_name(value: &str) -> &'static str {
-    match value {
-        "frontend_uncaught_error" => "frontend_uncaught_error",
-        "frontend_unhandled_rejection" => "frontend_unhandled_rejection",
-        "settings_save_failed" => "settings_save_failed",
-        "startup_bootstrap_failed" => "startup_bootstrap_failed",
-        "startup_restore_failed" => "startup_restore_failed",
-        "startup_event_delivery_failed" => "startup_event_delivery_failed",
-        _ => "unknown_event",
-    }
-}
-
-fn diagnostic_component(value: &str) -> &'static str {
-    match value {
-        "window" => "window",
-        "SettingsView" => "SettingsView",
-        "page-shell" => "page-shell",
-        _ => "unknown_component",
-    }
-}
-
 fn diagnostic_error_type(value: &str) -> &'static str {
     match value {
         "Error" => "Error",
@@ -210,53 +189,54 @@ pub(crate) fn report_component_update_event(
     Ok(())
 }
 
+#[cfg(feature = "embedded-runtime")]
 #[tauri::command]
 pub(crate) fn report_frontend_diagnostic(
     event_name: String,
     component: String,
     error_kind: String,
 ) {
-    tracing::error!(
-        target: "openagent::diagnostics",
-        event_name = diagnostic_event_name(&event_name),
-        code_namespace = diagnostic_component(&component),
-        error_type = diagnostic_error_type(&error_kind),
-        "frontend operation failed"
-    );
+    openagent_runtime::commands::report_frontend_diagnostic(&event_name, &component, &error_kind);
+}
+
+#[cfg(not(feature = "embedded-runtime"))]
+#[tauri::command]
+pub(crate) async fn report_frontend_diagnostic(
+    supervisor: tauri::State<'_, std::sync::Arc<crate::runtime_process::RuntimeProcessSupervisor>>,
+    event_name: String,
+    component: String,
+    error_kind: String,
+) -> Result<(), String> {
+    let response = crate::runtime_transport::proxy_runtime_request(
+        supervisor.inner(),
+        crate::runtime_transport::RuntimeProxyRequest {
+            method: "POST".to_string(),
+            path: "/api/desktop/operations".to_string(),
+            body: Some(serde_json::json!({
+                "operation": "report_frontend_diagnostic",
+                "args": { "eventName": event_name, "component": component, "errorKind": error_kind }
+            }).to_string()),
+        },
+    ).await?;
+    if !(200..300).contains(&response.status) {
+        return Err("Runtime frontend diagnostic reporting failed".to_string());
+    }
+    Ok(())
+}
+
+#[cfg(feature = "embedded-runtime")]
+#[tauri::command]
+pub(crate) async fn submit_problem_report(
+    runtime: tauri::State<'_, std::sync::Arc<openagent_runtime::OpenAgentRuntime>>,
+    description: String,
+    conv_id: Option<String>,
+) -> Result<openagent_runtime::commands::ProblemReportReceipt, String> {
+    openagent_runtime::commands::submit_problem_report(runtime.state(), description, conv_id).await
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test]
-    fn diagnostic_fields_are_allowlisted() {
-        assert_eq!(
-            diagnostic_event_name("frontend_uncaught_error"),
-            "frontend_uncaught_error"
-        );
-        assert_eq!(diagnostic_component("SettingsView"), "SettingsView");
-        assert_eq!(
-            diagnostic_event_name("startup_bootstrap_failed"),
-            "startup_bootstrap_failed"
-        );
-        assert_eq!(
-            diagnostic_event_name("startup_restore_failed"),
-            "startup_restore_failed"
-        );
-        assert_eq!(
-            diagnostic_event_name("startup_event_delivery_failed"),
-            "startup_event_delivery_failed"
-        );
-        assert_eq!(diagnostic_component("page-shell"), "page-shell");
-        assert_eq!(diagnostic_error_type("TypeError"), "TypeError");
-        assert_eq!(diagnostic_event_name("raw user message"), "unknown_event");
-        assert_eq!(
-            diagnostic_component("C:/Users/example/private"),
-            "unknown_component"
-        );
-        assert_eq!(diagnostic_error_type("secretError"), "unknown_error_type");
-    }
-
     #[test]
     fn component_update_diagnostic_fields_are_bounded() {
         assert_eq!(component_update_name("shell"), Ok("shell"));

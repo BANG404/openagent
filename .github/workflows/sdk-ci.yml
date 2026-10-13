@@ -747,7 +747,18 @@ jobs:
           fi
       - name: Build release Runtime server
         working-directory: sdk
-        run: cargo build --release -p openagent-server
+        env:
+          OPENAGENT_LOGS_INGEST_TOKEN: ${{ secrets.OPENAGENT_LOGS_INGEST_TOKEN }}
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:OPENAGENT_LOGS_INGEST_TOKEN)) {
+            throw "Runtime diagnostic ingestion credential is missing."
+          }
+          $runtimeBuildLog = Join-Path $env:RUNNER_TEMP 'sdk-development-runtime.log'
+          cargo build --release -p openagent-server *> $runtimeBuildLog
+          if ($LASTEXITCODE -ne 0) {
+            throw "Runtime artifact build failed; private compiler output was suppressed."
+          }
       - name: Prepare pinned Windows development helpers
         if: matrix.runner_os == 'Windows'
         shell: pwsh

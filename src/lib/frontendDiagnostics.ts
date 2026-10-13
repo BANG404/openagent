@@ -1,6 +1,6 @@
 import { isTauri } from "@tauri-apps/api/core";
 import type { FrontendDiagnosticRequest } from "$lib/openagent/contracts";
-import { invoke } from "$lib/openagent/tauriClient";
+import { desktopOpenAgent, invoke } from "$lib/openagent/tauriClient";
 
 function errorKind(value: unknown): string {
   if (value instanceof Error) return value.name || "Error";
@@ -75,7 +75,7 @@ export function reportFrontendDiagnostic(
     component,
     errorKind: errorKind(error),
   };
-  void invoke<void>("report_frontend_diagnostic", { ...request }).catch(() => {});
+  void desktopOpenAgent.invokeProduct("report_frontend_diagnostic", request).catch(() => {});
 }
 
 export function installFrontendDiagnostics(): () => void {

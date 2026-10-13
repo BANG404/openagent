@@ -95,6 +95,11 @@
   import FullscreenSurface from "$lib/components/FullscreenSurface.svelte";
   import RoleEditorDialog from "$lib/components/RoleEditorDialog.svelte";
   import DesktopTitleBar from "$lib/components/DesktopTitleBar.svelte";
+  let ProblemReportDialog = $state<
+    typeof import("$lib/components/ProblemReportDialog.svelte").default | null
+  >(null);
+  let problemReportOpen = $state(false);
+  let problemReportConversationId = $state<string | null>(null);
   import ConversationSurface from "$lib/components/ConversationSurface.svelte";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import {
@@ -4293,6 +4298,19 @@
         {windowFocused}
       />
 
+      {#if ProblemReportDialog}
+        <ProblemReportDialog
+          bind:open={problemReportOpen}
+          conversationId={problemReportConversationId}
+          onSubmit={async (description, convId) => {
+            const receipt = await openAgent.invokeProduct("submit_problem_report", {
+              description,
+              convId,
+            });
+            return receipt.reportId;
+          }}
+        />
+      {/if}
       <!-- ─── Feature panels ─────────────────────────────────────────────────── -->
       <DesktopTitleBar
         {workspacePath}
@@ -4314,6 +4332,16 @@
         onCreateRole={() => void openRoleEditor(null)}
         onConfigureRole={(role) => void openRoleEditor(role)}
         onOpenAbout={() => openManagementSurface("about", "about")}
+        onReportProblem={async () => {
+          problemReportConversationId = activeConvId;
+          try {
+            ProblemReportDialog ??= (await import("$lib/components/ProblemReportDialog.svelte"))
+              .default;
+            problemReportOpen = true;
+          } catch {
+            showToast({ title: tr("reportProblemFailed"), variant: "error" });
+          }
+        }}
         debugMode={isDebugMode}
         onToggleDebugMode={toggleMainDebugMode}
         onQuit={quitApp}
