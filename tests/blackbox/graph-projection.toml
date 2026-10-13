@@ -1,42 +1,71 @@
 [scenario]
-name = "Graph parent and child restore the same completed projection"
+name = "Graph parent and child restore the package dependency diagram"
 fail_fast = true
-global_timeout_ms = 20000
+global_timeout_ms = 30000
 
 [[step]]
 name = "open the target conversation through host navigation"
 action = "eval"
 script = '''(async () => {
+  window.__graphDiagram = null;
   const {emitTo} = await import('/node_modules/@tauri-apps/api/event.js');
   await emitTo('main', 'settings-open-conversation', {conversationId:window.__graphProjectionProbe.convId});
   return true;
 })()'''
 
 [[step]]
-name = "restore the completed Graph sidebar"
+name = "restore nodes, dependency arrows and localized results"
 action = "eval"
 script = '''(async () => {
-  const deadline = Date.now() + 8000;
+  const probe = window.__graphProjectionProbe;
+  const deadline = Date.now() + 15000;
   while (Date.now() < deadline) {
     if (!document.getElementById(`message-${window.__graphProjectionProbe.messageId}`)) {
       await new Promise(resolve => setTimeout(resolve, 100));
       continue;
     }
-    const heading = document.querySelector('.flow-heading');
-    if (heading?.textContent.includes(window.__graphProjectionProbe.objective)) break;
+    const diagram = window.__graphDiagram;
+    const frame = document.querySelector('.plugin-panel iframe');
+    if (frame?.getBoundingClientRect().height > 0 && diagram?.conversationId === probe.convId && diagram.nodes.length === probe.completedCount && diagram.edges.length) break;
     const toggle = [...document.querySelectorAll('button')].find(button => /^(Expand right sidebar|展开右侧栏)$/.test(button.getAttribute('aria-label') ?? ''));
     toggle?.click();
     await new Promise(resolve => setTimeout(resolve, 200));
   }
-  const probe = window.__graphProjectionProbe;
+  const diagram = window.__graphDiagram;
+  if (!document.querySelector('.plugin-panel iframe')?.getBoundingClientRect().height) throw new Error('Graph sidebar did not preserve its selected panel');
   if (!document.getElementById(`message-${probe.messageId}`)) throw new Error('target conversation result did not restore');
   if (document.documentElement.classList.contains('dark') !== (probe.theme === 'dark')) throw new Error('fixture theme differs');
-  if (!document.querySelector('.flow-heading')?.textContent.includes(probe.objective)) throw new Error('Graph objective is missing');
-  const items = [...document.querySelectorAll('.flow-item')];
-  if (!items.length || items.some(item => !item.classList.contains('completed'))) throw new Error('Graph sidebar contains stale node statuses');
-  if (items.some(item => !item.querySelector('.item-status')?.textContent.includes(probe.language === 'zh' ? '已完成' : 'Completed'))) throw new Error('fixture locale differs');
-  if (!document.querySelector('.flow-count')?.textContent.includes(`${probe.completedCount}/${probe.completedCount}`)) throw new Error('Graph completed count differs');
-  if (!items.some(item => item.textContent.includes(probe.result))) throw new Error('Graph child result is missing');
+  if (diagram?.conversationId !== probe.convId || diagram.objective !== probe.objective) throw new Error('Graph diagram did not follow conversation scope');
+  if (diagram.error || !diagram.nodes.length || diagram.nodes.some(node => !node.completed)) throw new Error('Graph diagram contains stale node statuses');
+  if (diagram.dark !== (probe.theme === 'dark') || diagram.locale !== probe.language) throw new Error('Graph theme or locale differs');
+  if (diagram.nodes.some(node => !node.status.includes(probe.language === 'zh' ? '已完成' : 'Completed'))) throw new Error('node status is not localized');
+  if (!diagram.progress.includes(`${probe.completedCount}/${probe.completedCount}`)) throw new Error('Graph completed count differs');
+  if (!diagram.nodes.some(node => node.text.includes(probe.result))) throw new Error('Graph child result is missing');
+  if (diagram.edges.length !== 1 || diagram.edges[0].from !== 'verify' || diagram.edges[0].to !== 'summarize' || !diagram.edges[0].arrow) throw new Error('dependency path or arrow is missing');
+  const edgeColor = probe.theme === 'dark' ? 'rgb(74, 222, 128)' : 'rgb(24, 121, 78)';
+  if (diagram.edges[0].stroke !== edgeColor || diagram.edges[0].arrowFill !== edgeColor) throw new Error('dependency path or arrow did not follow the theme');
   if (!document.querySelector('[contenteditable=true][role=textbox]')) throw new Error('conversation surface unmounted');
+  return true;
+})()'''
+
+[[step]]
+name = "narrow the diagram and verify dependency endpoints follow node cards"
+action = "eval"
+script = '''(async () => {
+  const frame = document.querySelector('.plugin-panel iframe');
+  const originalWidth = frame.style.width;
+  try {
+    frame.style.width = '240px';
+    await new Promise(resolve => setTimeout(resolve, 600));
+    const diagram = window.__graphDiagram;
+    for (const edge of diagram.edges) {
+      const from = diagram.nodes.find(node => node.id === edge.from);
+      const to = diagram.nodes.find(node => node.id === edge.to);
+      const points = edge.path.match(/-?\d+(?:\.\d+)?/g).map(Number);
+      if (points.some(point => !Number.isFinite(point))) throw new Error('invalid path geometry');
+      if (Math.abs(points[0] - from.x) > 1 || Math.abs(points[1] - from.bottom) > 1 || Math.abs(points[6] - to.x) > 1 || Math.abs(points[7] - to.top) > 1) throw new Error('dependency path detached after resizing');
+      if (to.top <= from.bottom) throw new Error('dependency layering is inverted');
+    }
+  } finally { frame.style.width = originalWidth; }
   return true;
 })()'''

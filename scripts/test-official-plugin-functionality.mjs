@@ -2,13 +2,22 @@
 // Qualify explicitly selected plugin checkouts against the real desktop Runtime.
 // A deterministic Ollama endpoint supplies tool decisions, never provider credentials.
 import { createServer } from "node:http";
-import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  writeFileSync,
+} from "node:fs";
 import { join, resolve } from "node:path";
 import { homedir, tmpdir } from "node:os";
 import assert from "node:assert/strict";
 import { resolveBlackboxHome } from "./tauri-test-environment.mjs";
 import { readPluginDevIndex, resolvePluginDevPath } from "./plugin-dev-paths.mjs";
+import { captureBlackboxScreenshot } from "./blackbox-screenshot.mjs";
 
 const fixture = resolveBlackboxHome(process.env, { instanceName: "plugin-lifecycle" });
 assert(
@@ -29,6 +38,7 @@ const selectedPlugins = ["goal", "graph", "chat-groups"].filter(
 assert(selectedPlugins.length, "BLACKBOX_PLUGIN_IDS must select goal, graph or chat-groups");
 const checkouts = selectedPlugins.map((id) => resolvePluginDevPath(pluginIndex, id));
 const workspace = join(fixture, "workspace").replaceAll("\\", "/");
+const artifacts = mkdtempSync(join(tmpdir(), "openagent-graph-diagram-"));
 const pilotEnv = {
   ...process.env,
   OPENAGENT_HOME: fixture,
@@ -252,7 +262,21 @@ try {
     saved.providers.find((/** @type {any} */ item) => item.id === provider.id)?.enabled,
     true,
   );
-  for (const { id, directory: source } of checkouts) {
+  for (const { id, directory } of checkouts) {
+    let source = directory;
+    if (id === "graph") {
+      source = join(artifacts, "graph");
+      cpSync(directory, source, {
+        recursive: true,
+        filter: (entry) => ![".git", "node_modules"].includes(entry.split(/[\\/]/).at(-1) ?? ""),
+      });
+      const entry = join(source, "ui/graph.html");
+      const probe = readFileSync(resolve("tests/fixtures/graph-diagram-probe.js"), "utf8");
+      writeFileSync(
+        entry,
+        readFileSync(entry, "utf8").replace("</body>", `<script>${probe}</script></body>`),
+      );
+    }
     assert(
       !existsSync(join(fixture, "plugins", id)),
       `${id} is already installed; preserve it and use a fresh fixture`,
@@ -397,6 +421,8 @@ try {
         }
         for (const [theme, language] of [
           ["light", "en"],
+          ["light", "zh"],
+          ["dark", "en"],
           ["dark", "zh"],
         ]) {
           await invoke("save_settings", { config: { ...config, theme, language } });
@@ -408,6 +434,11 @@ try {
               )) === "true",
             "fixture did not reload",
           );
+          await evaluate(`window.__graphDiagram = null; window.addEventListener('message', event => {
+            if(event.data?.type !== 'fixture:graph-diagram') return;
+            const frame = document.querySelector('.plugin-panel iframe');
+            if(frame?.contentWindow === event.source) window.__graphDiagram = event.data;
+          }); true`);
           for (const target of [
             convId,
             ...children.map((/** @type {any} */ node) => node.child_conv_id),
@@ -416,6 +447,19 @@ try {
               `window.__graphProjectionProbe = ${JSON.stringify({ convId: target, messageId: messageIds.get(target), completedCount: state.nodes.length, objective: state.objective, result: state.nodes[0].result, theme, language })}; true`,
             );
             await runScenario("tests/blackbox/graph-projection.toml");
+            captureBlackboxScreenshot(
+              (args) => {
+                const result = spawnSync("tauri-pilot", [...args, "--window", "main"], {
+                  env: pilotEnv,
+                  cwd: artifacts,
+                  encoding: "utf8",
+                  windowsHide: true,
+                });
+                assert.equal(result.status, 0, result.stderr || result.stdout);
+                return result.stdout.trim();
+              },
+              join(artifacts, `${theme}-${language}-${target}.png`),
+            );
           }
         }
       }
@@ -432,8 +476,11 @@ try {
           ...(id === "graph"
             ? [
                 "parent/child durable projection equality",
-                "restored sidebar result",
+                "restored package diagram, dependency paths and results",
+                "narrow-width edge geometry",
                 "light/en",
+                "light/zh",
+                "dark/en",
                 "dark/zh",
               ]
             : []),

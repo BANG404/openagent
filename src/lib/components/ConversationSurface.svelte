@@ -449,6 +449,7 @@
   </div>
   <CheckpointFlowPanelHost
     flow={view.checkpointFlow}
+    scopeLoading={view.mainContentLoading}
     changes={view.fileChanges}
     collapsed={checkpointFlowPanelCollapsed}
     bind:activePanel={rightSidebarPanel}

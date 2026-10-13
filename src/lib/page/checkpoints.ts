@@ -228,7 +228,6 @@ export function createCheckpointController(options: CheckpointOptions) {
       shouldAutoOpenCheckpointFlowPanel(previous, next.flow)
     ) {
       options.checkpointFlowPanelAutoOpenKey = checkpointFlowPanelKey(convId, branchId, next.flow);
-      options.rightSidebarPanel = "status";
       options.rightSidebarCollapseRequested = false;
     }
     options.liveCheckpointFlowProjections = {
