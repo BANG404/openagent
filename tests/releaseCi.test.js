@@ -299,6 +299,36 @@ describe("release CI verification", () => {
     );
   });
 
+  test("prepares shell bundle resources before every native CI compilation", () => {
+    const nativeJobs = nativeWorkflow.matchAll(
+      /^ {2}[a-z-]+:\n[\s\S]*?(?=^ {2}[a-z-]+:|$(?![\s\S]))/gm,
+    );
+    const hostCompatibilityJob = sdkWorkflow.match(
+      / {2}host-compatibility:\n(?<job>[\s\S]*?)\n {2}required:/,
+    )?.groups?.job;
+    expect(hostCompatibilityJob).toBeDefined();
+    const jobs = [
+      ...Array.from(nativeJobs, ([job]) => job).filter((job) =>
+        /cargo (?:clippy|check|test)|embedded-cargo\.mjs/.test(job),
+      ),
+      hostCompatibilityJob ?? "",
+    ];
+    expect(jobs).toHaveLength(4);
+    for (const job of jobs) {
+      const compile = job.search(/cargo (?:clippy|check|test)|embedded-cargo\.mjs/);
+      for (const script of ["prepare-node-runtime.mjs", "prepare-terminal-tools.mjs"]) {
+        const preparation = job.indexOf(`run: node scripts/${script}`);
+        expect(preparation).toBeGreaterThan(-1);
+        expect(preparation).toBeLessThan(compile);
+      }
+    }
+    for (const script of ["prepare-node-runtime.mjs", "prepare-terminal-tools.mjs"]) {
+      expect(hostCompatibilityJob).toContain(
+        `working-directory: host\n        run: node scripts/${script}`,
+      );
+    }
+  });
+
   test("uses public SDK artifacts for untrusted frontend pull requests", () => {
     expect(frontendWorkflow).toContain("required: false");
     expect(frontendWorkflow).toContain("Fetch public TypeScript SDK for fork pull request");
