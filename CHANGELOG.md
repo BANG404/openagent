@@ -10,6 +10,19 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.80.0-beta.1] - 2026-10-13
+
+### Features
+- **terminal**: Adopt refreshed SDK command environments
+
+### Bug Fixes
+- **chat**: Restore complete snapshots after compaction
+- **chat**: Preserve visible trajectory after context compaction
+- Keep completed turn footer usage scoped to its records
+- Bundle terminal file tools with desktop shell
+- Refresh file sidebar during streamed replies
+- **plugins**: Bundle Node.js for desktop plugin launchers
+
 ## [0.79.0-beta.1] - 2026-10-12
 
 ### Features
