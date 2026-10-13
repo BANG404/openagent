@@ -3,10 +3,7 @@ use crate::desktop_bootstrap::instances::{
     should_enforce_single_instance, should_install_desktop_integrations,
     should_install_desktop_tray,
 };
-use crate::desktop_windows::{
-    handle_desktop_menu_event, single_instance_window_label, DESKTOP_WINDOW_ACTIVATED_EVENT,
-};
-use tauri::{Emitter, Manager};
+use crate::desktop_windows::{handle_desktop_menu_event, show_desktop_window};
 
 pub(crate) fn register_base(
     builder: tauri::Builder<tauri::Wry>,
@@ -24,19 +21,7 @@ pub(crate) fn register_base(
         development_multi_instance,
     ) {
         builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            let onboarding_visible = app
-                .get_webview_window("onboarding")
-                .and_then(|window| window.is_visible().ok())
-                .unwrap_or(false);
-            if let Some(window) =
-                app.get_webview_window(single_instance_window_label(onboarding_visible))
-            {
-                let _ = window.unminimize();
-                let _ = window.show();
-                if window.set_focus().is_ok() {
-                    let _ = window.emit(DESKTOP_WINDOW_ACTIVATED_EVENT, ());
-                }
-            }
+            show_desktop_window(app);
         }))
     } else {
         builder

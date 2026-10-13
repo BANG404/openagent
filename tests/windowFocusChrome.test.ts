@@ -74,7 +74,7 @@ describe("window focus chrome", () => {
     );
     expect(input).toContain("editorEl.focus({ preventScroll: true });");
     expect(nativeHost).toMatch(
-      /tauri_plugin_single_instance::init[\s\S]*?window\.unminimize\(\)[\s\S]*?window\.show\(\)[\s\S]*?window\.set_focus\(\)[\s\S]*?window\.emit\(DESKTOP_WINDOW_ACTIVATED_EVENT/,
+      /tauri_plugin_single_instance::init[\s\S]*?show_desktop_window\(app\)/,
     );
     expect(nativeHost).toMatch(
       /fn activate_workspace_window[\s\S]*?window\.set_focus\(\)[\s\S]*?workspace-window-open-request[\s\S]*?window[\s\S]*?emit\(DESKTOP_WINDOW_ACTIVATED_EVENT/,

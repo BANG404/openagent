@@ -380,6 +380,12 @@ main window and checks the installed selections through their resource owners.
 With a verified Runtime and a frontend at least as new as the shell, ordinary
 startup opens the product directly, without staging or recopying a distribution.
 An unfinished shell handoff still consumes its exact signed distribution.
+An existing frontend admitted by its resource owner keeps the bootstrap hidden
+through replacement-resource preparation, Runtime startup and product
+navigation, including shell continuation and cached repair. A frontend older
+than the shell may require a new distribution without reopening Welcome.
+Initial preparation without an admitted frontend, explicit offline import and
+actionable startup failures retain the shared welcome/recovery surface.
 First installation keeps resource preparation inside the existing welcome step;
 after installation the same main WebView continues the full wizard through
 `onboarding-inline`, and completion returns that window to the ordinary product.

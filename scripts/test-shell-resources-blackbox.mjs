@@ -68,6 +68,17 @@ function pilot(args) {
     throw new Error(result.stderr || result.stdout || "Pilot failed", { cause: result.error });
   return result.stdout;
 }
+/** @param {string} url @param {boolean} [allowRecovery] */
+function assertBootstrapHidden(url, allowRecovery = false) {
+  if (
+    url.includes("/bootstrap") &&
+    pilot([
+      "eval",
+      `(async () => { const visible = await window.__TAURI_INTERNALS__.invoke('plugin:window|is_visible', {label: 'main'}); const failed = ${allowRecovery} && (await window.__TAURI_INTERNALS__.invoke('shell_resource_status')).phase === 'failed'; return visible && location.pathname === '/bootstrap' && !failed; })()`,
+    ]).includes("true")
+  )
+    throw new Error("Configured startup revealed resource preparation");
+}
 /** @param {string} label */
 function clickLabel(label) {
   pilot(["snapshot", "-i"]);
@@ -407,12 +418,15 @@ try {
   );
   const expectedHelper = await readFile(installedHelper);
   await writeFile(installedHelper, "damaged installed helper");
+  const continuationLogStart = logs.length;
   desktop = start(process.execPath, desktopArguments);
   const restartDeadline = Date.now() + 120000;
   let continued = false;
   while (Date.now() < restartDeadline) {
     try {
-      if (pilot(["url"]).includes("openagent-ui")) {
+      const url = pilot(["url"]);
+      assertBootstrapHidden(url);
+      if (url.includes("openagent-ui")) {
         const pending = await readFile(path.join(updatesDirectory, "shell-handoff.json"))
           .then(() => true)
           .catch(() => false);
@@ -421,13 +435,16 @@ try {
           break;
         }
       }
-    } catch {
+    } catch (error) {
+      if (String(error).includes("Configured startup revealed")) throw error;
       /* Wait for the replacement native window. */
     }
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   if (!continued)
     throw new Error("Cached restart did not confirm and clear its shell continuation");
+  if (logs.slice(continuationLogStart).join("").includes("showing shell resource preparation"))
+    throw new Error("Cached shell continuation revealed Welcome");
   if (!(await readFile(installedHelper)).equals(expectedHelper))
     throw new Error("Cached handoff did not restore the installed helper");
   captureBlackboxScreenshot(pilot, path.join(directory, "product-after-restart.png"));
@@ -446,14 +463,8 @@ try {
   while (Date.now() < ordinaryDeadline) {
     try {
       const url = pilot(["url"]);
-      if (url.includes("/bootstrap")) {
-        const visible = pilot([
-          "eval",
-          "(async () => { const visible = await window.__TAURI_INTERNALS__.invoke('plugin:window|is_visible', {label: 'main'}); return visible && location.pathname === '/bootstrap' && !!document.querySelector('[data-module=shell-resources]'); })()",
-        ]);
-        if (visible.includes("true"))
-          throw new Error("Repeat launch revealed resource preparation");
-      } else if (url.includes("openagent-ui")) {
+      assertBootstrapHidden(url);
+      if (url.includes("openagent-ui")) {
         pilot(["run", path.join(root, "tests/blackbox/shell-installed-startup.toml")]);
         if (
           !pilot([
@@ -468,7 +479,7 @@ try {
         break;
       }
     } catch (error) {
-      if (String(error).includes("Repeat launch revealed")) throw error;
+      if (String(error).includes("Configured startup revealed")) throw error;
       /* Wait for the replacement process and product hydration. */
     }
     if (desktop.exitCode !== null) throw new Error("Installed-resource startup exited");
@@ -511,23 +522,61 @@ try {
   let repaired = false;
   while (Date.now() < repairDeadline) {
     try {
-      if (pilot(["url"]).includes("openagent-ui")) {
+      const url = pilot(["url"]);
+      assertBootstrapHidden(url);
+      if (url.includes("openagent-ui")) {
         pilot(["run", path.join(root, "tests/blackbox/shell-installed-startup.toml")]);
         repaired = true;
         break;
       }
-    } catch {
+    } catch (error) {
+      if (String(error).includes("Configured startup revealed")) throw error;
       /* Wait for recovery through the signed cache and product hydration. */
     }
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
   if (
     !repaired ||
-    !logs.slice(repairLogStart).join("").includes("showing shell resource preparation")
+    logs.slice(repairLogStart).join("").includes("showing shell resource preparation")
   )
-    throw new Error("Missing installed Runtime did not recover through resource preparation");
+    throw new Error("Verified cached Runtime repair did not keep Welcome hidden");
+
+  // A configured home still needs visible recovery when its signed cache is
+  // invalid and neither installed resources nor the source can repair it.
+  spawnSync("taskkill", ["/PID", String(desktop.pid), "/T", "/F"], {
+    windowsHide: true,
+    stdio: "ignore",
+  });
+  await rename(installedBinary, `${installedBinary}-damaged-cache`);
+  await writeFile(path.join(cachedDistribution, "openagent-distribution.json.sig"), "invalid");
+  desktop = start(process.execPath, desktopArguments);
+  const failureDeadline = Date.now() + 120000;
+  let recoveryVisible = false;
+  while (Date.now() < failureDeadline) {
+    try {
+      const url = pilot(["url"]);
+      if (url.includes("/bootstrap")) {
+        assertBootstrapHidden(url, true);
+        pilot(["snapshot", "-i"]);
+        pilot(["run", path.join(root, "tests/blackbox/shell-resources.toml")]);
+        recoveryVisible = pilot([
+          "eval",
+          "window.__TAURI_INTERNALS__.invoke('plugin:window|is_visible', {label: 'main'})",
+        ]).includes("true");
+        if (recoveryVisible) break;
+      }
+    } catch (error) {
+      if (String(error).includes("Configured startup revealed")) throw error;
+      /* Wait for the actionable recovery surface to hydrate. */
+    }
+    if (desktop.exitCode !== null) throw new Error("Configured resource recovery exited");
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  if (!recoveryVisible) throw new Error("Invalid configured cache did not reveal recovery");
+  if (!(await readFile(configFile, "utf8")).includes("onboarding_completed = true"))
+    throw new Error("Resource recovery changed onboarding completion");
   console.log(
-    `Shell resource black-box passed: retry, four themes/locales, verified offline install, interrupted installer supersession, continuation with helper repair, direct repeat startup and missing-resource repair. Artifacts: ${directory}`,
+    `Shell resource black-box passed: retry, four themes/locales, verified offline install, interrupted installer supersession, hidden continuation with helper repair, direct repeat startup, hidden cached repair and invalid-cache recovery. Artifacts: ${directory}`,
   );
 } finally {
   await writeFile(path.join(directory, "desktop.log"), logs.join(""));

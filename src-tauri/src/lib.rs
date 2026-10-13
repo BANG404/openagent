@@ -368,10 +368,10 @@ fn run_with_mode(agent_server: bool) {
                         .startup_window_revealed
                         .load(std::sync::atomic::Ordering::Acquire)
                     {
-                        if let Some(window) = startup_app.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
+                        let _ = desktop_windows::reveal_main_window(
+                            startup_app.clone(),
+                            startup_app.state::<DesktopWindowState>(),
+                        );
                     }
                 });
             }

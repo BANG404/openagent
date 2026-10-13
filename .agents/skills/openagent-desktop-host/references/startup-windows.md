@@ -53,6 +53,9 @@
   development preview, restore it instead. Configured frontend startup uses
   durable onboarding completion and never reopens this window for an embedding
   status query. Native installed-resource failures retain their recovery surface.
+  Repeated launch, tray and Dock activation respect the first-reveal flag:
+  until startup reveals setup, recovery or the product, they leave the hidden
+  bootstrap alone. Single-instance activation shares the tray's focus routing.
 - After any successful programmatic `set_focus`, including the first-run
   handoff that reveals the main window, repeated launch, and
   registered-workspace navigation, emit

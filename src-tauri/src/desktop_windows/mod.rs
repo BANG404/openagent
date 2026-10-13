@@ -10,12 +10,10 @@ use crate::desktop_exit::DesktopWindowState;
 pub(crate) use geometry::should_restore_utility_window_state;
 pub(crate) use material::apply_native_window_material;
 use tauri::{Emitter, Manager, State};
-#[cfg(target_os = "macos")]
-pub(crate) use tray::show_desktop_window;
+#[cfg(all(desktop, test))]
+pub(crate) use tray::single_instance_window_label;
 #[cfg(desktop)]
-pub(crate) use tray::{
-    handle_desktop_menu_event, install_desktop_tray, single_instance_window_label,
-};
+pub(crate) use tray::{handle_desktop_menu_event, install_desktop_tray, show_desktop_window};
 
 pub(crate) const DESKTOP_WINDOW_ACTIVATED_EVENT: &str = "desktop-window-activated";
 #[cfg(desktop)]

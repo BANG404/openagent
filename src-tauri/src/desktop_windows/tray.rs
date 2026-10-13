@@ -14,6 +14,15 @@ pub(crate) fn single_instance_window_label(onboarding_visible: bool) -> &'static
 
 #[cfg(desktop)]
 pub(crate) fn show_desktop_window(app: &tauri::AppHandle) {
+    // Startup owns the first reveal. Repeated launches and tray activation must
+    // not expose the hidden bootstrap while installed resources are starting.
+    if !app
+        .state::<crate::desktop_exit::DesktopWindowState>()
+        .startup_window_revealed
+        .load(std::sync::atomic::Ordering::Acquire)
+    {
+        return;
+    }
     let onboarding_visible = app
         .get_webview_window("onboarding")
         .and_then(|window| window.is_visible().ok())

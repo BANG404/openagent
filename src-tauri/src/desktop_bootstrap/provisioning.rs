@@ -442,7 +442,18 @@ async fn provision_inner(
             return start_installed_resources(app, &runtime, None).await;
         }
     }
-    reveal_preparation(app)?;
+    // An admitted frontend identifies an existing installation, including one
+    // older than this shell. Prepare replacement resources behind its hidden
+    // window; provision() reveals actionable failures. Runtime still decides
+    // whether the product needs first-use configuration after navigation.
+    if offline_directory.is_some()
+        || app
+            .state::<FrontendResourceManager>()
+            .active_version()
+            .is_none()
+    {
+        reveal_preparation(app)?;
+    }
     update(app, "downloading", None);
     let home = &app.state::<crate::DesktopDataDir>().0;
     let directory = stage_distribution(
