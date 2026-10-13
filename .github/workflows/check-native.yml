@@ -93,6 +93,9 @@ jobs:
       - name: Prepare bundled plugin Node.js
         run: node scripts/prepare-node-runtime.mjs
 
+      - name: Prepare bundled terminal tools
+        run: node scripts/prepare-terminal-tools.mjs
+
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: ./src-tauri -> target
@@ -184,6 +187,9 @@ jobs:
 
       - name: Prepare bundled plugin Node.js
         run: node scripts/prepare-node-runtime.mjs
+
+      - name: Prepare bundled terminal tools
+        run: node scripts/prepare-terminal-tools.mjs
 
       - uses: Swatinem/rust-cache@v2
         with:

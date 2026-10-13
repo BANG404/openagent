@@ -458,10 +458,12 @@ describe("release CI verification", () => {
     expect(tauriConfig.bundle.createUpdaterArtifacts).toBe(true);
     expect(tauriConfig.bundle.resources).toEqual({
       "resources/node-runtime/": "node-runtime/",
+      "resources/terminal-tools/": "terminal-tools/",
     });
     expect(fullTauriConfig.bundle.createUpdaterArtifacts).toBe(false);
     expect(fullTauriConfig.bundle.resources).toEqual({
       "resources/node-runtime/": "node-runtime/",
+      "resources/terminal-tools/": "terminal-tools/",
       "resources/bootstrap-release/": "bootstrap-release/",
     });
     expect(releaseWorkflow).toContain("Build full first-install bundle");
@@ -477,6 +479,17 @@ describe("release CI verification", () => {
     expect(releaseWorkflow).toContain("OPENAGENT_NODE_TARGET: ${{ matrix.sidecar_target }}");
     expect(releaseWorkflow).toContain('Copy-Item "src-tauri\\resources\\node-runtime"');
     expect(nativeWorkflow).toContain("name: Prepare bundled plugin Node.js");
+  });
+
+  test("ships terminal commands for the installer target in every shell layout", () => {
+    expect(tauriConfig.build.beforeBuildCommand).toContain(
+      "bun scripts/prepare-terminal-tools.mjs",
+    );
+    expect(releaseWorkflow).toContain(
+      "OPENAGENT_TERMINAL_TOOLS_TARGET: ${{ matrix.sidecar_target }}",
+    );
+    expect(releaseWorkflow).toContain('Copy-Item "src-tauri\\resources\\terminal-tools"');
+    expect(nativeWorkflow).toContain("name: Prepare bundled terminal tools");
   });
 
   test("publishes signed runtime and frontend component channels", () => {

@@ -261,6 +261,22 @@ or failed resource installation without SDK frontend or Runtime availability.
 Native managers still verify signatures and their own compatibility boundaries;
 Runtime still owns persistence consent and semantic embedding validation.
 
+## Bundled terminal commands
+
+The host resolves `terminal-tools/` during Tauri setup and requires `rg`, `fd`,
+`bat`, and `sd` before starting the supervised Runtime. Debug builds may use
+prepared resources beneath the manifest directory; missing production resources
+require repair/reinstallation. `terminal_tools.rs` prepends the directory to each
+Runtime child command's PATH, including bootstrap inspection, replacement, and
+rollback, while preserving inherited entries and the bundled Node.js directory.
+The Runtime's local shells inherit these commands without loading shell profiles.
+Do not mutate the threaded host's environment or the user's persistent PATH.
+Windows resources do not provision tools inside WSL, containers, or SSH hosts;
+the terminal-file-tools skill still handles those separate execution environments.
+Qualify with `cargo test --manifest-path src-tauri/Cargo.toml terminal_tools::tests`
+after `bun scripts/prepare-terminal-tools.mjs`: the real shell must search, find,
+read, and replace a fixture file with no system tool installations in its PATH.
+
 ## Bundled plugin interpreter
 
 The thin host resolves its shell-owned `node-runtime/` resource in Tauri setup

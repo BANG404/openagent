@@ -44,6 +44,19 @@ describe("release component classification", () => {
     });
   });
 
+  test("delivers terminal tool pin changes through a shell installer", () => {
+    for (const file of [
+      "scripts/prepare-terminal-tools.mjs",
+      "scripts/terminal-tool-releases.mjs",
+    ]) {
+      expect(classifyReleaseComponents([file])).toEqual({
+        frontend: false,
+        runtime: false,
+        nativeShell: true,
+      });
+    }
+  });
+
   test("uses a conservative fallback when private SDK paths are unavailable", () => {
     expect(classifyReleaseComponents(["sdk"])).toEqual({
       frontend: true,

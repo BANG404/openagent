@@ -33,6 +33,18 @@
   npm, or modify the machine PATH. Prepare it before native tests and desktop
   startup; updating the pin requires reviewing upstream SHASUMS and qualifying
   all shell targets. Node belongs to the shell, not the private Runtime resource.
+- Every shell installer and updater also bundles portable `rg`, `fd`, `bat`, and
+  `sd` under `terminal-tools/`, including lightweight, full, and Store layouts.
+  `prepare-terminal-tools.mjs` selects the actual Tauri target, verifies the
+  reviewed upstream archive SHA-256 pins in `terminal-tool-releases.mjs`, and
+  stages only executables, license notices, and provenance. Linux uses static
+  musl assets. Cached preparation rechecks all executables and licenses; a
+  failed download or extraction leaves the previous tool set intact. Prepare
+  these resources before native tests or desktop startup. Never depend on a
+  developer's Codex/Scoop installation, install a package manager, or modify OS
+  PATH. Pin updates require all four shell targets and license review. These
+  tools belong to the shell and update with its installer, independently of
+  Runtime/frontend component updates.
 - Use `bun run tauri:build` for shell release builds; helper compilation and its
   digests belong to the qualified SDK Runtime, outside shell compilation.
   Keep the release Cargo profile size-oriented and audit installer size,

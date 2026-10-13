@@ -122,6 +122,7 @@ test("prepares Windows helpers but skips the Linux-only helper", () => {
     ["install", "--frozen-lockfile"],
     ["scripts/prepare-source-dev.mjs", "--client-only"],
     ["scripts/prepare-node-runtime.mjs"],
+    ["scripts/prepare-terminal-tools.mjs"],
     ["run", "prepare:windows-sandbox:release"],
     ["run", "prepare:runtime-server:release"],
   ]);

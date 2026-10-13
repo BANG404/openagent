@@ -1,8 +1,10 @@
 import { spawnSync } from "node:child_process";
 import { verifyPreparedDevKit } from "./prepare-dev-kit.mjs";
 import { prepareNodeRuntime } from "./prepare-node-runtime.mjs";
+import { prepareTerminalTools } from "./prepare-terminal-tools.mjs";
 
 await prepareNodeRuntime();
+await prepareTerminalTools();
 
 if (process.env.OPENAGENT_DEV_RUNTIME_SOURCE === "1") {
   const script =
