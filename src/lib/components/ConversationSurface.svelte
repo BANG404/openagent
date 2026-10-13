@@ -50,6 +50,7 @@
     currentStreamMessageId: string | null;
     pendingCheckpointId: string | null;
     debugMode: boolean;
+    exportingConversationTrace?: boolean;
     fileChanges: FileChange[];
     followTail: boolean;
     isAwaitingStreamOutput: boolean;
@@ -79,6 +80,7 @@
   }
 
   interface ConversationSurfaceActions {
+    exportConversationTrace?: () => void | Promise<void>;
     cancelBottomScrollFromUser: () => void;
     cancelUserInput: (requestId: string) => void | Promise<void>;
     clearQueuedMessages: (convId: string) => void;
@@ -295,6 +297,8 @@
               activeConvId={view.activeConvId}
               activeBranchId={view.activeBranchId}
               debugMode={view.debugMode}
+              onExportConversationTrace={actions.exportConversationTrace}
+              exportingConversationTrace={view.exportingConversationTrace ?? false}
               taskUsagesByCheckpointId={view.taskUsagesByCheckpointId}
               activeTree={view.activeTree}
               paddingBottom={inputAreaHeight + 24}

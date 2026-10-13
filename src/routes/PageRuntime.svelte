@@ -1,6 +1,8 @@
 <!-- eslint-disable max-lines -- runtime controller is isolated from the route composition root. -->
 <script lang="ts">
   import { projectCurrentFileChanges } from "$lib/remoteConversationProjection";
+  import { createConversationTraceExporter } from "$lib/conversationTraceExport.svelte";
+  import { useOpenAgentUiCapabilities } from "$lib/openagent/uiCapabilities";
   import type { LiveFileChange } from "$lib/fileChangeReconciliation";
   /* eslint-disable max-lines */
   import { isTauri } from "@tauri-apps/api/core";
@@ -4015,6 +4017,18 @@
     });
   });
 
+  const traceUiCapabilities = useOpenAgentUiCapabilities();
+  const traceExporter = createConversationTraceExporter({
+    loadTrace: (convId) => openAgent.invokeProduct("export_conversation_trace", { convId }),
+    saveFile: (filename, content) =>
+      traceUiCapabilities.saveDownloadFile(filename, content, "utf8"),
+  });
+
+  function exportCurrentConversationTrace(): void {
+    if (!isDebugMode || !activeConvId || !tauriAvailable) return;
+    void traceExporter.exportTrace(activeConvId);
+  }
+
   let conversationSurfaceView = $derived({
     activeBranchId: activeConvId ? (activeBranchIds[activeConvId] ?? null) : null,
     activeConvId,
@@ -4027,6 +4041,7 @@
     currentStreamMessageId,
     pendingCheckpointId: activeConvId ? (pendingCheckpointIds[activeConvId] ?? null) : null,
     debugMode: isDebugMode,
+    exportingConversationTrace: traceExporter.exporting,
     taskUsagesByCheckpointId: activeConvId ? (taskUsagesByConversation[activeConvId] ?? {}) : {},
     liveContextUsage: activeConvId ? (liveContextUsageByConversation[activeConvId] ?? null) : null,
     fileChanges: currentFileChanges,
@@ -4060,6 +4075,7 @@
   });
 
   const conversationSurfaceActions = {
+    exportConversationTrace: exportCurrentConversationTrace,
     cancelBottomScrollFromUser,
     cancelUserInput,
     clearQueuedMessages,

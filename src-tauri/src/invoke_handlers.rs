@@ -159,6 +159,7 @@ pub(crate) fn register(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<ta
         embedded_commands::conversations::set_branch_head,
         embedded_commands::conversations::delete_conversation,
         embedded_commands::conversations::get_chat_task_usages,
+        embedded_commands::conversations::export_conversation_trace,
         embedded_commands::conversations::get_task_traces,
         embedded_commands::conversations::get_latest_checkpoint,
         embedded_commands::conversations::get_checkpoint_metas,

@@ -1,0 +1,52 @@
+[scenario]
+name = "conversation trace export pending, failure and retry"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "hide export outside Debug mode"
+action = "click"
+target = "[data-toggle-debug]"
+
+[[step]]
+action = "eval"
+script = "if(document.querySelector('.debug-export'))throw new Error('export visible outside debug mode');true"
+
+[[step]]
+action = "click"
+target = "[data-toggle-debug]"
+
+[[step]]
+action = "click"
+target = "[data-fail-export]"
+
+[[step]]
+action = "click"
+target = ".debug-export"
+
+[[step]]
+action = "eval"
+script = "if(!document.querySelector('.debug-export').disabled)throw new Error('duplicate export allowed');true"
+
+[[step]]
+action = "eval"
+script = '''(async () => {
+  for(let i=0;i<50 && document.querySelector('.debug-export').disabled;i++) await new Promise(r=>setTimeout(r,100));
+  if(document.querySelector('.debug-export').disabled)throw new Error('retry remains blocked');
+  if(document.querySelector('[data-export-path]').textContent)throw new Error('failure saved partial file');
+  if(!document.body.textContent.includes('Fixture read failure'))throw new Error('failure feedback missing');
+  return true;
+})()'''
+
+[[step]]
+name = "retry saves complete JSON locally"
+action = "click"
+target = ".debug-export"
+
+[[step]]
+action = "eval"
+script = '''(async () => {
+  for(let i=0;i<100 && !document.querySelector('[data-export-path]').textContent;i++) await new Promise(r=>setTimeout(r,100));
+  if(!document.querySelector('[data-export-path]').textContent.endsWith('.json'))throw new Error('JSON file not saved');
+  return true;
+})()'''

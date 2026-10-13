@@ -52,6 +52,7 @@
   import type { SlashCommand } from "$lib/composer/types";
   import MessageDivider from "$lib/components/MessageDivider.svelte";
   import MessageList from "$lib/components/MessageList.svelte";
+  import ConversationTraceExportPreview from "$lib/components/ConversationTraceExportPreview.svelte";
   import RuntimeStatusPreview from "$lib/components/RuntimeStatusPreview.svelte";
   import ThinkingPreview from "$lib/components/ThinkingPreview.svelte";
   import CompactionTranscriptPreview from "$lib/components/CompactionTranscriptPreview.svelte";
@@ -1448,6 +1449,8 @@
       />
     </section>
   </main>
+{:else if preview === "streaming-transcript" && query.has("streaming-transcript-preview-trace-export")}
+  <ConversationTraceExportPreview {theme} />
 {:else if preview === "streaming-transcript" && query.has("streaming-transcript-preview-runtime-status")}
   <RuntimeStatusPreview {theme} />
 {:else if preview === "user-message-markdown"}
