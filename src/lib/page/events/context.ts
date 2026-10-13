@@ -4,7 +4,6 @@ import type {
   Conversation,
   UserInputRequest,
   TaskTokenUsage,
-  FileChange,
   StreamItem,
   CheckpointTurnStatus,
   AgentPluginUpdateReport,
@@ -21,6 +20,7 @@ import type { ComposerDraftStore, ComposerDraft } from "$lib/composerDrafts";
 import type { mermaidConfigFor } from "$lib/mermaidTheme";
 import type { InterruptTerminalHandoff } from "$lib/interruptResolutionTracker";
 import type { CachedRestoreSurface } from "$lib/startupRestoreCache";
+import type { LiveFileChange } from "$lib/fileChangeReconciliation";
 
 /** Writable facade over the page's canonical state; handlers never copy it. */
 export interface PageEventOptions {
@@ -53,7 +53,7 @@ export interface PageEventOptions {
   pendingUserInputs: Record<string, UserInputRequest>;
   readonly mermaidConfig: ReturnType<typeof mermaidConfigFor>;
   liveContextUsageByConversation: Record<string, TaskTokenUsage>;
-  liveFileChangesPerConv: Record<string, FileChange[]>;
+  liveFileChangesPerConv: Record<string, LiveFileChange[]>;
   pendingCheckpointIds: Record<string, string>;
   readonly approvalResumeQueues: Map<string, Promise<void>>;
   readonly deferredApprovalCheckpointIds: Map<

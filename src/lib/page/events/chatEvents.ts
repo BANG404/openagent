@@ -110,12 +110,12 @@ export function subscribePageChatEvents(options: PageEventOptions) {
       if (rolesMayHaveChanged) void options.loadAvailableRoles();
       options.persistStreamDraft(conv_id).catch(() => {});
     },
-    onFileChange: (conv_id, change) => {
+    onFileChange: (conv_id, change, branchId) => {
       const existing = options.liveFileChangesPerConv[conv_id] ?? [];
       if (existing.some((item) => item.id === change.id)) return;
       options.liveFileChangesPerConv = {
         ...options.liveFileChangesPerConv,
-        [conv_id]: [...existing, change],
+        [conv_id]: [...existing, { ...change, branchId }],
       };
     },
     onCheckpoint: (conv_id, checkpoint_id, branch_id) => {

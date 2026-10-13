@@ -1,6 +1,7 @@
 <!-- eslint-disable max-lines -- runtime controller is isolated from the route composition root. -->
 <script lang="ts">
   import { projectCurrentFileChanges } from "$lib/remoteConversationProjection";
+  import type { LiveFileChange } from "$lib/fileChangeReconciliation";
   /* eslint-disable max-lines */
   import { isTauri } from "@tauri-apps/api/core";
   import { homeDir } from "@tauri-apps/api/path";
@@ -371,9 +372,9 @@
   const workspaceConversationSnapshots = new Map<string, Conversation[]>();
   // File changes per conversation (loaded from SQLite)
   let fileChangesPerConv = $state<Record<string, FileChange[]>>({});
-  // File changes reported by successful write tools before the turn reaches its
-  // terminal checkpoint and is persisted to SQLite.
-  let liveFileChangesPerConv = $state<Record<string, FileChange[]>>({});
+  // Estimates from successful tool pairs in persisted recovery checkpoints,
+  // before the turn reaches its visible terminal checkpoint.
+  let liveFileChangesPerConv = $state<Record<string, LiveFileChange[]>>({});
   // Pending ask_user requests per conversation. Backend emits one when the
   // ask_user tool fires; the form clears on submit/cancel.
   let pendingUserInputs = $state<Record<string, UserInputRequest>>({});
@@ -839,7 +840,12 @@
 
   let currentFileChangeRecords = $derived.by(() => {
     const persisted = activeConvId ? (fileChangesPerConv[activeConvId] ?? []) : [];
-    const live = activeConvId ? (liveFileChangesPerConv[activeConvId] ?? []) : [];
+    const activeBranchId = activeConvId ? (activeBranchIds[activeConvId] ?? null) : null;
+    const live = activeConvId
+      ? (liveFileChangesPerConv[activeConvId] ?? []).filter(
+          (change) => change.branchId === undefined || change.branchId === activeBranchId,
+        )
+      : [];
     const all = [
       ...persisted,
       ...live.filter((change) => !persisted.some((saved) => saved.id === change.id)),

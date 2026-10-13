@@ -238,8 +238,19 @@
   surfaces use the SDK's checkpoint-derived `FileChange.projection`. Successful
   paired editing tools on the selected parent ancestry supply estimates; sibling
   tools are excluded and compaction does not discard earlier recorded operations.
-  Files refresh from durable checkpoints. No snapshots, file undo, branch file
-  history or filesystem replay are exposed. Branch switching restores conversation
+  Files update from branch-scoped `chat-file-change` estimates during editing
+  tool follow-up rounds before the final answer completes; exclude estimates
+  for an unselected sibling from display. Internal recovery checkpoints remain
+  outside the visible tree. Files also refresh on each live durable-checkpoint
+  notification. Fetch checkpoint and file projections together; apply both under
+  the same refresh-generation and branch-selection guards. A failed Files query retains the last projection,
+  and a stale reply must not overwrite newer Files or leak sibling changes.
+  Retain each live estimate's branch identity when caching it so navigation also
+  hides earlier events from siblings. Terminal reconciliation accepts ancestral
+  `projection.change_ids` as durable coverage for hidden recovery estimates;
+  do not retain them forever waiting for an identical terminal record ID.
+  No snapshots, file undo, branch file history or filesystem replay are exposed.
+  Branch switching restores conversation
   context and never writes workspace files.
   Creation plus later edits can establish full inferred content. Unknown source
   permits tool fragments only (`complete=false`): hide actual-file line numbers,
@@ -251,7 +262,9 @@
   `bun run test:blackbox:file-diff`. Run `bun run test:blackbox:file-projection`
   in a fresh temporary application home for persisted tool inference, sibling
   isolation, reload, no undo controls, and unchanged external disk content.
-  Its deterministic fixture is SDK-owned. Both commands cover locales and themes.
+  Its deterministic fixture is SDK-owned. Its streaming scenario asserts Files
+  updates before completion and ignores duplicate/sibling events.
+  Both commands cover locales and themes.
   Run `bun run test:blackbox:remote-page` for the shared Files surface on the
   actual remote route, including absent undo controls.
   SDK inference and editing correctness belong to its Runtime tests.

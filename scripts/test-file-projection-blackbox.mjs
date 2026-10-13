@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveBlackboxHome } from "./tauri-test-environment.mjs";
+import { captureBlackboxScreenshot } from "./blackbox-screenshot.mjs";
 
 const repo = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const isolatedHome = resolveBlackboxHome(process.env, { instanceName: "file-diff" });
@@ -107,7 +108,7 @@ for (const language of ["en", "zh"]) {
     await waitFor("document.querySelectorAll('.file-panel .diff-row.add').length === 4");
     pilot(["snapshot", "-i"]);
     pilot(["run", join(repo, "tests/blackbox/file-projection.toml")]);
-    pilot(["screenshot", join(artifacts, `inferred-${theme}-${language}.png`)]);
+    captureBlackboxScreenshot(pilot, join(artifacts, `inferred-${theme}-${language}.png`));
     await reload();
     await waitFor("document.querySelectorAll('.file-panel .diff-row.add').length === 4");
     assert.equal(
@@ -115,6 +116,13 @@ for (const language of ["en", "zh"]) {
       "true",
     );
     fixture("verify");
+    pilot(["snapshot", "-i"]);
+    pilot(["run", join(repo, "tests/blackbox/file-streaming.toml")]);
+    captureBlackboxScreenshot(pilot, join(artifacts, `streaming-${theme}-${language}.png`));
+    await reload();
+    await waitFor(
+      "!document.querySelector('.stop-btn') && document.querySelectorAll('.file-panel .diff-row.add').length === 4",
+    );
   }
 }
 // Exercise the shared authenticated branch operation through the real desktop

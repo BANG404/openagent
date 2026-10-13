@@ -8,6 +8,21 @@ const change = (id: string, checkpointId = `${id}-checkpoint`) => ({
 });
 
 describe("file change reconciliation", () => {
+  test("terminal ancestry replaces estimates from hidden recovery checkpoints", () => {
+    const live = [change("recovery:path", "recovery")];
+    const durable = [
+      {
+        ...change("terminal:path", "terminal"),
+        projection: { change_ids: ["recovery:path", "terminal:path"] },
+      },
+    ];
+    expect(
+      retainUndurableFileChanges(live, durable, new Set(["recovery:path"]), new Set(["terminal"])),
+    ).toEqual([]);
+    expect(
+      retainUndurableFileChanges(live, durable, new Set(["recovery:path"]), new Set(["sibling"])),
+    ).toEqual(live);
+  });
   test("keeps live changes until the durable query returns the same records", () => {
     const live = [change("first"), change("second")];
 

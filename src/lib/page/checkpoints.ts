@@ -35,7 +35,7 @@ import {
 } from "$lib/checkpointFlow";
 import { conversationBranchScopeKey } from "$lib/sidebarPanelScope";
 import { preserveResolvedUserInputs } from "$lib/chatStream";
-import { retainUndurableFileChanges } from "$lib/fileChangeReconciliation";
+import { retainUndurableFileChanges, type LiveFileChange } from "$lib/fileChangeReconciliation";
 import { restorePendingUserInputFromCheckpoint } from "$lib/page/pendingInputProjection";
 
 interface CheckpointOptions {
@@ -52,7 +52,7 @@ interface CheckpointOptions {
   readonly branchSelectionVersions: Map<string, number>;
   activeBranchIds: Record<string, string>;
   liveCheckpointFlowProjections: Record<string, LiveCheckpointFlowProjection>;
-  liveFileChangesPerConv: Record<string, FileChange[]>;
+  liveFileChangesPerConv: Record<string, LiveFileChange[]>;
   fileChangesPerConv: Record<string, FileChange[]>;
   pendingUserInputs: Record<string, UserInputRequest>;
   checkpointFlowPanelAutoOpenKey: string | null;
@@ -146,7 +146,10 @@ export function createCheckpointController(options: CheckpointOptions) {
       flowVersion: options.liveCheckpointFlowProjections[scopeKey]?.version ?? 0,
     };
     try {
-      const checkpoints = await fetchRenderableCheckpoints(convId);
+      const [checkpoints, fileChanges] = await Promise.all([
+        fetchRenderableCheckpoints(convId),
+        fetchFileChanges(convId).catch(() => null),
+      ]);
       const currentGuard: LiveCheckpointRefreshGuard = {
         refreshVersion: options.liveCheckpointRefreshVersions.get(scopeKey) ?? 0,
         branchSelectionVersion: options.branchSelectionVersions.get(convId) ?? 0,
@@ -164,6 +167,11 @@ export function createCheckpointController(options: CheckpointOptions) {
         ...options.convTrees,
         [convId]: reconcileLiveCheckpointTip(checkpoints, options.convTrees[convId], checkpointId),
       };
+      // Apply Files under the same request/branch guard as the durable tip.
+      // A failed query retains the last projection while the turn continues.
+      if (fileChanges !== null) {
+        options.fileChangesPerConv = { ...options.fileChangesPerConv, [convId]: fileChanges };
+      }
       const location = options.findConversationLocation(convId);
       if (location) {
         const visible = location.conversations[location.index];

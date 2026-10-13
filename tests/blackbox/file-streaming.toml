@@ -1,0 +1,47 @@
+[scenario]
+name = "Files update while a reply streams and ignore sibling events"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "start a live reply and publish a recovery-checkpoint file estimate"
+action = "eval"
+script = '''(async () => {
+  const { desktopOpenAgent: client, emit } = await import('/src/lib/openagent/tauriClient.ts');
+  const conv_id = 'file-projection-blackbox';
+  const tip = await client.invokeProduct('get_active_branch_tip', { convId: conv_id });
+  const branches = await client.invokeProduct('get_branches', { convId: conv_id });
+  const branch_id = branches.find(branch => branch.head_checkpoint_id === tip)?.id;
+  if (!branch_id) throw new Error('fixture selected branch is missing');
+  const changes = await client.invokeProduct('get_file_changes', { convId: conv_id });
+  const original = changes.find(change => change.checkpoint_id === 'fixture-tip');
+  if (!original?.projection) throw new Error('fixture file projection is missing');
+  const id = 'live-recovery:' + original.path;
+  const change = {
+    ...original, id, checkpoint_id: 'live-recovery',
+    projection: {
+      ...original.projection, content: 'one\nTWO\nthree\nLIVE\n',
+      diff: '@@ -0,0 +1,4 @@\n+one\n+TWO\n+three\n+LIVE\n',
+      change_ids: [...original.projection.change_ids, id],
+    },
+  };
+  await emit('chat-response-started', { conv_id });
+  await emit('chat-chunk', { conv_id, text: 'File update is still streaming' });
+  await emit('chat-file-change', { conv_id, branch_id, change });
+  await new Promise(resolve => setTimeout(resolve, 300));
+  const panel = document.querySelector('.file-panel');
+  if (!document.querySelector('.stop-btn')) throw new Error('reply already ended');
+  if ([...panel.querySelectorAll('.diff-row code')].map(row => row.textContent).join('\n') !== 'one\nTWO\nthree\nLIVE') throw new Error('Files did not update before completion');
+  await emit('chat-file-change', { conv_id, branch_id, change });
+  await emit('chat-file-change', {
+    conv_id, branch_id: 'fixture-sibling-branch',
+    change: {
+      ...change, id: 'sibling-recovery:' + original.path,
+      projection: { ...change.projection, content: 'SIBLING', change_ids: [...change.projection.change_ids, 'sibling-recovery:' + original.path] },
+    },
+  });
+  await new Promise(resolve => setTimeout(resolve, 300));
+  if (panel.querySelectorAll('.file-row').length !== 1 || !panel.textContent.includes('LIVE') || panel.textContent.includes('SIBLING')) throw new Error('duplicate or sibling event replaced the live file');
+  if (!document.querySelector('.stop-btn')) throw new Error('file update finalized the reply');
+  return 'live Files and branch isolation verified';
+})()'''
