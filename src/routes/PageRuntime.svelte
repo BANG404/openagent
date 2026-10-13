@@ -561,6 +561,7 @@
             checkpointId: ckId,
             turn,
           })),
+          computeActivePath(convTrees[convId] ?? { nodes: {}, rootIds: [], activeChild: {} }),
         ),
       };
     } catch (error) {

@@ -1,0 +1,59 @@
+[scenario]
+name = "per-turn footer usage survives snapshots, reload and branches"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "each completed turn owns its cache and timing"
+action = "eval"
+script = '''(() => {
+  const cache = [...document.querySelectorAll('.cache-usage')].map(el => el.textContent);
+  if (cache.length !== 3 || !cache[0].includes('70%') || !cache[1].includes('60%') || !cache[2].includes('80%')) throw new Error('turn cache records were reused or lost: ' + JSON.stringify(cache));
+  const headers = [...document.querySelectorAll('.process-record-summary')].map(el => el.textContent);
+  for (const duration of ['1.0s', '2.0s', '4.0s', '5.0s']) if (!headers.some(text => text.includes(duration))) throw new Error('missing independent duration ' + duration + ': ' + headers);
+  if (!document.body.innerText.includes('200ms') || !document.body.innerText.includes('400ms') || !document.body.innerText.includes('300ms')) throw new Error('first response timings lost');
+  return 'independent footer records verified';
+})()'''
+
+[[step]]
+name = "reload checkpoint projection"
+action = "click"
+target = "[data-footer-reload]"
+
+[[step]]
+name = "restoration preserves each record"
+action = "eval"
+script = '''(() => {
+  const cache = [...document.querySelectorAll('.cache-usage')].map(el => el.textContent);
+  if (cache.length !== 3 || !cache[0].includes('70%') || !cache[1].includes('60%') || !cache[2].includes('80%')) throw new Error('reload changed per-turn usage');
+  return 'restoration verified';
+})()'''
+
+[[step]]
+name = "select alternate branch"
+action = "click"
+target = "[data-footer-branch]"
+
+[[step]]
+name = "sibling usage replaces only its own branch"
+action = "eval"
+script = '''(() => {
+  const cache = [...document.querySelectorAll('.cache-usage')].map(el => el.textContent);
+  if (cache.length !== 2 || !cache[0].includes('70%') || !cache[1].includes('20%')) throw new Error('branch leaked sibling usage: ' + JSON.stringify(cache));
+  if (!document.body.innerText.includes('alternate-answer') || document.body.innerText.includes('second-answer')) throw new Error('branch transcript did not switch');
+  return 'branch isolation verified';
+})()'''
+
+[[step]]
+name = "return to original branch"
+action = "click"
+target = "[data-footer-branch]"
+
+[[step]]
+name = "original branch keeps original usage"
+action = "eval"
+script = '''(() => {
+  const cache = [...document.querySelectorAll('.cache-usage')].map(el => el.textContent);
+  if (cache.length !== 3 || !cache[1].includes('60%') || !cache[2].includes('80%')) throw new Error('returning to branch changed usage');
+  return 'branch return verified';
+})()'''

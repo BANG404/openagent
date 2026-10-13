@@ -1,4 +1,10 @@
-import type { ChatTaskUsage, CheckpointTurnMetadata, TaskTokenUsage } from "$lib/types";
+import type {
+  ChatMessage,
+  ChatTaskUsage,
+  CheckpointTurnMetadata,
+  TaskTokenUsage,
+} from "$lib/types";
+import { findUserMessageIndexForAssistant } from "./checkpointTree";
 
 export type CacheUsageSummary =
   | {
@@ -107,6 +113,7 @@ export function latestContextUsageTokens(
 export function chatTaskUsagesByCheckpoint(
   taskUsages: readonly ChatTaskUsage[],
   checkpoints: readonly { checkpointId: string; turn?: CheckpointTurnMetadata }[] = [],
+  messages: ChatMessage[] = [],
 ): Record<string, TaskTokenUsage[]> {
   const byCheckpoint: Record<string, TaskTokenUsage[]> = {};
   const checkpointIds = new Set(checkpoints.map((checkpoint) => checkpoint.checkpointId));
@@ -114,18 +121,42 @@ export function chatTaskUsagesByCheckpoint(
     (checkpoint): checkpoint is { checkpointId: string; turn: CheckpointTurnMetadata } =>
       checkpoint.turn?.completed_at != null,
   );
+  const windows = terminalTurns.map(({ checkpointId, turn }) => ({
+    checkpointId,
+    startedAt: turn.started_at,
+    completedAt: turn.completed_at!,
+  }));
+  // Historical records can lack Turn metadata but still retain exact authored
+  // input and completion times. Do not infer a window from incomplete records.
+  for (const [index, message] of messages.entries()) {
+    if (message.role !== "assistant" || !message.checkpointId || !message.completedAt) continue;
+    if (windows.some((window) => window.checkpointId === message.checkpointId)) continue;
+    const userIndex = findUserMessageIndexForAssistant(messages, index);
+    const startedAt = messages[userIndex]?.timestamp;
+    if (!startedAt || startedAt > message.completedAt) continue;
+    windows.push({
+      checkpointId: message.checkpointId,
+      startedAt,
+      completedAt: message.completedAt,
+    });
+  }
   for (const trace of taskUsages) {
     if (!trace.checkpoint_id) continue;
 
     let checkpointId = trace.checkpoint_id;
-    if (!checkpointIds.has(checkpointId) && terminalTurns.length > 0) {
+    const requestTurn = checkpoints.find(
+      (checkpoint) => checkpoint.checkpointId === checkpointId,
+    )?.turn;
+    const terminal = requestTurn
+      ? terminalTurns.find(({ turn }) => turn.id === requestTurn.id)
+      : undefined;
+    if (terminal) {
+      checkpointId = terminal.checkpointId;
+    } else if (!checkpointIds.has(checkpointId) && windows.length > 0) {
       const traceSecondStart = trace.created_at * 1_000;
       const traceSecondEnd = traceSecondStart + 999;
-      const matchingTurns = terminalTurns.filter(
-        ({ turn }) =>
-          turn.started_at <= traceSecondEnd &&
-          turn.completed_at != null &&
-          turn.completed_at >= traceSecondStart,
+      const matchingTurns = windows.filter(
+        (window) => window.startedAt <= traceSecondEnd && window.completedAt >= traceSecondStart,
       );
       if (matchingTurns.length !== 1) continue;
       checkpointId = matchingTurns[0].checkpointId;

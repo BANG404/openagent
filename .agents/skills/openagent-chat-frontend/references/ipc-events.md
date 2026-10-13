@@ -58,10 +58,22 @@ inside the package sidebar surface.
   production builds aggregates all chat requests belonging to that durable Turn. Prefer an exact
   checkpoint match, but tolerate the runtime's request-scoped temporary
   checkpoint by associating its trace only when the coarse creation timestamp
-  overlaps exactly one persisted terminal Turn window. Show observed
+  overlaps exactly one persisted terminal Turn window. Request checkpoints
+  carrying the same Turn ID map to that Turn's terminal checkpoint. Historical
+  records without Turn metadata may supply a window only from their authored
+  input timestamp and persisted completion timestamp; ambiguous windows remain
+  unassigned. Show observed
   cache reads and writes against the provider input total. Complete snapshots
   must restore each historical assistant response's owning checkpoint so one
-  Turn never reuses the newest Turn's diagnostic usage. When cache counters are
+  Turn never reuses the newest Turn's diagnostic usage. Select the footer usage
+  owner by the Turn's stable `response_message_id`, which can be its first tool
+  round rather than its final text record. Records without that metadata retain
+  the first checkpoint containing their message ID along the selected path;
+  never assign replayed assistant records to the tip snapshot. Missing usage
+  stays absent rather than borrowing another Turn's counters.
+  Verify complete-snapshot restoration, tool rounds, reload and branch switching
+  with `bun run test:blackbox:turn-footer` in light/dark and English/Chinese.
+  When cache counters are
   zero or provider totals cannot produce a valid hit rate, omit cache usage from
   that footer. A provider response that omits `total_tokens` but includes a
   positive `input_tokens + cached_input_tokens + cache_creation_input_tokens`

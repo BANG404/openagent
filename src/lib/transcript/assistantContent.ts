@@ -1,7 +1,7 @@
 import type { ChatMessage, StreamItem, TaskTokenUsage } from "$lib/types";
 import type { MessageRenderEntry } from "$lib/toolCallGroups";
-import { latestTurnMetadata } from "$lib/processRecordState";
-import { summarizeCacheUsages } from "$lib/cacheUsage";
+import { latestTurnMetadata } from "../processRecordState";
+import { summarizeCacheUsages } from "../cacheUsage";
 
 export function isCompactionReplayUser(msg: ChatMessage) {
   return msg.role === "user" && msg.tags?.includes("context_compaction") === true;
@@ -108,4 +108,17 @@ export function cacheUsageForMessage(
   if (!message.checkpointId) return null;
   const usages = taskUsagesByCheckpointId[message.checkpointId];
   return usages?.length ? summarizeCacheUsages(usages) : null;
+}
+
+export function cacheUsageForTurn(
+  messages: ChatMessage[],
+  taskUsagesByCheckpointId: Record<string, TaskTokenUsage[]>,
+) {
+  const turn = latestTurnMetadata(messages);
+  // Runtime's stable response ID can belong to the first tool round, while
+  // the final text record has a different ID and checkpoint.
+  const owner = turn
+    ? messages.find((message) => message.id === turn.response_message_id)
+    : messages.at(-1);
+  return owner ? cacheUsageForMessage(owner, taskUsagesByCheckpointId) : null;
 }

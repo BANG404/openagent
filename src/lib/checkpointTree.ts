@@ -704,11 +704,17 @@ function attachSelectedTurnMetadata(
   messages: ChatMessage[],
   selectedNodes: CkTreeNode[],
 ): ChatMessage[] {
+  const firstCheckpointByMessageId = new Map<string, string>();
   const byResponseMessageId = new Map<
     string,
     { checkpointId: string; turn: CheckpointTurnMetadata }
   >();
   for (const node of selectedNodes) {
+    for (const message of node.timelineMessages) {
+      if (message.role === "assistant" && !firstCheckpointByMessageId.has(message.id)) {
+        firstCheckpointByMessageId.set(message.id, node.ckId);
+      }
+    }
     if (node.turn) {
       byResponseMessageId.set(node.turn.response_message_id, {
         checkpointId: node.ckId,
@@ -716,10 +722,13 @@ function attachSelectedTurnMetadata(
       });
     }
   }
-  if (byResponseMessageId.size === 0) return messages;
   return messages.map((message) => {
     const owner = byResponseMessageId.get(message.id);
-    return owner ? { ...message, checkpointId: owner.checkpointId, turn: owner.turn } : message;
+    if (owner) return { ...message, checkpointId: owner.checkpointId, turn: owner.turn };
+    // Replayed records in a complete snapshot still belong to the checkpoint
+    // where they first appeared, including tool rounds and records without Turn metadata.
+    const checkpointId = firstCheckpointByMessageId.get(message.id);
+    return checkpointId ? { ...message, checkpointId } : message;
   });
 }
 

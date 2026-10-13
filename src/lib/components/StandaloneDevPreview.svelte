@@ -15,6 +15,7 @@
   import type { BackgroundTerminalSession } from "$lib/openagent";
   import { checkpointPanelChanges, fileDiffPreviewChanges } from "$lib/devFixtures/fileDiff";
   import { previewMentionItems } from "$lib/devFixtures/composerPalette";
+  import { turnFooterFixture } from "$lib/devFixtures/turnFooter";
   import { terminalHistory } from "$lib/terminalHistory";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
   import { defaultPermissionProfile, normalizeConfigShape } from "$lib/config";
@@ -29,7 +30,6 @@
     ReasoningEffort,
     RecentWorkspace,
     StreamItem,
-    TaskTokenUsage,
     UserInputRequest,
     WorkspaceContext,
     UserMessageContext,
@@ -512,112 +512,12 @@
       timestamp: Date.now() - 1_000,
     },
   ]);
-  const cacheUsageMessages: ChatMessage[] = [
-    {
-      id: "cache-preview-user-hit",
-      role: "user",
-      content: "Show the cache utilization for this reply.",
-      timestamp: Date.now() - 6_000,
-    },
-    {
-      id: "cache-preview-assistant-hit",
-      role: "assistant",
-      content: "This completed turn reused most of its provider input.",
-      items: [{ type: "text", content: "This completed turn reused most of its provider input." }],
-      checkpointId: "cache-preview-hit",
-      timestamp: Date.now() - 5_000,
-      turn: {
-        id: "cache-preview-turn-hit",
-        input_message_id: "cache-preview-user-hit",
-        response_message_id: "cache-preview-assistant-hit",
-        status: "completed",
-        started_at: Date.now() - 6_000,
-        completed_at: Date.now() - 5_000,
-        duration_ms: 1_000,
-      },
-    },
-    {
-      id: "cache-preview-user-zero",
-      role: "user",
-      content: "Show a separate cache rate for this turn.",
-      timestamp: Date.now() - 3_000,
-    },
-    {
-      id: "cache-preview-assistant-zero",
-      role: "assistant",
-      content: "This completed turn has its own provider usage.",
-      items: [{ type: "text", content: "This completed turn has its own provider usage." }],
-      checkpointId: "cache-preview-zero",
-      timestamp: Date.now() - 2_000,
-      turn: {
-        id: "cache-preview-turn-zero",
-        input_message_id: "cache-preview-user-zero",
-        response_message_id: "cache-preview-assistant-zero",
-        status: "completed",
-        started_at: Date.now() - 3_000,
-        completed_at: Date.now() - 2_000,
-        duration_ms: 1_000,
-      },
-    },
-    {
-      id: "cache-preview-user-hidden",
-      role: "user",
-      content: "Do not show cache metadata when no hit rate is available.",
-      timestamp: Date.now() - 1_500,
-    },
-    {
-      id: "cache-preview-assistant-hidden",
-      role: "assistant",
-      content: "This completed turn has no displayable cache rate.",
-      items: [{ type: "text", content: "This completed turn has no displayable cache rate." }],
-      checkpointId: "cache-preview-hidden",
-      timestamp: Date.now() - 1_000,
-      turn: {
-        id: "cache-preview-turn-hidden",
-        input_message_id: "cache-preview-user-hidden",
-        response_message_id: "cache-preview-assistant-hidden",
-        status: "completed",
-        started_at: Date.now() - 1_500,
-        completed_at: Date.now() - 1_000,
-        duration_ms: 500,
-      },
-    },
-  ];
-  const cacheUsageByCheckpoint: Record<string, TaskTokenUsage[]> = {
-    "cache-preview-hit": [
-      {
-        input_tokens: 10,
-        output_tokens: 10,
-        total_tokens: 110,
-        cached_input_tokens: 70,
-        cache_creation_input_tokens: 20,
-        tool_use_prompt_tokens: 0,
-        reasoning_tokens: 0,
-      },
-    ],
-    "cache-preview-zero": [
-      {
-        input_tokens: 40,
-        output_tokens: 10,
-        total_tokens: 110,
-        cached_input_tokens: 60,
-        cache_creation_input_tokens: 0,
-        tool_use_prompt_tokens: 0,
-        reasoning_tokens: 0,
-      },
-    ],
-    "cache-preview-hidden": [
-      {
-        input_tokens: 100,
-        output_tokens: 10,
-        total_tokens: 110,
-        cached_input_tokens: 0,
-        cache_creation_input_tokens: 0,
-        tool_use_prompt_tokens: 0,
-        reasoning_tokens: 0,
-      },
-    ],
-  };
+  let footerBranch = $state(false);
+  let footerReload = $state(0);
+  const footerFixture = $derived.by(() => {
+    void footerReload;
+    return turnFooterFixture(footerBranch);
+  });
   const streamingMessages: ChatMessage[] = [];
   const fencedCodePreview = [
     "A language-tagged fence keeps its compact header:",
@@ -1508,9 +1408,11 @@
   </main>
 {:else if preview === "cache-usage"}
   <main class="cache-usage-preview-stage bg-conversation-surface">
+    <button data-footer-reload onclick={() => (footerReload += 1)}>Reload</button>
+    <button data-footer-branch onclick={() => (footerBranch = !footerBranch)}>Branch</button>
     <section class="cache-usage-preview-messages">
       <MessageList
-        messages={cacheUsageMessages}
+        messages={footerFixture.messages}
         scrollElement={null}
         isStreaming={false}
         isAwaitingStreamOutput={false}
@@ -1519,7 +1421,7 @@
         activeConvId="cache-usage-preview"
         activeBranchId={null}
         debugMode={false}
-        taskUsagesByCheckpointId={cacheUsageByCheckpoint}
+        taskUsagesByCheckpointId={footerFixture.usages}
         activeTree={undefined}
         paddingBottom={48}
         showApiKeyWarn={false}

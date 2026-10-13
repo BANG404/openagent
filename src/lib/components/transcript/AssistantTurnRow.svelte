@@ -21,7 +21,7 @@
     entryAssistantMessages,
     assistantItems,
     runTiming,
-    cacheUsageForMessage,
+    cacheUsageForTurn,
     formatTime,
     formatTokens,
     formatPercent,
@@ -173,9 +173,7 @@
   {@const timing = assistantMsg
     ? runTiming(assistantMsg, assistantMsgIdx, turnMessages, messages)
     : null}
-  {@const cacheUsage = assistantMsg
-    ? cacheUsageForMessage(assistantMsg, taskUsagesByCheckpointId)
-    : null}
+  {@const cacheUsage = cacheUsageForTurn(turnMessages, taskUsagesByCheckpointId)}
   {@const turnSuggestions = turnSuggestionHostMessageId
     ? (followUpSuggestionsByMessageId[turnSuggestionHostMessageId] ?? [])
     : []}
