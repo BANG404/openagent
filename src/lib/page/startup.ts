@@ -172,28 +172,15 @@ export function createPageStartup(options: StartupOptions) {
         await installRuntimeEventDelivery();
       }
     } finally {
-      let embeddingResourceReady = !options.tauriAvailable;
-      let embeddingResourceStatusKnown = !options.tauriAvailable;
-      if (options.tauriAvailable) {
-        embeddingResourceReady = await openAgent
-          .invokeProduct("get_embedding_resource_status", {})
-          .then((resource) => {
-            embeddingResourceStatusKnown = true;
-            return resource.state === "ready";
-          })
-          .catch(() => false);
-      }
       if (
         options.config &&
         !options.isChannelsSettingsPreview &&
         !options.isAgentsSettingsPreview &&
         !options.isMcpSettingsPreview
       ) {
-        // An unavailable status is unknown, including on a hidden cold-start
-        // window. Only first use or an explicit non-ready resource opens setup.
-        requiresOnboarding =
-          !options.config.onboarding_completed ||
-          (embeddingResourceStatusKnown && !embeddingResourceReady);
+        // First-use resource admission is owned by onboarding. Later launches
+        // use durable completion without querying the embedding model again.
+        requiresOnboarding = !options.config.onboarding_completed;
       }
       const uiReadyAt = performance.now();
       options.initialLoading = false;

@@ -6,17 +6,16 @@ const onboardingUrl = new URL("../src/lib/onboarding.ts", import.meta.url);
 const onboardingFlowUrl = new URL("../src/lib/components/OnboardingFlow.svelte", import.meta.url);
 
 describe("onboarding completion", () => {
-  test("requires durable configuration and a ready embedding resource", async () => {
+  test("opens setup only for incomplete durable configuration", async () => {
     const [route, onboarding, onboardingFlow] = await Promise.all([
       readFile(startupUrl, "utf8"),
       readFile(onboardingUrl, "utf8"),
       readFile(onboardingFlowUrl, "utf8"),
     ]);
 
-    expect(route).toContain("embeddingResourceStatusKnown");
-    expect(route).not.toContain("!embeddingResourceStatusKnown && !mainWindowWasVisible");
-    expect(route).toContain("embeddingResourceStatusKnown && !embeddingResourceReady");
-    expect(route).toContain('"get_embedding_resource_status"');
+    expect(route).toContain("requiresOnboarding = !options.config.onboarding_completed;");
+    expect(route).not.toContain('"get_embedding_resource_status"');
+    expect(onboardingFlow).toContain('"get_embedding_resource_status"');
     expect(route).not.toContain("hasLegacyOnboardingCompletion");
     expect(route).not.toContain("clearLegacyOnboardingCompletion");
     expect(onboarding).not.toContain("localStorage");

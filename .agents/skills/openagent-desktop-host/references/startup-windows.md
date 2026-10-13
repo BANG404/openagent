@@ -49,10 +49,10 @@
   completes the teardown already done instead of repeating it, while a repeated
   request during an exit is ignored. Keep the teardown idempotent, because both
   phase paths reach it.
-- If the setup window is currently visible for first-run configuration or
-  embedding-resource repair, restore that instead; its pre-created but
-  hidden WebView stays closed only when configuration and the local
-  resource are both ready.
+- If the setup window is visible for first-run configuration or an explicit
+  development preview, restore it instead. Configured frontend startup uses
+  durable onboarding completion and never reopens this window for an embedding
+  status query. Native installed-resource failures retain their recovery surface.
 - After any successful programmatic `set_focus`, including the first-run
   handoff that reveals the main window, repeated launch, and
   registered-workspace navigation, emit

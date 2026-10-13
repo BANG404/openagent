@@ -28,18 +28,18 @@ instances when only checkpoint metadata changes.
   terminal event look like it belongs to a deleted conversation. When that
   workspace is revisited during streaming, reconcile its durable checkpoint
   while preserving cached messages that the checkpoint has not yet recorded.
-- Derive setup-window visibility from the normalized bootstrap config and the
-  SDK-owned embedding-resource status. Persist configuration completion in the
-  versioned config beneath `OPENAGENT_HOME`, but keep the main shell hidden
-  until the resource is verified. A configured repair opens directly on the
-  final resource step without rewriting settings.
-- During a frontend HMR remount, Runtime resource-status IPC may be briefly
-  unavailable while the supervised sidecar reconnects. Treat an unavailable
-  status as unknown when the already-revealed main shell is reloading; only an
-  explicit non-ready status may reveal the onboarding repair window in that
-  case. A still-hidden first startup keeps the conservative onboarding path,
-  and first-run configuration (`onboarding_completed` is false) always reveals
-  onboarding.
+- Derive setup-window visibility solely from normalized durable
+  `onboarding_completed`. First-use setup verifies resources before saving
+  completion; configured startup and HMR remounts never query embedding status
+  or reopen setup. Native resource admission and an actual launch failure retain
+  their host-owned recovery paths.
+- Format-2 checkpoints are complete snapshots even after context compaction
+  shortens their history. When inferring the shape of unversioned checkpoints,
+  compare their raw record counts before hiding provider replay. Comparing a
+  filtered child with its unfiltered parent misclassifies complete snapshots as
+  deltas, duplicates message IDs, and breaks keyed transcript rendering. Cover
+  equal-size snapshots with hidden replay and shorter format-2 snapshots; the
+  compaction transcript native scenario must hydrate a parent and selected child.
 - Render first-run onboarding in its own undecorated Tauri window while the main
   window remains hidden. Completing the flow hands the selected workspace back
   to the already-bootstrapped main window before revealing it. The development

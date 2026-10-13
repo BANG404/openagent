@@ -122,16 +122,20 @@
     refreshTaskUsagesForConversation: async () => {},
     findConversationLocation: () => null,
   });
-  function checkpoint(records: CheckpointMessage[]): RenderableCheckpoint {
+  function checkpoint(
+    records: CheckpointMessage[],
+    id = "preview-checkpoint",
+    parent: string | null = null,
+  ): RenderableCheckpoint {
     return {
       meta: {
         thread_id: "compaction-preview",
-        checkpoint_id: "preview-checkpoint",
-        parent_checkpoint_id: null,
+        checkpoint_id: id,
+        parent_checkpoint_id: parent,
         created_at: 1,
         metadata: "{}",
       },
-      data: { messages: records, file_change_ids: [], phase: "before_completion" },
+      data: { format_version: 2, messages: records, file_change_ids: [], phase: "final_completed" },
     };
   }
   let scrollElement = $state<HTMLElement | null>(null);
@@ -157,7 +161,10 @@
     chatStreams.streamingConversationIds = {};
     await controller.hydrateConversation(
       "compaction-preview",
-      [checkpoint(completeRecords)],
+      [
+        checkpoint(completeRecords, "previous-completion"),
+        checkpoint(completeRecords, "preview-checkpoint", "previous-completion"),
+      ],
       "preview-checkpoint",
       [],
       false,

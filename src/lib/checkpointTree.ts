@@ -591,7 +591,9 @@ export function buildTreeFromCheckpoints( // NOSONAR: tree construction applies 
       ? checkpointsById.get(checkpoint.meta.parent_checkpoint_id)
       : undefined;
     node.isSelfContainedSnapshot =
-      !parentCheckpoint || records.length >= parentCheckpoint.data.messages.length;
+      checkpoint.data.format_version === 2 ||
+      !parentCheckpoint ||
+      checkpoint.data.messages.length >= parentCheckpoint.data.messages.length;
   }
 
   const rootIds: string[] = [];
