@@ -1,0 +1,129 @@
+name: Windows Alpha Release
+
+on:
+  workflow_call:
+
+concurrency:
+  group: alpha-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    name: Resolve immutable Alpha source
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      tag: ${{ steps.plan.outputs.tag }}
+      source_sha: ${{ steps.plan.outputs.source_sha }}
+      sdk_sha: ${{ steps.plan.outputs.sdk_sha }}
+      baseline_tag: ${{ steps.plan.outputs.baseline_tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bun scripts/alpha-release-plan.mjs
+      - name: Require a published upgrade baseline
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASELINE_TAG: ${{ steps.plan.outputs.baseline_tag }}
+        run: |
+          state="$(gh release view "$BASELINE_TAG" --json isDraft --jq '.isDraft')"
+          [[ "$state" == false ]] || { echo 'Alpha requires a published baseline.' >&2; exit 1; }
+
+  build:
+    name: Build and qualify complete Windows Alpha
+    needs: plan
+    runs-on: windows-2025
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.source_sha }}
+      - name: Create private SDK read token
+        id: sdk-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
+          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
+          owner: BANG404
+          repositories: openagent-sdk
+          permission-contents: read
+      - uses: actions/checkout@v7
+        with:
+          repository: BANG404/openagent-sdk
+          ref: ${{ needs.plan.outputs.sdk_sha }}
+          path: sdk
+          fetch-depth: 0
+          token: ${{ steps.sdk-token.outputs.token }}
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - uses: dtolnay/rust-toolchain@stable
+      - run: bun install --frozen-lockfile
+      - name: Focused Alpha release contracts
+        run: bun test --timeout 30000 scripts/alpha-release.test.mjs scripts/distribution-artifacts.test.mjs scripts/frontend-artifacts.test.mjs
+      - name: Build exact signed Windows candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          ALPHA_VERSION: ${{ needs.plan.outputs.version }}
+          ALPHA_SOURCE_SHA: ${{ needs.plan.outputs.source_sha }}
+          ALPHA_SDK_SHA: ${{ needs.plan.outputs.sdk_sha }}
+          ALPHA_BASELINE: ${{ needs.plan.outputs.baseline_tag }}
+        run: >-
+          bun scripts/build-alpha-windows.mjs
+          --version "$env:ALPHA_VERSION" --source-sha "$env:ALPHA_SOURCE_SHA"
+          --sdk-sha "$env:ALPHA_SDK_SHA" --baseline-tag "$env:ALPHA_BASELINE"
+          --output "$env:RUNNER_TEMP/alpha-candidate"
+      - name: Install and launch complete candidate twice
+        env:
+          ALPHA_VERSION: ${{ needs.plan.outputs.version }}
+        run: >-
+          ./scripts/test-alpha-installer.ps1
+          -Artifacts "$env:RUNNER_TEMP/alpha-candidate" -Version "$env:ALPHA_VERSION"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-alpha-candidate
+          path: ${{ runner.temp }}/alpha-candidate/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish verified Alpha only
+    needs: [plan, build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.source_sha }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-alpha-candidate
+          path: alpha-candidate
+      - name: Verify candidate and publish isolated Alpha channels
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          ALPHA_VERSION: ${{ needs.plan.outputs.version }}
+          ALPHA_SOURCE_SHA: ${{ needs.plan.outputs.source_sha }}
+          ALPHA_SDK_SHA: ${{ needs.plan.outputs.sdk_sha }}
+        run: bun scripts/publish-alpha.mjs alpha-candidate

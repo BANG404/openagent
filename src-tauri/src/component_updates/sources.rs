@@ -17,13 +17,29 @@ pub(crate) fn update_public_key() -> String {
 }
 
 pub(crate) fn modular_update_channel() -> &'static str {
-    let version = env!("CARGO_PKG_VERSION");
-    if version.contains("-rc.") {
+    channel_for_version(env!("CARGO_PKG_VERSION"))
+}
+
+fn channel_for_version(version: &str) -> &'static str {
+    if version.contains("-alpha.") {
+        "alpha"
+    } else if version.contains("-rc.") {
         "rc"
     } else if version.contains('-') {
         "beta"
     } else {
         "stable"
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn alpha_component_channels_are_independent_from_beta() {
+        assert_eq!(super::channel_for_version("0.81.0-alpha.1"), "alpha");
+        assert_eq!(super::channel_for_version("0.81.0-beta.1"), "beta");
+        assert_eq!(super::channel_for_version("0.81.0-rc.1"), "rc");
+        assert_eq!(super::channel_for_version("0.81.0"), "stable");
     }
 }
 

@@ -24,7 +24,10 @@ version.
 
 Development commits and Beta release metadata land on `main`. Ordinary
 pushes never create a version or tag by themselves. Start `Prepare Release` and
-choose `beta`, `rc`, or `stable`. Beta is the default, uses the current `main` head,
+choose `alpha`, `beta`, `rc`, or `stable`. [Alpha](alpha-releases.md) publishes a
+Windows preview from an immutable `main` snapshot without a release metadata
+commit or formal promotion. The following preparation and promotion rules apply
+to Beta, RC and Stable. Beta is the default, uses the current `main` head,
 and pushes its generated metadata commit directly back to `main`. The job
 fetches `origin/main` again immediately before resolving that immutable base;
 if `main` advances after resolution, the direct push fails instead of

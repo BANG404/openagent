@@ -21,8 +21,9 @@ stay intact through this transition; normal navigation uses the current window.
 
 OpenAgent keeps user-scoped settings and durable application data under one
 application-data root. Set `OPENAGENT_HOME` to choose that root explicitly.
-Without an override, every platform uses `~/.openagent`, including Windows and
-macOS. This keeps the complete OpenAgent home relocatable and gives command-line,
+Without an override, production uses `~/.openagent`, including Windows and
+macOS. Alpha desktop releases use `~/.openagent-alpha`, passed explicitly to
+the supervised Runtime. This keeps the complete OpenAgent home relocatable and gives command-line,
 desktop, and test environments the same path contract.
 
 The Tauri debug build defaults to the separate `~/.openagent-dev` root so a

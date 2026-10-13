@@ -92,11 +92,20 @@ pub(crate) fn selected_home() -> anyhow::Result<std::path::PathBuf> {
     }
     let home = dirs::home_dir()
         .ok_or_else(|| anyhow::anyhow!("Cannot resolve application data directory"))?;
-    Ok(home.join(if cfg!(debug_assertions) {
+    Ok(home.join(default_home_name(
+        env!("CARGO_PKG_VERSION"),
+        cfg!(debug_assertions),
+    )))
+}
+
+fn default_home_name(version: &str, debug: bool) -> &'static str {
+    if debug {
         ".openagent-dev"
+    } else if version.contains("-alpha.") {
+        ".openagent-alpha"
     } else {
         ".openagent"
-    }))
+    }
 }
 
 pub(crate) fn parse_desktop_bootstrap_response(
@@ -181,6 +190,22 @@ fn prepare_persistence_with(
 mod tests {
     use super::*;
     use std::path::Path;
+    #[test]
+    fn alpha_uses_an_independent_default_home() {
+        assert_eq!(
+            super::default_home_name("0.81.0-alpha.1", false),
+            ".openagent-alpha"
+        );
+        assert_eq!(
+            super::default_home_name("0.81.0-alpha.1", true),
+            ".openagent-dev"
+        );
+        assert_eq!(
+            super::default_home_name("0.81.0-beta.1", false),
+            ".openagent"
+        );
+        assert_eq!(super::default_home_name("0.81.0", false), ".openagent");
+    }
     #[test]
     fn persistence_transition_warning_names_scope_and_backup_paths() {
         let plan = PersistenceTransitionPlan {

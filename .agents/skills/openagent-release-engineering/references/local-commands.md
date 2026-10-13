@@ -83,6 +83,10 @@ release artifact requirements belong to [artifacts.md](artifacts.md).
 
 ## Release preparation
 
+For reduced Windows-only previews, choose `alpha` in Prepare Release and follow
+[Alpha releases](alpha-releases.md). It creates an isolated complete installer
+without preparing a formal release commit or promoting a production release.
+
 The GitHub **Prepare Release** workflow is the publication entrypoint. Local
 reproduction happens in an isolated OWT worktree, with its default checkout
 remaining on `main`. Fetch and explicitly select published promotion tags;

@@ -4,6 +4,11 @@ OpenAgent separates development reloads and reusable SDK delivery from desktop
 installer updates. The separation is process- and protocol-based; the Rust SDK
 is never loaded as a replaceable dynamic library.
 
+Alpha desktop versions select independent `alpha`, `frontend-alpha` and
+`runtime-alpha` channels. They never fall through to Beta. Windows Alpha
+packaging and qualification belong to the release owner's
+[Alpha reference](../../openagent-release-engineering/references/alpha-releases.md).
+
 ## Supported boundaries
 
 | Surface                 | Development                            | Published delivery                                                                          | Activation                                                |

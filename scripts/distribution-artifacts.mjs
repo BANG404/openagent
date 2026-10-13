@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** Bind the complete initial resource set to one immutable product release.
- * @param {{directory: string; runtimeDirectory: string; frontendDirectory: string; modelDirectory: string; helperDirectory: string; version: string; sdkSha: string}} options
+ * @param {{directory: string; runtimeDirectory: string; frontendDirectory: string; modelDirectory: string; helperDirectory: string; version: string; sdkSha: string; targets?: string[]}} options
  */
 export async function createDistribution(options) {
   const {
@@ -15,8 +15,12 @@ export async function createDistribution(options) {
     helperDirectory,
     version,
     sdkSha,
+    targets,
   } = options;
-  if (!/^\d+\.\d+\.\d+(?:-(?:beta|rc)\.\d+)?$/.test(version) || !/^[a-f0-9]{40}$/.test(sdkSha))
+  if (
+    !/^\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)\.\d+)?$/.test(version) ||
+    !/^[a-f0-9]{40}$/.test(sdkSha)
+  )
     throw new Error("Invalid distribution identity");
   await mkdir(directory, { recursive: true });
   const stage = async (source, name = path.basename(source)) => {
@@ -48,6 +52,7 @@ export async function createDistribution(options) {
   }
   const runtimeArtifacts = {};
   for (const [target, artifact] of Object.entries(runtime.artifacts)) {
+    if (targets && !targets.includes(target)) continue;
     const descriptor = await stage(path.join(runtimeDirectory, artifact.file));
     if (descriptor.sha256 !== artifact.sha256 || descriptor.size !== artifact.size)
       throw new Error("Runtime artifact disagrees with signed manifest");
@@ -70,11 +75,14 @@ export async function createDistribution(options) {
   ]) {
     embedding[name] = await stage(path.join(modelDirectory, name), `embedding-${name}`);
   }
+  if (targets?.some((target) => !runtimeArtifacts[target]))
+    throw new Error("Distribution is missing a selected Runtime target");
   const helpers = {};
   for (const [target, names] of Object.entries({
     "windows-x64": ["codex-windows-sandbox-setup.exe", "codex-command-runner.exe"],
     "linux-x64": ["codex-bwrap-linux-x64"],
   })) {
+    if (targets && !targets.includes(target)) continue;
     helpers[target] = {};
     for (const name of names) helpers[target][name] = await stage(path.join(helperDirectory, name));
   }

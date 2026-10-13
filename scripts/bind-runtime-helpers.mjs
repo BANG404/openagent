@@ -4,9 +4,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** Bind the exact SDK's executable helpers into its signed Runtime manifest.
- * @param {string} directory @param {string} helperDirectory
+ * @param {string} directory @param {string} helperDirectory @param {string[]} [targets]
  */
-export async function bindRuntimeHelpers(directory, helperDirectory) {
+export async function bindRuntimeHelpers(directory, helperDirectory, targets) {
   const file = path.join(directory, "openagent-sdk-manifest.json");
   const manifest = JSON.parse(await readFile(file, "utf8"));
   const helpers = {};
@@ -14,6 +14,7 @@ export async function bindRuntimeHelpers(directory, helperDirectory) {
     "windows-x64": ["codex-windows-sandbox-setup.exe", "codex-command-runner.exe"],
     "linux-x64": ["codex-bwrap-linux-x64"],
   })) {
+    if (targets && !targets.includes(target)) continue;
     helpers[target] = {};
     for (const name of names) {
       const source = path.join(helperDirectory, name);

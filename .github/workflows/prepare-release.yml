@@ -9,6 +9,7 @@ on:
         default: beta
         type: choice
         options:
+          - alpha
           - beta
           - rc
           - stable
@@ -29,8 +30,15 @@ permissions:
   contents: write
 
 jobs:
+  alpha:
+    name: Build Windows Alpha preview
+    if: inputs.release_type == 'alpha'
+    uses: ./.github/workflows/alpha-release.yml
+    secrets: inherit
+
   prepare:
     name: Push release commit
+    if: inputs.release_type != 'alpha'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:

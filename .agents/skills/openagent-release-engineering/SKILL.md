@@ -7,6 +7,6 @@ metadata:
 
 # OpenAgent release engineering
 
-Read CI/release references, [Pages](references/github-pages.md),
-[index](references/plugin-release-index.md), [dev](references/public-development.md).
+Read matching references; [Alpha](references/alpha-releases.md) owns fast
+Windows previews.
 Deliver via OWT.
