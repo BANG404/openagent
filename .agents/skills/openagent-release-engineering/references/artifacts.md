@@ -4,6 +4,11 @@
   configured `frontendDist` and target-named placeholders for configured
   `externalBin` resources before invoking Cargo; frontend qualification and
   release component builds own the production bytes.
+  SDK public-host compatibility and embedded-model qualification must also run
+  `prepare-node-runtime.mjs` and `prepare-terminal-tools.mjs` before Cargo: Tauri
+  validates the configured bundle resource paths even during compile checks.
+  Prepare the verified shell resources in both fast and full SDK runs, from the
+  checked-out host directory; frontend type checking does not create them.
   Local preflight must materialize `frontendDist` before both Clippy and the
   host compile check; each invokes Tauri macros even without a frontend build.
   Keep direct native-dialog dependencies from enabling a Linux backend that
