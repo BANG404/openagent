@@ -64,18 +64,22 @@ export const zh = {
   helpMenu: "帮助",
   reportProblem: "上报问题",
   reportProblemDescription: "描述遇到的问题并上传至 OpenAgent 支持服务器。",
+  reportProblemLogsPrivacy:
+    "报告会附带最近两份运行日志和两份桌面日志，每份最多取末尾 1 MiB。日志可能包含错误详情和本地路径。",
+  reportProblemLogsFailed: "无法读取本地日志，尚未上传。描述已保留，请重试。",
   reportProblemDetails: "问题描述",
   reportProblemPlaceholder: "发生了什么？请描述复现步骤、预期结果与实际结果。",
   reportProblemIncludeTrace: "附带当前对话完整轨迹",
   reportProblemTracePrivacy:
     "开启后将上传当前对话已保存的全部分支、消息、模型请求与响应、工具参数和结果，可能包含敏感内容。不会额外读取提供商配置或附件文件内容。",
-  reportProblemNoConversation: "当前未打开已保存的对话，将仅上传问题描述和应用环境信息。",
+  reportProblemNoConversation:
+    "当前未打开已保存的对话，将上传问题描述、应用环境信息和近期本地日志。",
   reportProblemSubmit: "确认上传",
   reportProblemSubmitting: "正在上传…",
   reportProblemSuccess: "问题已上传，感谢反馈。",
   reportProblemId: "报告编号",
   reportProblemFailed: "上传失败，描述已保留，请检查网络后重试。",
-  reportProblemTooLarge: "完整报告超过 64 MB，尚未上传。请关闭轨迹选项后提交描述。",
+  reportProblemTooLarge: "完整报告超过 64 MB，尚未上传。请关闭轨迹选项后提交描述和近期日志。",
   reportProblemTraceFailed: "无法读取完整对话轨迹，尚未上传。请重试或关闭轨迹选项。",
 
   newWindow: "新建窗口",

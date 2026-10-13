@@ -31,6 +31,33 @@ class ArchiveTests(unittest.TestCase):
                     archive(invalid, Path(temp))
             self.assertEqual(list(Path(temp).iterdir()), [])
 
+    def test_logs_survive_archive_without_trace(self):
+        with tempfile.TemporaryDirectory() as temp:
+            logs = [dict(fileName="openagent.2026-10-14.jsonl", content="fixture error\n", truncated=True),
+                    dict(fileName="openagent-host.jsonl.2026-10-14", content="fixture host\n", truncated=False)]
+            payload = dict(self.payload(), schemaVersion=2, logs=logs)
+            report_id = archive(payload, Path(temp))
+            record = json.loads((Path(temp) / f"{report_id}.json").read_text(encoding="utf-8"))
+            self.assertEqual(record["logs"], logs)
+            self.assertIsNone(record["conversationTrace"])
+            empty_id = archive(dict(payload, logs=[]), Path(temp))
+            self.assertEqual(json.loads((Path(temp) / f"{empty_id}.json").read_text())["logs"], [])
+
+    def test_invalid_logs_never_create_receipt(self):
+        log = dict(fileName="openagent.2026-10-14.jsonl", content="fixture\n", truncated=False)
+        invalid_logs = [None, "invalid", [dict(log, fileName="../config.toml")],
+                        [dict(log, fileName="openagent.2026-99-99.jsonl")],
+                        [dict(log, content="x" * (1024 * 1024 + 1))],
+                        [dict(log, content=1)], [dict(log, truncated="false")],
+                        [log, log], [log] * 5,
+                        [dict(log, fileName=f"openagent.2026-10-{day}.jsonl") for day in (12, 13, 14)]]
+        with tempfile.TemporaryDirectory() as temp:
+            for logs in invalid_logs:
+                with self.subTest(logs_type=type(logs).__name__):
+                    with self.assertRaises(ValueError):
+                        archive(dict(self.payload(), schemaVersion=2, logs=logs), Path(temp))
+            self.assertEqual(list(Path(temp).iterdir()), [])
+
 
 if __name__ == "__main__":
     unittest.main()

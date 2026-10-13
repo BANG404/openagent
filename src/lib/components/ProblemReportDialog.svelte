@@ -45,7 +45,9 @@
         ? "large"
         : code.includes("report_trace_unavailable")
           ? "trace"
-          : "upload";
+          : code.includes("report_logs_unavailable")
+            ? "logs"
+            : "upload";
     } finally {
       submitting = false;
     }
@@ -79,6 +81,7 @@
             void submit();
           }}
         >
+          <p class="report-copy report-logs-copy">{$t("reportProblemLogsPrivacy")}</p>
           <label for="problem-description">{$t("reportProblemDetails")}</label>
           <textarea
             id="problem-description"
@@ -106,7 +109,9 @@
                 ? $t("reportProblemTooLarge")
                 : failure === "trace"
                   ? $t("reportProblemTraceFailed")
-                  : $t("reportProblemFailed")}
+                  : failure === "logs"
+                    ? $t("reportProblemLogsFailed")
+                    : $t("reportProblemFailed")}
             </p>
           {/if}
           <div class="dialog-actions">

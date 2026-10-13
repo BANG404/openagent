@@ -3,7 +3,7 @@ import { serve, sleep } from "bun";
 import { Database } from "bun:sqlite";
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { appendFile, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { resolveBlackboxHome } from "./tauri-test-environment.mjs";
@@ -22,7 +22,7 @@ if (
   process.env.OPENAGENT_LOGS_INGEST_TOKEN !== "diagnostic-blackbox-token"
 )
   throw new Error("Start the isolated desktop with the fixture support endpoint and credential");
-/** @type {Array<{description: string, conversationTrace: Record<string, unknown> | null}>} */
+/** @type {Array<{description: string, conversationTrace: Record<string, unknown> | null, logs: Array<{fileName: string, content: string, truncated: boolean}>}>} */
 const records = [];
 const receipts = [];
 let failNext = false;
@@ -55,6 +55,23 @@ const receiver = serve({
     }
     const payload = await request.json();
     if (!payload.description.startsWith("SYNTHETIC_SUPPORT_FIXTURE_"))
+      return new Response(null, { status: 400 });
+    if (
+      payload.schemaVersion !== 2 ||
+      !Array.isArray(payload.logs) ||
+      payload.logs.length > 4 ||
+      payload.logs.some(
+        /** @param {{content: string}} log */ (log) => Buffer.byteLength(log.content) > 1024 * 1024,
+      ) ||
+      !payload.logs.some(
+        /** @param {{content: string}} log */ (log) =>
+          log.content.includes("SUPPORT_RUNTIME_LOG_FIXTURE"),
+      ) ||
+      !payload.logs.some(
+        /** @param {{content: string}} log */ (log) =>
+          log.content.includes("SUPPORT_HOST_LOG_FIXTURE"),
+      )
+    )
       return new Response(null, { status: 400 });
     if (
       payload.conversationTrace &&
@@ -146,6 +163,15 @@ async function waitFor(ready) {
 }
 try {
   pilot(["ping"]);
+  const previousDay = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  await appendFile(
+    path.join(home, "logs", `openagent.${previousDay}.jsonl`),
+    '{"message":"SUPPORT_RUNTIME_LOG_FIXTURE"}\n',
+  );
+  await appendFile(
+    path.join(home, "logs", `openagent-host.jsonl.${previousDay}`),
+    '{"message":"SUPPORT_HOST_LOG_FIXTURE"}\n',
+  );
   // Only the explicitly isolated application home is writable by this scenario.
   const fixtureId = "support-fixture-conversation";
   const database = new Database(path.join(home, "messages.db"));
@@ -189,7 +215,7 @@ try {
     for (const language of ["en", "zh"]) {
       evaluate(`(async () => { ${helper} const baseConfig = await operation('get_settings');
         await operation('save_settings', { baseConfig, config: { ...baseConfig,
-          theme: '${theme}', language: '${language}' } }); return true; })()`);
+          theme: '${theme}', language: '${language}', diagnostic_log_collection_enabled: false } }); return true; })()`);
       pilot(["navigate", pilot(["url"]).trim()]);
       await waitFor(() =>
         evaluate(`Boolean(document.querySelector('#application-help-menu'))`).includes("true"),
@@ -207,6 +233,14 @@ try {
         await sleep(250);
       }
       openReport();
+      pilot([
+        "assert",
+        "contains",
+        ".report-logs-copy",
+        language === "zh"
+          ? "报告会附带最近两份运行日志和两份桌面日志"
+          : "Your report includes the two latest Runtime logs",
+      ]);
       fill(`${theme}_${language}`);
       pilot(["screenshot", path.join(home, `support-${theme}-${language}.png`)]);
       const before = records.length;
@@ -234,6 +268,27 @@ try {
   );
   close();
   openReport();
+  fill("LOG_READ_RETRY");
+  const unreadableLog = path.join(home, "logs", "openagent.2099-12-31.jsonl");
+  const beforeLogFailure = records.length;
+  try {
+    await writeFile(unreadableLog, Buffer.from([0xff, 0x0a]));
+    submit();
+    await waitFor(() =>
+      evaluate(`Boolean(document.querySelector(".report-error"))`).includes("true"),
+    );
+    pilot(["assert", "value", "#problem-description", "SYNTHETIC_SUPPORT_FIXTURE_LOG_READ_RETRY"]);
+    if (records.length !== beforeLogFailure)
+      throw new Error("A log-read failure still uploaded a report");
+  } finally {
+    await rm(unreadableLog, { force: true });
+  }
+  submit();
+  await waitFor(() =>
+    evaluate(`Boolean(document.querySelector(".report-success"))`).includes("true"),
+  );
+  close();
+  openReport();
   fill("FULL_TRACE");
   pilot(["click", "#problem-include-trace"]);
   pilot(["snapshot", "-i"]);
@@ -252,7 +307,7 @@ try {
   if (logs.includes("SYNTHETIC_SUPPORT_FIXTURE_"))
     throw new Error("Support content entered application logs");
   console.log(
-    `Support native verification passed: four theme/locale combinations, default-off trace, retry preservation, complete trace and receipts. ${receipts.join(", ")}`,
+    `Support native verification passed: four theme/locale combinations, default-off trace, bounded Runtime/host logs, log-read and upload retries, complete trace and receipts. ${receipts.join(", ")}`,
   );
 } finally {
   receiver.stop(true);
