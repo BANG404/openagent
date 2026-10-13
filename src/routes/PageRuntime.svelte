@@ -117,6 +117,7 @@
   import type { RightSidebarPanel } from "$lib/rightSidebar";
   import {
     availablePluginSidebarViews,
+    flowPluginSidebarPanel,
     branchToolNames,
     firstAvailablePluginSidebarPanel,
     PluginSidebarActivationStore,
@@ -421,7 +422,6 @@
       terminalSummary.scopeKey === rightSidebarScopeKey ? terminalSummary.sessionCount : 0,
     ),
   );
-  let checkpointFlowPanelSelectionKey = $state<string | null>(null);
   let checkpointFlowPanelAutoOpenKey = $state<string | null>(null);
   let fileChangesPanelSelectionKey = $state<string | null>(null);
   let workspace = $state<WorkspaceContext | null>(null);
@@ -820,10 +820,9 @@
       activeConvId ? (activeBranchIds[activeConvId] ?? null) : null,
       currentCheckpointFlow,
     );
-    if (key === checkpointFlowPanelSelectionKey) return;
-    checkpointFlowPanelSelectionKey = key;
-    if (key === checkpointFlowPanelAutoOpenKey) {
-      rightSidebarPanel = "status";
+    if (key !== null && key === checkpointFlowPanelAutoOpenKey) {
+      rightSidebarPanel =
+        flowPluginSidebarPanel(pluginSidebarRegistry, currentCheckpointFlow) ?? "status";
       rightSidebarCollapseRequested = false;
       checkpointFlowPanelAutoOpenKey = null;
     }
@@ -879,6 +878,7 @@
     hasWorkspace: workspacePath.trim().length > 0,
     hasConversation: activeConvId !== null,
     toolNames: branchToolNames(messages, isCurrentStreaming ? currentStreamItems : []),
+    flow: currentCheckpointFlow,
   });
   let pluginSidebarRegistry = $derived(
     pluginSidebarEntries(agentPlugins, pluginSidebarContext, $locale),

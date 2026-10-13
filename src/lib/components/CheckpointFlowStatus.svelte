@@ -17,6 +17,7 @@
 
   interface Props {
     flow: CheckpointFlow | null;
+    scopeLoading?: boolean;
     changes: FileChange[];
     width: number;
     collapsed: boolean;
@@ -49,6 +50,7 @@
 
   let {
     flow,
+    scopeLoading = false,
     changes,
     width,
     collapsed,
@@ -95,6 +97,7 @@
   let heading = $derived(flow ? $t("checkpointPluginFlow") : "");
 
   $effect(() => {
+    if (scopeLoading) return;
     if (activePanel === "status" && !flow) {
       if (changes.length > 0) activePanel = "files";
       else if (terminalAvailable) activePanel = "terminal";
