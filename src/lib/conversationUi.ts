@@ -1,5 +1,23 @@
 import type { ChatMessage, ConversationUi, StreamItem } from "./types";
 
+/** Refresh presentation slots while the live reply still owns its trajectory. */
+export function reconcileLiveConversationUi(
+  visible: ChatMessage[],
+  durable: ChatMessage[],
+  items: StreamItem[],
+  conversationId: string,
+  branchId: string | null,
+): { messages: ChatMessage[]; items: StreamItem[] } {
+  const visibleIds = new Set(visible.map((message) => message.id));
+  return {
+    messages: mergeConversationUiMessages(
+      visible,
+      durable.filter((message) => message.role !== "ui" || visibleIds.has(message.id)),
+    ),
+    items: mergeConversationUiStream(visible, durable, items, conversationId, branchId),
+  };
+}
+
 export function mergeConversationUiStream(
   visible: ChatMessage[],
   durable: ChatMessage[],

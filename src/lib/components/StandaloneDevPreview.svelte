@@ -54,6 +54,7 @@
   import MessageList from "$lib/components/MessageList.svelte";
   import RuntimeStatusPreview from "$lib/components/RuntimeStatusPreview.svelte";
   import ThinkingPreview from "$lib/components/ThinkingPreview.svelte";
+  import CompactionTranscriptPreview from "$lib/components/CompactionTranscriptPreview.svelte";
   import MediaSourcePreview from "$lib/components/MediaSourcePreview.svelte";
   import NewConversationContext from "$lib/components/NewConversationContext.svelte";
   import PermissionSettings from "$lib/components/PermissionSettings.svelte";
@@ -1443,6 +1444,8 @@
   <RuntimeStatusPreview {theme} />
 {:else if preview === "user-message-markdown"}
   {#if UserMarkdownPreview}<UserMarkdownPreview {locale} />{/if}
+{:else if preview === "streaming-transcript" && query.has("streaming-transcript-preview-compaction")}
+  <CompactionTranscriptPreview {theme} {locale} />
 {:else if preview === "streaming-transcript" && query.has("streaming-transcript-preview-thinking")}
   <ThinkingPreview {theme} {locale} />
 {:else if preview === "streaming-transcript"}

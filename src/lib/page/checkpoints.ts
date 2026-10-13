@@ -1,4 +1,4 @@
-import { mergeConversationUiMessages, mergeConversationUiStream } from "$lib/conversationUi";
+import { mergeConversationUiMessages, reconcileLiveConversationUi } from "$lib/conversationUi";
 import { tick } from "svelte";
 import { desktopOpenAgent as openAgent } from "$lib/openagent/tauriClient";
 import { tr } from "$lib/i18n";
@@ -76,6 +76,7 @@ export function createCheckpointController(options: CheckpointOptions) {
     convId: string,
     showLoadingState = true,
     forceRefresh = false,
+    liveUiOnly = false,
   ): Promise<void> {
     if (options.loadedConvIds.has(convId) && !forceRefresh) return;
     options.loadedConvIds.add(convId);
@@ -105,6 +106,7 @@ export function createCheckpointController(options: CheckpointOptions) {
         branches,
         showLoadingState,
         messageIdsAtStart,
+        liveUiOnly,
       );
       // The usage projection needs the freshly hydrated checkpoint tree to map
       // request checkpoints back to the active durable turn.
@@ -175,24 +177,24 @@ export function createCheckpointController(options: CheckpointOptions) {
       const location = options.findConversationLocation(convId);
       if (location) {
         const visible = location.conversations[location.index];
-        let durable = computeActivePath(options.convTrees[convId]);
+        const durable = computeActivePath(options.convTrees[convId]);
+        let projectedUi;
         if (options.chatStreams.streamingConversationIds[convId]) {
+          const projection = reconcileLiveConversationUi(
+            visible.messages,
+            durable,
+            options.chatStreams.itemsByConversation[convId] ?? [],
+            convId,
+            branchId,
+          );
           options.chatStreams.itemsByConversation = {
             ...options.chatStreams.itemsByConversation,
-            [convId]: mergeConversationUiStream(
-              visible.messages,
-              durable,
-              options.chatStreams.itemsByConversation[convId] ?? [],
-              convId,
-              branchId,
-            ),
+            [convId]: projection.items,
           };
-          const visibleIds = new Set(visible.messages.map((message) => message.id));
-          durable = durable.filter(
-            (message) => message.role !== "ui" || visibleIds.has(message.id),
-          );
+          projectedUi = projection.messages;
+        } else {
+          projectedUi = mergeConversationUiMessages(visible.messages, durable);
         }
-        const projectedUi = mergeConversationUiMessages(visible.messages, durable);
         location.conversations[location.index] = { ...visible, messages: projectedUi };
       }
       const liveChanges = options.liveFileChangesPerConv[convId] ?? [];
@@ -242,6 +244,7 @@ export function createCheckpointController(options: CheckpointOptions) {
     branches: Array<{ id: string; head_checkpoint_id: string | null }>,
     syncBackendHistory: boolean,
     messageIdsAtStart?: ReadonlySet<string>,
+    liveUiOnly = false,
   ): Promise<void> {
     options.mergeDurableFollowUpSuggestions(checkpoints);
     let tree = buildTreeFromCheckpoints(checkpoints, options.convTrees[convId]);
@@ -290,6 +293,24 @@ export function createCheckpointController(options: CheckpointOptions) {
     const idx = options.conversations.findIndex((conversation) => conversation.id === convId);
     if (idx !== -1) {
       const visible = options.conversations[idx].messages;
+      if (liveUiOnly && options.chatStreams.streamingConversationIds[convId]) {
+        const projection = reconcileLiveConversationUi(
+          visible,
+          hydratedMessages,
+          options.chatStreams.itemsByConversation[convId] ?? [],
+          convId,
+          options.activeBranchIds[convId] ?? null,
+        );
+        options.chatStreams.itemsByConversation = {
+          ...options.chatStreams.itemsByConversation,
+          [convId]: projection.items,
+        };
+        options.conversations[idx] = {
+          ...options.conversations[idx],
+          messages: projection.messages,
+        };
+        return;
+      }
       const hydrated = options.chatStreams.streamingConversationIds[convId]
         ? preserveStreamingMessagesDuringHydration(
             visible,

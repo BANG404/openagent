@@ -86,6 +86,17 @@ tool cards and pending approval state intact. New records belonging to the live
 reply join that conversation's stream items; terminal hydration returns to the
 complete snapshot. A durable compaction UI record suppresses the adjacent hidden
 provider replay; older projections still use the legacy compaction marker.
+Automatic compaction completion uses this same UI-only reconciliation while the
+Agent continues running. Never insert the active reply's checkpoint records
+alongside its live row: that duplicates its trajectory and response key. Keep
+pre-compaction text, reasoning and tool results in the live stream, replace its
+transient divider in place, and hydrate the complete transcript after termination.
+Manual compaction without an active reply still hydrates the full checkpoint.
+Verify live compaction, completed tool-result disclosure and page restoration in
+all light/dark and English/Chinese combinations with
+`bun scripts/test-compaction-transcript-blackbox.mjs` in a task-owned Tauri window
+selected by `TAURI_PILOT_SOCKET`. Its development-only transcript fixture needs
+no provider calls or conversation data.
 Paired browser state updates reload the checkpoint tree when an idle checkpoint
 tip changes, with connection and request generation guards against stale history
 responses.

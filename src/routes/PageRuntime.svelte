@@ -2357,7 +2357,9 @@
 
   async function reconcileCompletedCompaction(convId: string, revision: number) {
     try {
-      await loadMessagesForConv(convId, false, true);
+      // During automatic compaction the live row already owns all model/tool
+      // output. Hydrate only UI slots until the terminal snapshot takes over.
+      await loadMessagesForConv(convId, false, true, !compactionOnlyConvIds.has(convId));
     } catch (error) {
       console.error(`Failed to reconcile completed compaction ${convId}:`, error);
     }

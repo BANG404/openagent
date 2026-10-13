@@ -5,6 +5,7 @@ import {
   conversationUiFrameDocument,
   mergeConversationUiMessages,
   mergeConversationUiStream,
+  reconcileLiveConversationUi,
 } from "../src/lib/conversationUi";
 import {
   groupAssistantTurns,
@@ -151,4 +152,64 @@ test("live UI replaces its transient compaction marker and stays visible after c
   expect(
     partitionAssistantSegments(groupStreamItems(stream), "completed").finalSegments,
   ).toHaveLength(2);
+});
+
+test("compaction refresh keeps the live trajectory without hydrating a duplicate response row", () => {
+  const visible: ChatMessage[] = [
+    { id: "old-user", role: "user", content: "Earlier request", timestamp: 1 },
+    { id: "old-reply", role: "assistant", content: "Earlier answer", timestamp: 2 },
+    { id: "user", role: "user", content: "Continue working", timestamp: 3 },
+  ];
+  const live: ChatMessage = {
+    id: "live-response",
+    role: "assistant",
+    content: "Inspecting files",
+    timestamp: 4,
+    items: [
+      { type: "text", content: "Inspecting files" },
+      { type: "thinking", content: "Keep the original tool results" },
+      { type: "tool_call", name: "read_file", args: "{}", toolUseId: "call", result: "Found" },
+    ],
+  };
+  const divider: ChatMessage = {
+    id: "compaction-divider",
+    role: "ui",
+    content: "",
+    timestamp: 5,
+    ui: {
+      version: 1,
+      component: "builtin.divider",
+      props: { label_key: "compactionCompleted" },
+      fallback: "Compacted",
+    },
+  };
+  const items = [...live.items!, { type: "compaction_boundary" as const }];
+  const durable = [...visible, live, divider];
+  const projection = reconcileLiveConversationUi(visible, durable, items, "conv", "branch");
+  expect(projection.messages).toEqual(visible);
+  expect(projection.items.slice(0, 3)).toEqual(live.items!);
+  expect(projection.items[3]).toMatchObject({ type: "ui", messageId: divider.id });
+  expect(
+    reconcileLiveConversationUi(projection.messages, durable, projection.items, "conv", "branch"),
+  ).toEqual(projection);
+  const entries = groupAssistantTurns(
+    groupMessageToolCalls(projection.messages.map((msg, index) => ({ msg, index }))),
+  );
+  expect(entries.some((entry) => entry.key === live.id)).toBe(false);
+
+  const secondDivider = { ...divider, id: "second-divider", timestamp: 7 };
+  const continued = [
+    ...projection.items,
+    { type: "text" as const, content: "Continuing after compaction" },
+    { type: "compaction_boundary" as const },
+  ];
+  const repeated = reconcileLiveConversationUi(
+    visible,
+    [...durable, secondDivider],
+    continued,
+    "conv",
+    "branch",
+  );
+  expect(repeated.items.slice(0, 5)).toEqual(continued.slice(0, 5));
+  expect(repeated.items[5]).toMatchObject({ type: "ui", messageId: secondDivider.id });
 });

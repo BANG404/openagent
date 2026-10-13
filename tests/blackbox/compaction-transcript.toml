@@ -1,0 +1,52 @@
+[scenario]
+name = "compaction preserves the visible trajectory"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "earlier output and live tools survive automatic compaction"
+action = "eval"
+script = '''(async () => {
+  const assert = (condition, message) => { if (!condition) throw new Error(message); };
+  const visible = () => document.querySelector('.compaction-transcript-preview').innerText;
+  assert(visible().includes('Earlier visible answer'), 'earlier completed answer missing');
+  assert(visible().includes('Before compaction trace'), 'live pre-compaction text missing');
+  const tool = document.querySelector('.tool-call-card');
+  assert(tool, 'original tool card missing');
+  document.querySelector('[data-compaction-action=compact]').click();
+  await new Promise(resolve => setTimeout(resolve, 150));
+  assert(document.querySelector('.tool-call-card') === tool, 'compaction remounted the original tool card');
+  assert(document.querySelectorAll('.tool-call-card').length === 1, 'compaction duplicated the trajectory');
+  assert(visible().includes('Before compaction trace'), 'compaction hid earlier live text');
+  assert(visible().includes('Earlier visible answer'), 'compaction hid earlier completed turns');
+  assert(visible().includes('After compaction continuation'), 'continued output missing');
+  assert(/Context compaction complete|上下文压缩完成/.test(visible()), 'compaction divider missing');
+  assert(!visible().includes('PRIVATE_PROVIDER_REPLAY'), 'provider replay leaked into the transcript');
+  return 'live trajectory retained';
+})()'''
+
+[[step]]
+name = "finish the run"
+action = "click"
+target = "[data-compaction-action=finish]"
+
+[[step]]
+name = "completed snapshot retains the original trajectory and tool result"
+action = "eval"
+script = '''(async () => {
+  await new Promise(resolve => setTimeout(resolve, 100));
+  const group = document.querySelector('.process-records[data-grouped=true]');
+  if (!group) throw new Error('completed trajectory missing');
+  group.querySelector('.process-record-summary').click();
+  await new Promise(resolve => setTimeout(resolve, 100));
+  const text = document.querySelector('.compaction-transcript-preview').innerText;
+  for (const expected of ['Earlier visible answer', 'Before compaction trace', 'After compaction continuation']) {
+    if (!text.includes(expected)) throw new Error('completed snapshot lost '+expected);
+  }
+  if (document.querySelectorAll('.tool-call-card').length !== 1) throw new Error('completed trajectory duplicated');
+  const card = document.querySelector('.tool-call-card');
+  card.querySelector('button').click();
+  await new Promise(resolve => setTimeout(resolve, 100));
+  if (!card.innerText.includes('Original tool result')) throw new Error('original tool result lost');
+  return 'completed trajectory retained';
+})()'''
