@@ -21,8 +21,10 @@ bun run dev:desktop:source
 ```
 
 Preparation initializes pinned submodules, installs the frozen Bun lockfile,
-and materializes the pinned SDK source client. Its submodule preparation preserves
-LF bytes from the first checkout and repairs unchanged legacy CRLF conversions;
+materializes the pinned SDK source client, and stages the checksummed portable
+Node.js and terminal tools required by Tauri compile checks. Its submodule
+preparation preserves LF bytes from the first checkout and repairs unchanged
+legacy CRLF conversions;
 see [pinned plugin checkouts](../../openagent-plugin-development/references/local-development.md#pinned-source-checkouts)
 for configuration and edit-preservation boundaries. The default development command
 does not compile Rust; `--native` additionally builds and stages the platform's
@@ -58,8 +60,10 @@ require a new focused pass before any broad checks. Final host preflight follows
 the stabilized affected cases; do not run full preflight repeatedly as a debugger.
 
 Inspect the complete diff, stage intended paths, and run `bun run preflight`.
-It selects the applicable type, lint, format, test, build, and contract checks;
-do not manually duplicate them. Use `bun run preflight --dry-run` to inspect
+It selects the applicable type, lint, format, test, build, and contract checks.
+Native selections prepare and revalidate the shell's Node.js and terminal tools
+before Clippy or Cargo, including a fresh or incompletely prepared worktree.
+Do not manually duplicate them. Use `bun run preflight --dry-run` to inspect
 the plan. Visible desktop changes additionally run their owning native black-box
 scenario. Follow [OWT delivery](../../deliver-via-owt/references/owt.md) for
 worktree integration and cleanup.

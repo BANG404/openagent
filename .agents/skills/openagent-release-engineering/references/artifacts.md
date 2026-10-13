@@ -9,8 +9,12 @@
   validates the configured bundle resource paths even during compile checks.
   Prepare the verified shell resources in both fast and full SDK runs, from the
   checked-out host directory; frontend type checking does not create them.
-  Local preflight must materialize `frontendDist` before both Clippy and the
-  host compile check; each invokes Tauri macros even without a frontend build.
+  Light worktree preparation stages these shell resources without compiling
+  Runtime or sandbox helpers. Local preflight prepares and revalidates them and
+  materializes `frontendDist` before both Clippy and the host compile check;
+  each invokes Tauri macros even without a frontend build. Missing or changed
+  resources are repaired through the existing checksummed preparers; failed
+  preparation stops before Cargo instead of bypassing resource validation.
   Keep direct native-dialog dependencies from enabling a Linux backend that
   conflicts with the backend selected by `tauri-plugin-dialog`.
 - Build platform sandbox helpers from the Codex revision pinned by the SDK.

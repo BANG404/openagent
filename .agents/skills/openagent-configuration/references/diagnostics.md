@@ -1,5 +1,13 @@
 ## Software error collection
 
+For MCP tools disappearing during a run, correlate the local Runtime's refresh
+source, changed configuration field names, active-run warning and old/new
+connection IDs with initialization, catalog and disconnect records. A scheduled
+refresh is not a completed handshake. A connected replacement does not prove
+the active conversation can dispatch tools. The private connection contract and
+source labels live in `sdk/docs/plugin-mcp-tool-modes.md`; keep configuration
+values, tool payloads and model content out of application logs.
+
 `diagnostic_log_collection_enabled` defaults to `true` and is exposed in
 General settings. It controls remote diagnostic upload immediately without an
 application restart. Turning it off stops OTLP export while continuing to keep

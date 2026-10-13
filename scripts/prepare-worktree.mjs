@@ -25,9 +25,9 @@ export function worktreePreparationPlan({
     [bun, ["install", "--frozen-lockfile"]],
   ];
   commands.push([bun, ["scripts/prepare-source-dev.mjs", "--client-only"]]);
-  if (!native) return commands;
   commands.push([bun, ["scripts/prepare-node-runtime.mjs"]]);
   commands.push([bun, ["scripts/prepare-terminal-tools.mjs"]]);
+  if (!native) return commands;
   if (platform === "linux") {
     commands.push([bun, ["run", `prepare:linux-sandbox:${profile}`]]);
   } else if (platform === "win32") {

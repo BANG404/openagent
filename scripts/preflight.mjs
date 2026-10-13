@@ -126,6 +126,10 @@ export function buildPreflightCommands(modules, { base = "", full = false } = {}
   }
 
   if (modules.nativeQuality || modules.nativePlatform) {
+    add("node-runtime", "Verified bundled Node.js", "bun", ["scripts/prepare-node-runtime.mjs"]);
+    add("terminal-tools", "Verified bundled terminal tools", "bun", [
+      "scripts/prepare-terminal-tools.mjs",
+    ]);
     add("frontend-dist", "Materialize frontendDist for Tauri macros", "node", [
       "-e",
       "for(const p of ['build','.cache/bootstrap-dist'])require('fs').mkdirSync(p,{recursive:true})",

@@ -106,6 +106,8 @@ describe("local preflight plan", () => {
 
   test("uses host compile checks while leaving cross-platform coverage to CI", () => {
     expect(commandIds({ nativeQuality: true, nativePlatform: true })).toEqual([
+      "node-runtime",
+      "terminal-tools",
       "frontend-dist",
       "rust-format",
       "rust-lint",
@@ -132,8 +134,24 @@ describe("local preflight plan", () => {
     const ids = commandIds(modules);
     expect(ids.indexOf("frontend-dist")).toBeLessThan(ids.indexOf("rust-lint"));
     expect(ids.indexOf("frontend-dist")).toBeLessThan(ids.indexOf("rust-check"));
-    expect(commandIds({ nativeQuality: true })[0]).toBe("frontend-dist");
-    expect(commandIds({ nativePlatform: true })[0]).toBe("frontend-dist");
+    for (const selection of [{ nativeQuality: true }, { nativePlatform: true }]) {
+      const commands = buildPreflightCommands({ ...nothing, ...selection });
+      expect(commands.slice(0, 3).map(({ id }) => id)).toEqual([
+        "node-runtime",
+        "terminal-tools",
+        "frontend-dist",
+      ]);
+      expect(commands.find(({ id }) => id === "node-runtime")).toMatchObject({
+        command: "bun",
+        args: ["scripts/prepare-node-runtime.mjs"],
+      });
+      expect(commands.find(({ id }) => id === "terminal-tools")).toMatchObject({
+        command: "bun",
+        args: ["scripts/prepare-terminal-tools.mjs"],
+      });
+    }
+    expect(commandIds({ frontend: true })).not.toContain("node-runtime");
+    expect(commandIds({ automation: true })).not.toContain("terminal-tools");
   });
 
   test("uses the quick resource and contract validators", () => {

@@ -102,7 +102,7 @@ test("legacy conversion repair preserves edits, staging, deletion and explicit a
   expect(prepareSubmodules({ root, env }).repaired).toBe(0);
 }, 60_000);
 
-test("light development preparation has no Cargo or sandbox build", () => {
+test("light development preparation stages shell resources without Cargo or sandbox builds", () => {
   const commands = worktreePreparationPlan({ platform: "linux", profile: "dev" });
 
   expect(
@@ -111,6 +111,8 @@ test("light development preparation has no Cargo or sandbox build", () => {
     ["bun", ["scripts/prepare-submodules.mjs"]],
     ["bun", ["install", "--frozen-lockfile"]],
     ["bun", ["scripts/prepare-source-dev.mjs", "--client-only"]],
+    ["bun", ["scripts/prepare-node-runtime.mjs"]],
+    ["bun", ["scripts/prepare-terminal-tools.mjs"]],
   ]);
 });
 
