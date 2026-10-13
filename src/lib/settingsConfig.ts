@@ -28,6 +28,7 @@ export function createProviderConfig(
     enabled: false,
     models: [],
     model_context_compaction_thresholds: {},
+    model_context_windows: {},
     model_reasoning_efforts: {},
     model_reasoning_effort_enabled: {},
     model_vision_enabled: {},
@@ -146,6 +147,11 @@ export function mcpOAuthHintKey(capability?: McpOAuthCapability): TranslationKey
 
 export function replaceProviderModels(provider: ProviderConfig, models: string[]): void {
   provider.models = models;
+  provider.model_context_windows = Object.fromEntries(
+    Object.entries(provider.model_context_windows ?? {}).filter(([model]) =>
+      models.includes(model),
+    ),
+  );
   provider.model_context_compaction_thresholds = Object.fromEntries(
     Object.entries(provider.model_context_compaction_thresholds ?? {}).filter(([model]) =>
       models.includes(model),

@@ -655,6 +655,9 @@ export const zh = {
   modelNameExists: "该模型名称已存在",
   deleteModel: "删除模型",
   modelCompactionThreshold: "触发压缩上下文大小",
+  modelContextWindow: "模型上下文窗口（tokens）",
+  modelContextWindowHint: "可选。压缩阈值最高为此窗口的 90%；留空时仅使用已配置的压缩阈值。",
+  modelContextWindowRange: "模型上下文窗口必须是 1,000 至 10,000,000 之间的整数",
   modelCompactionThresholdHint: "留空时使用全局阈值，当前为",
   modelCompactionThresholdRange: "触发压缩上下文大小必须在 1,000 到 1,000,000 之间",
   modelSupportsReasoningEffort: "支持推理强度",
@@ -826,7 +829,7 @@ export const zh = {
   memoryTaskDescription: "在对话结束后提取可复用信息，写入长期记忆。",
   hookTaskDescription: "识别对话中的明确安排，并创建可触发的计划任务。",
   compactionTaskDescription:
-    "当上下文接近阈值时，使用当前 Chat 模型压缩较早消息，降低后续处理成本。",
+    "当上下文接近阈值时，使用 Flash 模型生成较早消息的结构化摘要，降低后续处理成本。",
   // Model actions
   delete: "删除",
   // Extensions - MCP

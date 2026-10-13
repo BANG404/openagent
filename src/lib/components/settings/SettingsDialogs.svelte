@@ -184,6 +184,21 @@
           </span>
         </label>
 
+        <label class="dialog-field" for="model-config-context-window">
+          <span class="label-text">{$t("modelContextWindow")}</span>
+          <input
+            id="model-config-context-window"
+            class="detail-input"
+            type="number"
+            min="1000"
+            max="10000000"
+            step="1000"
+            bind:value={providers.modelConfigContextWindow}
+            onkeydown={(event) => event.key === "Enter" && providers.saveModelConfig()}
+          />
+          <span class="field-hint">{$t("modelContextWindowHint")}</span>
+        </label>
+
         <label class="reasoning-support-field">
           <Switch
             bind:checked={providers.modelConfigSupportsReasoningEffort}

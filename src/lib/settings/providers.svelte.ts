@@ -44,6 +44,7 @@ export function createProviderSettings(
   let modelConfigOriginalName = $state("");
   let modelConfigName = $state("");
   let modelConfigThreshold = $state<string | number | undefined>("");
+  let modelConfigContextWindow = $state<string | number | undefined>("");
   let modelConfigSupportsReasoningEffort = $state(false);
   let modelConfigSupportsVision = $state(false);
 
@@ -301,6 +302,7 @@ export function createProviderSettings(
     modelConfigOriginalName = modelName;
     modelConfigName = modelName;
     modelConfigThreshold = `${provider.model_context_compaction_thresholds[modelName] ?? ""}`;
+    modelConfigContextWindow = `${provider.model_context_windows?.[modelName] ?? ""}`;
     modelConfigSupportsReasoningEffort =
       provider.provider === "chatgpt" ||
       provider.model_reasoning_effort_enabled?.[modelName] === true;
@@ -348,6 +350,13 @@ export function createProviderSettings(
       return translation.current("modelNameExists");
     }
     const threshold = `${modelConfigThreshold ?? ""}`.trim();
+    const window = `${modelConfigContextWindow ?? ""}`.trim();
+    if (
+      window &&
+      (!Number.isInteger(Number(window)) || Number(window) < 1_000 || Number(window) > 10_000_000)
+    ) {
+      return translation.current("modelContextWindowRange");
+    }
     if (threshold) {
       const parsed = Number(threshold);
       if (!Number.isFinite(parsed) || parsed < 1_000 || parsed > 1_000_000) {
@@ -379,6 +388,10 @@ export function createProviderSettings(
         }
       }
       const previousThreshold = provider.model_context_compaction_thresholds[previousName];
+      const windows = { ...(provider.model_context_windows ?? {}) };
+      if (windows[previousName] !== undefined) windows[nextName] = windows[previousName];
+      delete windows[previousName];
+      provider.model_context_windows = windows;
       delete provider.model_context_compaction_thresholds[previousName];
       if (previousThreshold !== undefined) {
         provider.model_context_compaction_thresholds[nextName] = previousThreshold;
@@ -399,6 +412,11 @@ export function createProviderSettings(
     }
 
     setModelCompactionThreshold(provider, nextName, modelConfigThreshold);
+    const windows = { ...(provider.model_context_windows ?? {}) };
+    if (`${modelConfigContextWindow ?? ""}`.trim())
+      windows[nextName] = Number(modelConfigContextWindow);
+    else delete windows[nextName];
+    provider.model_context_windows = windows;
     setModelReasoningEffortSupport(provider, nextName, modelConfigSupportsReasoningEffort);
     setModelVisionSupport(provider, nextName, modelConfigSupportsVision);
     modelConfigDialogOpen = false;
@@ -413,6 +431,9 @@ export function createProviderSettings(
     const provider = draft.draftConfig.providers.find((item) => item.id === providerId);
     if (!provider) return;
     provider.models = provider.models.filter((model) => model !== modelName);
+    const windows = { ...(provider.model_context_windows ?? {}) };
+    delete windows[modelName];
+    provider.model_context_windows = windows;
     delete provider.model_context_compaction_thresholds[modelName];
     provider.model_context_compaction_thresholds = {
       ...provider.model_context_compaction_thresholds,
@@ -586,6 +607,12 @@ export function createProviderSettings(
     },
     get modelConfigThreshold() {
       return modelConfigThreshold;
+    },
+    get modelConfigContextWindow() {
+      return modelConfigContextWindow;
+    },
+    set modelConfigContextWindow(value) {
+      modelConfigContextWindow = value;
     },
     set modelConfigThreshold(value) {
       modelConfigThreshold = value;

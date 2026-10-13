@@ -677,6 +677,10 @@ const en: Record<TranslationKeys, string> = {
   modelNameExists: "A model with this name already exists",
   deleteModel: "Delete model",
   modelCompactionThreshold: "Context compaction trigger size",
+  modelContextWindow: "Model context window (tokens)",
+  modelContextWindowHint:
+    "Optional. Compaction starts no later than 90% of this window. Leave empty to use only the configured threshold.",
+  modelContextWindowRange: "Model context window must be an integer between 1,000 and 10,000,000",
   modelCompactionThresholdHint: "Leave blank to use the global threshold, currently",
   modelCompactionThresholdRange:
     "Context compaction trigger size must be between 1,000 and 1,000,000",
@@ -865,7 +869,7 @@ const en: Record<TranslationKeys, string> = {
   hookTaskDescription:
     "Detects explicit scheduling intent in conversations and creates triggerable tasks.",
   compactionTaskDescription:
-    "Uses the selected Chat model to compact older messages when context approaches the threshold, reducing later processing cost.",
+    "Uses the Flash model to produce a structured summary of older messages when context approaches the threshold, reducing later processing cost.",
   delete: "Delete",
   mcpServers: "MCP Servers",
   mcpComing: "MCP server support coming soon",

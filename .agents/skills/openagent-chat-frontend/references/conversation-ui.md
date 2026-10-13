@@ -1,5 +1,13 @@
 # Conversation components
 
+The context indicator prefers `active_context_tokens` (latest request input plus
+output or Runtime's pre-request estimate). Keep `context_tokens` as the input-only
+fallback for existing usage records, and never derive context occupancy from
+cumulative task cost. The denominator follows the selected model's effective
+compaction threshold, capped at 90% of its optional configured window. Model
+window controls use the existing model dialog, shared input styling, and a writable
+settings facade; rename/removal preserve or remove their per-model entries.
+
 New Chat loading keeps the centered composer in its destination layout. Render
 context above it only for an actual credential warning; the settled page has no
 memory note or greeting, so loading must not reserve space for either. Known

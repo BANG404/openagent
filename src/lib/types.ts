@@ -295,6 +295,7 @@ export interface TaskTokenUsage {
   total_tokens: number;
   /** Input-context size from the latest provider request in this task. */
   context_tokens?: number;
+  active_context_tokens?: number;
   cached_input_tokens: number;
   cache_creation_input_tokens: number;
   tool_use_prompt_tokens: number;
@@ -531,6 +532,8 @@ export interface ProviderConfig {
   models: string[];
   /** Optional per-model thresholds; missing entries inherit the global value. */
   model_context_compaction_thresholds: Record<string, number>;
+  /** Actual model windows; effective compaction thresholds reserve 10% headroom. */
+  model_context_windows?: Record<string, number>;
   /** Optional reasoning effort per model. */
   model_reasoning_efforts: Record<string, ReasoningEffort>;
   /** Models explicitly configured to accept OpenAI-compatible reasoning effort. */
