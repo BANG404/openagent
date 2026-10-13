@@ -1,0 +1,13 @@
+{
+    admin off
+    auto_https off
+}
+:4318 {
+    bind 127.0.0.1
+    handle /v1/support/reports {
+        reverse_proxy 127.0.0.1:19419
+    }
+    handle {
+        reverse_proxy 127.0.0.1:14318
+    }
+}

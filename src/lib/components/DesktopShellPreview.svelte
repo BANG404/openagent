@@ -257,6 +257,7 @@
         roleEditorOpen = true;
       }}
       onOpenAbout={() => {}}
+      onReportProblem={() => {}}
       debugMode={false}
       onToggleDebugMode={() => {}}
       onQuit={() => {}}

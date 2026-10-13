@@ -41,6 +41,7 @@ pub(crate) fn register(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<ta
         embedded_commands::settings::get_wechat_channel_status,
         embedded_commands::settings::reset_wechat_channel,
         diagnostics::report_frontend_diagnostic,
+        diagnostics::submit_problem_report,
         embedded_commands::models::set_default_chat_model,
         embedded_commands::models::set_model_reasoning_effort,
         embedded_commands::models::test_provider_connection,

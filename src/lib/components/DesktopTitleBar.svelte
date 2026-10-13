@@ -29,6 +29,7 @@
     onCreateRole,
     onConfigureRole,
     onOpenAbout,
+    onReportProblem,
     debugMode,
     onToggleDebugMode,
     onQuit,
@@ -58,6 +59,7 @@
     onOpenSettingsWindow: (kind: SettingsWindowKind, section?: SettingsNav) => void | Promise<void>;
     onCreateRole: () => void;
     onConfigureRole: (role: AgentRole) => void;
+    onReportProblem: () => void;
     onOpenAbout: () => void | Promise<void>;
     debugMode: boolean;
     onToggleDebugMode: () => void;
@@ -119,6 +121,7 @@
       {onCreateRole}
       {onConfigureRole}
       onOpenAbout={() => void onOpenAbout()}
+      {onReportProblem}
       {debugMode}
       {onToggleDebugMode}
       onCloseWindow={onClose}

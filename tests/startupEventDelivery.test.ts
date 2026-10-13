@@ -1,9 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
+import { DESKTOP_PRODUCT_COMMANDS } from "../src/lib/openagent/contracts";
 
 const routeUrl = new URL("../src/routes/PageRuntime.svelte", import.meta.url);
 const startupUrl = new URL("../src/lib/page/startup.ts", import.meta.url);
-const hostDiagnosticsUrl = new URL("../src-tauri/src/diagnostics.rs", import.meta.url);
+const frontendDiagnosticsUrl = new URL("../src/lib/frontendDiagnostics.ts", import.meta.url);
 
 const STARTUP_DIAGNOSTICS = [
   "startup_bootstrap_failed",
@@ -46,16 +47,17 @@ describe("startup Runtime event delivery", () => {
     expect(route.match(/options\.restoreStartupFallback\(\)/g)).toHaveLength(1);
   });
 
-  test("reports startup degradation through allowlisted host diagnostics", async () => {
-    const [route, host] = await Promise.all([
+  test("reports startup degradation through the shared Runtime diagnostic operation", async () => {
+    const [route, diagnostics] = await Promise.all([
       readFile(startupUrl, "utf8"),
-      readFile(hostDiagnosticsUrl, "utf8"),
+      readFile(frontendDiagnosticsUrl, "utf8"),
     ]);
-
     for (const eventName of STARTUP_DIAGNOSTICS) {
       expect(route).toContain(`reportFrontendDiagnostic("${eventName}", "page-shell"`);
-      expect(host).toContain(`"${eventName}" => "${eventName}",`);
     }
-    expect(host).toContain('"page-shell" => "page-shell",');
+    expect(DESKTOP_PRODUCT_COMMANDS).toContain("report_frontend_diagnostic");
+    expect(diagnostics).toContain(
+      'desktopOpenAgent.invokeProduct("report_frontend_diagnostic", request)',
+    );
   });
 });

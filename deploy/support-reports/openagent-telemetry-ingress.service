@@ -1,0 +1,13 @@
+[Unit]
+Description=OpenAgent telemetry and explicit support ingress
+After=network.target openagent-support-reports.service
+
+[Service]
+ExecStart=/usr/bin/caddy run --config %h/Document/opentelemetry/support-reports/ingress.Caddyfile --adapter caddyfile
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+UMask=0077
+
+[Install]
+WantedBy=default.target

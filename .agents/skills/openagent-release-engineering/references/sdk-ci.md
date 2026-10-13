@@ -4,7 +4,10 @@ nightly schedules, and manual full dispatches use the public
 `sdk-ci.yml` workflow so Rust, Runtime, host-compatibility, and native
 process-sandbox jobs remain publicly observable while trusted Linux, Windows,
 and macOS work executes on standard GitHub-hosted runners. Full runs build the
-four release Runtime targets once on that hosted platform matrix. Runtime
+four release Runtime targets once on that hosted platform matrix. The build
+injects `OPENAGENT_LOGS_INGEST_TOKEN` before Cargo compilation and fails when
+the secret is empty. Never print it. Shell packaging reuses those bytes and
+cannot configure an exporter that was compiled without its credential. Runtime
 candidate construction starts after the immutable SDK revision is validated and
 runs concurrently with capability qualification; publishing remains gated on
 both successful qualification and every Runtime candidate. The private

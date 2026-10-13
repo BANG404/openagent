@@ -21,15 +21,29 @@ configuration values, credentials, file contents, raw frontend error messages,
 and stack traces. Model-context spans remain isolated in the optional Langfuse
 pipeline and are not application logs.
 
-Frontend error reports use the shared SDK product operation so the supervised
-Runtime owns their local recording and consent-controlled remote upload.
+The release-qualified Runtime build receives the write-only ingestion credential
+from the `OPENAGENT_LOGS_INGEST_TOKEN` repository secret before Cargo compilation.
+A missing credential fails the Runtime artifact build; injecting it only while
+packaging the desktop shell cannot enable a precompiled Runtime.
+Frontend diagnostics use the shared authenticated Runtime operation, so filtering,
+local JSONL recording and remote export share the same collection switch.
 Component-update lifecycle records remain a desktop-host capability.
-
-Release builds receive the write-only ingestion credential from the
-`OPENAGENT_LOGS_INGEST_TOKEN` repository secret. Local builds may set the same
-environment variable and may override the default
+Local builds may set the same environment variable and may override the default
 `https://openagentlogs.ibat.ac.cn/v1/logs` destination with
 `OPENAGENT_LOGS_ENDPOINT`.
+
+Verify frontend export in a native fixture with `tauri-pilot` and
+`bun scripts/test-diagnostic-logs-blackbox.mjs`. Start the source development
+instance with a temporary `OPENAGENT_HOME`, a dedicated `TAURI_PILOT_SOCKET`,
+`OPENAGENT_LOGS_ENDPOINT=http://127.0.0.1:19418/v1/logs`, and
+`OPENAGENT_LOGS_INGEST_TOKEN=diagnostic-blackbox-token` (a fixture-only value).
+Use those same variables for the runner. It starts an authenticated loopback
+collector and covers frontend errors, immediate upload disable/reenable without
+restart, continued local recording,
+native forwarding, and rejection of raw error values. Production reception can
+then be checked with one deliberately triggered fixture diagnostic and the
+server's archived `service.name=openagent` record; never upload user logs as a
+connectivity test.
 
 The model-service list and default-model provider selectors show the configured
 service name together with the icon mapped from its provider type, independent
@@ -102,3 +116,32 @@ The current compatibility window is explicit:
 Configuration and database scopes are evaluated independently. For example, an
 unversioned configuration paired with a valid schema v3 database resets only
 settings; its conversation history remains active.
+
+## Explicit Help problem reports
+
+Help exposes Report a problem with a required description and an optional,
+default-off current-conversation trace. The UI captures the conversation ID when
+opened, explains the model/tool and message content included, and sends only
+through the typed Runtime `submit_problem_report` operation. The confirmation
+button uploads; failures retain the draft and never show a success receipt.
+Explicit reports are independent of the automatic diagnostic-log preference.
+
+Runtime exports the complete durable snapshot without truncation and keeps report
+payloads out of telemetry. See `sdk/docs/support-reports.md` for the private
+contract. The separate write-only receiver and its deployment/retention contract
+live in `deploy/support-reports/README.md`; the automatic OTLP collector remains
+bounded diagnostic metadata only. Verify actual Help interactions in the Tauri
+window in Chinese/English and light/dark, including default-off trace consent,
+description-only and full-trace receipts, plus a retry after network failure.
+
+Run `bun scripts/test-problem-reports-blackbox.mjs` with the same temporary
+`OPENAGENT_HOME` and pilot socket as the native fixture, plus
+`OPENAGENT_SUPPORT_ENDPOINT=http://127.0.0.1:19419/v1/support/reports` and the
+fixture-only diagnostic credential. The runner refuses non-temporary homes,
+creates only synthetic conversation records, and checks a complete 205-request
+trace, default-off consent, failure retry, and actual theme/locale changes after
+reload. `SUPPORT_BLACKBOX_FORWARD_PRODUCTION=1` additionally forwards only the
+synthetic fixture payloads to the configured production receiver using a
+credential read in memory through SSH; do not run that mode with user data.
+Verify the returned UUID archive on the server. Screenshots stay in the fixture
+home, never in the repository or user report archives.
