@@ -53,6 +53,8 @@
     activeConvId: string | null;
     activeBranchId: string | null;
     debugMode: boolean;
+    onExportConversationTrace?: () => void | Promise<void>;
+    exportingConversationTrace?: boolean;
     taskUsagesByCheckpointId?: Record<string, TaskTokenUsage[]>;
     activeTree: ConvTree | undefined;
     paddingBottom: number;
@@ -105,6 +107,8 @@
     activeConvId,
     activeBranchId,
     debugMode,
+    onExportConversationTrace,
+    exportingConversationTrace = false,
     taskUsagesByCheckpointId = {},
     activeTree,
     paddingBottom,
@@ -304,6 +308,18 @@
       <Tooltip text={activeBranchId ?? "No active branch"}>
         <code>branch: {activeBranchId ?? "pending"}</code>
       </Tooltip>
+      {#if onExportConversationTrace}
+        <button
+          class="debug-export"
+          type="button"
+          disabled={exportingConversationTrace}
+          onclick={onExportConversationTrace}
+        >
+          {exportingConversationTrace
+            ? $t("exportingConversationTrace")
+            : $t("exportConversationTrace")}
+        </button>
+      {/if}
     </aside>
   {/if}
 
@@ -510,6 +526,28 @@
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
+  }
+
+  .debug-export {
+    margin-left: auto;
+    padding: 4px 7px;
+    border: 0;
+    border-radius: 4px;
+    background: var(--component-neutral-bg);
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+  }
+  .debug-export:hover:not(:disabled) {
+    background: var(--interactive-state-bg);
+  }
+  .debug-export:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+  .debug-export:disabled {
+    opacity: 0.6;
+    cursor: default;
   }
 
   .debug-context code {

@@ -1,6 +1,6 @@
 {
   "name": "openagent",
-  "version": "0.79.0-beta.1",
+  "version": "0.80.0-beta.1",
   "description": "OpenAgent desktop AI agent client",
   "homepage": "https://github.com/BANG404/openagent",
   "repository": {
@@ -48,6 +48,7 @@
     "test:blackbox:quick-chat": "bun scripts/test-quick-chat-blackbox.mjs",
     "test:blackbox:user-message-markdown": "bun scripts/test-user-message-markdown-blackbox.mjs",
     "test:blackbox:book-reader": "bun scripts/test-book-reader-blackbox.mjs",
+    "test:blackbox:conversation-trace-export": "bun scripts/test-conversation-trace-export-blackbox.mjs",
     "test:blackbox:runtime-status": "bun scripts/test-runtime-status-blackbox.mjs",
     "test:blackbox:thinking-preview": "bun scripts/test-thinking-preview-blackbox.mjs",
     "test:blackbox:turn-footer": "bun scripts/test-turn-footer-blackbox.mjs",
@@ -74,6 +75,7 @@
     "test:blackbox:plugin-functionality": "bun scripts/test-official-plugin-functionality.mjs",
     "test:blackbox:message-board": "bun scripts/test-message-board-blackbox.mjs",
     "plugin:dev": "bun scripts/plugin-dev.mjs",
+    "test:blackbox:goal-scroll": "bun scripts/test-goal-scroll-blackbox.mjs",
     "test:blackbox:goal-controls": "bun scripts/test-goal-controls-blackbox.mjs",
     "test:blackbox:goal-approval": "bun scripts/test-goal-approval-blackbox.mjs",
     "test:blackbox:mcp-apps": "bun scripts/test-mcp-apps-blackbox.mjs",

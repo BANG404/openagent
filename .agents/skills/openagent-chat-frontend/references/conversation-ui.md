@@ -1,5 +1,20 @@
 # Conversation components
 
+Production Help -> Debug mode exposes Export complete conversation trace in the
+current conversation's debug context bar. The page container calls the scoped
+SDK diagnostic operation only on an explicit click, then saves its UTF-8 JSON
+through the existing native download capability to Downloads (with Home as
+fallback). Keep MessageList presentational. Suppress duplicate exports while a
+read/save is pending; show localized success with the path and Open file action,
+or failure with retry available. Capture the conversation ID at click time so
+navigation cannot change the exported conversation. Disabling Debug mode or
+opening New Chat hides the entry. Do not gate this feature on `import.meta.env.DEV`.
+The export contains sensitive recorded model context; never route it to telemetry
+or load it during ordinary transcript rendering. Attachments remain references.
+During an active run it exports the persisted snapshot; export again for later output.
+Verify the debug entry, pending state, failure/retry and real local JSON saving in
+light/dark and English/Chinese with `bun run test:blackbox:conversation-trace-export`.
+
 The context indicator prefers `active_context_tokens` (latest request input plus
 output or Runtime's pre-request estimate). Keep `context_tokens` as the input-only
 fallback for existing usage records, and never derive context occupancy from

@@ -637,7 +637,9 @@ describe("desktop navigation chrome", () => {
     );
     expect(route).toContain("if (!currentCheckpointFlow && key) {");
     expect(route).toContain('rightSidebarPanel = "files"');
-    expect(route).toContain('rightSidebarPanel = "status"');
+    expect(route).toContain(
+      'flowPluginSidebarPanel(pluginSidebarRegistry, currentCheckpointFlow) ?? "status"',
+    );
     expect(route).toContain("checkpointFlow: currentCheckpointFlow ?? null");
     expect(route).toContain("rightSidebarAvailable");
     expect(conversationSurface).toContain("<CheckpointFlowPanelHost");

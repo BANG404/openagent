@@ -3,6 +3,7 @@ import {
   availablePluginSidebarViews,
   branchToolNames,
   firstAvailablePluginSidebarPanel,
+  flowPluginSidebarPanel,
   pluginSidebarEntries,
   pluginSidebarLifecycle,
   pluginSidebarRevision,
@@ -126,6 +127,35 @@ describe("pluginSidebarLifecycle", () => {
 });
 
 describe("branch tool activation", () => {
+  test("a package projection activates only its owning view, including child branches", () => {
+    const package_ = plugin({ sidebar_views: [view({ activation_tools: ["create_group"] })] });
+    const flow = { pluginId: "demo", flowId: "plugin:demo:panel" } as const;
+    const entries = pluginSidebarEntries([package_], { ...FULL_CONTEXT, flow });
+    expect(flowPluginSidebarPanel(entries, flow)).toBe(flow.flowId);
+    expect(entries[0].lifecycle).toBe("available");
+    for (const other of [
+      undefined,
+      { ...flow, pluginId: "other" },
+      { ...flow, flowId: "plugin:demo:other" },
+    ]) {
+      const inactive = pluginSidebarEntries([package_], { ...FULL_CONTEXT, flow: other });
+      expect(inactive[0].lifecycle).toBe("inactive");
+      expect(flowPluginSidebarPanel(inactive, other)).toBeNull();
+    }
+    expect(
+      flowPluginSidebarPanel(
+        pluginSidebarEntries([{ ...package_, enabled: false }], { ...FULL_CONTEXT, flow }),
+        flow,
+      ),
+    ).toBeNull();
+    expect(
+      pluginSidebarLifecycle(
+        view({ scope: "conversation", activation_tools: ["create_group"] }),
+        package_,
+        { ...EMPTY_CONTEXT, flow },
+      ),
+    ).toBe("out-of-scope");
+  });
   const call: StreamItem = { type: "tool_call", name: "create_group", args: "{}" };
   test("projects pending, failed, retry and saved calls without parsing user text", () => {
     const messages: ChatMessage[] = [

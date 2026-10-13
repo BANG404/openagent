@@ -1,0 +1,82 @@
+[scenario]
+name = "Goal status content stays reachable within the sidebar"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "status viewport fits beneath the fixed header"
+action = "eval"
+script = '''(() => {
+  const panel = document.querySelector('#checkpoint-flow-panel');
+  const header = panel.querySelector('.flow-header');
+  const viewport = panel.querySelector('.flow-body-scroll .ui-scroll-area-viewport');
+  const bounds = viewport.getBoundingClientRect();
+  if (viewport.clientHeight <= 0 || bounds.top < header.getBoundingClientRect().bottom - 1 || bounds.bottom > panel.getBoundingClientRect().bottom + 1) throw new Error('Goal viewport escapes its sidebar');
+  if (viewport.scrollWidth > viewport.clientWidth + 2) throw new Error('Goal content overflows horizontally');
+  const long = new URLSearchParams(location.search).has('checkpoint-flow-preview-long');
+  if (long && viewport.scrollHeight <= viewport.clientHeight) throw new Error('long Goal has no scroll range');
+  if (!long && viewport.scrollHeight > viewport.clientHeight + 2) throw new Error('short Goal unnecessarily scrolls');
+  return true;
+})()'''
+
+[[step]]
+name = "last task and summary can be reached without moving the header"
+action = "eval"
+script = '''(async () => {
+  const viewport = document.querySelector('.flow-body-scroll .ui-scroll-area-viewport');
+  const header = document.querySelector('.flow-header');
+  const headerTop = header.getBoundingClientRect().top;
+  const last = document.querySelector('.flow-item:last-of-type') || document.querySelector('.flow-empty');
+  last.scrollIntoView({block: 'end'});
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  const task = last.getBoundingClientRect();
+  const bounds = viewport.getBoundingClientRect();
+  if (task.bottom > bounds.bottom + 2 || task.top < bounds.top - 2) throw new Error('last Goal task is clipped');
+  viewport.scrollTop = viewport.scrollHeight;
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  const summary = document.querySelector('.flow-summary').getBoundingClientRect();
+  if (summary.bottom > bounds.bottom + 2 || summary.bottom < bounds.top) throw new Error('Goal summary end is unreachable');
+  if (Math.abs(header.getBoundingClientRect().top - headerTop) > 1) throw new Error('Goal scrolling moved the fixed header');
+  return true;
+})()'''
+
+[[step]]
+name = "switch to Files through the sidebar navigation"
+action = "eval"
+script = '''(() => {
+  const button = [...document.querySelectorAll('.panel-navigation button')].find(button => /Files|文件/.test(button.textContent));
+  if (!button) throw new Error('Files tab is missing');
+  button.click();
+  return true;
+})()'''
+
+[[step]]
+name = "Files mounts"
+action = "wait"
+selector = ".panel-cache-slot:not([hidden]) .file-row"
+
+[[step]]
+name = "return to Status through the sidebar navigation"
+action = "eval"
+script = '''(() => {
+  const button = [...document.querySelectorAll('.panel-navigation button')].find(button => /Status|状态/.test(button.textContent));
+  if (!button) throw new Error('Status tab is missing');
+  button.click();
+  return true;
+})()'''
+
+[[step]]
+name = "Status restores its bounded scrolling surface"
+action = "wait"
+selector = ".flow-body-scroll .ui-scroll-area-viewport"
+
+[[step]]
+name = "restored Status can still scroll to its summary"
+action = "eval"
+script = '''(async () => {
+  const viewport = document.querySelector('.flow-body-scroll .ui-scroll-area-viewport');
+  viewport.scrollTop = viewport.scrollHeight;
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  if (document.querySelector('.flow-summary').getBoundingClientRect().bottom > viewport.getBoundingClientRect().bottom + 2) throw new Error('restored Goal summary is clipped');
+  return true;
+})()'''

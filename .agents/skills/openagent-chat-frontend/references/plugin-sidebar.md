@@ -20,6 +20,21 @@ inactive by default, including without an open conversation. The selected
 branch's assistant tool-call records and its live stream activate it; prose,
 tool discovery and calls from sibling branches or the sidebar bridge do not.
 An actual call activates it immediately, including a pending or failed call.
+The selected branch's common package flow can also activate its owner's view
+when the authenticated `plugin_id` matches the package and its opaque `flow_id`
+exactly matches the declared namespaced sidebar view ID. This lets a package
+show its own projection on child branches without fabricating transcript calls.
+No domain payload is inspected or sent to the frame. Scope, enabled/error and
+asset gates still apply. New-flow auto-opening selects that available view;
+unmatched projections retain the common status list. Subsequent updates preserve
+the user's selected tab and collapse choice.
+An absent projection has no auto-open key: never treat two null keys as a
+new-flow request during navigation hydration, which would reset a returning
+branch's saved plugin selection to Status.
+Defer unavailable-panel fallback while the incoming conversation scope is
+loading. A temporarily absent projection or tool history must not overwrite
+the branch's remembered tab. Live flow events request auto-opening through the
+shared key; only the shell selects the available package view or Status.
 Inherited calls on a selected checkpoint path count. Omission retains ordinary
 scope-based availability. An empty list is invalid, not an unconditional panel.
 

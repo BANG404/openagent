@@ -17,6 +17,7 @@
 
   interface Props {
     flow: CheckpointFlow | null;
+    scopeLoading?: boolean;
     changes: FileChange[];
     width: number;
     collapsed: boolean;
@@ -49,6 +50,7 @@
 
   let {
     flow,
+    scopeLoading = false,
     changes,
     width,
     collapsed,
@@ -95,6 +97,7 @@
   let heading = $derived(flow ? $t("checkpointPluginFlow") : "");
 
   $effect(() => {
+    if (scopeLoading) return;
     if (activePanel === "status" && !flow) {
       if (changes.length > 0) activePanel = "files";
       else if (terminalAvailable) activePanel = "terminal";
@@ -223,10 +226,9 @@
                 </div>
               {/each}
             {/if}
+            {#if flow.summary}<p class="flow-summary">{flow.summary}</p>{/if}
           </div>
         </ScrollArea>
-
-        {#if flow.summary}<p class="flow-summary">{flow.summary}</p>{/if}
       </div>
     {/if}
 
@@ -474,19 +476,15 @@
     background: color-mix(in srgb, var(--primary) 11%, transparent);
   }
   .flow-body {
-    display: grid;
+    display: flex;
     min-width: 0;
+    min-height: 0;
     flex: 1;
-    grid-auto-rows: max-content;
-    grid-template-columns: minmax(0, 1fr);
-    align-content: start;
-    gap: 6px;
-    overflow-x: hidden;
-    overflow-y: hidden;
-    padding: 10px;
+    flex-direction: column;
+    overflow: hidden;
   }
 
-  .flow-body-scroll {
+  :global(.flow-body-scroll) {
     min-height: 0;
     flex: 1;
   }
