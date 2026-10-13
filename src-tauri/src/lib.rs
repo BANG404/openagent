@@ -13,6 +13,7 @@ mod embedded_commands;
 mod embedded_host;
 mod invoke_handlers;
 mod native_commands;
+mod node_runtime;
 mod runtime_proxy_commands;
 use desktop_bootstrap::instances::*;
 use desktop_bootstrap::{
@@ -242,6 +243,7 @@ fn run_with_mode(agent_server: bool) {
         .manage(runtime_manager)
         .manage(frontend_manager)
         .setup(move |app| {
+            node_runtime::initialize(app.handle()).map_err(std::io::Error::other)?;
             if is_parent_controlled_workspace_window_process() {
                 install_parent_shutdown_monitor(app.handle().clone());
             } else if cfg!(debug_assertions)

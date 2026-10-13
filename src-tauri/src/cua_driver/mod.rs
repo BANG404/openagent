@@ -59,7 +59,7 @@ fn cua_driver_stop_daemon(
         "--socket".to_string(),
         endpoint.to_string(),
     ]);
-    let mut stopping = cua_driver_launcher_process(launch, args)
+    let mut stopping = cua_driver_launcher_process(launch, args)?
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
@@ -219,12 +219,13 @@ pub(crate) fn resume_refreshing_plugin_daemon(
 fn cua_driver_launcher_process(
     launch: &PluginDaemonLaunch,
     args: Vec<String>,
-) -> std::process::Command {
-    let mut command = std::process::Command::new(&launch.command);
+) -> Result<std::process::Command, String> {
+    let mut command = std::process::Command::new(crate::node_runtime::program(&launch.command));
     command
         .args(args)
         .envs(launch.environment.iter().cloned())
         .current_dir(&launch.root);
+    crate::node_runtime::configure(&mut command)?;
     // The release host is a `windows`-subsystem process without a console, so a
     // console-subsystem child created without CREATE_NO_WINDOW allocates its own
     // visible terminal window beside the product window. Startup starts this
@@ -236,7 +237,7 @@ fn cua_driver_launcher_process(
         use std::os::windows::process::CommandExt;
         command.creation_flags(0x0800_0000);
     }
-    command
+    Ok(command)
 }
 
 /// The launcher invocation that provisions or starts the daemon, which is the
@@ -244,10 +245,10 @@ fn cua_driver_launcher_process(
 fn cua_driver_launcher_command(
     launch: &PluginDaemonLaunch,
     args: Vec<String>,
-) -> std::process::Command {
-    let mut command = cua_driver_launcher_process(launch, args);
+) -> Result<std::process::Command, String> {
+    let mut command = cua_driver_launcher_process(launch, args)?;
     command.envs(cua_driver_serve_environment(launch));
-    command
+    Ok(command)
 }
 
 /// The daemon's own command line, asking the launcher to provision the driver it
@@ -272,7 +273,7 @@ fn prepare_cua_driver(launch: &PluginDaemonLaunch) -> Result<(), String> {
     use std::io::Read;
     use std::process::Stdio;
 
-    let mut child = cua_driver_launcher_command(launch, cua_driver_prepare_args(launch))
+    let mut child = cua_driver_launcher_command(launch, cua_driver_prepare_args(launch))?
         .stdin(Stdio::null())
         // The launcher promises nothing on stdout — for the client subcommand
         // that pipe is the MCP transport — so the host reads only its stderr.

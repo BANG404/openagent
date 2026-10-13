@@ -100,6 +100,7 @@ pub async fn inspect_runtime_bootstrap(
         ));
     }
     let mut command = Command::new(binary_path);
+    crate::node_runtime::configure(command.as_std_mut())?;
     command
         .arg("--desktop-bootstrap")
         .arg("inspect")
@@ -297,6 +298,7 @@ impl RuntimeProcessSupervisor {
             uuid::Uuid::new_v4().simple()
         );
         let mut command = Command::new(&spec.binary_path);
+        crate::node_runtime::configure(command.as_std_mut())?;
         command
             .args(runtime_arguments(&spec))
             .env("OPENAGENT_HOME", &spec.openagent_home)

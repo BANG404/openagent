@@ -3,7 +3,8 @@
 Stable releases also stage and submit one unsigned x64 MSIX through Partner
 Center. Beta releases do not submit a Store package. The Store layout must
 mirror the Windows desktop bundle's runtime inputs: the main executable, the
-agent-server executable, release-root DLLs, and the bundled embedding model.
+agent-server executable, release-root DLLs, the bundled embedding model, and
+the complete `node-runtime/` directory (interpreter, LICENSE and provenance).
 The packaging step fails before submission when a required staged resource is
 missing. Store package versions are independent from the NSIS installer version:
 Stable SemVer `X.Y.Z` maps to `(X+1).Y.Z.0`. This keeps the required fourth

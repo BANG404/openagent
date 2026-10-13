@@ -96,6 +96,14 @@ bun run test:blackbox:plugins
 
 ## Agent plugin process coverage
 
+`bun run test:blackbox:plugin-node-runtime` owns a fresh Windows Tauri fixture
+whose PATH has every system Node directory removed. It runs the committed
+installation and host-access scenarios with light/English and dark/Chinese,
+proving Cua driver provisioning, daemon supervision, MCP discovery and a display
+tool call without a system interpreter. Prepare the current checkout's Runtime
+before running it. The script owns its temporary home, Vite and desktop processes;
+it never modifies the OS PATH or a developer's application data.
+
 The committed `tests/blackbox/plugin-process.toml` scenario drives the processes
 a package declares. The fixture under `tests/fixtures/agent-plugin-process`
 declares an `mcp.json` server, a portable command, and a daemon at once, and the

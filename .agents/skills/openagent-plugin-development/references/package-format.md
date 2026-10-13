@@ -179,6 +179,15 @@ The Runtime validates containment and reports the normalized descriptor; the
 host owns daemon supervision and may connect it through a normal `mcp.json`
 client entry.
 
+Desktop shell installations provide a pinned portable Node.js for JavaScript
+plugin launchers. Host-supervised launchers use its absolute path; supervised
+Runtime children inherit a PATH with that resource directory first, so plugin
+MCP, commands and hooks do not require a system Node installation. The host
+does not mutate the process-global or OS PATH. Missing shell Node resources
+fail startup with repair/reinstall guidance before a plugin attempts downloads.
+Standalone SDK/server users remain responsible for their own interpreter.
+Packaging provenance belongs to release engineering's `artifacts.md`.
+
 Packages do not declare a Runtime implementation binding. Package components
 always load through the same ordinary manifest path and process policy, while
 the package owns its domain state and orchestration through the generic Host
@@ -218,9 +227,9 @@ must remain inside the installed package root.
 
 A declared path carries no interpreter field, so OpenAgent uses one extension
 rule for every entry point it runs — a portable command, an automation hook,
-and a daemon command alike. A path ending in `.mjs` or `.js` runs under the
-session's `node`; anything else is run as the program itself. That is why the
-example above ships a `.cmd`: one JavaScript entry point works on every
+and a daemon command alike. A path ending in `.mjs` or `.js` runs under `node`
+(the bundled interpreter in supervised desktop sessions); anything else is run
+as the program itself. That is why the example above ships a `.cmd`: one JavaScript entry point works on every
 platform, while a native or shell entry points at one.
 
 Commands are the only portable slash entry point. A package that needs a

@@ -5,7 +5,7 @@
   "identifier": "com.iumm.openagent",
   "build": {
     "beforeDevCommand": "bun scripts/prepare-dev-helpers.mjs && bun run dev:tauri",
-    "beforeBuildCommand": "bun run build && bun run build:bootstrap",
+    "beforeBuildCommand": "bun scripts/prepare-node-runtime.mjs && bun run build && bun run build:bootstrap",
     "frontendDist": "../.cache/bootstrap-dist",
     "removeUnusedCommands": false,
     "additionalWatchFolders": [
@@ -41,6 +41,9 @@
     "targets": "all",
     "createUpdaterArtifacts": true,
     "externalBin": [],
+    "resources": {
+      "resources/node-runtime/": "node-runtime/"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

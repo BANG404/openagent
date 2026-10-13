@@ -86,7 +86,7 @@ pub(crate) struct PluginDaemonStop {
 
 impl PluginDaemonStop {
     fn request(&self) -> Result<(), String> {
-        let mut command = std::process::Command::new(&self.command);
+        let mut command = std::process::Command::new(crate::node_runtime::program(&self.command));
         command
             .args(&self.args)
             .current_dir(&self.cwd)
@@ -94,6 +94,7 @@ impl PluginDaemonStop {
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null());
+        crate::node_runtime::configure(&mut command)?;
         #[cfg(windows)]
         {
             use std::os::windows::process::CommandExt;
@@ -157,7 +158,7 @@ impl PluginDaemonSupervisor {
             }
             daemons.remove(&spec.plugin_id);
         }
-        let mut command = std::process::Command::new(&spec.command);
+        let mut command = std::process::Command::new(crate::node_runtime::program(&spec.command));
         command
             .args(&spec.args)
             .current_dir(&spec.cwd)
@@ -165,6 +166,7 @@ impl PluginDaemonSupervisor {
             .stdin(Stdio::piped())
             .stdout(Stdio::null())
             .stderr(Stdio::piped());
+        crate::node_runtime::configure(&mut command)?;
         #[cfg(windows)]
         {
             use std::os::windows::process::CommandExt;

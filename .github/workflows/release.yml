@@ -588,6 +588,7 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           OPENAGENT_RUNTIME_TARGET: ${{ matrix.sidecar_target }}
+          OPENAGENT_NODE_TARGET: ${{ matrix.sidecar_target }}
           OPENAGENT_RUNTIME_SERVER_PREBUILT: "1"
           OPENAGENT_LOGS_INGEST_TOKEN: ${{ secrets.OPENAGENT_LOGS_INGEST_TOKEN }}
         with:
@@ -678,6 +679,9 @@ jobs:
             -Recurse
           Copy-Item "src-tauri\resources\codex-resources" `
             (Join-Path $stage "codex-resources") `
+            -Recurse
+          Copy-Item "src-tauri\resources\node-runtime" `
+            (Join-Path $stage "node-runtime") `
             -Recurse
 
           $tauriConfig = Get-Content -Raw "src-tauri\tauri.conf.json" | ConvertFrom-Json

@@ -26,6 +26,7 @@ export function worktreePreparationPlan({
   ];
   commands.push([bun, ["scripts/prepare-source-dev.mjs", "--client-only"]]);
   if (!native) return commands;
+  commands.push([bun, ["scripts/prepare-node-runtime.mjs"]]);
   if (platform === "linux") {
     commands.push([bun, ["run", `prepare:linux-sandbox:${profile}`]]);
   } else if (platform === "win32") {

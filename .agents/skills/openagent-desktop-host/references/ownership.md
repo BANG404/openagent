@@ -260,3 +260,15 @@ The independent bootstrap and `desktop_bootstrap/provisioning.rs` recover missin
 or failed resource installation without SDK frontend or Runtime availability.
 Native managers still verify signatures and their own compatibility boundaries;
 Runtime still owns persistence consent and semantic embedding validation.
+
+## Bundled plugin interpreter
+
+The thin host resolves its shell-owned `node-runtime/` resource in Tauri setup
+before starting the supervised Runtime or plugin daemons. Pass the interpreter
+directory through child command environments, including Runtime replacement and
+rollback. Host-supervised `node` launchers resolve to the bundled executable.
+Never change process-global environment after threads start or install Node into
+the user's OS. Release resource absence is a repair/reinstall failure; debug
+builds may resolve the prepared resource under their manifest directory.
+Qualify interpreter lookup and child inheritance with a PATH containing no system
+Node, and run the real desktop plugin installation/host-access scenario.

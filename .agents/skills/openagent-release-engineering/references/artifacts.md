@@ -25,6 +25,14 @@
 - Cua Driver is delivered by the verified Agent Plugin release at
   `https://github.com/BANG404/openagent-cua-driver`; the desktop bundle does
   not package or download a Cua binary.
+- Every shell installer and updater bundles the pinned portable Node.js interpreter
+  and upstream LICENSE under `node-runtime/`, including the lightweight, full,
+  and Store layouts. `prepare-node-runtime.mjs` selects the actual Tauri target
+  (including Intel macOS built on ARM), verifies the reviewed archive SHA-256,
+  and stages only Node, its license and provenance. Never install system Node,
+  npm, or modify the machine PATH. Prepare it before native tests and desktop
+  startup; updating the pin requires reviewing upstream SHASUMS and qualifying
+  all shell targets. Node belongs to the shell, not the private Runtime resource.
 - Use `bun run tauri:build` for shell release builds; helper compilation and its
   digests belong to the qualified SDK Runtime, outside shell compilation.
   Keep the release Cargo profile size-oriented and audit installer size,

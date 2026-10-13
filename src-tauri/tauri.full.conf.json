@@ -3,6 +3,7 @@
   "bundle": {
     "createUpdaterArtifacts": false,
     "resources": {
+      "resources/node-runtime/": "node-runtime/",
       "resources/bootstrap-release/": "bootstrap-release/"
     },
     "windows": {

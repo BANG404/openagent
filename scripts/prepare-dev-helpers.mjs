@@ -1,5 +1,8 @@
 import { spawnSync } from "node:child_process";
 import { verifyPreparedDevKit } from "./prepare-dev-kit.mjs";
+import { prepareNodeRuntime } from "./prepare-node-runtime.mjs";
+
+await prepareNodeRuntime();
 
 if (process.env.OPENAGENT_DEV_RUNTIME_SOURCE === "1") {
   const script =

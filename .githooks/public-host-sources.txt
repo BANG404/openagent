@@ -47,6 +47,7 @@ src-tauri/src/lib.rs
 src-tauri/src/local_capabilities.rs
 src-tauri/src/main.rs
 src-tauri/src/native_commands.rs
+src-tauri/src/node_runtime.rs
 src-tauri/src/plugin_daemon_supervisor.rs
 src-tauri/src/process_lifetime.rs
 src-tauri/src/replay_capture.rs

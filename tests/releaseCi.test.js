@@ -456,9 +456,12 @@ describe("release CI verification", () => {
 
   test("publishes lightweight updater inputs and separate full first-install bundles", () => {
     expect(tauriConfig.bundle.createUpdaterArtifacts).toBe(true);
-    expect(tauriConfig.bundle.resources).toBeUndefined();
+    expect(tauriConfig.bundle.resources).toEqual({
+      "resources/node-runtime/": "node-runtime/",
+    });
     expect(fullTauriConfig.bundle.createUpdaterArtifacts).toBe(false);
     expect(fullTauriConfig.bundle.resources).toEqual({
+      "resources/node-runtime/": "node-runtime/",
       "resources/bootstrap-release/": "bootstrap-release/",
     });
     expect(releaseWorkflow).toContain("Build full first-install bundle");
@@ -467,6 +470,13 @@ describe("release CI verification", () => {
     );
     expect(releaseWorkflow).toContain("release-candidate-artifacts.mjs stage-full");
     expect(releaseWorkflow).not.toContain("upload-full-release-asset.mjs");
+  });
+
+  test("ships a target-specific Node.js in shell installers, updates and Store packages", () => {
+    expect(tauriConfig.build.beforeBuildCommand).toContain("bun scripts/prepare-node-runtime.mjs");
+    expect(releaseWorkflow).toContain("OPENAGENT_NODE_TARGET: ${{ matrix.sidecar_target }}");
+    expect(releaseWorkflow).toContain('Copy-Item "src-tauri\\resources\\node-runtime"');
+    expect(nativeWorkflow).toContain("name: Prepare bundled plugin Node.js");
   });
 
   test("publishes signed runtime and frontend component channels", () => {

@@ -36,7 +36,7 @@ export async function prepareEmbeddedManifest(repositoryRoot = root) {
     "[target.'cfg(windows)'.dependencies]",
     `[target.'cfg(windows)'.dependencies]\nrama-error = "=0.3.0-alpha.4"\nrama-macros = "=0.3.0-alpha.4"\nrama-utils = "=0.3.0-alpha.4"`,
   );
-  /** @type {{ build: { frontendDist: string }; bundle: { icon: string[]; externalBin: string[] } }} */
+  /** @type {{ build: { frontendDist: string }; bundle: { icon: string[]; externalBin: string[]; resources?: Record<string, string> } }} */
   const config = JSON.parse(await readFile(path.join(host, "tauri.conf.json"), "utf8"));
   config.build.frontendDist = path.resolve(host, config.build.frontendDist).replaceAll("\\", "/");
   config.bundle.icon = config.bundle.icon.map((name) =>
@@ -45,6 +45,14 @@ export async function prepareEmbeddedManifest(repositoryRoot = root) {
   config.bundle.externalBin = config.bundle.externalBin.map((name) =>
     path.resolve(host, name).replaceAll("\\", "/"),
   );
+  if (config.bundle.resources) {
+    config.bundle.resources = Object.fromEntries(
+      Object.entries(config.bundle.resources).map(([name, target]) => [
+        path.resolve(host, name).replaceAll("\\", "/"),
+        target,
+      ]),
+    );
+  }
   await mkdir(destination, { recursive: true });
   await cp(path.join(host, "capabilities"), path.join(destination, "capabilities"), {
     recursive: true,
