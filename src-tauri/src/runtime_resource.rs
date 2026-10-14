@@ -145,6 +145,26 @@ impl RuntimeResourceManager {
         self.active_resource_locked().await
     }
 
+    /// Startup can install a verified replacement after resource admission has
+    /// cleared an unusable selection, including one from an older protocol.
+    /// Preserve errors when the selection remains: unreadable or malformed
+    /// activation state must not be overwritten by recovery.
+    pub(crate) async fn startup_resource(
+        &self,
+    ) -> Result<Option<InstalledRuntimeResource>, String> {
+        let _guard = self.operation.lock().await;
+        match self.active_resource_locked().await {
+            Ok(resource) => Ok(resource),
+            Err(error) => {
+                if read_active(&self.resources_dir)?.is_some() {
+                    return Err(error);
+                }
+                tracing::warn!(%error, "startup Runtime selection was rejected; replacement resources required");
+                Ok(None)
+            }
+        }
+    }
+
     pub async fn activate(&self, candidate: &InstalledRuntimeResource) -> Result<(), String> {
         let _guard = self.operation.lock().await;
         let verified = self
@@ -851,6 +871,81 @@ mod tests {
             2,
         )
         .is_err());
+    }
+
+    #[tokio::test]
+    async fn startup_recovers_a_rejected_selection_without_deleting_installed_bytes() {
+        for protocol in [2, 3] {
+            let home = tempfile::tempdir().unwrap();
+            let manager = RuntimeResourceManager::new(
+                home.path().to_path_buf(),
+                RuntimeResourceSource {
+                    manifest_url: "https://example.invalid/manifest.json".into(),
+                    signature_url: "https://example.invalid/manifest.json.sig".into(),
+                    public_key: TAURI_TEST_PUBLIC_KEY.into(),
+                },
+                protocol,
+            );
+            let target = current_runtime_resource_target().unwrap();
+            let directory = manager.resources_dir.join("9.9.9-test.1").join(target);
+            tokio::fs::create_dir_all(&directory).await.unwrap();
+            tokio::fs::write(
+                directory.join(MANIFEST_FILE),
+                STANDARD.decode(TAURI_RUNTIME_MANIFEST_BASE64).unwrap(),
+            )
+            .await
+            .unwrap();
+            tokio::fs::write(directory.join(SIGNATURE_FILE), TAURI_RUNTIME_SIGNATURE)
+                .await
+                .unwrap();
+            // Protocol 2 exercises damaged bytes; protocol 3 exercises a
+            // signed, intact installation left behind by an older shell.
+            let bytes: &[u8] = if protocol == 2 {
+                b"damaged"
+            } else {
+                b"runtime-fixture"
+            };
+            let binary = directory.join("openagent-server.bin");
+            tokio::fs::write(&binary, bytes).await.unwrap();
+            write_active(
+                &manager.resources_dir,
+                &RuntimeResourceSelection {
+                    schema_version: 1,
+                    active: RuntimeResourceSelectionEntry {
+                        version: "9.9.9-test.1".into(),
+                        target: target.into(),
+                    },
+                    previous: None,
+                },
+            )
+            .unwrap();
+            assert!(manager.startup_resource().await.unwrap().is_none());
+            assert!(!active_path(&manager.resources_dir).exists());
+            assert_eq!(tokio::fs::read(binary).await.unwrap(), bytes);
+        }
+    }
+
+    #[tokio::test]
+    async fn startup_preserves_malformed_activation_state() {
+        let home = tempfile::tempdir().unwrap();
+        let manager = RuntimeResourceManager::new(
+            home.path().to_path_buf(),
+            RuntimeResourceSource {
+                manifest_url: "https://example.invalid/manifest.json".into(),
+                signature_url: "https://example.invalid/manifest.json.sig".into(),
+                public_key: TAURI_TEST_PUBLIC_KEY.into(),
+            },
+            3,
+        );
+        tokio::fs::create_dir_all(&manager.resources_dir)
+            .await
+            .unwrap();
+        let path = active_path(&manager.resources_dir);
+        tokio::fs::write(&path, b"malformed selection")
+            .await
+            .unwrap();
+        assert!(manager.startup_resource().await.is_err());
+        assert_eq!(tokio::fs::read(path).await.unwrap(), b"malformed selection");
     }
 
     #[tokio::test]

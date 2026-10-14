@@ -405,6 +405,15 @@ navigation, including shell continuation and cached repair. A frontend older
 than the shell may require a new distribution without reopening Welcome.
 Initial preparation without an admitted frontend, explicit offline import and
 actionable startup failures retain the shared welcome/recovery surface.
+An existing shell handoff also keeps preparation hidden when the new shell's
+protocol rejects the old frontend selection. After staging the exact signed
+distribution, Runtime startup admission may continue with its verified candidate
+when the resource owner has cleared an unusable old selection. Rejected protocol
+or damaged-resource selections must not require a manual retry; malformed or
+unreadable activation state still fails without being overwritten. Keep old
+installed bytes and all product data intact. Native shell-resource coverage seeds
+both old protocol selections and asserts a first-attempt, hidden handoff with
+unchanged configuration.
 First installation keeps resource preparation inside the existing welcome step;
 after installation the same main WebView continues the full wizard through
 `onboarding-inline`, and completion returns that window to the ordinary product.

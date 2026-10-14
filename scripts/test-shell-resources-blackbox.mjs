@@ -11,12 +11,14 @@ import { createFrontendManifest } from "./frontend-artifacts.mjs";
 import { createDistribution } from "./distribution-artifacts.mjs";
 import { bindRuntimeHelpers } from "./bind-runtime-helpers.mjs";
 import { rename } from "node:fs/promises";
+import { readDesktopRuntimeProtocol } from "./runtime-protocol.mjs";
 
 if (process.platform !== "win32")
   throw new Error(
     "The complete native fixture currently targets Windows; portable download tests cover other targets",
   );
 const root = fileURLToPath(new URL("../", import.meta.url));
+const runtimeProtocol = readDesktopRuntimeProtocol(root);
 const directory = await mkdtemp(path.join(os.tmpdir(), "openagent-shell-resources-"));
 const home = path.join(directory, "data");
 const port = Number(process.env.OPENAGENT_BLACKBOX_PORT ?? "18889");
@@ -211,7 +213,7 @@ try {
       schema_version: 1,
       sdk_sha: "1".repeat(40),
       version: "0.1.1",
-      protocol: { min: 2, max: 2 },
+      protocol: { min: runtimeProtocol, max: runtimeProtocol },
       artifacts: {
         "windows-x64": {
           file: "openagent-server-windows-x64.exe",
@@ -253,7 +255,7 @@ try {
         assets: path.join(root, "build"),
         version,
         shellProtocolVersion: 2,
-        runtimeProtocolVersion: 2,
+        runtimeProtocolVersion: runtimeProtocol,
       }),
     ),
   );
@@ -448,6 +450,101 @@ try {
   if (!(await readFile(installedHelper)).equals(expectedHelper))
     throw new Error("Cached handoff did not restore the installed helper");
   captureBlackboxScreenshot(pilot, path.join(directory, "product-after-restart.png"));
+
+  // A coupled shell upgrade can reject both old selections at the protocol
+  // boundary. Its verified cache must reach the product on the first attempt,
+  // without showing Welcome or changing the configured application's data.
+  spawnSync("taskkill", ["/PID", String(desktop.pid), "/T", "/F"], {
+    windowsHide: true,
+    stdio: "ignore",
+  });
+  const runtimeRoot = path.join(home, "resources", "runtime");
+  const oldVersion = "0.0.1";
+  const oldRuntimeRoot = path.join(runtimeRoot, oldVersion, beforeRepairSelection.active.target);
+  await cp(path.dirname(installedHelper), path.join(oldRuntimeRoot, "codex-resources"), {
+    recursive: true,
+  });
+  await cp(
+    path.join(path.dirname(path.dirname(installedHelper)), "openagent-server-windows-x64.exe"),
+    path.join(oldRuntimeRoot, "openagent-server-windows-x64.exe"),
+  );
+  const oldRuntimeManifest = Buffer.from(
+    JSON.stringify({
+      ...JSON.parse(await readFile(path.join(runtimeDir, "openagent-sdk-manifest.json"), "utf8")),
+      version: oldVersion,
+      protocol: { min: runtimeProtocol - 1, max: runtimeProtocol - 1 },
+    }),
+  );
+  await writeFile(path.join(oldRuntimeRoot, "openagent-sdk-manifest.json"), oldRuntimeManifest);
+  await writeFile(
+    path.join(oldRuntimeRoot, "openagent-sdk-manifest.json.sig"),
+    fixture.sign(oldRuntimeManifest),
+  );
+  await writeFile(
+    path.join(runtimeRoot, "active.json"),
+    JSON.stringify({
+      schema_version: 1,
+      active: { version: oldVersion, target: beforeRepairSelection.active.target },
+      previous: null,
+    }),
+  );
+  const frontendRoot = path.join(home, "resources", "frontend");
+  const oldFrontendRoot = path.join(frontendRoot, oldVersion);
+  await cp(path.join(frontendRoot, version), oldFrontendRoot, { recursive: true });
+  const oldFrontendManifest = Buffer.from(
+    JSON.stringify({
+      ...JSON.parse(frontendManifest.toString()),
+      version: oldVersion,
+      compatibility: {
+        shell: { min: 2, max: 2 },
+        runtime: { min: runtimeProtocol - 1, max: runtimeProtocol - 1 },
+      },
+    }),
+  );
+  await writeFile(
+    path.join(oldFrontendRoot, ".openagent-frontend-manifest.json"),
+    oldFrontendManifest,
+  );
+  await writeFile(
+    path.join(oldFrontendRoot, ".openagent-frontend-manifest.json.sig"),
+    fixture.sign(oldFrontendManifest),
+  );
+  await writeFile(
+    path.join(frontendRoot, "active.json"),
+    JSON.stringify({ version: oldVersion, previous_version: null, pending_confirmation: false }),
+  );
+  await writeFile(continuationFile, JSON.stringify({ schema_version: 1, shell_version: version }));
+  const configBeforeUpgrade = await readFile(configFile);
+  const protocolUpgradeLogStart = logs.length;
+  desktop = start(process.execPath, desktopArguments);
+  const protocolUpgradeDeadline = Date.now() + 120000;
+  let protocolUpgraded = false;
+  while (Date.now() < protocolUpgradeDeadline) {
+    try {
+      const url = pilot(["url"]);
+      assertBootstrapHidden(url);
+      if (url.includes("openagent-ui")) {
+        pilot(["run", path.join(root, "tests/blackbox/shell-installed-startup.toml")]);
+        protocolUpgraded = true;
+        break;
+      }
+    } catch (error) {
+      if (String(error).includes("Configured startup revealed")) throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  if (
+    !protocolUpgraded ||
+    logs.slice(protocolUpgradeLogStart).join("").includes("showing shell resource preparation")
+  )
+    throw new Error("Protocol upgrade required Welcome or a resource retry");
+  if (!(await readFile(configFile)).equals(configBeforeUpgrade))
+    throw new Error("Protocol upgrade changed the configured application's settings");
+  if (
+    !(await readFile(path.join(oldRuntimeRoot, "openagent-server-windows-x64.exe"))).equals(binary)
+  )
+    throw new Error("Protocol upgrade deleted the old installed Runtime bytes");
+  captureBlackboxScreenshot(pilot, path.join(directory, "protocol-upgrade-product.png"));
   // An ordinary repeat launch needs only installed selections. Hide the entire
   // distribution cache as well as the original source to prove it is not staged.
   const cachedDistribution = path.join(home, "resources", "distributions", version);
@@ -576,7 +673,7 @@ try {
   if (!(await readFile(configFile, "utf8")).includes("onboarding_completed = true"))
     throw new Error("Resource recovery changed onboarding completion");
   console.log(
-    `Shell resource black-box passed: retry, four themes/locales, verified offline install, interrupted installer supersession, hidden continuation with helper repair, direct repeat startup, hidden cached repair and invalid-cache recovery. Artifacts: ${directory}`,
+    `Shell resource black-box passed: retry, four themes/locales, verified offline install, interrupted installer supersession, hidden continuation with helper repair, protocol upgrade without retry, direct repeat startup, hidden cached repair and invalid-cache recovery. Artifacts: ${directory}`,
   );
 } finally {
   await writeFile(path.join(directory, "desktop.log"), logs.join(""));
