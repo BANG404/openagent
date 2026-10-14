@@ -233,7 +233,7 @@
       "category": "automation",
       "display_name": "Cua Driver",
       "description": "Desktop control through the OpenAgent Cua Driver daemon.",
-      "version": "1.3.0",
+      "version": "1.3.1",
       "repository": "https://github.com/BANG404/openagent-cua-driver",
       "homepage": "https://github.com/BANG404/openagent-cua-driver",
       "source_url": "https://github.com/BANG404/openagent-cua-driver.git",
@@ -262,7 +262,8 @@
             "notice.unexpected": "Cua Driver operation failed ({code})",
             "notice.checkingUpdates": "checking for Cua Driver updates",
             "notice.updated": "updated Cua Driver to {version}",
-            "notice.updateFailed": "Cua Driver automatic update failed; using the last verified driver"
+            "notice.updateFailed": "Cua Driver automatic update failed; using the last verified driver",
+            "notice.screenshotPathFailed": "Cannot prepare screenshot output path {path} ({code}). Choose a writable file path, or omit screenshot_out_file to receive the image inline."
           },
           "zh": {
             "display_name": "桌面控制",
@@ -285,7 +286,8 @@
             "notice.unexpected": "Cua Driver 操作失败（{code}）",
             "notice.checkingUpdates": "正在检查 Cua Driver 更新",
             "notice.updated": "已将 Cua Driver 更新至 {version}",
-            "notice.updateFailed": "Cua Driver 自动更新失败；继续使用上次校验通过的驱动"
+            "notice.updateFailed": "Cua Driver 自动更新失败；继续使用上次校验通过的驱动",
+            "notice.screenshotPathFailed": "无法准备截图输出路径 {path}（{code}）。请选择可写的文件路径，或省略 screenshot_out_file 以内嵌方式接收图片。"
           }
         }
       }

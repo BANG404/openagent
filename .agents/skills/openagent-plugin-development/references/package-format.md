@@ -400,6 +400,12 @@ standard packages use the same package overlay and verified GitHub release
 updater.
 
 Driver updates are package-owned and separate from plugin release updates.
+Screenshot export preparation is also package-owned: the Cua launcher prepares
+explicit window/desktop MCP output paths before forwarding to the driver;
+ordinary reads retain inline image content. The package's bundled Skill owns
+path resolution and failure recovery. Keep this handling out of the desktop
+host and shared MCP transports.
+
 `--openagent-prepare` checks plain stable driver tags at most once every six
 hours and activates a verified platform asset before daemon startup. Serve,
 MCP and stop use the selected cache without an update check. Update failure
