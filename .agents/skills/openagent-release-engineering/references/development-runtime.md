@@ -15,6 +15,8 @@ remain until restart; it is not the selected candidate. Release staging still
 requires the exact fixed sidecar bytes. Invalid selections fail explicitly.
 Vite handles both new and changed pending files and reoffers an unconsumed stamp
 until the mounted frontend acknowledges it, including after reconnect/startup.
+The barrier regression waits for observable offers with a bounded deadline;
+startup and watcher notifications must not depend on a fixed I/O grace period.
 Vite asks the mounted Tauri frontend to acquire the Runtime's
 graceful component-update barrier. While an Agent is active, frontend HMR and
 the Tauri reload stamp remain deferred without cancelling that execution. Once

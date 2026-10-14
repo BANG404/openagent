@@ -10,6 +10,15 @@ import {
   writeRuntimeServerPendingStamp,
 } from "./runtime-server-dev-signals.mjs";
 
+/** @param {() => boolean} condition */
+async function waitForOffer(condition) {
+  const deadline = Date.now() + 10_000;
+  while (!condition()) {
+    if (Date.now() >= deadline) throw new Error("Runtime update offer did not arrive");
+    await new Promise((done) => setTimeout(done, 10));
+  }
+}
+
 test("reoffers startup and newly added Runtime signals until one idle acknowledgement consumes them", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "openagent-runtime-barrier-"));
   const watcher = new EventEmitter();
@@ -22,7 +31,9 @@ test("reoffers startup and newly added Runtime signals until one idle acknowledg
   try {
     await writeRuntimeServerPendingStamp(root, { revision: 1 });
     plugin.configureServer({ watcher, ws, httpServer, config: { logger: { warn() {} } } });
-    await new Promise((done) => setTimeout(done, 1200));
+    await waitForOffer(
+      () => offered.filter((message) => message.data.kind === "runtime").length >= 2,
+    );
     expect(
       offered.filter((message) => message.data.kind === "runtime").length,
     ).toBeGreaterThanOrEqual(2);
@@ -36,7 +47,7 @@ test("reoffers startup and newly added Runtime signals until one idle acknowledg
     expect(offered.length).toBe(count);
     await writeRuntimeServerPendingStamp(root, { revision: 2 });
     watcher.emit("add", runtimeServerPendingStampPath(root));
-    await new Promise((done) => setTimeout(done, 50));
+    await waitForOffer(() => offered.length > count);
     expect(offered.length).toBeGreaterThan(count);
     await accept({ kind: "runtime" });
     expect(JSON.parse(await readFile(runtimeServerReloadStampPath(root), "utf8")).revision).toBe(2);
@@ -44,4 +55,4 @@ test("reoffers startup and newly added Runtime signals until one idle acknowledg
     httpServer.emit("close");
     await rm(root, { recursive: true, force: true });
   }
-});
+}, 15_000);
