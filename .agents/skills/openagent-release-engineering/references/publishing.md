@@ -47,6 +47,15 @@ Runtime-selected desktop releases run `plugin-releases.yml` after qualification
 and before SDK publication. It checks out the immutable qualified SDK contract,
 stages pinned standard packages using their checked-in versions without rewriting
 manifests, tests the packaged bytes, then publishes or reuses immutable releases.
+The plugin gate reads the paginated commit-status history for that exact SDK SHA
+and requires a successful `Public SDK CI` record with the description
+`Public SDK full validation passed` and its qualification run URL. A later
+pending or failed rerun does not revoke completed qualification of unchanged
+source. Missing full success, fast-only results and API failures stop publication;
+the gate logs the accepted qualification URL. Keep the checkout-SHA and SDK
+`main` ancestry checks before this gate. Fresh release qualification still waits
+for its own dispatch; historical success is only reusable evidence for this
+immutable plugin contract check.
 The [plugin versioning contract](../../openagent-plugin-development/references/versioning.md)
 owns version decisions, range declarations, reuse and collision checks. The plugin
 contract owns repository token requirements. Independent

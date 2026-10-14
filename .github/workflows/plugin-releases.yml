@@ -66,8 +66,7 @@ jobs:
         run: |
           test "$(git -C sdk rev-parse HEAD)" = "$SDK_SHA"
           git -C sdk merge-base --is-ancestor "$SDK_SHA" origin/main
-          status="$(gh api "repos/BANG404/openagent-sdk/commits/$SDK_SHA/status" --jq '[.statuses[] | select(.context == "Public SDK CI")][0] | [.state, .description] | @tsv')"
-          test "$status" = $'success\tPublic SDK full validation passed'
+          bun scripts/require-sdk-qualification.mjs
       - name: Initialize pinned standard package sources
         run: |
           git submodule update --init --recursive -- plugins
