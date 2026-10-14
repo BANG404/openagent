@@ -93,6 +93,7 @@
     "test:blackbox:slash-command-matching": "bun scripts/test-slash-command-matching-blackbox.mjs",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "test:agent-runtime": "cargo test --manifest-path sdk/rust/openagent-runtime/Cargo.toml",
+    "test:model:cache": "bun --cwd sdk scripts/test-agent-runtime-model.mjs --cache-hit-rate",
     "dev:agent-server": "bun scripts/embedded-cargo.mjs run --bin openagent-agent-server",
     "dev:agent-input-api": "cargo run --manifest-path sdk/rust/openagent-runtime/Cargo.toml --features test-api --bin openagent-runtime-test-api -- --port 0",
     "format:rust:check": "cargo fmt --manifest-path src-tauri/Cargo.toml -- --check",

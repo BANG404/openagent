@@ -68,6 +68,13 @@ An unknown existing cache receives the same one-time workspace invalidation.
 The guard also checks local crate dep-info's source directory, so an already
 running older launcher cannot silently overwrite that cache behind its marker.
 
+`bun run test:model:cache` explicitly measures real-provider prompt cache hits
+using the SDK-owned ignored test and dev model discovery. It consumes model
+requests and is outside automatic preflight. The SDK's
+`docs/runtime-model-tests.md` owns request budgets, selection, accounting and
+failure semantics; do not implement provider requests or cache accounting in
+the public host. Its output contains only usage and timing metadata.
+
 For an owner-required ignored fixture test, add `--ignored` explicitly. This
 selects only the exact case and retains the same nonzero-pass, isolated-data and
 source-change gates. Fixture source paths must name exported copies, never an
