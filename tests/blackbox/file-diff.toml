@@ -64,6 +64,15 @@ script = '''(async () => {
     }
     if (index === 9) {
       if (panel.querySelector('.diff-row.full-file') || [...panel.querySelectorAll('.line-number')].some(row => row.textContent.trim())) throw new Error('fragments claimed full content or file offsets');
+      const sidebar = document.querySelector('#checkpoint-flow-panel');
+      const previousWidth = sidebar.style.width;
+      sidebar.style.width = '260px';
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      for (const row of panel.querySelectorAll('.diff-row')) {
+        const offset = row.querySelector('code').getBoundingClientRect().left - row.getBoundingClientRect().left;
+        if (offset > 24 || row.querySelector('.line-number')) throw new Error('unknown-offset fragments reserve empty line-number gutters');
+      }
+      sidebar.style.width = previousWidth;
       if (![...panel.querySelectorAll('.diff-row code')].map(row => row.textContent).join('\n').includes('new fragment')) throw new Error('fragment inference missing');
       if (!panel.textContent.includes('unknown') && !panel.textContent.includes('未知')) throw new Error('fragment uncertainty missing');
     }

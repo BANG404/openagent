@@ -24,6 +24,7 @@
   let singleLineNumbers = $derived(
     fullFile || contentMode || lines.every((line) => line.type !== "context"),
   );
+  let hasLineNumbers = $derived(lines.some((line) => line.oldLine != null || line.newLine != null));
   let highlighted = $state.raw<{
     lines: FileChangeDiffLine[];
     path: string;
@@ -71,10 +72,11 @@
           class:single-line-numbers={singleLineNumbers}
           class:content-mode={contentMode}
           class:full-file={fullFile}
+          class:unnumbered={!hasLineNumbers}
         >
-          {#if singleLineNumbers}
+          {#if hasLineNumbers && singleLineNumbers}
             <span class="line-number">{line.newLine ?? line.oldLine ?? ""}</span>
-          {:else}
+          {:else if hasLineNumbers}
             <span class="line-number">{line.oldLine ?? ""}</span>
             <span class="line-number">{line.newLine ?? ""}</span>
           {/if}
@@ -191,6 +193,15 @@
     white-space: pre;
     overflow-wrap: normal;
     tab-size: 4;
+  }
+  .diff-row.unnumbered {
+    grid-template-columns: 18px minmax(0, 1fr);
+  }
+  .diff-row.unnumbered .line-marker {
+    width: 18px;
+  }
+  .diff-row.unnumbered.content-mode {
+    grid-template-columns: minmax(0, 1fr);
   }
   .diff-row.add {
     background: color-mix(in srgb, #18794e 24%, transparent);

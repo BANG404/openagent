@@ -276,7 +276,11 @@
   SDK inference and editing correctness belong to its Runtime tests.
   Keep diff rows on a single monospace baseline with fixed line-number gutters
   and a dedicated change-marker gutter; pure additions or deletions collapse to
-  one line-number gutter, while mixed edits retain dual gutters. The diff viewport
+  one line-number gutter, while mixed edits retain dual gutters. The renderer
+  omits all line-number gutters when no row has a known file offset; fragment
+  text starts after a compact change-marker gutter, including in narrow sidebars.
+  The `file-diff` native scenario checks that unknown-offset fragments reserve
+  no empty number columns at a 260px sidebar width. The diff viewport
   owns horizontal scrolling for long source lines so indentation and code columns
   stay intact.
   Render a created text file from its inferred content as all-added
