@@ -143,8 +143,8 @@ layout-stable skeleton.
   `tauri-pilot` black-box scenario, including light/dark themes and Chinese/English where applicable. See `.agents/skills/openagent-desktop-host/references/native-verification.md`.
 
 ## Delivery
-Every repository-changing task uses `deliver-via-owt` and the same OWT workflow.
-No prefix or mode selection is required. Implement in isolated task worktrees;
-keep the default directory on local `main` for developer debugging and
-fast-forward verified results into it. Batches coordinate concurrent OWT tasks.
-The skill owns preservation, reconciliation, verification, and cleanup; user instructions override delivery.
+Every repository-changing task uses `deliver-via-owt`: implement in isolated worktrees,
+verify, and fast-forward into local `main`, keeping the default directory available for debugging.
+Batches coordinate concurrent tasks; the skill owns preservation, reconciliation, and cleanup.
+The workspace owner authorizes plugin updates and pushes, and proactive synchronization and pushes of verified
+repository changes to remote `main` without further confirmation. User instructions override delivery.
