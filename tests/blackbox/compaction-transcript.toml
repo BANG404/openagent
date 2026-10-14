@@ -13,7 +13,8 @@ script = '''(async () => {
   assert(visible().includes('Before compaction trace'), 'live pre-compaction text missing');
   const tool = document.querySelector('.tool-call-card');
   assert(tool, 'original tool card missing');
-  document.querySelector('[data-compaction-action=compact]').click();
+  const action = new URL(location.href).searchParams.has('compaction-checkpoint-first') ? 'checkpoint-first' : 'compact';
+  document.querySelector('[data-compaction-action='+action+']').click();
   await new Promise(resolve => setTimeout(resolve, 150));
   assert(document.querySelector('.tool-call-card') === tool, 'compaction remounted the original tool card');
   assert(document.querySelectorAll('.tool-call-card').length === 1, 'compaction duplicated the trajectory');
@@ -21,6 +22,11 @@ script = '''(async () => {
   assert(visible().includes('Earlier visible answer'), 'compaction hid earlier completed turns');
   assert(visible().includes('After compaction continuation'), 'continued output missing');
   assert(/Context compaction complete|上下文压缩完成/.test(visible()), 'compaction divider missing');
+  const dividers = document.querySelectorAll('.message-divider');
+  assert(dividers.length === 1, 'compaction created duplicate dividers');
+  const approval = [...document.querySelectorAll('.pagination-atom')].find(el => el.innerText.includes('Confirm scenario inputs'));
+  assert(approval, 'cancelled approval missing');
+  assert(dividers[0].compareDocumentPosition(approval) & Node.DOCUMENT_POSITION_FOLLOWING, 'approval moved ahead of compaction');
   assert(!visible().includes('PRIVATE_PROVIDER_REPLAY'), 'provider replay leaked into the transcript');
   return 'live trajectory retained';
 })()'''
@@ -40,6 +46,11 @@ script = '''(async () => {
   group.querySelector('.process-record-summary').click();
   await new Promise(resolve => setTimeout(resolve, 100));
   const text = document.querySelector('.compaction-transcript-preview').innerText;
+  const dividers = document.querySelectorAll('.message-divider');
+  if (dividers.length !== 1) throw new Error('completed snapshot duplicated compaction');
+  const approval = [...document.querySelectorAll('.pagination-atom')].find(el => el.innerText.includes('Confirm scenario inputs'));
+  if (!approval || !(dividers[0].compareDocumentPosition(approval) & Node.DOCUMENT_POSITION_FOLLOWING)) throw new Error('completed approval moved ahead of compaction');
+  if (approval.closest('.process-records[data-grouped=true]')) throw new Error('post-compaction approval moved into the earlier fold');
   for (const expected of ['Earlier visible answer', 'Before compaction trace', 'After compaction continuation']) {
     if (!text.includes(expected)) throw new Error('completed snapshot lost '+expected);
   }

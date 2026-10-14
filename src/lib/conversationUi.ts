@@ -44,7 +44,11 @@ export function mergeConversationUiStream(
       message.ui.component === "builtin.divider" &&
       message.ui.props.label_key === "compactionCompleted"
     ) {
-      const boundaryIndex = merged.findIndex((previous) => previous.type === "compaction_boundary");
+      // Checkpoint hydration can beat the progress "done" event. Consume the
+      // progress slot too so completion cannot manufacture a second divider.
+      const boundaryIndex = merged.findIndex(
+        (previous) => previous.type === "compaction_boundary" || previous.type === "compaction",
+      );
       if (boundaryIndex >= 0) merged[boundaryIndex] = item;
       else merged.push(item);
     } else merged.push(item);

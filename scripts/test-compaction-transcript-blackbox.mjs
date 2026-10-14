@@ -31,47 +31,57 @@ assert(["localhost", "127.0.0.1"].includes(base.hostname), "a local debug fronte
 try {
   for (const theme of ["light", "dark"]) {
     for (const locale of ["en", "zh"]) {
-      pilot(["eval", "sessionStorage.removeItem('openagent-compaction-transcript-preview');true"]);
-      const preview = new URL(base.origin);
-      preview.search = new URLSearchParams({
-        "streaming-transcript-preview": "",
-        "streaming-transcript-preview-compaction": "",
-        "streaming-transcript-preview-theme": theme,
-        "streaming-transcript-preview-locale": locale,
-      }).toString();
-      pilot(["navigate", preview.href]);
-      pilot(["wait", "[data-compaction-action=compact]"]);
-      pilot(["snapshot", "-i"]);
-      pilot(["run", scenario]);
-      captureBlackboxScreenshot(pilot, join(artifacts, `${theme}-${locale}.png`));
-      pilot(["eval", "setTimeout(() => location.reload(), 100);true"]);
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      pilot(["wait", "[data-compaction-action=finish][disabled]"]);
-      pilot(["snapshot", "-i"]);
-      pilot([
-        "eval",
-        `(() => {
+      for (const arrival of ["done-first", "checkpoint-first"]) {
+        pilot([
+          "eval",
+          "sessionStorage.removeItem('openagent-compaction-transcript-preview');true",
+        ]);
+        const preview = new URL(base.origin);
+        preview.search = new URLSearchParams({
+          "streaming-transcript-preview": "",
+          "streaming-transcript-preview-compaction": "",
+          "streaming-transcript-preview-theme": theme,
+          "streaming-transcript-preview-locale": locale,
+        }).toString();
+        if (arrival === "checkpoint-first")
+          preview.searchParams.set("compaction-checkpoint-first", "");
+        pilot(["navigate", preview.href]);
+        pilot(["wait", "[data-compaction-action=compact]"]);
+        pilot(["snapshot", "-i"]);
+        pilot(["run", scenario]);
+        captureBlackboxScreenshot(pilot, join(artifacts, `${theme}-${locale}-${arrival}.png`));
+        pilot(["eval", "setTimeout(() => location.reload(), 100);true"]);
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        pilot(["wait", "[data-compaction-action=finish][disabled]"]);
+        pilot(["snapshot", "-i"]);
+        pilot([
+          "eval",
+          `(() => {
         const group = document.querySelector('.process-records[data-grouped=true]');
         if (!group) throw new Error('restored trajectory missing');
         group.querySelector('button').click();
         return true;
       })()`,
-      ]);
-      pilot(["assert", "contains", ".compaction-transcript-preview", "Before compaction trace"]);
-      pilot([
-        "assert",
-        "contains",
-        ".compaction-transcript-preview",
-        "After compaction continuation",
-      ]);
-      pilot([
-        "eval",
-        `(() => {
+        ]);
+        pilot(["assert", "contains", ".compaction-transcript-preview", "Before compaction trace"]);
+        pilot([
+          "assert",
+          "contains",
+          ".compaction-transcript-preview",
+          "After compaction continuation",
+        ]);
+        pilot([
+          "eval",
+          `(() => {
         if (document.querySelectorAll('.tool-call-card').length !== 1) throw new Error('restored tool count changed');
         if (document.body.innerText.includes('PRIVATE_PROVIDER_REPLAY')) throw new Error('restored provider replay leaked');
+        const dividers = document.querySelectorAll('.message-divider');
+        const approval = [...document.querySelectorAll('.pagination-atom')].find(el => el.innerText.includes('Confirm scenario inputs'));
+        if (dividers.length !== 1 || !approval || !(dividers[0].compareDocumentPosition(approval) & Node.DOCUMENT_POSITION_FOLLOWING)) throw new Error('restored compaction/approval order changed');
         return true;
       })()`,
-      ]);
+        ]);
+      }
     }
   }
   pilot(["logs", "--level", "error"]);

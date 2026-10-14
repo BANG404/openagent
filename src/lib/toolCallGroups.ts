@@ -113,35 +113,33 @@ export function partitionAssistantSegments(
     // output stays keyed at the same final-render location.
     return { processSegments: [], finalSegments: segments };
   }
-  const firstRenderIndex = segments.find(
-    (segment) => segment.kind === "item" && isRenderTool(segment.item),
+  const firstPresentationIndex = segments.find(
+    (segment) =>
+      segment.kind === "item" &&
+      (isRenderTool(segment.item) ||
+        segment.item.type === "ui" ||
+        segment.item.type === "compaction" ||
+        segment.item.type === "compaction_boundary"),
   )?.startIndex;
   const lastProcessBoundaryIndex = segments.findLast(
     (segment) =>
-      (firstRenderIndex === undefined || segment.startIndex < firstRenderIndex) &&
+      (firstPresentationIndex === undefined || segment.startIndex < firstPresentationIndex) &&
       (segment.kind === "tool_group" ||
         (segment.kind === "item" &&
           ((segment.item.type === "tool_call" && !isRenderTool(segment.item)) ||
             segment.item.type === "user_input"))),
   )?.startIndex;
-  const processSegments: StreamItemSegment[] = [];
-  const finalSegments: StreamItemSegment[] = [];
-  for (const segment of segments) {
-    if (segment.kind === "item" && segment.item.type === "ui") {
-      finalSegments.push(segment);
-    } else if (firstRenderIndex !== undefined && segment.startIndex >= firstRenderIndex) {
-      finalSegments.push(segment);
-    } else if (
-      segment.kind === "item" &&
-      segment.item.type === "text" &&
-      (lastProcessBoundaryIndex === undefined || segment.startIndex > lastProcessBoundaryIndex)
-    ) {
-      finalSegments.push(segment);
-    } else {
-      processSegments.push(segment);
-    }
-  }
-  return { processSegments, finalSegments };
+  // Keep presentation records visible together with their entire continuation.
+  // Moving a later approval into the fold would place it before its divider.
+  const finalStart = segments.findIndex(
+    (segment) =>
+      (firstPresentationIndex !== undefined && segment.startIndex >= firstPresentationIndex) ||
+      (segment.kind === "item" &&
+        segment.item.type === "text" &&
+        (lastProcessBoundaryIndex === undefined || segment.startIndex > lastProcessBoundaryIndex)),
+  );
+  const split = finalStart < 0 ? segments.length : finalStart;
+  return { processSegments: segments.slice(0, split), finalSegments: segments.slice(split) };
 }
 
 function standaloneGroupableToolCall(message: ChatMessage): ToolCallItem | null {
