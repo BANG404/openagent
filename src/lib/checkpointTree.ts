@@ -678,7 +678,15 @@ export function buildTreeFromCheckpoints( // NOSONAR: tree construction applies 
     }
   }
 
-  return { nodes, rootIds, activeChild };
+  const tree = { nodes, rootIds, activeChild };
+  // Lazy views load the selected visible body. The durable tip can be an
+  // internal recovery point absent from this tree; follow the loaded body
+  // instead of defaulting to a newer sibling with metadata only.
+  const loaded = checkpoints.find((checkpoint) => checkpoint.data_loaded === true);
+  if (!loaded) return tree;
+  const selectedTree = selectActivePathToCheckpoint(tree, loaded.meta.checkpoint_id);
+  selectedTree.activeChild[loaded.meta.checkpoint_id] = -1;
+  return selectedTree;
 }
 
 // Walk the tree along activeChild and emit the visible messages.

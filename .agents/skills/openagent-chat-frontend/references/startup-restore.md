@@ -8,6 +8,14 @@ checkpoint that introduced an authored message, including when its parent
 body has not been loaded. Inspector's full-history operation stays explicit.
 The same boundary applies to startup, workspace switches, live reconciliation
 and paired browser history; attachment bytes remain on-demand previews.
+Loading an active long-running conversation must work while recovery points
+advance. Use the SDK's default visible view and retain the live projection when
+an internal UI checkpoint event returns metadata without its requested node or
+it has no loaded body; internal recovery points do not become product branches.
+The SDK's loaded body selects the visible path when the durable active tip is
+internal and absent from the tree. Never fall back to a newer sibling's metadata.
+The native storage-history scenario selects a synthetic live recovery tip after
+startup, checks its older visible ancestor, then switches to a sibling and back.
 
 The page composes `src/lib/page/checkpoints.ts` for durable hydration, branch
 selection, live checkpoint refresh, and file-change reconciliation.

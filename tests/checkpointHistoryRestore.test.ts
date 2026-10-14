@@ -72,6 +72,29 @@ test("refreshing metadata retains a previously loaded branch snapshot", () => {
   expect(computeActivePath(tree).map((message) => message.id)).toEqual(["input"]);
 });
 
+test("an internal active tip keeps the loaded visible ancestor instead of a newer sibling", () => {
+  const ancestor = checkpoint("ancestor", [input(false)]);
+  ancestor.data_loaded = true;
+  const sibling = checkpoint("newer-sibling", []);
+  sibling.meta.created_at = 2;
+  sibling.data_loaded = false;
+  const previous = buildTreeFromCheckpoints([
+    checkpoint("ancestor", []),
+    checkpoint("newer-sibling", [{ ...input(false), id: "sibling-input" }]),
+  ]);
+  for (const parent of [null, "ancestor"]) {
+    sibling.meta.parent_checkpoint_id = parent;
+    for (const cached of [undefined, previous]) {
+      const tree = selectActivePathToCheckpoint(
+        buildTreeFromCheckpoints([ancestor, sibling], cached),
+        "internal-recovery-tip",
+      );
+      expect(computeActivePath(tree).map((message) => message.id)).toEqual(["input"]);
+      expect(agentHistoryRestoreCheckpoint(tree, false)).toBe("ancestor");
+    }
+  }
+});
+
 test("hidden-only history restores its selected durable tip even with an empty transcript", () => {
   const tree = buildTreeFromCheckpoints([checkpoint("hidden-tip", [input(true)])]);
   expect(computeActivePath(tree)).toEqual([]);

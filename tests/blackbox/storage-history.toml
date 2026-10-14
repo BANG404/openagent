@@ -1,5 +1,5 @@
 [scenario]
-name = "load another persisted screenshot branch and restore the selected branch"
+name = "load a sibling of an active recovery ancestor and restore the selected branch"
 fail_fast = true
 global_timeout_ms = 30000
 
@@ -10,9 +10,9 @@ target = ".branch-nav-btn:not([disabled])"
 [[step]]
 action = "eval"
 script = '''(async () => {
-  for(let i=0;i<100 && !document.body.textContent.includes('Branch A preserved screenshot');i++)await new Promise(r=>setTimeout(r,100));
-  if(!document.body.textContent.includes('Branch A preserved screenshot'))throw new Error('selected branch body did not load');
-  if(document.body.textContent.includes('Branch B preserved screenshot'))throw new Error('previous branch text remained');
+  for(let i=0;i<100 && !document.body.textContent.includes('Branch B preserved screenshot');i++)await new Promise(r=>setTimeout(r,100));
+  if(!document.body.textContent.includes('Branch B preserved screenshot'))throw new Error('selected sibling body did not load');
+  if(document.body.textContent.includes('Branch A preserved screenshot'))throw new Error('previous branch text remained');
   return true;
 })()'''
 
@@ -23,7 +23,7 @@ target = ".branch-nav-btn:not([disabled])"
 [[step]]
 action = "eval"
 script = '''(async () => {
-  for(let i=0;i<100 && !document.body.textContent.includes('Branch B preserved screenshot');i++)await new Promise(r=>setTimeout(r,100));
-  if(!document.body.textContent.includes('Branch B preserved screenshot'))throw new Error('original branch did not restore');
+  for(let i=0;i<100 && !document.body.textContent.includes('Branch A preserved screenshot');i++)await new Promise(r=>setTimeout(r,100));
+  if(!document.body.textContent.includes('Branch A preserved screenshot'))throw new Error('original visible ancestor did not restore');
   return true;
 })()'''

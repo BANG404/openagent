@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { captureBlackboxScreenshot } from "./blackbox-screenshot.mjs";
+import { selectStorageNativeRecovery } from "./select-storage-native-recovery.mjs";
 
 assert(process.env.TAURI_PILOT_SOCKET, "select the isolated storage window");
 assert(process.env.OPENAGENT_HOME?.includes("trace-export-storage"));
@@ -39,6 +40,7 @@ assert(["localhost", "127.0.0.1"].includes(base.hostname));
 try {
   for (const theme of ["light", "dark"])
     for (const locale of ["en", "zh"]) {
+      selectStorageNativeRecovery(process.env.OPENAGENT_HOME);
       pilot(["navigate", base.origin]);
       await until("!!document.querySelector('.conv-item,.workspace-conversation-row')");
       evaluate(
@@ -71,7 +73,7 @@ try {
         "(()=>{const item=[...document.querySelectorAll('.conv-item,.workspace-conversation-row')].find(item=>item.textContent.includes('Native storage branches'));if(!item)throw new Error('fixture conversation absent');item.click();return true})()",
       );
       await until(
-        "document.body.textContent.includes('Branch B preserved screenshot') && !!document.querySelector('.branch-nav-btn:not([disabled])')",
+        "document.body.textContent.includes('Branch A preserved screenshot') && !!document.querySelector('.branch-nav-btn:not([disabled])')",
       );
       const view = JSON.parse(
         evaluate(
@@ -83,6 +85,17 @@ try {
         view.filter((/** @type {{data_loaded:boolean}} */ item) => item.data_loaded).length,
         1,
       );
+      assert.equal(
+        view.find((/** @type {{data_loaded:boolean}} */ item) => item.data_loaded)?.meta
+          .checkpoint_id,
+        "native-tip-a",
+      );
+      const hidden = JSON.parse(
+        evaluate(
+          "(async()=>{const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');return JSON.stringify(await c.invokeProduct('get_checkpoint_view',{convId:'native-storage-history',checkpointId:'native-live-recovery'}))})()",
+        ),
+      );
+      assert(hidden.every((/** @type {{data_loaded:boolean}} */ item) => !item.data_loaded));
       assert(!JSON.stringify(view).includes("iVBORw0KGgo"));
       pilot(["snapshot", "-i"]);
       pilot(["run", scenario]);
