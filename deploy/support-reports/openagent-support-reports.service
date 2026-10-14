@@ -5,7 +5,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=%h/Document/opentelemetry/support-reports
-ExecStart=/usr/bin/python3 %h/Document/opentelemetry/support-reports/server.py
+ExecStart=%h/Document/opentelemetry/support-reports/.venv/bin/python %h/Document/opentelemetry/support-reports/server.py
 Environment=TOKEN_FILE=%h/Document/opentelemetry/secrets/otlp_bearer_token
 Environment=REPORT_DIRECTORY=%h/Document/opentelemetry/support-reports/data
 Restart=on-failure
