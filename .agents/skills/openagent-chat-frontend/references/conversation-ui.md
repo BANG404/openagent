@@ -115,9 +115,16 @@ alongside its live row: that duplicates its trajectory and response key. Keep
 pre-compaction text, reasoning and tool results in the live stream, replace its
 transient divider in place, and hydrate the complete transcript after termination.
 Manual compaction without an active reply still hydrates the full checkpoint.
+The durable completion divider replaces either the in-flight progress slot or
+its completed marker in place, regardless of checkpoint/event arrival order.
+Repeated hydration updates that divider by ID without appending another one.
+Completed replies fold only the prefix before their first visible UI boundary
+or final output; keep the boundary and its entire continuation in source order,
+including answered/cancelled approvals. Never hoist a later approval ahead of
+the compaction that preceded it.
 Verify live compaction, completed tool-result disclosure and page restoration in
 all light/dark and English/Chinese combinations with
-`bun scripts/test-compaction-transcript-blackbox.mjs` in a task-owned Tauri window
+`bun run test:blackbox:compaction-transcript` in a task-owned Tauri window
 selected by `TAURI_PILOT_SOCKET`. Its development-only transcript fixture needs
 no provider calls or conversation data.
 Paired browser state updates reload the checkpoint tree when an idle checkpoint

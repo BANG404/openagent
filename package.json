@@ -83,6 +83,7 @@
     "test:blackbox:mcp-apps": "bun scripts/test-mcp-apps-blackbox.mjs",
     "test:blackbox:mcp-oauth": "bun scripts/test-mcp-oauth-blackbox.mjs",
     "test:blackbox:compaction-settings": "bun scripts/test-compaction-settings-blackbox.mjs",
+    "test:blackbox:compaction-transcript": "bun scripts/test-compaction-transcript-blackbox.mjs",
     "test:blackbox:skill-discovery-settings": "bun scripts/test-skill-discovery-settings-blackbox.mjs",
     "test:blackbox:background-terminal-scroll": "bun scripts/test-background-terminal-scroll-blackbox.mjs",
     "test:blackbox:file-diff": "bun scripts/test-sidebar-content-blackbox.mjs --files",
