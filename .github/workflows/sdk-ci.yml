@@ -115,6 +115,28 @@ jobs:
               "https://api.github.com/repos/$SDK_REPOSITORY/statuses/$SDK_SHA" \
               --data-binary @- -o /dev/null
 
+      - name: Check out desktop protocol contract
+        if: inputs.publish_dev && inputs.full
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Check out private SDK protocol contract
+        if: inputs.publish_dev && inputs.full
+        uses: actions/checkout@v7
+        with:
+          repository: BANG404/openagent-sdk
+          ref: ${{ inputs.sdk_sha }}
+          path: sdk
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
+          sparse-checkout: rust/openagent-protocol/src/lib.rs
+          sparse-checkout-cone-mode: false
+
+      - name: Validate development Runtime protocol before builds
+        if: inputs.publish_dev && inputs.full
+        run: node scripts/runtime-protocol.mjs
+
   rust-format:
     name: Rust formatting
     if: inputs.rust

@@ -1,9 +1,8 @@
 import { execFileSync } from "node:child_process";
-import { cp, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { cp, mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { verifySignedBytes, verifyArtifactBytes } from "./signed-artifacts.mjs";
-import { validateDevKit } from "./prepare-dev-kit.mjs";
+import { verifyDevelopmentKit } from "./verify-dev-kit.mjs";
 
 /** @param {string[]} args */
 function gh(args) {
@@ -40,29 +39,7 @@ if (exists) {
   const previous = await mkdtemp(join(tmpdir(), "openagent-published-kit-"));
   try {
     gh(["release", "download", immutableTag, "--repo", repository, "--dir", previous]);
-    const bytes = await readFile(join(previous, "sdk-dev-manifest.json"));
-    verifySignedBytes(bytes, await readFile(join(previous, "sdk-dev-manifest.json.sig"), "utf8"));
-    const manifest = JSON.parse(bytes.toString("utf8"));
-    if (manifest.runtime?.sdk_sha !== sdkSha)
-      throw new Error("Immutable source kit Runtime revision mismatch");
-    for (const target of ["windows-x64", "linux-x64", "macos-x64", "macos-arm64"]) {
-      const kit = validateDevKit(manifest, sdkSha, target);
-      for (const artifact of [kit.client, kit.runtime, ...kit.helpers]) {
-        verifyArtifactBytes(await readFile(join(previous, artifact.file)), artifact);
-      }
-    }
-    const runtimeBytes = await readFile(join(previous, "openagent-sdk-manifest.json"));
-    verifySignedBytes(
-      runtimeBytes,
-      await readFile(join(previous, "openagent-sdk-manifest.json.sig"), "utf8"),
-    );
-    const runtime = JSON.parse(runtimeBytes.toString("utf8"));
-    if (
-      runtime.sdk_sha !== sdkSha ||
-      runtime.version !== manifest.runtime.version ||
-      JSON.stringify(runtime.artifacts) !== JSON.stringify(manifest.runtime.artifacts)
-    )
-      throw new Error("Published Runtime manifest disagrees with its development kit");
+    await verifyDevelopmentKit(previous, sdkSha);
     // A compiler rerun need not reproduce timestamp-bearing binaries. Reuse
     // the already signed exact-SHA kit as the canonical moving-channel input.
     for (const file of files) await rm(join(directory, file));
@@ -71,6 +48,7 @@ if (exists) {
     await rm(previous, { recursive: true, force: true });
   }
 } else {
+  await verifyDevelopmentKit(directory, sdkSha);
   gh([
     "release",
     "create",

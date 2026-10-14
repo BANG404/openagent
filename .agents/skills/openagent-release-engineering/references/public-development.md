@@ -23,6 +23,16 @@ come from the same pinned Codex input as that Runtime. The TypeScript snapshot
 contains only contracts and transport adapters; do not publish an npm package
 or private execution sources, diagnostics, credentials or build caches.
 
+Development-kit admission reads `DESKTOP_RUNTIME_PROTOCOL_VERSION` from the
+checked-out native supervisor; never hard-code a separate protocol number in
+preparation or publication. Trusted development publication compares that
+constant with the exact SDK source before native builds start. New candidates
+and reused immutable kits pass the same signature, source, protocol, four-target
+artifact and helper checks before publication or moving-channel replacement.
+The separately signed Runtime manifest must agree with the kit's Runtime
+identity, protocol range and artifact descriptors. A valid existing exact-SHA
+kit remains canonical on retries even if a compiler rerun changes binary bytes.
+
 Downloads run concurrently, cache by digest, persist incomplete transfers and
 resume with validated HTTP Range responses. Only complete verified bytes enter
 the immutable cache. Install the client from a bounded USTAR archive; reject

@@ -12,6 +12,7 @@ import {
 } from "./signed-artifacts.mjs";
 import { copyFileIfChanged } from "./copy-if-changed.mjs";
 import { TAURI_RUNTIME_TARGETS } from "./stage-release-runtime.mjs";
+import { readDesktopRuntimeProtocol } from "./runtime-protocol.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const targets = {
@@ -27,8 +28,13 @@ export function immutableDevKitUrl(sdkSha) {
   return `https://github.com/BANG404/openagent/releases/download/runtime-dev-${sdkSha}/sdk-dev-manifest.json`;
 }
 
-/** @param {Record<string, unknown>} manifest @param {string} expectedSha @param {string} target */
-export function validateDevKit(manifest, expectedSha, target) {
+/** @param {Record<string, unknown>} manifest @param {string} expectedSha @param {string} target @param {number} [protocolVersion] */
+export function validateDevKit(
+  manifest,
+  expectedSha,
+  target,
+  protocolVersion = readDesktopRuntimeProtocol(),
+) {
   if (manifest.schema_version !== 2 || manifest.sdk_sha !== expectedSha) {
     throw new Error(
       `No matching public development kit for SDK ${expectedSha}. Select a published source tag or prepare an exact source kit; another SDK revision is never substituted.`,
@@ -51,10 +57,12 @@ export function validateDevKit(manifest, expectedSha, target) {
     !runtime?.protocol ||
     !Number.isInteger(runtime.protocol.min) ||
     !Number.isInteger(runtime.protocol.max) ||
-    runtime.protocol.min > 2 ||
-    runtime.protocol.max < 2
+    runtime.protocol.min < 1 ||
+    runtime.protocol.max > 0xffff_ffff ||
+    runtime.protocol.min > protocolVersion ||
+    runtime.protocol.max < protocolVersion
   ) {
-    throw new Error("Development Runtime does not support desktop protocol 2");
+    throw new Error(`Development Runtime does not support desktop protocol ${protocolVersion}`);
   }
   const requiredHelpers =
     target === "windows-x64"
@@ -89,7 +97,12 @@ export async function prepareDevKit(options = {}) {
   const kitDirectory = path.join(repositoryRoot, ".cache", "openagent-dev-kit");
   const cacheDirectory = path.join(repositoryRoot, ".cache", "openagent-artifacts");
   const signed = await fetchSignedManifest(manifestUrl, options);
-  const artifacts = validateDevKit(signed.manifest, expectedSha, target);
+  const artifacts = validateDevKit(
+    signed.manifest,
+    expectedSha,
+    target,
+    readDesktopRuntimeProtocol(repositoryRoot),
+  );
   const allArtifacts = [artifacts.client, artifacts.runtime, ...artifacts.helpers];
   const paths = await Promise.all(
     allArtifacts.map((artifact) =>
@@ -177,7 +190,12 @@ export async function verifyPreparedDevKit(repositoryRoot = root) {
   }).trim();
   const targetTriple = targets[`${process.platform}/${process.arch}`];
   const target = TAURI_RUNTIME_TARGETS[targetTriple];
-  const artifacts = validateDevKit(JSON.parse(bytes.toString("utf8")), expectedSha, target);
+  const artifacts = validateDevKit(
+    JSON.parse(bytes.toString("utf8")),
+    expectedSha,
+    target,
+    readDesktopRuntimeProtocol(repositoryRoot),
+  );
   const clientArchive = await readFile(
     path.join(repositoryRoot, ".cache", "openagent-artifacts", artifacts.client.sha256),
   );

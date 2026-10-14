@@ -600,6 +600,10 @@ describe("release CI verification", () => {
     expect(sdkWorkflow).toContain("needs: [required, development-runtime, development-clients]");
     expect(sdkWorkflow).toContain("channel=runtime-dev");
     expect(sdkWorkflow).toContain("sdk-dev-manifest.json");
+    const pendingJob = sdkWorkflow.split("  pending:\n")[1].split("  rust-format:\n")[0];
+    expect(pendingJob).toContain("if: inputs.publish_dev && inputs.full");
+    expect(pendingJob).toContain("sparse-checkout: rust/openagent-protocol/src/lib.rs");
+    expect(pendingJob).toContain("run: node scripts/runtime-protocol.mjs");
     expect(sdkWorkflow).toContain('--sdk-sha "$SDK_SHA"');
     expect(
       sdkWorkflow.match(

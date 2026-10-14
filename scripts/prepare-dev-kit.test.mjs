@@ -13,6 +13,11 @@ const sdkSha = "0123456789abcdef0123456789abcdef01234567";
 test("prepares a complete, signed kit in a checkout with no private SDK", async () => {
   const directory = await mkdtemp(join(tmpdir(), "openagent-public-kit-"));
   try {
+    await mkdir(join(directory, "src-tauri/src"), { recursive: true });
+    await writeFile(
+      join(directory, "src-tauri/src/runtime_process.rs"),
+      "pub const DESKTOP_RUNTIME_PROTOCOL_VERSION: u32 = 3;\n",
+    );
     const source = join(directory, "fixture-client");
     await mkdir(join(source, "src"), { recursive: true });
     await writeFile(join(source, "src/index.ts"), "export const fixture = true;\n");
@@ -41,7 +46,7 @@ test("prepares a complete, signed kit in a checkout with no private SDK", async 
       runtime: {
         sdk_sha: sdkSha,
         version: "1.0.0",
-        protocol: { min: 2, max: 2 },
+        protocol: { min: 3, max: 3 },
         artifacts: { "windows-x64": descriptor("runtime.exe") },
       },
       helpers: {
@@ -89,6 +94,37 @@ test("prepares a complete, signed kit in a checkout with no private SDK", async 
     await expect(readFile(join(directory, "sdk/Cargo.toml"))).rejects.toThrow();
   } finally {
     await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("admits the host Runtime protocol and rejects incompatible or malformed ranges", () => {
+  const artifact = { file: "fixture", size: 1, sha256: "a".repeat(64) };
+  const manifest = {
+    schema_version: 2,
+    sdk_sha: sdkSha,
+    clients: { typescript: artifact },
+    runtime: {
+      sdk_sha: sdkSha,
+      version: "1.0.0",
+      protocol: { min: 3, max: 3 },
+      artifacts: { "macos-arm64": artifact },
+    },
+  };
+  expect(validateDevKit(manifest, sdkSha, "macos-arm64").runtime).toEqual(artifact);
+  manifest.runtime.protocol = { min: 2, max: 3 };
+  expect(validateDevKit(manifest, sdkSha, "macos-arm64").runtime).toEqual(artifact);
+  for (const protocol of [
+    { min: 2, max: 2 },
+    { min: 4, max: 4 },
+    { min: 4, max: 3 },
+    { min: 0, max: 3 },
+    { min: 2.5, max: 3 },
+    { min: 3, max: 0x1_0000_0000 },
+  ]) {
+    manifest.runtime.protocol = protocol;
+    expect(() => validateDevKit(manifest, sdkSha, "macos-arm64")).toThrow(
+      "does not support desktop protocol 3",
+    );
   }
 });
 
