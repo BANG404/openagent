@@ -87,7 +87,7 @@ const en: Record<TranslationKeys, string> = {
   reportProblemFailed:
     "Upload failed. Your description is preserved; check your connection and retry.",
   reportProblemTooLarge:
-    "The complete report exceeds 64 MB and was not uploaded. Turn off the trace option to submit your description and recent logs.",
+    "The report exceeds a size limit (64 MB compressed, 256 MB expanded, or 16 MB for one content item) and was not uploaded. Turn off the trace option to submit your description and recent logs.",
   reportProblemTraceFailed:
     "The complete conversation trace could not be read. Nothing was uploaded. Retry or turn off the trace option.",
 

@@ -79,7 +79,8 @@ export const zh = {
   reportProblemSuccess: "问题已上传，感谢反馈。",
   reportProblemId: "报告编号",
   reportProblemFailed: "上传失败，描述已保留，请检查网络后重试。",
-  reportProblemTooLarge: "完整报告超过 64 MB，尚未上传。请关闭轨迹选项后提交描述和近期日志。",
+  reportProblemTooLarge:
+    "报告超过大小限制（压缩后 64 MB、解压后 256 MB，或单项内容 16 MB），尚未上传。请关闭轨迹选项后提交描述和近期日志。",
   reportProblemTraceFailed: "无法读取完整对话轨迹，尚未上传。请重试或关闭轨迹选项。",
 
   newWindow: "新建窗口",

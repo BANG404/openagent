@@ -148,7 +148,11 @@ attachment contract belongs in `sdk/docs/support-reports.md`.
 
 Runtime exports the complete durable snapshot without truncation and keeps report
 payloads out of telemetry. See `sdk/docs/support-reports.md` for the private
-contract. The separate write-only receiver and its deployment/retention contract
+contract. Reports are prepared and compressed outside the frontend, then uploaded
+from a temporary file through a bounded asynchronous file stream. Client and
+receiver enforce separate compressed, expanded, and individual-content limits;
+an oversized report fails explicitly rather than omitting trace data. The separate
+write-only receiver and its deployment/retention contract
 live in `deploy/support-reports/README.md`; the automatic OTLP collector remains
 bounded diagnostic metadata only. Verify actual Help interactions in the Tauri
 window in Chinese/English and light/dark, including default-off trace consent,
@@ -162,7 +166,8 @@ Run `bun scripts/test-problem-reports-blackbox.mjs` with the same temporary
 `OPENAGENT_SUPPORT_ENDPOINT=http://127.0.0.1:19419/v1/support/reports` and the
 fixture-only diagnostic credential. The runner refuses non-temporary homes,
 creates only synthetic conversation records, and checks a complete 205-request
-trace, default-off consent, failure retry, and actual theme/locale changes after
+trace, gzip transport, oversized-trace refusal with localized size limits and draft
+retention in all four themes/locales, default-off consent, failure retry, and actual theme/locale changes after
 reload. `SUPPORT_BLACKBOX_FORWARD_PRODUCTION=1` additionally forwards only the
 synthetic fixture payloads to the configured production receiver using a
 credential read in memory through SSH; do not run that mode with user data.

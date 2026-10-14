@@ -3,6 +3,7 @@ import { serve, sleep } from "bun";
 import { Database } from "bun:sqlite";
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { gunzipSync } from "node:zlib";
 import { appendFile, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
@@ -53,7 +54,10 @@ const receiver = serve({
       failNext = false;
       return new Response(null, { status: 503 });
     }
-    const payload = await request.json();
+    if (request.headers.get("content-encoding") !== "gzip")
+      throw new Error("Support report was not compressed");
+    const compressed = Buffer.from(await request.arrayBuffer());
+    const payload = JSON.parse(gunzipSync(compressed).toString("utf8"));
     if (!payload.description.startsWith("SYNTHETIC_SUPPORT_FIXTURE_"))
       return new Response(null, { status: 400 });
     if (
@@ -87,10 +91,11 @@ const receiver = serve({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Content-Encoding": "gzip",
           Authorization: `Bearer ${productionToken}`,
           "User-Agent": "",
         },
-        body: JSON.stringify(payload),
+        body: compressed,
       });
       if (response.status !== 201) throw new Error("Production support receiver rejected fixture");
       const receipt = await response.json();
@@ -252,6 +257,35 @@ try {
       if (records.at(-1)?.conversationTrace !== null)
         throw new Error("Default report uploaded a trace");
       close();
+      const sizeFixture = new Database(path.join(home, "messages.db"));
+      try {
+        sizeFixture.run(
+          "INSERT OR REPLACE INTO task_traces (id, conv_id, task_kind, model, system_prompt, tools, prompt, status, created_at) VALUES ('support-fixture-oversized', ?, 'chat_request', 'fixture', '', '', ?, 'completed', 1000)",
+          [fixtureId, "x".repeat(17 * 1024 * 1024)],
+        );
+        openReport();
+        fill(`SIZE_LIMIT_${theme}_${language}`);
+        pilot(["click", "#problem-include-trace"]);
+        const beforeOversized = records.length;
+        submit();
+        await waitFor(() =>
+          evaluate(`Boolean(document.querySelector(".report-error"))`).includes("true"),
+        );
+        pilot(["assert", "contains", ".report-error", "256 MB"]);
+        pilot(["assert", "contains", ".report-error", "16 MB"]);
+        pilot([
+          "assert",
+          "value",
+          "#problem-description",
+          `SYNTHETIC_SUPPORT_FIXTURE_SIZE_LIMIT_${theme}_${language}`,
+        ]);
+        if (records.length !== beforeOversized) throw new Error("An oversized trace was uploaded");
+        pilot(["screenshot", path.join(home, `support-size-${theme}-${language}.png`)]);
+        close();
+      } finally {
+        sizeFixture.run("DELETE FROM task_traces WHERE id = 'support-fixture-oversized'");
+        sizeFixture.close();
+      }
     }
   }
   openReport();
@@ -307,7 +341,7 @@ try {
   if (logs.includes("SYNTHETIC_SUPPORT_FIXTURE_"))
     throw new Error("Support content entered application logs");
   console.log(
-    `Support native verification passed: four theme/locale combinations, default-off trace, bounded Runtime/host logs, log-read and upload retries, complete trace and receipts. ${receipts.join(", ")}`,
+    `Support native verification passed: four theme/locale combinations, gzip transport, localized size limits, default-off trace, bounded Runtime/host logs, log-read and upload retries, complete trace and receipts. ${receipts.join(", ")}`,
   );
 } finally {
   receiver.stop(true);
