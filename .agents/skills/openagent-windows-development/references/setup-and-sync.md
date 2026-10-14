@@ -34,6 +34,12 @@ Excluding a whole drive or the complete user profile is broader than needed and
 reduces protection. To undo the change, run `Remove-MpPreference
 -ExclusionPath <path>` for each path shown by the script.
 
+Development target and immutable Runtime retention are owned by the
+[development cache procedure](../../openagent-release-engineering/references/development-runtime.md#development-cache-retention).
+Use its preview/apply collector for abandoned task output; preserve the shared
+private Cargo dependency directory unless intentionally rebuilding it. Removing
+an OWT source checkout alone does not remove external build output.
+
 ## Linker and filesystem rules
 
 Run native process confinement checks from the signed-in user's interactive

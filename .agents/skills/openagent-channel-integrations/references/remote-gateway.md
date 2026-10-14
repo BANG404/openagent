@@ -34,6 +34,15 @@ must preserve same-origin
 requests and should set `X-Forwarded-Proto: https` so the session cookie is
 marked `Secure`.
 
+Disabling the gateway closes its listening socket. Enabled proxy-only access
+listens on `127.0.0.1:32123`; enabling direct LAN access binds all IPv4 interfaces
+and can require Windows firewall authorization. Saving enablement or LAN changes
+applies the listener policy immediately without a desktop restart; accepted
+configuration-file reloads do the same. A scope change revokes browser sessions,
+so pair again after changing it. A bind failure is reported; resolve the port
+conflict and save again to retry. The desktop's private local transport remains
+independent of this remote listener.
+
 ## Security model
 
 - Remote access is disabled by default.

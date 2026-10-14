@@ -53,3 +53,28 @@ directory derived from the worktree and `OPENAGENT_HOME`. Windows defaults to
 `CARGO_TARGET_DIR` or custom runner remains authoritative. Direct host Cargo
 checks and ordinary release builds retain `src-tauri/target` unless overridden.
 Do not share private Runtime/compiler output with the public host cache.
+
+## Development cache retention
+
+The desktop launcher records ownership, repository identity, last use, and its
+PID in `.openagent-dev-cache.json` inside its derived target. On launch it
+reclaims managed targets belonging to removed worktrees and fixture targets
+idle for seven days. Registered worktrees' ordinary targets, live owner PIDs,
+and directories containing running executables are retained. Explicit Cargo
+target overrides are unmanaged. Runtime staging and collection share one
+per-platform maintenance lock; after a successful selection publication, retain
+the newest three images plus the selected and any running images. Failed
+staging does not publish or prune. Cleanup failure warns without failing a
+successfully prepared Runtime or desktop launch.
+
+Preview with `bun scripts/clean-development-cache.mjs`; pass `--apply` to collect.
+`--include-legacy` explicitly includes pre-marker task targets only beneath the
+standard platform cache root, requiring the repository's task-name prefix,
+hash suffix and Cargo cache signature. Existing sibling source checkouts are also
+retained. It still protects registered ordinary
+targets and running executables. Unrecognized/custom directories, private shared
+Cargo output, user application data and other checkouts are outside collection.
+Collectors refuse junction/symlink roots or candidates and recheck paths,
+selection and active executables before removal. If a maintenance process crashes,
+its PID-bearing `.openagent-cache-cleanup.lock` remains: confirm the owner is dead
+before manually removing only that lock. Never remove a live process's lock.
