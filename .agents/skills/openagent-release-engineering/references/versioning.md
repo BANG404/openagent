@@ -54,9 +54,16 @@ without restoring old application code into a newer `main`. The Stable branch
 is also the durable source snapshot for that version.
 
 For Beta preparation, `scripts/release.mjs` selects the highest immutable
-SemVer tag across all release branches. It uses that tag's merge base with
-`main` as the previous product source, then inspects release-relevant commits
-to the selected `main` head and applies:
+SemVer tag across all release branches as the version seed, including tags
+whose releases remain drafts. Separately, it queries every GitHub Releases API
+page and selects the highest published immutable product tag as `previousTag`.
+Drafts, unpublished entries and mutable component channels cannot supply this
+baseline; an API failure, missing local tag or absent published product release
+stops preparation, including dry runs. The authenticated GitHub CLI and fetched
+tags are required for local reproduction. Commit bump calculation, changelog
+and component classification use the published tag's merge base with `main`,
+so changes in a failed draft remain included in the next release. Preparation
+inspects those release-relevant commits to the selected `main` head and applies:
 
 - `major`: any breaking commit, such as `feat!:` or a `BREAKING CHANGE:` footer
 - `minor`: any `feat`

@@ -4,6 +4,7 @@ import {
   getRcPromotion,
   isBetaReleaseRefresh,
   getLatestReleaseTag,
+  getLatestPublishedReleaseTag,
   getNextBetaNumber,
   getNextReleaseVersion,
   getReleaseLine,
@@ -96,6 +97,42 @@ describe("release tag precedence", () => {
 
   test("prefers Stable over RC and Beta for the same base", () => {
     expect(getLatestReleaseTag(["v1.2.3-beta.9", "v1.2.3-rc.2", "v1.2.3"])).toBe("v1.2.3");
+  });
+});
+
+describe("published product baselines", () => {
+  /** @param {string} tag_name @param {boolean} [draft] @param {string} [published_at] */
+  const release = (tag_name, draft = false, published_at = "2026-10-13T00:00:00Z") => ({
+    tag_name,
+    draft,
+    published_at,
+  });
+
+  test("excludes a higher draft while retaining it for version precedence", () => {
+    const releases = [release("v0.81.0-beta.1", true), release("v0.80.0-beta.1")];
+    expect(getLatestReleaseTag(releases.map((entry) => entry.tag_name))).toBe("v0.81.0-beta.1");
+    expect(getLatestPublishedReleaseTag(releases)).toBe("v0.80.0-beta.1");
+  });
+
+  test("uses SemVer across published branches and excludes component channels", () => {
+    expect(
+      getLatestPublishedReleaseTag([
+        release("v1.2.3-rc.9"),
+        release("runtime-dev"),
+        release("beta"),
+        release("v1.2.3"),
+        release("v1.2.4-beta.1", false, ""),
+        release("v1.1.0"),
+      ]),
+    ).toBe("v1.2.3");
+  });
+
+  test("fails closed without a published product baseline", () => {
+    for (const releases of [[], [release("v1.2.3", true)], [release("runtime-beta")]]) {
+      expect(() => getLatestPublishedReleaseTag(releases)).toThrow(
+        "No published immutable product release",
+      );
+    }
   });
 });
 

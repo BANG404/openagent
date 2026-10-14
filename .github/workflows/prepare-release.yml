@@ -199,6 +199,8 @@ jobs:
       - name: Resolve or generate the release commit
         id: release
         env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           RELEASE_CHANNEL: ${{ inputs.release_type }}
           RELEASE_BASE_SHA: ${{ steps.base.outputs.sha }}
           RELEASE_BASE_BRANCH: ${{ steps.base.outputs.branch }}

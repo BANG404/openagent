@@ -5,6 +5,7 @@ import {
   getNextPrereleaseNumber,
   getNextReleaseVersion,
   getLatestReleaseTag,
+  getLatestPublishedReleaseTag,
   getPromotion,
 } from "./release-version.mjs";
 import { isReleaseRefreshChangelog, replaceCurrentReleaseSection } from "./release-changelog.mjs";
@@ -95,6 +96,31 @@ function getLatestTag() {
     .map((tag) => tag.trim())
     .filter(Boolean);
   return getLatestReleaseTag(tags);
+}
+
+function getPublishedBaselineTag() {
+  const releases = execFileSync(
+    "gh",
+    [
+      "api",
+      "--paginate",
+      "repos/{owner}/{repo}/releases",
+      "--jq",
+      ".[] | {tag_name, draft, published_at}",
+    ],
+    {
+      // NOSONAR: gh is the fixed authenticated GitHub client.
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  )
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
+  const tag = getLatestPublishedReleaseTag(releases);
+  if (!tagExists(tag))
+    throw new Error(`Published baseline tag ${tag} is missing locally; fetch tags first.`);
+  return tag;
 }
 
 function tagExists(tag) {
@@ -716,14 +742,14 @@ function main() {
   const currentTauriVersion = getCurrentTauriVersion();
   const lastTag = promotionSourceTag || getLatestTag();
   const latestVersion = lastTag ? versionFromTag(lastTag) : currentVersion;
-  const releaseBaseTag = lastTag;
+  const releaseBaseTag = promotionSourceTag || getPublishedBaselineTag();
   const releaseBaseVersion = latestVersion;
 
   const commits = promotionSourceTag
     ? []
     : getReleaseRelevantCommitMessages(releaseBaseTag).map(parseConventionalCommit).filter(Boolean);
   const bump = determineBump(commits);
-  const sourceBase = lastTag ? git(["merge-base", lastTag, "HEAD"]) : "";
+  const sourceBase = releaseBaseTag ? git(["merge-base", releaseBaseTag, "HEAD"]) : "";
   const sourceFiles = promotionSourceTag
     ? []
     : git(["diff", "--name-only", ...(sourceBase ? [sourceBase, "HEAD"] : ["HEAD"])])
@@ -813,7 +839,7 @@ function main() {
     nextTag,
     channel,
     sourceSha,
-    lastTag,
+    releaseBaseTag,
     components,
     promotionSourceTag,
   );

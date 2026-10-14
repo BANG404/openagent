@@ -98,6 +98,23 @@ export function getLatestReleaseTag(tags) {
 }
 
 /**
+ * Draft tags reserve versions but cannot supply an installed-data baseline.
+ * Mutable component channels are excluded by the product SemVer tag parser.
+ *
+ * @param {Array<{ tag_name: string; draft: boolean; published_at: string | null }>} releases
+ * @returns {string}
+ */
+export function getLatestPublishedReleaseTag(releases) {
+  const tag = getLatestReleaseTag(
+    releases
+      .filter((release) => release.draft === false && Boolean(release.published_at))
+      .map((release) => release.tag_name),
+  );
+  if (!tag) throw new Error("No published immutable product release is available as a baseline.");
+  return tag;
+}
+
+/**
  * @param {string} currentVersion
  * @param {"none" | "major" | "minor" | "patch"} bump
  * @param {"beta" | "rc" | "stable"} channel
