@@ -82,6 +82,21 @@
 - Apply that same focus-routing rule to any focus-changed handling on
   other platforms.
 
+## Runtime readiness budget
+
+The supervised Runtime has 60 seconds to publish its readiness record. This
+covers cold initialization of persisted resources and primary desktop services;
+a 15-second cutoff can terminate a healthy source-development Runtime before it
+finishes. Bootstrap inspection and authenticated health probes keep their
+separate, shorter deadlines. Timeout, EOF, read errors and malformed readiness
+all stop and reap the candidate before startup or rollback continues. Host
+startup logs record readiness waiting, failures and elapsed time to a healthy
+Runtime without recording the process token.
+
+Qualify the slow-start and silent-child paths with `runtime_process::tests`.
+The tests advance Tokio's virtual clock so the 38-second cold-start regression
+and the 60-second timeout do not add wall-clock delays.
+
 ## Async runtime and data inspection
 
 - Tauri's synchronous `setup` callback is not a Tokio worker. Enter

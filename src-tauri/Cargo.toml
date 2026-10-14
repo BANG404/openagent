@@ -96,3 +96,4 @@ windows = { version = "0.61.3", features = ["Win32_Security", "Win32_Storage_Fil
 
 [dev-dependencies]
 tempfile = "3"
+tokio = { version = "1", features = ["test-util"] }

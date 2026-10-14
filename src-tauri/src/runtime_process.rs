@@ -4,11 +4,12 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::time::Duration;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
 use tokio::sync::Mutex;
 
-const READY_TIMEOUT: Duration = Duration::from_secs(15);
+// Cold startup includes persisted resources and primary services before readiness.
+const READY_TIMEOUT: Duration = Duration::from_secs(60);
 const BOOTSTRAP_INSPECT_TIMEOUT: Duration = Duration::from_secs(15);
 const HEALTH_TIMEOUT: Duration = Duration::from_secs(5);
 const TOKEN_ENV: &str = "OPENAGENT_DESKTOP_RUNTIME_TOKEN";
@@ -341,24 +342,16 @@ impl RuntimeProcessSupervisor {
             .stdout
             .take()
             .ok_or_else(|| "Runtime stdout was not captured".to_string())?;
-        let mut lines = BufReader::new(stdout).lines();
-        let line = match tokio::time::timeout(READY_TIMEOUT, lines.next_line()).await {
-            Ok(Ok(Some(line))) => line,
-            Ok(Ok(None)) => {
+        let started = std::time::Instant::now();
+        tracing::info!(target: "openagent::startup", "Waiting for Runtime readiness");
+        let ready = match read_runtime_readiness(BufReader::new(stdout)).await {
+            Ok(ready) => ready,
+            Err(error) => {
+                tracing::warn!(target: "openagent::startup", elapsed_ms = started.elapsed().as_millis() as u64, %error, "Runtime failed to publish readiness");
                 let _ = stop_child(&mut child).await;
-                return Err("Runtime exited before publishing readiness".to_string());
-            }
-            Ok(Err(error)) => {
-                let _ = stop_child(&mut child).await;
-                return Err(format!("failed to read Runtime readiness: {error}"));
-            }
-            Err(_) => {
-                let _ = stop_child(&mut child).await;
-                return Err("Runtime readiness timed out".to_string());
+                return Err(error);
             }
         };
-        let ready: RuntimeReady = serde_json::from_str(&line)
-            .map_err(|error| format!("Runtime published invalid readiness JSON: {error}"))?;
         if let Err(error) = validate_ready(&ready, self.protocol_version) {
             let _ = stop_child(&mut child).await;
             return Err(error);
@@ -367,6 +360,7 @@ impl RuntimeProcessSupervisor {
             let _ = stop_child(&mut child).await;
             return Err(error);
         }
+        tracing::info!(target: "openagent::startup", elapsed_ms = started.elapsed().as_millis() as u64, "Runtime is ready and healthy");
         Ok(RunningRuntime {
             child,
             _lifetime_guard: lifetime_guard,
@@ -398,6 +392,22 @@ impl RuntimeProcessSupervisor {
         }
         Ok(())
     }
+}
+
+async fn read_runtime_readiness(stdout: impl AsyncBufRead + Unpin) -> Result<RuntimeReady, String> {
+    let mut lines = stdout.lines();
+    let line = tokio::time::timeout(READY_TIMEOUT, lines.next_line())
+        .await
+        .map_err(|_| {
+            format!(
+                "Runtime readiness timed out after {} seconds",
+                READY_TIMEOUT.as_secs()
+            )
+        })?
+        .map_err(|error| format!("failed to read Runtime readiness: {error}"))?
+        .ok_or_else(|| "Runtime exited before publishing readiness".to_string())?;
+    serde_json::from_str(&line)
+        .map_err(|error| format!("Runtime published invalid readiness JSON: {error}"))
 }
 
 fn runtime_arguments(spec: &RuntimeLaunchSpec) -> Vec<OsString> {
@@ -569,6 +579,46 @@ mod tests {
             version: "0.51.0".to_string(),
             pid: 42,
         }
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn accepts_cold_runtime_readiness_after_the_previous_deadline() {
+        use tokio::io::AsyncWriteExt;
+        let (reader, mut writer) = tokio::io::duplex(1024);
+        tokio::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_secs(38)).await;
+            writer.write_all(br#"{"type":"ready","endpoint":"http://127.0.0.1:43123","protocol":{"min":3,"max":3},"version":"0.1.1","pid":42}
+"#).await.unwrap();
+        });
+        let ready = super::read_runtime_readiness(tokio::io::BufReader::new(reader))
+            .await
+            .unwrap();
+        assert_eq!(ready.pid, 42);
+        assert!(super::validate_ready(&ready, 3).is_ok());
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn silent_runtime_still_has_a_bounded_readiness_deadline() {
+        let (reader, _writer) = tokio::io::duplex(1024);
+        let started = tokio::time::Instant::now();
+        let error = super::read_runtime_readiness(tokio::io::BufReader::new(reader))
+            .await
+            .unwrap_err();
+        assert!(error.contains("timed out after 60 seconds"));
+        assert_eq!(started.elapsed(), std::time::Duration::from_secs(60));
+    }
+
+    #[tokio::test]
+    async fn rejects_runtime_exit_and_malformed_readiness_without_waiting() {
+        let error = super::read_runtime_readiness(&b""[..]).await.unwrap_err();
+        assert!(error.contains("exited before publishing readiness"));
+        let error = super::read_runtime_readiness(
+            &b"not readiness JSON
+"[..],
+        )
+        .await
+        .unwrap_err();
+        assert!(error.contains("invalid readiness JSON"));
     }
 
     #[test]
