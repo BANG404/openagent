@@ -1,0 +1,141 @@
+[scenario]
+name = "child conversations expand with connected rails and preserve navigation"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+action = "eval"
+script = '''(async () => {
+  const compiled = await (await fetch('/src/routes/remote/+page.svelte')).text();
+  const runtime = /import \{ onMount \} from "([^"]+)"/.exec(compiled)?.[1];
+  if (!runtime) throw new Error('Svelte runtime module missing');
+  const {mount, unmount} = await import(runtime);
+  const {default: Fixture} = await import('/src/lib/devFixtures/ConversationTree.svelte');
+  const host = document.createElement('div');
+  host.style.cssText = 'position:fixed;inset:0;z-index:9999;background:var(--surface);padding:32px';
+  document.body.append(host);
+  const instance = mount(Fixture, {target:host});
+  window.__conversationTreeCleanup = async () => {await unmount(instance);host.remove();delete window.__conversationTreeCleanup;delete window.__assertConversationTree;};
+  window.__assertConversationTree = () => {
+    const assert = (condition, message) => {if (!condition) throw new Error(message);};
+    const groups = host.querySelectorAll('.sub-conv-group');
+    assert(groups.length > 0, 'active lineage did not expand');
+    for (const group of groups) {
+      const branches = [...group.children];
+      for (const [index, branch] of branches.entries()) {
+        const rail = getComputedStyle(branch, '::before');
+        const button = branch.querySelector(':scope > button');
+        const row = button.getBoundingClientRect();
+        const box = branch.getBoundingClientRect();
+        assert(rail.content !== 'none' && rail.borderLeftWidth === '1px', 'connector rail missing');
+        assert(rail.pointerEvents === 'none', 'connector intercepts navigation');
+        const last = index === branches.length - 1;
+        const expected = last ? row.height / 2 : box.height + parseFloat(getComputedStyle(group).gap);
+        assert(Math.abs(parseFloat(rail.height) - expected) < 1, 'rail does not end at the last direct child');
+        assert(!last || (rail.borderBottomWidth === '1px' && parseFloat(rail.borderBottomLeftRadius) > 0), 'last connector lacks rounded elbow');
+        assert(box.x + parseFloat(rail.left) + parseFloat(rail.width) < row.x + parseFloat(getComputedStyle(button).paddingLeft), 'connector overlaps title');
+        assert(button.scrollWidth <= button.clientWidth + 1, 'child row overflows');
+      }
+    }
+    const fixture = host.querySelector('.conversation-tree-fixture');
+    assert(fixture.scrollWidth <= fixture.clientWidth + 1, 'sidebar overflows');
+    return true;
+  };
+  return true;
+})()'''
+
+[[step]]
+action = "wait"
+target = ".conversation-tree-fixture .sub-conv-item"
+
+[[step]]
+action = "eval"
+script = "window.__assertConversationTree()"
+
+[[step]]
+action = "click"
+target = ".conversation-tree-fixture .sub-conv-item"
+
+[[step]]
+action = "wait"
+target = ".sub-conv-group .sub-conv-group"
+
+[[step]]
+action = "eval"
+script = "window.__assertConversationTree()"
+
+[[step]]
+action = "click"
+target = ".sub-conv-group .sub-conv-group .sub-conv-item"
+
+[[step]]
+action = "eval"
+script = "if(document.querySelector('[data-tree-selected]').textContent !== 'dimensions') throw new Error('nested selection failed'); true"
+
+[[step]]
+action = "click"
+target = "[data-tree-width]"
+
+[[step]]
+action = "eval"
+script = "window.__assertConversationTree()"
+
+[[step]]
+action = "click"
+target = "[data-tree-mode]"
+
+[[step]]
+action = "eval"
+script = "window.__assertConversationTree()"
+
+[[step]]
+action = "click"
+target = "[data-tree-search]"
+
+[[step]]
+action = "eval"
+script = "if(document.querySelector('.conversation-tree-fixture .sub-conv-group')) throw new Error('search results must stay flat'); true"
+
+[[step]]
+action = "click"
+target = "[data-tree-search]"
+
+[[step]]
+action = "click"
+target = ".conversation-tree-fixture .conv-list > .sub-conv-group > .sub-conv-branch:last-child > .sub-conv-item"
+
+[[step]]
+action = "eval"
+script = "if(document.querySelector('.sub-conv-group .sub-conv-group')) throw new Error('inactive descendants stayed expanded'); if(!document.querySelector('.sub-conv-item.active .conv-streaming-dot')) throw new Error('streaming selection lost'); true"
+
+[[step]]
+action = "click"
+target = ".conversation-tree-fixture .conv-item"
+
+[[step]]
+action = "eval"
+script = "document.querySelector('.sub-conv-item').dispatchEvent(new MouseEvent('mouseover', {bubbles:true})); true"
+
+[[step]]
+action = "eval"
+script = "document.querySelector('.sub-conv-item .conv-delete').click(); true"
+
+[[step]]
+action = "eval"
+script = "if(document.querySelector('[data-tree-deleted]').textContent !== 'images') throw new Error('child deletion failed'); true"
+
+[[step]]
+action = "eval"
+script = "if(document.querySelector('[data-tree-selected]').textContent !== 'root') throw new Error('delete selected the child'); window.__assertConversationTree()"
+
+[[step]]
+action = "click"
+target = "[data-tree-mode]"
+
+[[step]]
+action = "click"
+target = "[data-tree-width]"
+
+[[step]]
+action = "click"
+target = "[data-tree-reset]"

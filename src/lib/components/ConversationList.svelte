@@ -155,37 +155,41 @@
 {/snippet}
 
 {#snippet nestedThreadItems(items: Conversation[], depth: number)}
-  {#each items as sub (sub.id)}
-    <button
-      class="sub-conv-item {sub.id === activeConvId ? 'active' : ''} {streamingConvIds[sub.id]
-        ? 'streaming'
-        : ''}"
-      style:padding-left={`calc(var(--conversation-title-inset) + ${depth * 12}px)`}
-      onclick={() => onSelect(sub.id)}
-    >
-      {@render conversationTitle(sub.title)}
-      {#if streamingConvIds[sub.id]}
-        <span class="conv-streaming-dot" aria-label="Streaming"></span>
-      {:else}
-        <span
-          class="conv-delete"
-          role="button"
-          tabindex="0"
-          aria-label="Delete sub-conversation"
-          onclick={(e) => {
-            e.stopPropagation();
-            onDelete(sub.id, sub.workspace);
-          }}
-          onkeydown={(e) =>
-            e.key === "Enter" && (e.stopPropagation(), onDelete(sub.id, sub.workspace))}
-          >&times;</span
+  <div class="sub-conv-group" style:--sub-conv-depth={depth}>
+    {#each items as sub (sub.id)}
+      <div class="sub-conv-branch">
+        <button
+          class="sub-conv-item {sub.id === activeConvId ? 'active' : ''} {streamingConvIds[sub.id]
+            ? 'streaming'
+            : ''}"
+          style:padding-left={`calc(var(--conversation-title-inset) + ${depth} * var(--sub-conv-indent))`}
+          onclick={() => onSelect(sub.id)}
         >
-      {/if}
-    </button>
-    {#if isActiveBranch(sub.id) && childMap.has(sub.id)}
-      {@render nestedThreadItems(childMap.get(sub.id)!, depth + 1)}
-    {/if}
-  {/each}
+          {@render conversationTitle(sub.title)}
+          {#if streamingConvIds[sub.id]}
+            <span class="conv-streaming-dot" aria-label="Streaming"></span>
+          {:else}
+            <span
+              class="conv-delete"
+              role="button"
+              tabindex="0"
+              aria-label="Delete sub-conversation"
+              onclick={(e) => {
+                e.stopPropagation();
+                onDelete(sub.id, sub.workspace);
+              }}
+              onkeydown={(e) =>
+                e.key === "Enter" && (e.stopPropagation(), onDelete(sub.id, sub.workspace))}
+              >&times;</span
+            >
+          {/if}
+        </button>
+        {#if isActiveBranch(sub.id) && childMap.has(sub.id)}
+          {@render nestedThreadItems(childMap.get(sub.id)!, depth + 1)}
+        {/if}
+      </div>
+    {/each}
+  </div>
 {/snippet}
 
 {#snippet listContent()}
@@ -313,41 +317,7 @@
 
       <!-- Sub-conversations nested under this parent -->
       {#if visibleSubConvMap.has(conv.id)}
-        <div class="sub-conv-group">
-          {#each visibleSubConvMap.get(conv.id)! as sub (sub.id)}
-            <button
-              class="sub-conv-item {sub.id === activeConvId ? 'active' : ''} {streamingConvIds[
-                sub.id
-              ]
-                ? 'streaming'
-                : ''}"
-              style:padding-left="calc(var(--conversation-title-inset) + 12px)"
-              onclick={() => onSelect(sub.id)}
-            >
-              {@render conversationTitle(sub.title)}
-              {#if streamingConvIds[sub.id]}
-                <span class="conv-streaming-dot" aria-label="Streaming"></span>
-              {:else}
-                <span
-                  class="conv-delete"
-                  role="button"
-                  tabindex="0"
-                  aria-label="Delete sub-conversation"
-                  onclick={(e) => {
-                    e.stopPropagation();
-                    onDelete(sub.id, sub.workspace);
-                  }}
-                  onkeydown={(e) =>
-                    e.key === "Enter" && (e.stopPropagation(), onDelete(sub.id, sub.workspace))}
-                  >×</span
-                >
-              {/if}
-            </button>
-            {#if isActiveBranch(sub.id) && childMap.has(sub.id)}
-              {@render nestedThreadItems(childMap.get(sub.id)!, 2)}
-            {/if}
-          {/each}
-        </div>
+        {@render nestedThreadItems(visibleSubConvMap.get(conv.id)!, 1)}
       {/if}
     {/each}
   {/if}
@@ -424,6 +394,8 @@
 
   .conv-list {
     --conversation-title-inset: var(--list-item-compact-padding-inline);
+    --sub-conv-indent: 24px;
+    --conversation-row-height: var(--list-item-compact-height);
 
     position: relative;
     z-index: 1;
@@ -442,6 +414,7 @@
   }
 
   .conv-list.embedded {
+    --conversation-row-height: 27px;
     --conversation-title-inset: calc(
       var(--list-item-compact-padding-inline) + 16px + var(--list-item-compact-content-gap)
     );
@@ -671,6 +644,36 @@
     display: flex;
     flex-direction: column;
     gap: var(--list-item-stack-gap);
+  }
+
+  .sub-conv-branch {
+    position: relative;
+    min-width: 0;
+  }
+
+  .sub-conv-branch::before {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: calc(
+      var(--conversation-title-inset) + (var(--sub-conv-depth) - 1) * var(--sub-conv-indent) + 2px
+    );
+    width: 12px;
+    height: calc(100% + var(--list-item-stack-gap));
+    box-sizing: border-box;
+    border-left: 1px solid var(--border);
+    pointer-events: none;
+  }
+
+  .sub-conv-branch:last-child::before {
+    height: calc(var(--conversation-row-height) / 2);
+    border-bottom: 1px solid var(--border);
+    border-bottom-left-radius: 5px;
+  }
+
+  .sub-conv-branch > .sub-conv-group {
+    margin-top: var(--list-item-stack-gap);
   }
 
   .sub-conv-item {
