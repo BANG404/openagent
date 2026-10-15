@@ -4,6 +4,9 @@
 }
 :4318 {
     bind 127.0.0.1
+    handle /observe* {
+        reverse_proxy 127.0.0.1:19420
+    }
     handle /v1/support/reports {
         reverse_proxy 127.0.0.1:19419
     }

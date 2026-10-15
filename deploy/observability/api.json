@@ -1,0 +1,143 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "OpenAgent read-only diagnostics",
+    "version": "1.0.0",
+    "description": "GET only. Results are JSON. Use nextOffset for pagination. Report metadata excludes trace bodies and attached log content; fetch those separately. Archive download preserves complete oversized items."
+  },
+  "servers": [{ "url": "/observe" }],
+  "security": [{ "agentToken": [] }, { "browserLogin": [] }],
+  "components": {
+    "securitySchemes": {
+      "agentToken": { "type": "http", "scheme": "bearer" },
+      "browserLogin": { "type": "http", "scheme": "basic" }
+    },
+    "parameters": {
+      "offset": {
+        "in": "query",
+        "name": "offset",
+        "schema": { "type": "integer", "minimum": 0, "maximum": 1000000, "default": 0 }
+      },
+      "limit": {
+        "in": "query",
+        "name": "limit",
+        "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 }
+      },
+      "q": {
+        "in": "query",
+        "name": "q",
+        "description": "Literal substring; maximum 500 characters",
+        "schema": { "type": "string" }
+      },
+      "start": {
+        "in": "query",
+        "name": "start",
+        "description": "Inclusive ISO 8601 timestamp with timezone",
+        "schema": { "type": "string", "format": "date-time" }
+      },
+      "end": {
+        "in": "query",
+        "name": "end",
+        "description": "Inclusive ISO 8601 timestamp with timezone",
+        "schema": { "type": "string", "format": "date-time" }
+      },
+      "version": { "in": "query", "name": "version", "schema": { "type": "string" } },
+      "reportId": {
+        "in": "path",
+        "name": "reportId",
+        "required": true,
+        "schema": { "type": "string", "format": "uuid" }
+      }
+    },
+    "responses": {
+      "json": {
+        "description": "JSON result. Lists contain items and nextOffset (null at end).",
+        "content": { "application/json": { "schema": { "type": "object" } } }
+      }
+    }
+  },
+  "paths": {
+    "/api/status": {
+      "get": {
+        "summary": "Index counts, lastIndexedAt, archiveErrors and indexError",
+        "responses": { "200": { "$ref": "#/components/responses/json" } }
+      }
+    },
+    "/api/logs": {
+      "get": {
+        "summary": "Search diagnostics, newest first",
+        "parameters": [
+          { "$ref": "#/components/parameters/offset" },
+          { "$ref": "#/components/parameters/limit" },
+          { "$ref": "#/components/parameters/q" },
+          { "$ref": "#/components/parameters/start" },
+          { "$ref": "#/components/parameters/end" },
+          { "$ref": "#/components/parameters/version" },
+          { "in": "query", "name": "service", "schema": { "type": "string" } },
+          { "in": "query", "name": "severity", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/json" } }
+      }
+    },
+    "/api/reports": {
+      "get": {
+        "summary": "List report metadata without log/trace contents",
+        "parameters": [
+          { "$ref": "#/components/parameters/offset" },
+          { "$ref": "#/components/parameters/limit" },
+          { "$ref": "#/components/parameters/q" },
+          { "$ref": "#/components/parameters/start" },
+          { "$ref": "#/components/parameters/end" },
+          { "$ref": "#/components/parameters/version" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/json" } }
+      }
+    },
+    "/api/reports/{reportId}": {
+      "parameters": [{ "$ref": "#/components/parameters/reportId" }],
+      "get": {
+        "summary": "Get report description, environment, log names and traceSections",
+        "responses": { "200": { "$ref": "#/components/responses/json" } }
+      }
+    },
+    "/api/reports/{reportId}/logs": {
+      "parameters": [{ "$ref": "#/components/parameters/reportId" }],
+      "get": {
+        "summary": "Read one attachment by character offset; default limit 16000, maximum 64000",
+        "parameters": [
+          { "$ref": "#/components/parameters/offset" },
+          { "in": "query", "name": "name", "required": true, "schema": { "type": "string" } },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 64000, "default": 16000 }
+          }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/json" } }
+      }
+    },
+    "/api/reports/{reportId}/trace": {
+      "parameters": [{ "$ref": "#/components/parameters/reportId" }],
+      "get": {
+        "summary": "Read one trace section; arrays are paged, scalar/object sections have one item. Items above 256 KiB return an explicit oversized marker.",
+        "parameters": [
+          { "$ref": "#/components/parameters/offset" },
+          { "in": "query", "name": "section", "required": true, "schema": { "type": "string" } },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 20, "default": 5 }
+          }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/json" } }
+      }
+    },
+    "/api/reports/{reportId}/archive": {
+      "parameters": [{ "$ref": "#/components/parameters/reportId" }],
+      "get": {
+        "summary": "Download complete original archive, potentially large",
+        "responses": { "200": { "description": "Original JSON or gzip JSON archive" } }
+      }
+    }
+  }
+}

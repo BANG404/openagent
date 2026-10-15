@@ -134,6 +134,10 @@ settings; its conversation history remains active.
 
 ## Explicit Help problem reports
 
+Operators and agents read archived diagnostics and explicit reports through the
+separate [read-only observability service](observability-query.md). Keep its
+credentials and read routes independent of the write-only upload receiver.
+
 Help exposes Report a problem with a required description and an optional,
 default-off current-conversation trace. The UI captures the conversation ID when
 opened, explains the model/tool and message content included, and sends only
