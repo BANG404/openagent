@@ -10,6 +10,33 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.83.0-beta.1] - 2026-10-15
+
+### Features
+- **runtime**: Upgrade Rig integration to 0.44
+- **plugins**: Decouple source subscriptions from host releases
+- **appearance**: Configure native and custom window backgrounds
+- **chat**: Connect expanded child conversation rows
+- **diagnostics**: Stream compressed support report attachments
+
+### Bug Fixes
+- **chat**: Use plugin sidebar as the sole flow view
+- **chat**: Compact context from provider-reported usage
+- **cua**: Pin screenshot path repair and catalog version
+- **chat**: Preserve compaction divider order around approvals
+- **startup**: Recover protocol upgrades without reopening welcome
+
+### Refactoring
+- **desktop**: Complete public product and private Runtime split
+- **app**: Publish bootstrap resources and persistence policy
+- **app**: Establish public Rust product and protocol crates
+- Move public SDK into host and keep Runtime private
+
+### Testing
+- **runtime**: Pin expanded cache hit-rate coverage
+- **chat**: Add long conversation performance and cache simulations
+- Add real-model cache hit-rate command
+
 ## [0.82.0-beta.1] - 2026-10-14
 
 ### Features
