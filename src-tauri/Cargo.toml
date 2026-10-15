@@ -49,6 +49,8 @@ cc = "1"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+openagent-app = { path = "../crates/openagent-app" }
+openagent-protocol = { path = "../crates/openagent-protocol" }
 anyhow = "1"
 async-trait = "0.1"
 base64 = "0.22"

@@ -1,0 +1,18 @@
+# Public Rust product boundary
+
+`openagent-app` owns product policies and communicates with the independently
+distributed Runtime through HTTP. It must compile without private repositories.
+`openagent-protocol` owns serializable contracts shared by public clients and
+the private server; keep it free of execution, providers, SQL, and Tauri.
+`openagent-config` owns product settings, defaults, normalization, and atomic
+file persistence. Runtime generation options and permission enforcement remain
+private; public configuration carries only their declared inputs.
+
+Runtime-owned conversation storage remains accessible through its protocol only.
+Do not copy private checkpoints, provider projection, execution loops, sandbox
+enforcement, or prompt assembly into these crates. Product paths, defaults,
+resource installation and user-facing configuration belong in public source.
+
+Use the root preflight for qualification. The public Rust workspace must be
+included in native CI and dependency-boundary verification.
+Register intentional Rust source in `.githooks/public-product-sources.txt`.

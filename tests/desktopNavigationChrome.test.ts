@@ -372,11 +372,11 @@ describe("desktop navigation chrome", () => {
   test("bounds native quit and restart cleanup with an independent exit watchdog", async () => {
     const host = hostRustSource();
     const runtimeProcess = await readFile(
-      new URL("../src-tauri/src/runtime_process.rs", import.meta.url),
+      new URL("../crates/openagent-app/src/runtime_process.rs", import.meta.url),
       "utf8",
     );
     const processLifetime = await readFile(
-      new URL("../src-tauri/src/process_lifetime.rs", import.meta.url),
+      new URL("../crates/openagent-app/src/process_lifetime.rs", import.meta.url),
       "utf8",
     );
     const workspace = await readFile(

@@ -14,13 +14,13 @@ function readProtocolConstant(file, name) {
   return value;
 }
 
-/** The native supervisor owns the desktop's Runtime protocol.
+/** Public contracts own the desktop's Runtime protocol.
  * @param {string} [repositoryRoot]
  */
 export function readDesktopRuntimeProtocol(repositoryRoot = root) {
   return readProtocolConstant(
-    path.join(repositoryRoot, "src-tauri/src/runtime_process.rs"),
-    "DESKTOP_RUNTIME_PROTOCOL_VERSION",
+    path.join(repositoryRoot, "crates/openagent-protocol/src/lib.rs"),
+    "SDK_PROTOCOL_VERSION",
   );
 }
 

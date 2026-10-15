@@ -87,25 +87,14 @@ fn run_desktop_bootstrap_with_binary(
 }
 
 pub(crate) fn selected_home() -> anyhow::Result<std::path::PathBuf> {
-    if let Some(home) = std::env::var_os("OPENAGENT_HOME").filter(|home| !home.is_empty()) {
-        return Ok(std::path::PathBuf::from(home));
-    }
-    let home = dirs::home_dir()
-        .ok_or_else(|| anyhow::anyhow!("Cannot resolve application data directory"))?;
-    Ok(home.join(default_home_name(
+    let explicit = std::env::var_os("OPENAGENT_HOME").map(std::path::PathBuf::from);
+    openagent_app::paths::select_data_root(
+        explicit.as_deref(),
+        dirs::home_dir().as_deref(),
         env!("CARGO_PKG_VERSION"),
         cfg!(debug_assertions),
-    )))
-}
-
-fn default_home_name(version: &str, debug: bool) -> &'static str {
-    if debug {
-        ".openagent-dev"
-    } else if version.contains("-alpha.") {
-        ".openagent-alpha"
-    } else {
-        ".openagent"
-    }
+    )
+    .map_err(anyhow::Error::msg)
 }
 
 pub(crate) fn parse_desktop_bootstrap_response(
@@ -189,22 +178,17 @@ fn prepare_persistence_with(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use openagent_app::paths::default_home_name;
     use std::path::Path;
     #[test]
     fn alpha_uses_an_independent_default_home() {
         assert_eq!(
-            super::default_home_name("0.81.0-alpha.1", false),
+            default_home_name("0.81.0-alpha.1", false),
             ".openagent-alpha"
         );
-        assert_eq!(
-            super::default_home_name("0.81.0-alpha.1", true),
-            ".openagent-dev"
-        );
-        assert_eq!(
-            super::default_home_name("0.81.0-beta.1", false),
-            ".openagent"
-        );
-        assert_eq!(super::default_home_name("0.81.0", false), ".openagent");
+        assert_eq!(default_home_name("0.81.0-alpha.1", true), ".openagent-dev");
+        assert_eq!(default_home_name("0.81.0-beta.1", false), ".openagent");
+        assert_eq!(default_home_name("0.81.0", false), ".openagent");
     }
     #[test]
     fn persistence_transition_warning_names_scope_and_backup_paths() {

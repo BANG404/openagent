@@ -136,6 +136,31 @@ export function buildPreflightCommands(modules, { base = "", full = false } = {}
     ]);
   }
   if (modules.nativeQuality) {
+    add("public-rust-format", "Public Rust formatting", "cargo", [
+      "fmt",
+      "--manifest-path",
+      "crates/Cargo.toml",
+      "--all",
+      "--",
+      "--check",
+    ]);
+    add("public-rust-lint", "Public Rust Clippy", "cargo", [
+      "clippy",
+      "--manifest-path",
+      "crates/Cargo.toml",
+      "--workspace",
+      "--all-targets",
+      "--",
+      "-D",
+      "warnings",
+    ]);
+    add("public-rust-tests", "Public product and protocol tests", "cargo", [
+      "test",
+      "--manifest-path",
+      "crates/Cargo.toml",
+      "--workspace",
+      "--all-features",
+    ]);
     add("rust-format", "Rust formatting", "bun", ["run", "format:rust:check"]);
     add("rust-lint", "Rust Clippy", "bun", ["run", "lint:rust"]);
   }

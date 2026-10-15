@@ -11,17 +11,14 @@ import { validateDevKit } from "./prepare-dev-kit.mjs";
 test("development admission follows the checked-out host protocol across version changes", async () => {
   const directory = await mkdtemp(join(tmpdir(), "openagent-runtime-protocol-"));
   try {
-    const hostFile = join(directory, "src-tauri/src/runtime_process.rs");
+    const hostFile = join(directory, "crates/openagent-protocol/src/lib.rs");
     const sdkFile = join(directory, "runtime/rust/openagent-protocol/src/lib.rs");
-    await mkdir(join(directory, "src-tauri/src"), { recursive: true });
+    await mkdir(join(directory, "crates/openagent-protocol/src"), { recursive: true });
     await mkdir(join(directory, "runtime/rust/openagent-protocol/src"), { recursive: true });
     const sdkSha = "a".repeat(40);
     const artifact = { file: "fixture", size: 1, sha256: "b".repeat(64) };
     for (const version of [3, 7]) {
-      await writeFile(
-        hostFile,
-        `pub const DESKTOP_RUNTIME_PROTOCOL_VERSION: u32 = ${version};\r\n`,
-      );
+      await writeFile(hostFile, `pub const SDK_PROTOCOL_VERSION: u32 = ${version};\r\n`);
       await writeFile(sdkFile, `pub const SDK_PROTOCOL_VERSION: u32 = ${version};\n`);
       expect(verifyDevelopmentRuntimeProtocol(directory)).toBe(version);
       const manifest = {
@@ -44,7 +41,7 @@ test("development admission follows the checked-out host protocol across version
     expect(() => verifyDevelopmentRuntimeProtocol(directory)).toThrow(
       "must match the desktop host",
     );
-    for (const source of ["", "pub const DESKTOP_RUNTIME_PROTOCOL_VERSION: u32 = 0;\n"]) {
+    for (const source of ["", "pub const SDK_PROTOCOL_VERSION: u32 = 0;\n"]) {
       await writeFile(hostFile, source);
       expect(() => readDesktopRuntimeProtocol(directory)).toThrow(
         "Missing or invalid protocol constant",

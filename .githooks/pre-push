@@ -18,6 +18,20 @@ fi
 
 verify_backend_absent() {
   commit="$1"
+  product_sources="$(git ls-tree -r --name-only "$commit" -- crates | grep '\.rs$' || true)"
+  if [ -n "$product_sources" ]; then
+    product_allowlist="$(git show "$commit:.githooks/public-product-sources.txt" 2>/dev/null || true)"
+    if [ -z "$product_allowlist" ]; then
+      echo "Push blocked: public product Rust source allowlist is missing." >&2
+      return 1
+    fi
+    unexpected_product="$(printf '%s\n%s\n' "$product_allowlist" "$product_sources" | sort | uniq -u)"
+    if [ -n "$unexpected_product" ]; then
+      echo "Push blocked: public product Rust source differs from its reviewed allowlist:" >&2
+      echo "$unexpected_product" >&2
+      return 1
+    fi
+  fi
   unexpected="$({
     git ls-tree -r --name-only "$commit" -- \
       src-tauri/src \

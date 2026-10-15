@@ -1231,6 +1231,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "fs2"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9564fc758e15025b46aa6643b1b77d047d1a56a1aea6e01002ac0c7026876213"
+dependencies = [
+ "libc",
+ "winapi",
+]
+
+[[package]]
 name = "futures-channel"
 version = "0.3.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2811,6 +2821,8 @@ dependencies = [
  "http",
  "mime_guess",
  "minisign-verify",
+ "openagent-app",
+ "openagent-protocol",
  "percent-encoding",
  "reqwest 0.12.28",
  "rfd",
@@ -2841,6 +2853,44 @@ dependencies = [
  "window-vibrancy",
  "windows",
  "zip",
+]
+
+[[package]]
+name = "openagent-app"
+version = "0.1.0"
+dependencies = [
+ "openagent-config",
+ "openagent-protocol",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "uuid",
+ "windows",
+]
+
+[[package]]
+name = "openagent-config"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "dirs 5.0.1",
+ "fs2",
+ "serde",
+ "serde_json",
+ "sys-locale",
+ "tempfile",
+ "toml 0.8.2",
+ "url",
+]
+
+[[package]]
+name = "openagent-protocol"
+version = "0.1.1"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

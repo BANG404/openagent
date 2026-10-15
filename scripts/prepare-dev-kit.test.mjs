@@ -13,10 +13,10 @@ const sdkSha = "0123456789abcdef0123456789abcdef01234567";
 test("prepares a complete, signed kit in a checkout with no private SDK", async () => {
   const directory = await mkdtemp(join(tmpdir(), "openagent-public-kit-"));
   try {
-    await mkdir(join(directory, "src-tauri/src"), { recursive: true });
+    await mkdir(join(directory, "crates/openagent-protocol/src"), { recursive: true });
     await writeFile(
-      join(directory, "src-tauri/src/runtime_process.rs"),
-      "pub const DESKTOP_RUNTIME_PROTOCOL_VERSION: u32 = 3;\n",
+      join(directory, "crates/openagent-protocol/src/lib.rs"),
+      "pub const SDK_PROTOCOL_VERSION: u32 = 3;\n",
     );
     const source = join(directory, "fixture-client");
     await mkdir(join(source, "src"), { recursive: true });

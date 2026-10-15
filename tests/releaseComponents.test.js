@@ -6,6 +6,19 @@ import {
 } from "../scripts/release-components.mjs";
 
 describe("release component classification", () => {
+  test("ships public product and protocol changes in the native application", () => {
+    for (const file of [
+      "crates/openagent-app/src/paths.rs",
+      "crates/openagent-config/src/config.rs",
+      "crates/openagent-protocol/src/lib.rs",
+    ]) {
+      expect(classifyReleaseComponents([file])).toEqual({
+        frontend: false,
+        runtime: false,
+        nativeShell: true,
+      });
+    }
+  });
   test("publishes frontend resources without selecting a native installer", () => {
     expect(classifyReleaseComponents(["src/routes/+page.svelte"])).toEqual({
       frontend: true,

@@ -107,9 +107,11 @@ describe("sandbox helper packaging", () => {
   });
 
   test("keeps embedded Runtime code out of ordinary desktop binaries", () => {
-    for (const dependency of ["openagent-app", "openagent-protocol", "openagent-runtime"]) {
-      expect(cargoManifest).not.toContain(`${dependency} = {`);
-    }
+    expect(cargoManifest).not.toContain("openagent-runtime = {");
+    expect(cargoManifest).toContain('openagent-app = { path = "../crates/openagent-app" }');
+    expect(cargoManifest).toContain(
+      'openagent-protocol = { path = "../crates/openagent-protocol" }',
+    );
     expect(cargoManifest).toContain("autobins = false");
     expect(tauriLauncher).toContain('"embedded-cargo.cmd"');
     expect(packageManifest.scripts["dev:agent-server"]).toContain("scripts/embedded-cargo.mjs");

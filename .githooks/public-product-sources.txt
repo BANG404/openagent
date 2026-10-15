@@ -1,0 +1,13 @@
+crates/openagent-app/src/client.rs
+crates/openagent-app/src/lib.rs
+crates/openagent-app/src/paths.rs
+crates/openagent-app/src/process_lifetime.rs
+crates/openagent-app/src/runtime_process.rs
+crates/openagent-config/src/config.rs
+crates/openagent-config/src/config/appearance.rs
+crates/openagent-config/src/lib.rs
+crates/openagent-config/src/permissions.rs
+crates/openagent-config/src/plugin_identity.rs
+crates/openagent-config/src/plugins.rs
+crates/openagent-protocol/examples/contract_api.rs
+crates/openagent-protocol/src/lib.rs

@@ -31,10 +31,28 @@ if (unexpectedHostSources.length > 0) {
 }
 
 const cargoManifest = readFileSync(resolve(repositoryRoot, "src-tauri", "Cargo.toml"), "utf8");
+const productRoot = resolve(repositoryRoot, "crates");
+const productSources = readdirSync(productRoot, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory() && entry.name !== "target")
+  .flatMap((entry) => filesBelow(resolve(productRoot, entry.name)))
+  .map((file) => relative(repositoryRoot, file).replaceAll("\\", "/"))
+  .filter((file) => file.endsWith(".rs") && !file.startsWith("crates/target/"));
+const allowedProductSources = new Set(
+  readFileSync(resolve(repositoryRoot, ".githooks/public-product-sources.txt"), "utf8")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean),
+);
+if (
+  productSources.some((file) => !allowedProductSources.has(file)) ||
+  [...allowedProductSources].some((file) => !productSources.includes(file))
+) {
+  throw new Error("Public product Rust sources differ from their reviewed allowlist");
+}
 if (!cargoManifest.includes('path = "src/lib.rs"')) {
   throw new Error("The host Cargo library target must compile from the Tauri adapter");
 }
-for (const crate of ["openagent-app", "openagent-protocol", "openagent-runtime"]) {
+for (const crate of ["openagent-runtime"]) {
   if (cargoManifest.includes(`${crate} = {`)) {
     throw new Error(`${crate} must resolve only in the SDK-owned diagnostic workspace`);
   }
@@ -48,7 +66,7 @@ const cargoTree = spawnSync(
 if (cargoTree.status !== 0) {
   throw new Error("Could not verify the default Tauri dependency graph");
 }
-for (const crate of ["openagent-app", "openagent-protocol", "openagent-runtime"]) {
+for (const crate of ["openagent-runtime", "rig-core"]) {
   const escapedCrate = crate.replace("-", String.raw`\-`);
   const pattern = String.raw`(?:^|\n)[^\n]*\b${escapedCrate} v`;
   if (new RegExp(pattern).test(cargoTree.stdout)) {
@@ -57,49 +75,20 @@ for (const crate of ["openagent-app", "openagent-protocol", "openagent-runtime"]
 }
 
 const sdkProtocolSource = readFileSync(
-  resolve(repositoryRoot, "runtime", "rust", "openagent-protocol", "src", "lib.rs"),
+  resolve(repositoryRoot, "crates", "openagent-protocol", "src", "lib.rs"),
   "utf8",
 );
 const hostProtocolSource = readFileSync(
-  resolve(repositoryRoot, "src-tauri", "src", "runtime_process.rs"),
+  resolve(repositoryRoot, "crates", "openagent-app", "src", "runtime_process.rs"),
   "utf8",
 );
 const sdkProtocol = /pub const SDK_PROTOCOL_VERSION: u32 = (\d+);/.exec(sdkProtocolSource)?.[1];
-const hostProtocol = /pub const DESKTOP_RUNTIME_PROTOCOL_VERSION: u32 = (\d+);/.exec(
-  hostProtocolSource,
-)?.[1];
-if (!sdkProtocol || sdkProtocol !== hostProtocol) {
-  throw new Error("The public desktop Runtime protocol version must match the pinned SDK");
+if (
+  !sdkProtocol ||
+  !hostProtocolSource.includes(
+    "pub use openagent_protocol::SDK_PROTOCOL_VERSION as DESKTOP_RUNTIME_PROTOCOL_VERSION;",
+  )
+) {
+  throw new Error("The desktop must consume the public Runtime protocol version");
 }
-
-const requiredRuntimeSources = [
-  "chat_lifecycle.rs",
-  "checkpoint.rs",
-  "commands/chat_common.rs",
-  "commands/chat_interrupt.rs",
-  "commands/chat_run.rs",
-  "commands/memory_drafts_agents.rs",
-  "commands/providers.rs",
-  "context_compaction.rs",
-  "conversation_memory.rs",
-  "mcp.rs",
-  "sub_agent.rs",
-  "tool_approval.rs",
-  "tools.rs",
-];
-const runtimeSourceRoot = resolve(repositoryRoot, "runtime", "rust", "openagent-runtime", "src");
-const availableRuntimeSources = new Set(
-  filesBelow(runtimeSourceRoot).map((path) =>
-    relative(runtimeSourceRoot, path).replaceAll("\\", "/"),
-  ),
-);
-const missingRuntimeSources = requiredRuntimeSources.filter(
-  (path) => !availableRuntimeSources.has(path),
-);
-if (missingRuntimeSources.length > 0) {
-  throw new Error(
-    `Private SDK runtime checkout is incomplete: ${missingRuntimeSources.join(", ")}`,
-  );
-}
-
-console.log(`Private SDK boundary verified (${availableRuntimeSources.size} runtime source files)`);
+console.log("Public product and desktop dependency graph excludes the private execution engine");

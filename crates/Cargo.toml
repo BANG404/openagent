@@ -1,0 +1,3 @@
+[workspace]
+members = ["openagent-app", "openagent-config", "openagent-protocol"]
+resolver = "2"

@@ -14,6 +14,7 @@ const AGENT_DOCUMENTATION = [
 ];
 
 const LOGIC_FILES = [
+  /^crates\/.+\.(?:rs|toml)$/,
   /^sdk\/typescript\/src\/.+\.ts$/,
   /^src\/.+\.(?:js|mjs|cjs|ts|svelte)$/,
   /^src-tauri\/src\/.+\.rs$/,

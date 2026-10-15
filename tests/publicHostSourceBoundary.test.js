@@ -41,12 +41,16 @@ describe("public host Rust source boundary", () => {
     expect(verifier).toContain("public-host-sources.txt");
   });
 
-  test("requires only Runtime-owned source in the pinned SDK checkout", () => {
+  test("reviews public product source independently of a private checkout", () => {
     const verifier = readFileSync("scripts/verify-private-sdk-boundary.mjs", "utf8");
-
-    expect(verifier).toContain('"chat_lifecycle.rs"');
-    expect(verifier).toContain('"sub_agent.rs"');
-    expect(verifier).not.toContain('"commands/goals.rs"');
-    expect(verifier).not.toContain('"goal.rs"');
+    const allowed = lines(readFileSync(".githooks/public-product-sources.txt", "utf8"));
+    const sources = ["openagent-app", "openagent-config", "openagent-protocol"]
+      .flatMap((name) => sourceFiles(`crates/${name}`))
+      .filter((path) => path.endsWith(".rs"))
+      .sort();
+    expect(allowed).toEqual(sources);
+    expect(verifier).not.toContain("requiredRuntimeSources");
+    expect(verifier).toContain("cargoTree");
+    expect(verifier).toContain('"openagent-runtime", "rig-core"');
   });
 });

@@ -62,7 +62,9 @@ export function classifyChangedModules(files, forceAll = false) {
   const sharedDependenciesChanged = normalized.some((file) => sharedDependencyFiles.has(file));
   const nativeWorkflowChanged = normalized.includes(nativeWorkflow);
   const nativeSourceChanged = normalized.some(
-    (file) => file.startsWith("src-tauri/") && !file.startsWith("src-tauri/resources/models/"),
+    (file) =>
+      file.startsWith("crates/") ||
+      (file.startsWith("src-tauri/") && !file.startsWith("src-tauri/resources/models/")),
   );
   const nativeManifestChanged = normalized.some((file) =>
     ["src-tauri/Cargo.toml", "src-tauri/Cargo.lock", "src-tauri/build.rs"].includes(file),

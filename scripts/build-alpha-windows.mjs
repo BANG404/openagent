@@ -143,8 +143,8 @@ export async function buildAlphaWindows({ version, sourceSha, sdkSha, baselineTa
     "SDK_PROTOCOL_VERSION",
   );
   const hostProtocol = await rustConstant(
-    "src-tauri/src/runtime_process.rs",
-    "DESKTOP_RUNTIME_PROTOCOL_VERSION",
+    "crates/openagent-protocol/src/lib.rs",
+    "SDK_PROTOCOL_VERSION",
   );
   if (hostProtocol !== runtimeProtocol)
     throw new Error("Alpha shell and Runtime protocols disagree");

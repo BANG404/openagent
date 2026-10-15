@@ -117,13 +117,19 @@ jobs:
           fi
 
       - name: Check Rust formatting
-        run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+        run: |
+          cargo fmt --manifest-path crates/Cargo.toml --all -- --check
+          cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 
       - name: Lint Rust
-        run: cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
+        run: |
+          cargo clippy --manifest-path crates/Cargo.toml --workspace --all-targets -- -D warnings
+          cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
 
       - name: Run Rust tests
-        run: cargo test --manifest-path src-tauri/Cargo.toml
+        run: |
+          cargo test --manifest-path crates/Cargo.toml --workspace --all-features
+          cargo test --manifest-path src-tauri/Cargo.toml
 
       - name: Verify Linux release sandbox digest guard
         if: inputs.full

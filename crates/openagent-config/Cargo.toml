@@ -1,0 +1,18 @@
+[package]
+name = "openagent-config"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+description = "Public OpenAgent configuration, defaults and durable settings"
+publish = false
+
+[dependencies]
+anyhow = "1"
+dirs = "5"
+fs2 = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sys-locale = "0.3"
+tempfile = "3"
+toml = "0.8"
+url = "2"

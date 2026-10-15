@@ -1,10 +1,9 @@
 # OpenAgent contributor map
-OpenAgent is a Tauri 2 app: SvelteKit owns UI, `sdk/typescript` owns public clients,
+OpenAgent is a Tauri 2 app: SvelteKit owns UI, `crates/` owns public product Rust, `sdk/typescript` owns public clients,
 `runtime` is the private execution submodule, and `src-tauri` is a thin desktop host. The project is in active debugging; do
 not add compatibility paths unless the task explicitly requires them.
 
-Keep this file at or below 150 lines. It is a routing map and repository
-boundary, not a complete development manual. Put product behavior, architecture,
+Keep this file at or below 150 lines. It is a routing map and repository boundary, not a complete development manual. Put product behavior, architecture,
 repeatable procedures, and fragile subsystem invariants in focused workspace
 skills; keep private Runtime internals in its repository.
 
@@ -75,6 +74,7 @@ task-specific fixture; routine development must not touch installed release
 state under `~/.openagent`.
 
 ## Repository boundaries
+- `crates/` owns public App, settings, and protocol; follow `crates/AGENTS.md`. Register Rust source in `.githooks/public-product-sources.txt`.
 - `sdk/typescript/` is public client source owned by this repository. Keep it behavior-free.
 - `runtime/` pins the private `openagent-sdk` repository. Commit and push Runtime changes there first,
   then commit only its gitlink and required host/frontend integration here.

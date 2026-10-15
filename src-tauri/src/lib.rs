@@ -136,8 +136,11 @@ fn run_with_mode(agent_server: bool) {
     let startup_frontend_manager = frontend_manager.clone();
     let desktop_data_dir = DesktopDataDir(data_dir.clone());
     let runtime_supervisor = Arc::new(
-        RuntimeProcessSupervisor::new(DESKTOP_RUNTIME_PROTOCOL_VERSION)
-            .unwrap_or_else(|error| panic!("Failed to initialize Runtime supervisor: {error}")),
+        RuntimeProcessSupervisor::new(
+            DESKTOP_RUNTIME_PROTOCOL_VERSION,
+            crate::runtime_process::configure_runtime_command,
+        )
+        .unwrap_or_else(|error| panic!("Failed to initialize Runtime supervisor: {error}")),
     );
     let startup_runtime_supervisor = runtime_supervisor.clone();
     let protocol_runtime_supervisor = runtime_supervisor.clone();

@@ -10,6 +10,19 @@ const nothing = {
 };
 
 describe("CI module classification", () => {
+  test("public Rust product and contracts qualify native consumers", () => {
+    for (const file of [
+      "crates/openagent-app/src/paths.rs",
+      "crates/openagent-protocol/src/lib.rs",
+      "crates/Cargo.lock",
+    ]) {
+      expect(classifyChangedModules([file])).toEqual({
+        ...nothing,
+        nativeQuality: true,
+        nativePlatform: true,
+      });
+    }
+  });
   test("qualifies shared frontend artifact inputs through frontend checks", () => {
     for (const file of [
       ".github/workflows/build-frontend.yml",

@@ -7,5 +7,5 @@ metadata:
 
 # OpenAgent configuration
 
-Route to the smallest matching reference: data and startup, save and reload,
-context compaction, permissions, or diagnostics. The SDK owns durable data.
+Read matching references. Public `openagent-config` owns settings;
+Runtime owns conversations. Preserve migrations, backups and user data.

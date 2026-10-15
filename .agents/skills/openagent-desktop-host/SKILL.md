@@ -7,6 +7,5 @@ metadata:
 
 # OpenAgent desktop host
 
-Keep src-tauri a thin adapter over the SDK. Read references for ownership,
-startup, native material, and verification. Keep Rust warning-free and run
-format and host checks for native changes.
+Follow [product boundaries](references/product-runtime-boundary.md).
+Read references for native ownership, startup and verification. Deliver via OWT.
