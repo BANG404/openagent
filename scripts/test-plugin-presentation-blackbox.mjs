@@ -78,6 +78,7 @@ const themeId = "openagent-theme-probe";
 const integrationId = "openagent-integration-probe";
 /** @type {string[]} */
 const installed = [];
+const hasNativeMaterial = process.platform === "win32" || process.platform === "darwin";
 /** @type {unknown} */
 let acceptanceFailure;
 /** @type {unknown} */
@@ -112,6 +113,32 @@ try {
         await emit('agent-plugins-changed'); return true;`);
       const primary = theme === "light" ? "#663399" : "#cc99ff";
       await open("general");
+      pilot(["click", "[data-appearance-native-background] [role=switch]"]);
+      await waitExpression(
+        "!document.documentElement.classList.contains('native-window-material')",
+      );
+      const gray = theme === "light" ? "rgb(245, 245, 247)" : "rgb(40, 44, 52)";
+      await waitExpression(`getComputedStyle(document.body).backgroundColor==='${gray}'`);
+      await operation(`const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
+        for(let i=0;i<100;i++){
+          if((await c.invokeProduct('get_settings',{})).theme_overrides?.opaque_background)return true;
+          await new Promise(r=>setTimeout(r,100));
+        } throw new Error('Opaque background preference did not persist');`);
+      await open("general");
+      await waitExpression(
+        "document.querySelector('[data-appearance-native-background] [role=switch]')?.getAttribute('aria-checked')==='false'",
+      );
+      close();
+      await waitExpression("!document.querySelector('[data-appearance-native-background]')");
+      captureBlackboxScreenshot(
+        pilot,
+        join(artifacts, `${theme}-${language}-opaque-background.png`),
+      );
+      await open("general");
+      pilot(["click", "[data-appearance-native-background] [role=switch]"]);
+      await waitExpression(
+        `document.documentElement.classList.contains('native-window-material')===${hasNativeMaterial}`,
+      );
       // Hold one real save while another edit passes its debounce. Its reply and
       // settings notifications must preserve the newer preview and merge base.
       await operation(`const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
@@ -163,6 +190,9 @@ try {
       await waitExpression(
         `getComputedStyle(document.documentElement).getPropertyValue('--primary').trim()===${JSON.stringify(primary)}`,
       );
+      await waitExpression(
+        `!document.documentElement.classList.contains('native-window-material') && getComputedStyle(document.body).backgroundColor==='${theme === "light" ? "rgb(255, 250, 245)" : "rgb(33, 27, 41)"}'`,
+      );
       const accent = theme === "light" ? "#145A86" : "#88BBFF";
       const background = theme === "light" ? "#FAF5EF" : "#16202A";
       const foreground = theme === "light" ? "#17212B" : "#EEF1F4";
@@ -208,6 +238,10 @@ try {
         `document.documentElement.style.getPropertyValue('--primary')==='${accent}' && document.querySelector('#appearance-accent')?.value==='${accent}' && document.querySelector('#appearance-ui_font_size')?.value==='16'`,
         "settings-general",
       );
+      await waitExpression(
+        `!document.documentElement.classList.contains('native-window-material') && getComputedStyle(document.body).backgroundColor==='${theme === "light" ? "rgb(250, 245, 239)" : "rgb(22, 32, 42)"}'`,
+        "settings-general",
+      );
       pilot(["snapshot", "-i"], "settings-general");
       evaluate(
         `window.__TAURI_INTERNALS__.invoke('plugin:window|hide',{label:'settings-general'}); true`,
@@ -226,6 +260,9 @@ try {
       pilot(["click", "[data-appearance-theme] button"]);
       pilot(["click", '[role=option][data-value=""]']);
       await waitExpression(`!document.documentElement.style.getPropertyValue('--app-radius')`);
+      await waitExpression(
+        `document.documentElement.classList.contains('native-window-material')===${hasNativeMaterial}`,
+      );
       pilot(["click", "[data-appearance-theme] button"]);
       pilot(["click", `[role=option][data-value="${themeId}"]`]);
       await waitExpression(

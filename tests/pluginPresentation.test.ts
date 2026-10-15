@@ -5,6 +5,7 @@ import {
   applyPluginThemeTokens,
   appearanceTokens,
   normalizeThemeOverrides,
+  usesNativeBackground,
 } from "../src/lib/pluginPresentation";
 import type { AgentPluginSummary } from "../src/lib/types";
 
@@ -86,6 +87,7 @@ test("override normalization rejects unsafe values and bounds typography", () =>
   expect(normalizeThemeOverrides()).toEqual({
     light: {},
     dark: {},
+    opaque_background: false,
     font_family: "",
     ui_font_size: undefined,
     code_font_size: undefined,
@@ -100,6 +102,32 @@ test("override normalization rejects unsafe values and bounds typography", () =>
   expect(normalized.font_family).toBe("");
   expect(normalized.ui_font_size).toBe(24);
   expect(normalized.code_font_size).toBe(10);
+});
+
+test("native background yields to opaque mode, plugin canvases and palette overrides", () => {
+  const theme = plugin("a");
+  theme.theme!.light["--bg"] = "#FFF8EE";
+  const config = { theme_plugin: "a" };
+  expect(usesNativeBackground(undefined, {})).toBe(true);
+  expect(
+    usesNativeBackground({ light: {}, dark: {}, font_family: "", opaque_background: true }, {}),
+  ).toBe(false);
+  expect(usesNativeBackground(undefined, appearanceTokens([theme], config))).toBe(false);
+  expect(usesNativeBackground(undefined, appearanceTokens([theme], config, true))).toBe(true);
+  expect(
+    usesNativeBackground(
+      undefined,
+      appearanceTokens([], {
+        theme_overrides: { light: { background: "#123456" }, dark: {}, font_family: "" },
+      }),
+    ),
+  ).toBe(false);
+  expect(
+    usesNativeBackground(
+      undefined,
+      appearanceTokens([theme], { ...config, agent_plugins_enabled: { a: false } }),
+    ),
+  ).toBe(true);
 });
 
 test("integrations remain discoverable when disabled and exclude ordinary packages", () => {

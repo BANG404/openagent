@@ -1,5 +1,10 @@
 # Shared Runtime Types
 
+PageRuntime is the single owner of appearance tokens and native-canvas class
+selection. Its effective settings preview or saved config must drive both;
+background edits must not leave the root transparent over a custom/plugin color.
+Chat and composer continue to consume the existing shared surface tokens.
+
 Plugin summaries carry optional `local_source` for the Settings source-refresh
 controls. Keep it out of conversation state; the plugin owner documents source
 associations and task-safe activation. Refresh notifications reload package

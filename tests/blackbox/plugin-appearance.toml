@@ -52,3 +52,19 @@ script = '''(() => {
       document.documentElement.style.getPropertyValue('--code-font-size') !== '15px')
     throw new Error('typography overrides did not reach the document');
 })()'''
+
+[[step]]
+name = "custom background paints the real window canvas"
+action = "eval"
+script = """(() => {
+  const probe = window.__appearanceProbe;
+  const sample = document.createElement('span');
+  sample.style.backgroundColor = probe.background;
+  document.body.append(sample);
+  try {
+    if (document.documentElement.classList.contains('native-window-material') ||
+        getComputedStyle(document.body).backgroundColor !== getComputedStyle(sample).backgroundColor)
+      throw new Error('Custom background is hidden by the transparent native canvas');
+  } finally { sample.remove(); }
+  return 'custom background reaches body';
+})()"""

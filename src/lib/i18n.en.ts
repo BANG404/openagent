@@ -11,6 +11,9 @@ const en: Record<TranslationKeys, string> = {
     "The selected theme is unavailable. The default is used until the package is reinstalled.",
   appearanceAccent: "Accent color",
   appearanceBackground: "Background",
+  appearanceNativeBackground: "Native background",
+  appearanceNativeBackgroundHint:
+    "Turn off for an opaque theme background. Theme plugin and custom background colors take priority.",
   appearanceForeground: "Foreground",
   appearanceFont: "Font",
   appearanceFollowTheme: "Follow theme",

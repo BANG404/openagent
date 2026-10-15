@@ -8,6 +8,8 @@ export const zh = {
   appearanceUnavailableHint: "所选主题当前不可用，暂时使用默认主题。重新安装后将自动恢复。",
   appearanceAccent: "强调色",
   appearanceBackground: "背景",
+  appearanceNativeBackground: "原生背景",
+  appearanceNativeBackgroundHint: "关闭后使用不透明的主题底色。主题插件和自定义背景颜色优先。",
   appearanceForeground: "前景",
   appearanceFont: "字体",
   appearanceFollowTheme: "跟随主题",
