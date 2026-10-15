@@ -45,7 +45,8 @@ Candidate construction and publication are separate phases:
 
 Runtime-selected desktop releases run `plugin-releases.yml` after qualification
 and before SDK publication. It checks out the immutable qualified SDK contract,
-stages pinned standard packages using their checked-in versions without rewriting
+synchronizes subscribed plugin branches once and stages clean source snapshots
+using their checked-in versions without rewriting
 manifests, tests the packaged bytes, then publishes or reuses immutable releases.
 The plugin gate reads the paginated commit-status history for that exact SDK SHA
 and requires a successful `Public SDK CI` record with the description
@@ -66,8 +67,9 @@ on the standard package repositories before enabling release publication.
 Release detection requires that plugin token for Runtime-selected releases,
 before qualification or candidate builds start; missing publication credentials
 must fail at this gate rather than after native packaging.
-Plugin tag fetching is restricted to submodules under `plugins/`, including
-nested package submodules. The separate immutable SDK checkout deliberately
+Plugin staging and publication reuse the same clean checkouts and retain actual
+source SHAs in the run artifact. No plugin lockfile or gitlink is committed to
+the host. The separate immutable SDK checkout deliberately
 does not persist its reader credential and must not be fetched by package setup.
 Packaged tests run under their declared framework: `node:test` uses Node 24,
 and `bun:test` or existing implicit Bun globals use the pinned Bun runner.

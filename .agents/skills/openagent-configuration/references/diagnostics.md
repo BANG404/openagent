@@ -12,7 +12,7 @@ source, changed configuration field names, active-run warning and old/new
 connection IDs with initialization, catalog and disconnect records. A scheduled
 refresh is not a completed handshake. A connected replacement does not prove
 the active conversation can dispatch tools. The private connection contract and
-source labels live in `sdk/docs/plugin-mcp-tool-modes.md`; keep configuration
+source labels live in `runtime/docs/plugin-mcp-tool-modes.md`; keep configuration
 values, tool payloads and model content out of application logs.
 
 `diagnostic_log_collection_enabled` defaults to `true` and is exposed in
@@ -148,10 +148,10 @@ Every confirmed report attaches bounded recent Runtime and desktop-host logs,
 even when the optional conversation trace is off. The dialog explains that logs
 may contain error details and local paths. Missing logs are allowed; a log read
 failure preserves the description and prevents a success receipt. The private
-attachment contract belongs in `sdk/docs/support-reports.md`.
+attachment contract belongs in `runtime/docs/support-reports.md`.
 
 Runtime exports the complete durable snapshot without truncation and keeps report
-payloads out of telemetry. See `sdk/docs/support-reports.md` for the private
+payloads out of telemetry. See `runtime/docs/support-reports.md` for the private
 contract. Reports are prepared and compressed outside the frontend, then uploaded
 from a temporary file through a bounded asynchronous file stream. Client and
 receiver enforce separate compressed, expanded, and individual-content limits;

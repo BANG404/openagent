@@ -30,7 +30,7 @@ export function readDesktopRuntimeProtocol(repositoryRoot = root) {
 export function verifyDevelopmentRuntimeProtocol(repositoryRoot = root) {
   const desktopProtocol = readDesktopRuntimeProtocol(repositoryRoot);
   const sdkProtocol = readProtocolConstant(
-    path.join(repositoryRoot, "sdk/rust/openagent-protocol/src/lib.rs"),
+    path.join(repositoryRoot, "runtime/rust/openagent-protocol/src/lib.rs"),
     "SDK_PROTOCOL_VERSION",
   );
   if (desktopProtocol !== sdkProtocol) {

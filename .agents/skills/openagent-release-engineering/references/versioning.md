@@ -110,9 +110,9 @@ GitHub's templated upload URL from the response before composing asset queries.
 
 Pull requests from forks never receive private SDK credentials. Trusted jobs
 create a short-lived, read-only GitHub App installation token and check out the
-private SDK over HTTPS. Frontend-only fork checks download the `runtime-dev`
-TypeScript snapshot, verify its commit, byte size, and SHA-256, and materialize
-only that public client boundary. Native or Rust checks remain unavailable to
+private Runtime over HTTPS into `runtime/`. Frontend and automation checks use
+`sdk/typescript/` directly for both trusted and fork contributions, without a
+private checkout or downloaded client. Native or Rust checks remain unavailable to
 untrusted fork code because compiling them would expose private SDK sources to
 the runner; maintainers reproduce or qualify those changes after review.
 

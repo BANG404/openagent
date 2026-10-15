@@ -39,7 +39,7 @@ async function sha256(file) {
 export async function prepareLinuxSandboxHelper({
   // NOSONAR: platform preparation validates and activates one immutable helper transaction.
   profile = "dev",
-  targetDirectory = path.join(root, "sdk", "target"),
+  targetDirectory = path.join(root, "runtime", "target"),
   targetTriple: requestedTargetTriple,
   exportToGitHubEnvironment = false,
 } = {}) {
@@ -60,7 +60,7 @@ export async function prepareLinuxSandboxHelper({
       "--format-version",
       "1",
       "--manifest-path",
-      path.join("sdk", "Cargo.toml"),
+      path.join("runtime", "Cargo.toml"),
     ]),
   );
   const linuxSandboxPackage = metadata.packages.find(
@@ -171,7 +171,7 @@ export async function prepareLinuxSandboxHelper({
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(scriptPath)) {
   const result = await prepareLinuxSandboxHelper({
     profile: argument("--profile", "dev"),
-    targetDirectory: argument("--target-dir", path.join(root, "sdk", "target")),
+    targetDirectory: argument("--target-dir", path.join(root, "runtime", "target")),
     targetTriple: argument("--target", undefined),
     exportToGitHubEnvironment: process.argv.includes("--github-env"),
   });

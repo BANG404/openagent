@@ -19,7 +19,14 @@ export function runtimeVerificationPlan({
 }) {
   if (!packageName?.trim() || !caseName?.trim())
     throw new Error("A package and focused case are required.");
-  const base = ["test", "--locked", "--manifest-path", "sdk/Cargo.toml", "--target", targetTriple];
+  const base = [
+    "test",
+    "--locked",
+    "--manifest-path",
+    "runtime/Cargo.toml",
+    "--target",
+    targetTriple,
+  ];
   const focused = [...base, "-p", packageName];
   if (testTarget) focused.push("--test", testTarget);
   else focused.push("--lib");
@@ -58,7 +65,7 @@ export function passedRuntimeTests(output) {
 
 /** @param {string} root */
 function sourceState(root) {
-  const sdkRoot = path.join(root, "sdk");
+  const sdkRoot = path.join(root, "runtime");
   const git = (/** @type {string[]} */ args) =>
     execFileSync("git", args, { cwd: sdkRoot, maxBuffer: 64 * 1024 * 1024 });
   const hash = createHash("sha256")

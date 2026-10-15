@@ -3,7 +3,7 @@
 Use Bun 1.3.14, matching `package.json` and CI, plus Node.js for scripts that
 invoke `node`. Native builds use a current stable Rust toolchain and the
 platform's Tauri dependencies. Complete source preparation requires access to
-the pinned private SDK and the public plugin submodules.
+the pinned private SDK and the independent public plugin repositories.
 Keep every workflow's Bun setup and the README prerequisites aligned with
 `package.json`. Preflight checks the actual Bun version before launching any
 checks and rejects mismatches with an upgrade instruction. Bun 1.3.14 is the
@@ -20,12 +20,13 @@ bun run prepare:worktree:dev --native   # Only for a desktop/native scenario
 bun run dev:desktop:source
 ```
 
-Preparation initializes pinned submodules, installs the frozen Bun lockfile,
-materializes the pinned SDK source client, and stages the checksummed portable
+Preparation initializes the pinned Runtime and independent plugin subscriptions,
+installs the frozen Bun lockfile,
+uses the checked-in public SDK client, and stages the checksummed portable
 Node.js and terminal tools required by Tauri compile checks. Its submodule
 preparation preserves LF bytes from the first checkout and repairs unchanged
 legacy CRLF conversions;
-see [pinned plugin checkouts](../../openagent-plugin-development/references/local-development.md#pinned-source-checkouts)
+see [independent plugin checkouts](../../openagent-plugin-development/references/local-development.md#independent-source-checkouts)
 for configuration and edit-preservation boundaries. The default development command
 does not compile Rust; `--native` additionally builds and stages the platform's
 sandbox helpers and Runtime sidecar. Release preparation still builds both.
@@ -67,6 +68,16 @@ a newer artifact compiled from another worktree as the current SDK interface.
 An unknown existing cache receives the same one-time workspace invalidation.
 The guard also checks local crate dep-info's source directory, so an already
 running older launcher cannot silently overwrite that cache behind its marker.
+
+`bun run test:model:cache` explicitly measures real-provider prompt cache hits
+using the SDK-owned ignored test and dev model discovery. It consumes model
+requests and is outside automatic preflight. The SDK's
+`docs/runtime-model-tests.md` owns request budgets, selection, accounting and
+failure semantics; do not implement provider requests or cache accounting in
+the public host. Its output contains only usage and timing metadata.
+Use `bun run test:model:cache --cache-matrix` for the explicit mutation matrix;
+the SDK documentation owns its larger request budget and optional image,
+concurrency and retention experiments.
 
 For an owner-required ignored fixture test, add `--ignored` explicitly. This
 selects only the exact case and retains the same nonzero-pass, isolated-data and

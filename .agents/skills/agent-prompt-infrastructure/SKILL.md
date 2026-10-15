@@ -10,4 +10,4 @@ metadata:
 Route skill metadata and routing here.
 Read [prompt-contract.md](references/prompt-contract.md).
 Run bun run check:skills after skill or manifest edits.
-Keep SDK prompt assembly in sdk/.
+Keep SDK prompt assembly in runtime/.

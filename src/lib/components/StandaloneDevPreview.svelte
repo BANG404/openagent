@@ -1459,6 +1459,10 @@
   <RuntimeStatusPreview {theme} />
 {:else if preview === "user-message-markdown"}
   {#if UserMarkdownPreview}<UserMarkdownPreview {locale} />{/if}
+{:else if preview === "streaming-transcript" && query.has("streaming-transcript-preview-performance")}
+  {#await import("./ConversationPerformancePreview.svelte") then module}
+    <module.default {theme} {locale} />
+  {/await}
 {:else if preview === "streaming-transcript" && query.has("streaming-transcript-preview-compaction")}
   <CompactionTranscriptPreview {theme} {locale} />
 {:else if preview === "streaming-transcript" && query.has("streaming-transcript-preview-thinking")}

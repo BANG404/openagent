@@ -45,7 +45,12 @@ The desktop and remote conversational surfaces do not introduce a second brand p
 
 The selected enabled theme package overrides the current design through document-root CSS
 custom properties, including colors and geometry. The default palette resumes
-when its tokens are removed. Saved appearance overrides apply last. Typography
+when its tokens are removed. Saved appearance overrides apply last. The Native
+background switch selects the default native material or opaque theme canvas.
+Explicit plugin `--bg` and user background colors always paint the window
+canvas, including body and standalone Settings, instead of being hidden by
+native transparency. With native background off and no explicit color, retain
+the same gray canvas tokens used on Linux in light/dark mode. Typography
 uses `--app-font-family`, `--app-font-size`, and `--code-font-size` in shared
 application/chat/diff styles. [The plugin package contract](../../openagent-plugin-development/references/package-format.md#theme-and-integration-package-types)
 owns declaration, validation, precedence and lifecycle behavior.

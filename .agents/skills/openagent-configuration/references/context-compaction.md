@@ -15,8 +15,8 @@ controls by their labels rather than their position among theme overrides, and
 splits bounded native evaluations so no single RPC exceeds its execution deadline.
 
 Automatic context compaction is enabled by default. A fresh or missing
-`context_compaction_threshold` defaults to 200,000 approximate tokens. An
-explicitly saved global threshold remains unchanged, and an optional per-model
+`context_compaction_threshold` defaults to 200,000 provider-reported context
+tokens. An explicitly saved global threshold remains unchanged, and an optional per-model
 threshold takes precedence for that model.
 An optional model context window is configured in the model dialog. The effective
 trigger is the smaller of the configured threshold and 90% of that window;
@@ -45,13 +45,15 @@ The compressed boundary stays textual and original attachments remain durable.
 Runtime ownership and verification live in the SDK conversation-runtime skill's
 `references/context-budget.md`.
 
-The runtime estimate is Unicode-aware: ASCII text uses an approximate
-four-characters-per-token ratio, while non-ASCII text is counted closer to one
-token per character. This keeps automatic compaction from underestimating
-Chinese and other non-ASCII transcripts.
-The selected request is checked before model execution, including its system
-prompt, tool definitions and attachments. Provider usage calibrates subsequent
-context growth; the composer displays active context including the latest output,
-and its denominator is the effective trigger. Cache/cost totals retain their
-separate cumulative meaning. Summaries must pass their budget before persistence;
-failed or cancelled compaction keeps the original transcript available.
+Automatic thresholds use the latest completed provider request's input plus
+output tokens, with cached input counted once. Sending a user message does not
+estimate or compare its size against the compaction threshold. The context
+indicator uses the same provider usage and receives no estimated pre-request
+update. Missing usage skips automatic threshold triggering; manual compaction
+and provider context-limit recovery remain available.
+
+A tool response can request compaction after its calls and results finish,
+before the next model request. A final reply is saved before compaction and does
+not cause another Chat reply. Local Unicode-aware estimates remain for summary
+budget validation and diagnostics. Failed or cancelled compaction preserves the
+original transcript.

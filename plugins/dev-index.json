@@ -1,21 +1,97 @@
 {
-  "goal": "goal",
-  "graph": "graph",
-  "chat-groups": "chat-groups",
-  "cua-driver": "cua-driver",
-  "message-board": "message-board",
-  "openagent-plugin-kit": "openagent-plugin-kit",
-  "asana": "asana",
-  "context7": "context7",
-  "fakechat": "fakechat",
-  "firebase": "firebase",
-  "github": "github",
-  "gitlab": "gitlab",
-  "imessage": "imessage",
-  "laravel-boost": "laravel-boost",
-  "langfuse": "langfuse",
-  "linear": "linear",
-  "playwright": "playwright",
-  "serena": "serena",
-  "terraform": "terraform"
+  "goal": {
+    "path": "goal",
+    "repository": "https://github.com/BANG404/openagent-goal.git",
+    "branch": "main"
+  },
+  "graph": {
+    "path": "graph",
+    "repository": "https://github.com/BANG404/openagent-graph.git",
+    "branch": "main"
+  },
+  "chat-groups": {
+    "path": "chat-groups",
+    "repository": "https://github.com/BANG404/openagent-chat-groups.git",
+    "branch": "main"
+  },
+  "cua-driver": {
+    "path": "cua-driver",
+    "repository": "https://github.com/BANG404/openagent-cua-driver.git",
+    "branch": "main"
+  },
+  "message-board": {
+    "path": "message-board",
+    "repository": "https://github.com/BANG404/message-board.git",
+    "branch": "main"
+  },
+  "openagent-plugin-kit": {
+    "path": "openagent-plugin-kit",
+    "repository": "https://github.com/BANG404/openagent-plugin-kit.git",
+    "branch": "main"
+  },
+  "asana": {
+    "path": "asana",
+    "repository": "https://github.com/BANG404/openagent-asana.git",
+    "branch": "main"
+  },
+  "context7": {
+    "path": "context7",
+    "repository": "https://github.com/BANG404/openagent-context7.git",
+    "branch": "main"
+  },
+  "fakechat": {
+    "path": "fakechat",
+    "repository": "https://github.com/BANG404/openagent-fakechat.git",
+    "branch": "main"
+  },
+  "firebase": {
+    "path": "firebase",
+    "repository": "https://github.com/BANG404/openagent-firebase.git",
+    "branch": "main"
+  },
+  "github": {
+    "path": "github",
+    "repository": "https://github.com/BANG404/openagent-github.git",
+    "branch": "main"
+  },
+  "gitlab": {
+    "path": "gitlab",
+    "repository": "https://github.com/BANG404/openagent-gitlab.git",
+    "branch": "main"
+  },
+  "imessage": {
+    "path": "imessage",
+    "repository": "https://github.com/BANG404/openagent-imessage.git",
+    "branch": "main"
+  },
+  "laravel-boost": {
+    "path": "laravel-boost",
+    "repository": "https://github.com/BANG404/openagent-laravel-boost.git",
+    "branch": "main"
+  },
+  "langfuse": {
+    "path": "langfuse",
+    "repository": "https://github.com/BANG404/openagent-langfuse.git",
+    "branch": "main"
+  },
+  "linear": {
+    "path": "linear",
+    "repository": "https://github.com/BANG404/openagent-linear.git",
+    "branch": "main"
+  },
+  "playwright": {
+    "path": "playwright",
+    "repository": "https://github.com/BANG404/openagent-playwright.git",
+    "branch": "main"
+  },
+  "serena": {
+    "path": "serena",
+    "repository": "https://github.com/BANG404/openagent-serena.git",
+    "branch": "main"
+  },
+  "terraform": {
+    "path": "terraform",
+    "repository": "https://github.com/BANG404/openagent-terraform.git",
+    "branch": "main"
+  }
 }

@@ -218,15 +218,9 @@ function main() {
     },
     {
       id: "sdk-gitlink",
-      label: "Published SDK gitlink",
+      label: "Published private Runtime gitlink",
       command: "bun",
       args: ["scripts/verify-sdk-gitlink.mjs"],
-    },
-    {
-      id: "plugin-versions",
-      label: "Source-owned plugin versions",
-      command: "bun",
-      args: ["scripts/plugin-release.mjs", "--verify", "--base", baseSha],
     },
     ...commands,
   ];

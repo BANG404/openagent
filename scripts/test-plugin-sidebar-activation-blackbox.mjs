@@ -289,7 +289,7 @@ try {
           "--db",
           join(home, "messages.db"),
         ],
-        { cwd: join(repo, "sdk"), encoding: "utf8", windowsHide: true },
+        { cwd: join(repo, "runtime"), encoding: "utf8", windowsHide: true },
       );
       assert.equal(records.status, 0, records.stderr);
       const evidence = JSON.parse(records.stdout);

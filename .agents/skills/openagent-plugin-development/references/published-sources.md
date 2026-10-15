@@ -33,12 +33,10 @@ and the plugin-kit validator, docs, and templates together. When a product
 package changes, update its repository and release archive so the GitHub
 subscription source remains installable.
 
-Keep parent source gitlinks aligned with accepted published source. Both manual
-`v*` and automatic `plugin-v*` releases use the checked-in package version without
-rewriting the manifest, following [plugin versioning](versioning.md). The
-Runtime/plugin mapping records that immutable source SHA and version. Catalog
-versions refer to packaged manifests.
-Standard packages declare MCP
+Plugin repositories and versions advance independently of the host. Publications
+record immutable source SHAs and versions, following [plugin versioning](versioning.md).
+The host catalog stores repository subscriptions and the rolling feed discovers
+releases without a parent commit. Standard packages declare MCP
 mounting policies and readable localized plugin names; they require a Runtime
 implementing those policies and the generic Host Bridge. Follow
 [package format](package-format.md) for declaration and settings precedence.

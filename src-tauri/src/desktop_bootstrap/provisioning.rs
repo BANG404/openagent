@@ -446,16 +446,18 @@ async fn provision_inner(
     // older than this shell. Prepare replacement resources behind its hidden
     // window; provision() reveals actionable failures. Runtime still decides
     // whether the product needs first-use configuration after navigation.
+    let home = &app.state::<crate::DesktopDataDir>().0;
+    let continuing_shell_update = crate::component_updates::handoff::read(home)?.is_some();
     if offline_directory.is_some()
-        || app
-            .state::<FrontendResourceManager>()
-            .active_version()
-            .is_none()
+        || (!continuing_shell_update
+            && app
+                .state::<FrontendResourceManager>()
+                .active_version()
+                .is_none())
     {
         reveal_preparation(app)?;
     }
     update(app, "downloading", None);
-    let home = &app.state::<crate::DesktopDataDir>().0;
     let directory = stage_distribution(
         app,
         home,
@@ -481,7 +483,7 @@ async fn provision_inner(
         .await?;
     // Selection remains reversible; Runtime retains ownership of data inspection
     // and the interactive backup/transition consent boundary.
-    let selected_runtime = match runtime_manager.active_resource().await? {
+    let selected_runtime = match runtime_manager.startup_resource().await? {
         Some(active) if active.is_newer_than(&runtime)? => active,
         _ => runtime,
     };
@@ -508,7 +510,7 @@ async fn installed_startup_resource(
     }
     let runtime = app
         .state::<RuntimeResourceManager>()
-        .active_resource()
+        .startup_resource()
         .await;
     match runtime {
         Ok(runtime) => {

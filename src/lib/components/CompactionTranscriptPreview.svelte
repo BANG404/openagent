@@ -3,6 +3,7 @@
   import { checkpointRecordsToMessages } from "$lib/checkpointTree";
   import { createCheckpointController } from "$lib/page/checkpoints";
   import { ChatStreamState } from "$lib/chatStreamState.svelte";
+  import { appendCompactionProgress, completeCompactionProgress } from "$lib/chatStream";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import type { Locale } from "$lib/i18n";
   import type { CheckpointMessage, Conversation, RenderableCheckpoint } from "$lib/types";
@@ -62,10 +63,32 @@
       tags: ["context_compaction" as const],
     },
   ];
+  const approvalRecords = [
+    record("approval", "assistant", [
+      {
+        type: "tool_use",
+        id: "approval-call",
+        name: "ask_user",
+        input: {
+          title: "Confirm scenario inputs",
+          description: "Review the scenario after compaction.",
+          fields: [{ name: "confirmed", label: "Confirm inputs", type: "confirm" }],
+        },
+      },
+    ]),
+    record("approval-result", "user", [
+      {
+        type: "tool_result",
+        tool_use_id: "approval-call",
+        content: [{ type: "text", text: '{"cancelled":true}' }],
+      },
+    ]),
+  ];
   const completeRecords = [
     ...initialRecords,
     ...traceRecords,
     ...boundaryRecords,
+    ...approvalRecords,
     record("continuation", "assistant", [{ type: "text", text: "After compaction continuation" }]),
   ];
   const restored = sessionStorage.getItem(storageKey) === "completed";
@@ -139,9 +162,21 @@
     };
   }
   let scrollElement = $state<HTMLElement | null>(null);
-  async function compact() {
+  async function compact(doneFirst = true) {
     chatStreams.itemsByConversation = {
-      "compaction-preview": [...items, { type: "compaction_boundary" }],
+      "compaction-preview": appendCompactionProgress(items, "creating"),
+    };
+    if (doneFirst)
+      chatStreams.itemsByConversation = {
+        "compaction-preview": completeCompactionProgress(items),
+      };
+    chatStreams.itemsByConversation = {
+      "compaction-preview": [
+        ...items,
+        ...checkpointRecordsToMessages(approvalRecords, "preview-checkpoint").flatMap(
+          (message) => message.items ?? [],
+        ),
+      ],
     };
     await controller.hydrateConversation(
       "compaction-preview",
@@ -152,6 +187,9 @@
       undefined,
       true,
     );
+    chatStreams.itemsByConversation = {
+      "compaction-preview": completeCompactionProgress(items),
+    };
     chatStreams.itemsByConversation = {
       "compaction-preview": [...items, { type: "text", content: "After compaction continuation" }],
     };
@@ -181,8 +219,17 @@
   bind:this={scrollElement}
 >
   <nav aria-label="Compaction fixture">
-    <button type="button" data-compaction-action="compact" disabled={compacted} onclick={compact}
-      >Compact</button
+    <button
+      type="button"
+      data-compaction-action="compact"
+      disabled={compacted}
+      onclick={() => compact()}>Compact</button
+    >
+    <button
+      type="button"
+      data-compaction-action="checkpoint-first"
+      disabled={compacted}
+      onclick={() => compact(false)}>Checkpoint first</button
     >
     <button
       type="button"

@@ -40,6 +40,8 @@ Windows filesystem and network commands select `--test windows_process_sandbox`
 and an exact test name. The harness-free `plugin_process_confinement` target runs
 once in its own required step; a libtest name filter cannot skip that target and
 must not turn an unrelated plugin-start failure into a Firewall/WFP result.
+The TypeScript and development-client jobs check out the public host SDK as
+the client source; private checkouts stay under `runtime/`.
 The private repository dispatches an immutable commit SHA; a GitHub App
 installed only on the SDK repository lets the public workflow read that
 revision and report the aggregate `Public SDK CI` commit status. Because
@@ -47,7 +49,7 @@ workflow logs are public, SDK command output is suppressed. The cross-repository
 status reporter sends JSON payloads directly to the GitHub REST API, so SDK jobs
 do not depend on a preinstalled GitHub CLI. Ordinary build
 outputs are never uploaded. Runtime servers, embedded diagnostics, and sandbox
-helpers compile cold into `sdk/target`; their Rust caches use
+helpers compile cold into `runtime/target`; their Rust caches use
 `cache-targets: false`. The ordinary Tauri dependency graph contains no private
 SDK crate and compiles into the separate `src-tauri/target`, which may use
 GitHub target caching. Release and development Runtime jobs may upload only
@@ -99,7 +101,7 @@ platform sandboxes, the TypeScript client, and host compatibility. The input rem
 enabled by default so older release callers that omit it still receive full qualification.
 Fast and full results use separate SDK commit-status contexts so a later fast run
 cannot replace the release qualification status. Rust formatting, lint, tests,
-Linux/macOS sandbox checks, TypeScript client checks, and public-host compatibility remain
+Linux/macOS sandbox checks, public TypeScript client checks, and public-host compatibility remain
 independent jobs. Public-host compatibility materializes the configured empty
 `frontendDist` and a target-named placeholder for every configured Tauri
 `externalBin` before native compilation; qualification never substitutes that

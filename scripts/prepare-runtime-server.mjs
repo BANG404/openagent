@@ -58,7 +58,7 @@ export function runtimeServerPaths({
   repositoryRoot,
   targetTriple,
   profile,
-  targetDirectory = path.join(repositoryRoot, "sdk", "target"),
+  targetDirectory = path.join(repositoryRoot, "runtime", "target"),
 }) {
   if (!supportedTargets.has(targetTriple)) {
     throw new Error(`OpenAgent has no packaged runtime server for ${targetTriple}.`);
@@ -121,7 +121,7 @@ export async function prepareRuntimeServer({ profile = "dev", targetTriple } = {
     "build",
     "--locked",
     "--manifest-path",
-    path.join("sdk", "Cargo.toml"),
+    path.join("runtime", "Cargo.toml"),
     "-p",
     "openagent-server",
     "--target",

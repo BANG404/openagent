@@ -109,8 +109,8 @@ test("light development preparation stages shell resources without Cargo or sand
     commands.map(([command, args]) => [command === process.execPath ? "bun" : command, args]),
   ).toEqual([
     ["bun", ["scripts/prepare-submodules.mjs"]],
+    ["bun", ["scripts/prepare-plugin-sources.mjs"]],
     ["bun", ["install", "--frozen-lockfile"]],
-    ["bun", ["scripts/prepare-source-dev.mjs", "--client-only"]],
     ["bun", ["scripts/prepare-node-runtime.mjs"]],
     ["bun", ["scripts/prepare-terminal-tools.mjs"]],
   ]);
@@ -121,8 +121,8 @@ test("prepares Windows helpers but skips the Linux-only helper", () => {
 
   expect(commands.map(([, args]) => args)).toEqual([
     ["scripts/prepare-submodules.mjs"],
+    ["scripts/prepare-plugin-sources.mjs"],
     ["install", "--frozen-lockfile"],
-    ["scripts/prepare-source-dev.mjs", "--client-only"],
     ["scripts/prepare-node-runtime.mjs"],
     ["scripts/prepare-terminal-tools.mjs"],
     ["run", "prepare:windows-sandbox:release"],
@@ -130,13 +130,13 @@ test("prepares Windows helpers but skips the Linux-only helper", () => {
   ]);
 });
 
-test("native development preparation is explicit and follows source client preparation", () => {
+test("native development preparation is explicit and follows shell resource preparation", () => {
   const commands = worktreePreparationPlan({ platform: "win32", native: true });
   expect(commands.slice(-2).map(([, args]) => args)).toEqual([
     ["run", "prepare:windows-sandbox:dev"],
     ["run", "prepare:runtime-server:dev"],
   ]);
-  expect(commands[2][1]).toEqual(["scripts/prepare-source-dev.mjs", "--client-only"]);
+  expect(commands[3][1]).toEqual(["scripts/prepare-node-runtime.mjs"]);
 });
 
 test("rejects an unsupported profile", () => {

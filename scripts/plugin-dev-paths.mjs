@@ -16,7 +16,7 @@ function isInside(root, directory) {
  * Read the tracked source index without consulting .env or process overrides.
  * Paths stay inside the index's plugin directory, including through junctions.
  * @param {{indexFile?: string}} [options]
- * @returns {{indexFile: string, directories: Record<string, string>}}
+ * @returns {{indexFile: string, directories: Record<string, string>, sources: Record<string, {path: string, repository: string, branch: string}>}}
  */
 export function readPluginDevIndex({ indexFile = defaultPluginIndexFile } = {}) {
   const file = resolve(indexFile);
@@ -33,7 +33,10 @@ export function readPluginDevIndex({ indexFile = defaultPluginIndexFile } = {}) 
   }
   /** @type {Record<string, string>} */
   const directories = {};
-  for (const [id, path] of Object.entries(value)) {
+  /** @type {Record<string, {path: string, repository: string, branch: string}>} */
+  const sources = {};
+  for (const [id, source] of Object.entries(value)) {
+    const path = source?.path;
     if (
       !/^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(id) ||
       typeof path !== "string" ||
@@ -43,10 +46,22 @@ export function readPluginDevIndex({ indexFile = defaultPluginIndexFile } = {}) 
     ) {
       throw new Error(`Invalid plugin directory mapping for ${id}; use a path inside plugins.`);
     }
+    if (
+      typeof source.repository !== "string" ||
+      !/^https:\/\/github\.com\/[\w.-]+\/[\w.-]+(?:\.git)?$/.test(source.repository) ||
+      typeof source.branch !== "string" ||
+      !/^[a-zA-Z0-9][a-zA-Z0-9._/-]*$/.test(source.branch) ||
+      source.branch.includes("..") ||
+      source.branch.endsWith("/")
+    )
+      throw new Error(`Invalid plugin repository or branch for ${id}`);
+    sources[id] = { path, repository: source.repository, branch: source.branch };
     directories[id] = resolve(dirname(file), path);
   }
   if (!Object.keys(directories).length) throw new Error("Plugin development index is empty.");
-  return { indexFile: file, directories };
+  if (new Set(Object.values(directories)).size !== Object.keys(directories).length)
+    throw new Error("Plugin source directories must be distinct");
+  return { indexFile: file, directories, sources };
 }
 
 /** @param {{indexFile: string, directories: Record<string, string>}} index @param {string} id */
@@ -54,7 +69,7 @@ export function resolvePluginDevPath(index, id) {
   const directory = Object.hasOwn(index.directories, id) ? index.directories[id] : undefined;
   if (!directory)
     throw new Error(`No directory configured for plugin ${id} in ${index.indexFile}.`);
-  const initialize = "Run bun scripts/prepare-submodules.mjs.";
+  const initialize = "Run bun scripts/prepare-plugin-sources.mjs.";
   if (!existsSync(directory) || !statSync(directory).isDirectory()) {
     throw new Error(`Plugin ${id} directory does not exist: ${directory}. ${initialize}`);
   }

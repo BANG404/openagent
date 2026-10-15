@@ -16,7 +16,7 @@ settings:
 Without `-ApplyDefenderExclusions`, the script only prints the paths and checks
 whether `rust-lld` is available. The exclusions are intentionally limited to:
 
-- `target\` and `sdk\target\`
+- `target\` and `runtime\target\`
 - `%USERPROFILE%\.cargo\registry\`
 - `%USERPROFILE%\.cargo\git\`
 
@@ -25,7 +25,7 @@ The script's fixed list does not cover the ordinary desktop launcher's external
 host output under `%LOCALAPPDATA%\OpenAgent\dev-targets\`, nor direct Cargo
 output under `src-tauri\target\`. Source development Runtime and Windows helpers
 share the host repository's private Cargo cache across OWT worktrees; release
-defaults retain `sdk\target\`. These new cache paths are not added to Defender
+defaults retain `runtime\target\`. These new cache paths are not added to Defender
 exclusions automatically.
 See the [development Runtime owner](../../openagent-release-engineering/references/development-runtime.md)
 for actual target selection and overrides. Preview the script's output before
@@ -33,6 +33,12 @@ assuming that it changes scanning for the build directory being used.
 Excluding a whole drive or the complete user profile is broader than needed and
 reduces protection. To undo the change, run `Remove-MpPreference
 -ExclusionPath <path>` for each path shown by the script.
+
+Development target and immutable Runtime retention are owned by the
+[development cache procedure](../../openagent-release-engineering/references/development-runtime.md#development-cache-retention).
+Use its preview/apply collector for abandoned task output; preserve the shared
+private Cargo dependency directory unless intentionally rebuilding it. Removing
+an OWT source checkout alone does not remove external build output.
 
 ## Linker and filesystem rules
 

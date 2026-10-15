@@ -7,7 +7,7 @@ repositories and packages; never place the development assistant's sources in
 `plugins/message-board/` or publish it through the Message Board subscription.
 
 The independent [Message Board repository](https://github.com/BANG404/message-board)
-is pinned as a Git submodule at `plugins/message-board/` and adapts
+is an independent main-branch checkout at `plugins/message-board/` and adapts
 Codex's agent message board to the portable Agent Plugin boundary. Its
 stdio MCP server exposes the nine board tools (channels, threads, search,
 bounded reads, subscriptions, and idempotent posts) and stores state only in
@@ -19,9 +19,9 @@ path or wake an idle child turn. The package therefore requires an explicit
 the host remains responsible for process lifecycle and any future notification
 bridge. Do not add transcript access, model context, or host credentials to the
 plugin. The package owns implementation and publication; the parent owns its
-gitlink, development index entry, and `tests/messageBoardPlugin.test.ts`
+source subscription and `tests/messageBoardPlugin.test.ts`
 integration coverage. Changes to the board schema must preserve bounded output
-and request idempotency. Initialize the submodule before running host tests.
+and request idempotency. Prepare the source subscription before running host tests.
 
 The board is shared by all processes using the same loader-owned `PLUGIN_DATA`;
 channel naming separates tasks and workspaces. Caller-supplied `agent_id` values
@@ -59,5 +59,5 @@ preserves user-authored content and IDs, and keeps locale out of persisted state
 and retry fingerprints. Qualify with the full locale set from
 `src/lib/platformLocales.json`; inspect both cards and live switching in both
 themes. Validation alone does not qualify an unpublished candidate or replace
-native verification. Publish accepted package sources before advancing the
-default parent's gitlink and activating the catalog.
+native verification. Publish accepted package sources and Releases independently;
+the host catalog follows the repository without a version or gitlink update.

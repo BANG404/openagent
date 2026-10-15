@@ -1,8 +1,7 @@
 import { execFileSync } from "node:child_process";
-import { chmod, cp, mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { extractClientSnapshot } from "./extract-client-snapshot.mjs";
 import {
   downloadArtifact,
   fetchSignedManifest,
@@ -86,7 +85,7 @@ export async function prepareDevKit(options = {}) {
   const repositoryRoot = options.repositoryRoot ?? root;
   const expectedSha =
     options.expectedSdkSha ??
-    execFileSync("git", ["rev-parse", "HEAD:sdk"], {
+    execFileSync("git", ["rev-parse", "HEAD:runtime"], {
       cwd: repositoryRoot,
       encoding: "utf8",
     }).trim();
@@ -103,7 +102,7 @@ export async function prepareDevKit(options = {}) {
     target,
     readDesktopRuntimeProtocol(repositoryRoot),
   );
-  const allArtifacts = [artifacts.client, artifacts.runtime, ...artifacts.helpers];
+  const allArtifacts = [artifacts.runtime, ...artifacts.helpers];
   const paths = await Promise.all(
     allArtifacts.map((artifact) =>
       downloadArtifact({
@@ -115,26 +114,6 @@ export async function prepareDevKit(options = {}) {
     ),
   );
   await mkdir(kitDirectory, { recursive: true });
-  const clientStage = path.join(kitDirectory, `client-stage-${process.pid}`);
-  const clientDestination = path.join(kitDirectory, "client");
-  await rm(clientStage, { recursive: true, force: true });
-  try {
-    await extractClientSnapshot(await readFile(paths[0]), clientStage);
-    const previous = path.join(kitDirectory, "client-previous");
-    await rm(previous, { recursive: true, force: true });
-    await rename(clientDestination, previous).catch((error) => {
-      if (error.code !== "ENOENT") throw error;
-    });
-    try {
-      await rename(clientStage, clientDestination);
-    } catch (error) {
-      await rename(previous, clientDestination).catch(() => {});
-      throw error;
-    }
-    await rm(previous, { recursive: true, force: true });
-  } finally {
-    await rm(clientStage, { recursive: true, force: true });
-  }
   const extension = target === "windows-x64" ? ".exe" : "";
   const runtimeDestination = path.join(
     repositoryRoot,
@@ -143,7 +122,7 @@ export async function prepareDevKit(options = {}) {
     `openagent-server-${targetTriple}${extension}`,
   );
   await mkdir(path.dirname(runtimeDestination), { recursive: true });
-  await copyFileIfChanged(paths[1], runtimeDestination);
+  await copyFileIfChanged(paths[0], runtimeDestination);
   if (!extension) await chmod(runtimeDestination, 0o755);
   for (let index = 0; index < artifacts.helpers.length; index += 1) {
     const artifact = artifacts.helpers[index];
@@ -152,7 +131,7 @@ export async function prepareDevKit(options = {}) {
         ? path.join(repositoryRoot, "src-tauri", "binaries", `bwrap-${targetTriple}`)
         : path.join(repositoryRoot, "src-tauri", "resources", "codex-resources", artifact.file);
     await mkdir(path.dirname(destination), { recursive: true });
-    await copyFileIfChanged(paths[index + 2], destination);
+    await copyFileIfChanged(paths[index + 1], destination);
     if (target === "linux-x64") await chmod(destination, 0o755);
   }
   await writeFile(path.join(kitDirectory, "sdk-dev-manifest.json"), signed.bytes);
@@ -166,7 +145,6 @@ export async function prepareDevKit(options = {}) {
         manifest_url: manifestUrl,
         target,
         runtime: artifacts.runtime,
-        client: artifacts.client,
         helpers: artifacts.helpers,
       },
       null,
@@ -184,7 +162,7 @@ export async function verifyPreparedDevKit(repositoryRoot = root) {
   const bytes = await readFile(path.join(kitDirectory, "sdk-dev-manifest.json"));
   const signature = await readFile(path.join(kitDirectory, "sdk-dev-manifest.json.sig"), "utf8");
   verifySignedBytes(bytes, signature);
-  const expectedSha = execFileSync("git", ["rev-parse", "HEAD:sdk"], {
+  const expectedSha = execFileSync("git", ["rev-parse", "HEAD:runtime"], {
     cwd: repositoryRoot,
     encoding: "utf8",
   }).trim();
@@ -196,18 +174,6 @@ export async function verifyPreparedDevKit(repositoryRoot = root) {
     target,
     readDesktopRuntimeProtocol(repositoryRoot),
   );
-  const clientArchive = await readFile(
-    path.join(repositoryRoot, ".cache", "openagent-artifacts", artifacts.client.sha256),
-  );
-  verifyArtifactBytes(clientArchive, artifacts.client);
-  const verifiedClient = path.join(kitDirectory, `verified-client-${process.pid}`);
-  await rm(verifiedClient, { recursive: true, force: true });
-  try {
-    await extractClientSnapshot(clientArchive, verifiedClient);
-    await verifyClientTree(verifiedClient, path.join(kitDirectory, "client"));
-  } finally {
-    await rm(verifiedClient, { recursive: true, force: true });
-  }
   const extension = target === "windows-x64" ? ".exe" : "";
   verifyArtifactBytes(
     await readFile(
@@ -228,55 +194,6 @@ export async function verifyPreparedDevKit(repositoryRoot = root) {
     verifyArtifactBytes(await readFile(destination), helper);
   }
   return artifacts;
-}
-
-/** @param {string} expected @param {string} actual */
-async function verifyClientTree(expected, actual) {
-  const expectedEntries = await readdir(expected, { withFileTypes: true });
-  const actualEntries = await readdir(actual, { withFileTypes: true });
-  if (
-    expectedEntries
-      .map((entry) => entry.name)
-      .sort()
-      .join("\n") !==
-    actualEntries
-      .map((entry) => entry.name)
-      .sort()
-      .join("\n")
-  )
-    throw new Error("Prepared client files changed; run bun run dev:prepare again");
-  for (const entry of expectedEntries) {
-    const counterpart = actualEntries.find((candidate) => candidate.name === entry.name);
-    if (
-      !counterpart ||
-      counterpart.isSymbolicLink() ||
-      entry.isDirectory() !== counterpart.isDirectory()
-    )
-      throw new Error("Prepared client file types changed; run bun run dev:prepare again");
-    const expectedPath = path.join(expected, entry.name);
-    const actualPath = path.join(actual, entry.name);
-    if (entry.isDirectory()) await verifyClientTree(expectedPath, actualPath);
-    else if (
-      !entry.isFile() ||
-      !counterpart.isFile() ||
-      !(await readFile(expectedPath)).equals(await readFile(actualPath))
-    )
-      throw new Error("Prepared client bytes changed; run bun run dev:prepare again");
-  }
-}
-
-/** Materialize an exact source kit without changing the private checkout or requiring publication.
- * @param {string} [repositoryRoot]
- */
-export async function prepareSourceClient(repositoryRoot = root) {
-  const source = path.join(repositoryRoot, "sdk", "typescript");
-  const destination = path.join(repositoryRoot, ".cache", "openagent-dev-kit", "client");
-  await mkdir(path.dirname(destination), { recursive: true });
-  await rm(destination, { recursive: true, force: true });
-  await cp(source, destination, {
-    recursive: true,
-    filter: (candidate) => !candidate.split(path.sep).includes("node_modules"),
-  });
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

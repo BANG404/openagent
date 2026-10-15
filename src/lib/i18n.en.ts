@@ -11,6 +11,9 @@ const en: Record<TranslationKeys, string> = {
     "The selected theme is unavailable. The default is used until the package is reinstalled.",
   appearanceAccent: "Accent color",
   appearanceBackground: "Background",
+  appearanceNativeBackground: "Native background",
+  appearanceNativeBackgroundHint:
+    "Turn off for an opaque theme background. Theme plugin and custom background colors take priority.",
   appearanceForeground: "Foreground",
   appearanceFont: "Font",
   appearanceFollowTheme: "Follow theme",
@@ -651,8 +654,9 @@ const en: Record<TranslationKeys, string> = {
   contextCompaction: "Automatically summarize context",
   contextCompactionHint:
     "After the threshold, checkpoint model messages are compacted with a recent execution timeline; the full visible conversation is preserved.",
-  contextCompactionThreshold: "Summary threshold (approx. tokens)",
-  contextCompactionThresholdHint: "Starts compaction at this approximate context size.",
+  contextCompactionThreshold: "Summary threshold (tokens)",
+  contextCompactionThresholdHint:
+    "Starts compaction when provider-reported input plus output tokens reach this value.",
   contextCompactionRecentMessageCount: "Recent timeline entries",
   contextCompactionRecentMessageCountHint:
     "Keeps the newest user messages, tool calls, and assistant text; set to 0 to omit it.",

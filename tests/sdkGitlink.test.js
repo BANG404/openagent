@@ -10,7 +10,7 @@ function gitFixture({ ancestorStatus = 0, sdkCommitStatus = 0, hostRevision = "I
   const git = (cwd, args) => {
     calls.push({ cwd, args });
     const command = args.join(" ");
-    const gitlinkRevision = hostRevision === "INDEX" ? ":sdk" : `${hostRevision}:sdk`;
+    const gitlinkRevision = hostRevision === "INDEX" ? ":runtime" : `${hostRevision}:runtime`;
     if (command === `rev-parse --verify ${gitlinkRevision}`) {
       return { status: 0, stdout: SDK_SHA, stderr: "" };
     }
@@ -41,7 +41,7 @@ describe("SDK gitlink delivery guard", () => {
   test("rejects a gitlink commit missing from the initialized SDK", () => {
     const fixture = gitFixture({ sdkCommitStatus: 1 });
     expect(() => verifySdkGitlink({ repository: "/repo", git: fixture.git })).toThrow(
-      "is not present in the initialized sdk repository",
+      "is not present in the initialized runtime repository",
     );
   });
 
@@ -51,7 +51,7 @@ describe("SDK gitlink delivery guard", () => {
     expect(verifySdkGitlink({ repository: "/repo", hostRevision, git: fixture.git }).sdkSha).toBe(
       SDK_SHA,
     );
-    expect(fixture.calls[0]?.args).toEqual(["rev-parse", "--verify", `${hostRevision}:sdk`]);
+    expect(fixture.calls[0]?.args).toEqual(["rev-parse", "--verify", `${hostRevision}:runtime`]);
   });
 
   test("rejects a detached SDK commit that was not pushed to main", () => {

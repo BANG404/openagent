@@ -54,10 +54,10 @@
 - Treat the private SDK gitlink as release-relevant input. Private SDK output
   must not leak into public logs or public caches, and do not configure a
   compiler cache. Compile Runtime servers, embedded diagnostics, and sandbox
-  helpers cold under `sdk/target` with `cache-targets: false`. The Windows
-  helper build pins `CARGO_TARGET_DIR` to `sdk/target` explicitly, because its
+  helpers cold under `runtime/target` with `cache-targets: false`. The Windows
+  helper build pins `CARGO_TARGET_DIR` to `runtime/target` explicitly, because its
   `dev` profile otherwise defaults to the shared private source cache while
-  every Windows sandbox boundary step resolves `sdk\target` before it runs
+  every Windows sandbox boundary step resolves `runtime\target` before it runs
   cargo. It also omits `--target` unless a target was explicitly requested:
   Codex's orchestrator only discovers the setup helper beside its own
   executable, and an explicit target would move the helpers into a triple
@@ -99,7 +99,7 @@
   Each embedding platform runner installs the pinned Bun before invoking the
   embedded-Cargo launcher. Capture failures through a shell conditional so
   GitHub Actions' `bash -e` cannot bypass the retries and backoff.
-- Embedded diagnostics seed their ignored `sdk/target/desktop-host/Cargo.lock`
+- Embedded diagnostics seed their ignored `runtime/target/desktop-host/Cargo.lock`
   from the pinned SDK lockfile and let Cargo resolve additional public-host
   dependencies into one graph. Do not concatenate the independent host and SDK
   locks: compatible shared crates can have conflicting pinned patch versions,

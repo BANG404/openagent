@@ -6,6 +6,7 @@ const ZERO_SHA = /^0+$/;
 
 const AGENT_DOCUMENTATION = [
   /^AGENTS\.md$/,
+  /^sdk\/(?:AGENTS\.md|typescript\/README\.md)$/,
   /^README(?:\.[^/]+)?\.md$/,
   /^CHANGELOG\.md$/,
   /^\.agents\/skills\/[^/]+\/.+\.md$/,
@@ -13,6 +14,7 @@ const AGENT_DOCUMENTATION = [
 ];
 
 const LOGIC_FILES = [
+  /^sdk\/typescript\/src\/.+\.ts$/,
   /^src\/.+\.(?:js|mjs|cjs|ts|svelte)$/,
   /^src-tauri\/src\/.+\.rs$/,
   /^src-tauri\/build\.rs$/,

@@ -56,7 +56,7 @@ test("maps runtime server outputs to Tauri sidecar names", () => {
   expect(windows.source).toBe(
     path.join(
       "C:/openagent",
-      "sdk",
+      "runtime",
       "target",
       "x86_64-pc-windows-msvc",
       "release",
@@ -78,7 +78,14 @@ test("maps runtime server outputs to Tauri sidecar names", () => {
     profile: "dev",
   });
   expect(macos.source).toBe(
-    path.join("/openagent", "sdk", "target", "aarch64-apple-darwin", "debug", "openagent-server"),
+    path.join(
+      "/openagent",
+      "runtime",
+      "target",
+      "aarch64-apple-darwin",
+      "debug",
+      "openagent-server",
+    ),
   );
   expect(macos.destination).toBe(
     path.join("/openagent", "src-tauri", "binaries", "openagent-server-aarch64-apple-darwin"),

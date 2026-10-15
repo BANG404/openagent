@@ -19,6 +19,11 @@ describe("agent-facing documentation synchronization", () => {
     ).toEqual([]);
   });
 
+  test("public SDK behavior requires its documentation in the same change", () => {
+    expect(documentationSyncErrors(["sdk/typescript/src/client.ts"])).toHaveLength(1);
+    expect(documentationSyncErrors(["sdk/typescript/src/client.ts", "sdk/AGENTS.md"])).toEqual([]);
+  });
+
   test("requires the chat skill for mapped chat behavior", () => {
     const errors = documentationSyncErrors([
       "src/lib/chatStream.ts",
@@ -71,6 +76,6 @@ describe("agent-facing documentation synchronization", () => {
         ".agents\\skills\\openagent-chat-frontend\\SKILL.md",
       ]),
     ).toEqual([]);
-    expect(documentationSyncErrors(["sdk"])).toEqual([]);
+    expect(documentationSyncErrors(["runtime"])).toEqual([]);
   });
 });

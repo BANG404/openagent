@@ -5,6 +5,7 @@
   import { useSettingsContext } from "$lib/settings/context";
   import type { ThemeColors } from "$lib/types";
   import Select from "../ui/Select.svelte";
+  import Switch from "../ui/Switch.svelte";
   import SettingsActionButton from "../ui/SettingsActionButton.svelte";
   const { draft, plugins } = useSettingsContext();
   let dark = $state(false);
@@ -91,6 +92,21 @@
         ariaLabel={$t("appearancePluginTheme")}
       />
     {/if}
+  </div>
+</div>
+<div class="settings-card-row" data-appearance-native-background>
+  <span class="settings-card-copy">
+    <span class="label-text">{$t("appearanceNativeBackground")}</span>
+    <span class="detail-hint">{$t("appearanceNativeBackgroundHint")}</span>
+  </span>
+  <div class="settings-card-control">
+    <Switch
+      checked={!draft.draftConfig.theme_overrides.opaque_background}
+      onCheckedChange={(checked) => {
+        draft.draftConfig.theme_overrides.opaque_background = !checked;
+      }}
+      ariaLabel={$t("appearanceNativeBackground")}
+    />
   </div>
 </div>
 {#if plugins.agentPluginStatus}

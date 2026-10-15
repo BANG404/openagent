@@ -72,8 +72,8 @@ export async function buildAlphaWindows({ version, sourceSha, sdkSha, baselineTa
     );
   if (
     git(["rev-parse", "HEAD"]) !== sourceSha ||
-    git(["rev-parse", "HEAD:sdk"]) !== sdkSha ||
-    git(["-C", "sdk", "rev-parse", "HEAD"]) !== sdkSha
+    git(["rev-parse", "HEAD:runtime"]) !== sdkSha ||
+    git(["-C", "runtime", "rev-parse", "HEAD"]) !== sdkSha
   )
     throw new Error("Alpha source checkout disagrees with requested immutable revisions");
   if (git(["status", "--porcelain", "--untracked-files=no"]))
@@ -91,7 +91,7 @@ export async function buildAlphaWindows({ version, sourceSha, sdkSha, baselineTa
     TAURI_SIGNING_PRIVATE_KEY_PASSWORD: process.env.TAURI_SIGNING_PRIVATE_KEY_PASSWORD ?? "",
   };
   await stampAlphaBuild(root, version);
-  const sdkRoot = path.join(root, "sdk");
+  const sdkRoot = path.join(root, "runtime");
   let sdkVersion;
   try {
     sdkVersion = JSON.parse(
@@ -115,7 +115,7 @@ export async function buildAlphaWindows({ version, sourceSha, sdkSha, baselineTa
   const helperDirectory = path.join(root, "src-tauri/resources/codex-resources");
   const privateEnvironment = {
     ...environment,
-    CARGO_TARGET_DIR: path.join(root, "sdk/target"),
+    CARGO_TARGET_DIR: path.join(root, "runtime/target"),
     CARGO_INCREMENTAL: "0",
   };
   console.log("Building exact Alpha Runtime and Windows helpers");
@@ -139,7 +139,7 @@ export async function buildAlphaWindows({ version, sourceSha, sdkSha, baselineTa
   );
   const binary = path.join(root, "src-tauri/binaries/openagent-server-x86_64-pc-windows-msvc.exe");
   const runtimeProtocol = await rustConstant(
-    "sdk/rust/openagent-protocol/src/lib.rs",
+    "runtime/rust/openagent-protocol/src/lib.rs",
     "SDK_PROTOCOL_VERSION",
   );
   const hostProtocol = await rustConstant(

@@ -91,6 +91,7 @@ script = '''(async () => {
   await f.select(f.appearance()[0],'light'); await f.select(f.appearance()[1],'en');
   await f.settle(); await f.close(); const section=await f.flash();
   await f.wait(()=>document.documentElement.classList.contains('light') && section.textContent.includes('Flash model') && section.textContent.includes('structured summary'),'English Flash copy or theme is stale');
+  if(!section.textContent.includes(section.textContent.includes('Flash 模型') ? '输入与输出 token 总量' : 'provider-reported input plus output tokens')) throw new Error('compaction threshold must describe provider usage');
   section.scrollIntoView({block:'center',behavior:'instant'}); await f.settle(); return true;
 })()'''
 
@@ -120,6 +121,7 @@ script = '''(async () => {
   await f.select(f.appearance()[0],'dark'); await f.select(f.appearance()[1],'zh');
   await f.settle(); await f.close(); const section=await f.flash();
   await f.wait(()=>document.documentElement.classList.contains('dark') && section.textContent.includes('Flash 模型') && section.textContent.includes('结构化摘要'),'Chinese Flash copy or theme is stale');
+  if(!section.textContent.includes(section.textContent.includes('Flash 模型') ? '输入与输出 token 总量' : 'provider-reported input plus output tokens')) throw new Error('compaction threshold must describe provider usage');
   section.scrollIntoView({block:'center',behavior:'instant'}); await f.settle(); return true;
 })()'''
 

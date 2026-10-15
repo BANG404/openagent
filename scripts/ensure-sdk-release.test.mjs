@@ -15,11 +15,11 @@ import {
 
 describe("SDK release version invocation", () => {
   test("resolves the SDK script before changing to the SDK directory", () => {
-    const invocation = sdkReleaseVersionInvocation("sdk", "0123456789abcdef");
+    const invocation = sdkReleaseVersionInvocation("runtime", "0123456789abcdef");
 
     expect(invocation).toEqual({
-      args: [join(resolve("sdk"), "scripts/release-version.mjs"), "--sha", "0123456789abcdef"],
-      cwd: resolve("sdk"),
+      args: [join(resolve("runtime"), "scripts/release-version.mjs"), "--sha", "0123456789abcdef"],
+      cwd: resolve("runtime"),
     });
   });
 });

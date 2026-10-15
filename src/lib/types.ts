@@ -973,6 +973,7 @@ export interface ThemeColors {
 export interface ThemeOverrides {
   light: ThemeColors;
   dark: ThemeColors;
+  opaque_background?: boolean;
   font_family: string;
   ui_font_size?: number;
   code_font_size?: number;

@@ -180,6 +180,12 @@ live process is sitting in.
 
 ## Agent plugin update coverage
 
+`bun run test:blackbox:plugin-presentation` also covers Appearance's Native
+background switch, opaque gray fallback, saved preference after reopening,
+plugin `--bg` and user background precedence, standalone Settings propagation,
+and native restoration after resetting/removing the overlay in light/dark and
+English/Chinese. Use its isolated `plugin-presentation` home and explicit socket.
+
 Plugin marketplace layout uses `tests/blackbox/plugin-layout.toml`. Start
 `bun tauri dev --multi-instance plugin-layout`, select its explicit
 `TAURI_PILOT_SOCKET`, and run `bun run test:blackbox:plugin-layout`.
@@ -266,7 +272,7 @@ shows its first rows instead of the row the pass asserted.
 
 Goal approval and cancellation have a deterministic native scenario:
 `bun tauri dev --multi-instance plugin-lifecycle`, then initialize the plugin
-submodules and use the tracked `plugins/dev-index.json` documented in the
+repositories and use the tracked `plugins/dev-index.json` documented in the
 plugin owner's local-development reference. Run
 `bun run test:blackbox:goal-approval`. Set `TAURI_PILOT_SOCKET` explicitly when
 another dev window is open. The runner installs the local Goal checkout only

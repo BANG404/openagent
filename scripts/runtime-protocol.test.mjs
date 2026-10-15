@@ -12,9 +12,9 @@ test("development admission follows the checked-out host protocol across version
   const directory = await mkdtemp(join(tmpdir(), "openagent-runtime-protocol-"));
   try {
     const hostFile = join(directory, "src-tauri/src/runtime_process.rs");
-    const sdkFile = join(directory, "sdk/rust/openagent-protocol/src/lib.rs");
+    const sdkFile = join(directory, "runtime/rust/openagent-protocol/src/lib.rs");
     await mkdir(join(directory, "src-tauri/src"), { recursive: true });
-    await mkdir(join(directory, "sdk/rust/openagent-protocol/src"), { recursive: true });
+    await mkdir(join(directory, "runtime/rust/openagent-protocol/src"), { recursive: true });
     const sdkSha = "a".repeat(40);
     const artifact = { file: "fixture", size: 1, sha256: "b".repeat(64) };
     for (const version of [3, 7]) {

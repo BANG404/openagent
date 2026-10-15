@@ -14,6 +14,7 @@ import {
   addCargoTargetDirectoryArgument,
   resolveTauriDevTargetDirectory,
 } from "./tauri-dev-target.mjs";
+import { cleanDevelopmentTargets, registerDevelopmentTarget } from "./development-cache.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const tauriCli = path.join(root, "node_modules", "@tauri-apps", "cli", "tauri.js");
@@ -49,7 +50,7 @@ if (embeddedRuntime) {
   );
   environment.OPENAGENT_RUNTIME_MODE = "embedded";
   environment.OPENAGENT_DEV_RUNTIME_SOURCE = "1";
-  environment.CARGO_TARGET_DIR ??= path.join(root, "sdk", "target", "desktop-host", "target");
+  environment.CARGO_TARGET_DIR ??= path.join(root, "runtime", "target", "desktop-host", "target");
   console.log("Using the explicit embedded development Runtime");
 }
 if (developmentParentLifetime) {
@@ -68,8 +69,15 @@ if (developmentParentLifetime) {
   );
   if (!environment.CARGO_TARGET_DIR && !customRunner) {
     const targetDirectory = resolveTauriDevTargetDirectory(root, { environment });
-    arguments_ = addCargoTargetDirectoryArgument(arguments_, targetDirectory);
-    console.log(`Using isolated Cargo target directory ${targetDirectory}`);
+    const selectedArguments = addCargoTargetDirectoryArgument(arguments_, targetDirectory);
+    if (selectedArguments.length !== arguments_.length) {
+      await registerDevelopmentTarget(targetDirectory, root);
+      await cleanDevelopmentTargets({ repositoryRoot: root, apply: true }).catch((error) => {
+        console.warn(`Development target cache cleanup skipped: ${error.message}`);
+      });
+      console.log(`Using isolated Cargo target directory ${targetDirectory}`);
+    }
+    arguments_ = selectedArguments;
   }
   console.log(`Starting development server on http://localhost:${port}`);
 }

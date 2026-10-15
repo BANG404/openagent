@@ -17,7 +17,7 @@
 
 OpenAgent 将流式聊天界面与能够阅读项目、编辑文件、执行命令和调用外部工具的 Agent 结合起来。你可以选择模型服务与工作区，在本机保存会话和应用数据，并通过技能、角色、MCP 服务及插件扩展能力。
 
-桌面应用面向 Windows、macOS 和 Linux，界面采用 Svelte 5 与 SvelteKit 2，原生外壳采用 Tauri 2，Rust Runtime 由固定版本的私有 SDK 提供。项目仍在持续开发；公开的宿主仓库访问权限不包含私有 SDK 的访问权限。
+桌面应用面向 Windows、macOS 和 Linux，界面采用 Svelte 5 与 SvelteKit 2，原生外壳采用 Tauri 2，TypeScript SDK 源码直接放在主仓库，Rust Runtime 保留在固定版本的私有子模块中。
 
 ## 可以做什么
 
@@ -115,7 +115,7 @@ OpenAgent 提供 Beta、RC 与 Stable 更新频道。前端、受监督的 Runti
 
 ## 从源码开发
 
-### 公开前端开发（无需私有 SDK 权限）
+### 公开前端与桌面开发
 
 需要 Bun **1.3.14** 与 Node.js；原生调试另需 Rust 和对应平台的 Tauri 构建依赖。
 选择已有公开开发包的源码标签，不要递归克隆私有子模块：
@@ -129,16 +129,17 @@ bun run dev:prepare
 bun run dev:desktop
 ```
 
-准备命令验证签名并下载与源码固定 SDK SHA 匹配的 TypeScript 快照、Runtime
-和辅助程序，不初始化私有 SDK。指定产品版本使用
-`bun run dev:prepare --release vX.Y.Z`，客户端 SHA 仍须与源码一致。
+TypeScript SDK 已纳入主仓库的 `sdk/typescript/`。仅调试浏览器前端时，安装依赖后
+运行 `bun run dev:frontend` 即可。桌面准备命令验证签名并下载与 `HEAD:runtime`
+匹配的 Runtime 和辅助程序，不初始化私有子模块。指定产品版本使用
+`bun run dev:prepare --release vX.Y.Z`，Runtime 来源仍须与源码固定版本一致。
 网络中断可续传，原生启动再次校验缓存；仅浏览器开发使用 `bun run dev:frontend`。
 详见[公开开发包说明](.agents/skills/openagent-release-engineering/references/public-development.md)。
 
 ### SDK 源码与交付
 
-有私有 SDK 权限时使用 `bun run prepare:worktree:dev`，然后
-`bun run dev:desktop:source` 启动 SDK 监视和 Runtime 重编译。
+有私有 Runtime 权限时使用 `bun run prepare:worktree:dev`，然后
+`bun run dev:desktop:source` 启动私有源码监视和 Runtime 重编译。
 主目录继续保留在 `main` 方便调试，改动在独立 OWT 工作树中完成并集成；
 发布标签代表可复现的版本，无需改变 `main` 的用途。
 
@@ -170,8 +171,9 @@ flowchart LR
 | -------------------- | ----------------------------------------------------- |
 | `src/`               | Svelte 路由、功能控制器、组件、本地化与流式内容渲染。 |
 | `src-tauri/`         | 原生宿主适配、资源协议、进程监督与打包。              |
-| `sdk/`               | 固定版本的私有 Runtime 与类型化传输／客户端源码。     |
-| `plugins/`           | 固定版本的独立插件仓库与本地开发索引。                |
+| `sdk/typescript/`    | 主仓库内的公开类型化 SDK、客户端与传输适配器。 |
+| `runtime/`           | 固定版本的私有 Runtime 子模块。 |
+| `plugins/`           | 独立插件仓库与主分支订阅清单。                |
 | `scripts/`、`tests/` | 环境准备、检查、发布自动化与确定性验证。              |
 | `.agents/skills/`    | 按领域组织的架构约定与贡献流程。                      |
 
@@ -181,7 +183,7 @@ flowchart LR
 
 编辑前阅读 [`AGENTS.md`](AGENTS.md) 和适用领域的技能。仓库变更使用[隔离 OWT 工作树](.agents/skills/deliver-via-owt/SKILL.md)：默认目录留在本地 `main`，在任务工作树实现和验证，再将验证结果快进合入。提交前检查完整差异、暂存目标文件，并执行 `bun run preflight`；提交采用 Conventional Commits。
 
-行为变化需要同步更新主要归属文档。可见桌面变化还需执行对应的真实窗口[原生黑盒场景](.agents/skills/openagent-desktop-host/references/native-verification.md)。修改 SDK 或插件时，先遵循各自仓库说明，再推进父仓库 gitlink。
+行为变化需要同步更新主要归属文档。可见桌面变化还需执行对应的真实窗口[原生黑盒场景](.agents/skills/openagent-desktop-host/references/native-verification.md)。SDK 改动先按其仓库说明交付，再推进父仓库 gitlink；插件独立发布，无需同步修改主仓库或发布桌面应用。
 
 Runtime 真模型检查遵循 SDK 内部说明，环境变量模板见 [`.env.example`](.env.example)。`bun run test:sonar` 在向本地配置的 SonarQube 提交分析前，执行宿主与 SDK 测试门禁。
 

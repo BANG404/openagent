@@ -1,9 +1,9 @@
 # Langfuse observability integration
 
-`plugins/langfuse/` pins the independent `BANG404/openagent-langfuse` repository.
-The official registry installs its immutable versioned archive and SHA-256;
-the development index selects its pinned source directory. Publish package source
-and its archive before advancing the gitlink and catalog together. Local installs
+`plugins/langfuse/` follows the independent `BANG404/openagent-langfuse` repository.
+The official registry subscribes to compatible immutable Releases with SHA-256;
+the development index selects its main branch checkout. Publish package source
+and its archive independently, without a parent gitlink or catalog version bump. Local installs
 follow their recorded source through ordinary Runtime refresh; archive installs
 use the independent GitHub release channel.
 

@@ -8,6 +8,8 @@ export const zh = {
   appearanceUnavailableHint: "所选主题当前不可用，暂时使用默认主题。重新安装后将自动恢复。",
   appearanceAccent: "强调色",
   appearanceBackground: "背景",
+  appearanceNativeBackground: "原生背景",
+  appearanceNativeBackgroundHint: "关闭后使用不透明的主题底色。主题插件和自定义背景颜色优先。",
   appearanceForeground: "前景",
   appearanceFont: "字体",
   appearanceFollowTheme: "跟随主题",
@@ -624,8 +626,8 @@ export const zh = {
   contextCompaction: "自动总结对话上下文",
   contextCompactionHint:
     "达到阈值后压缩 checkpoint 中的模型消息，并附带近期执行时间线；界面仍保留完整对话。",
-  contextCompactionThreshold: "总结阈值（近似 token）",
-  contextCompactionThresholdHint: "达到此上下文规模后启动压缩。",
+  contextCompactionThreshold: "总结阈值（token）",
+  contextCompactionThresholdHint: "模型服务返回的输入与输出 token 总量达到此值后启动压缩。",
   contextCompactionRecentMessageCount: "近期时间线条数",
   contextCompactionRecentMessageCountHint:
     "保留最新的用户消息、tool call 和 assistant 文本；设为 0 时不附加。",

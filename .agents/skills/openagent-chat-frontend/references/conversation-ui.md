@@ -1,5 +1,18 @@
 # Conversation components
 
+Sidebar child conversations expand beneath the active ancestor with 24px of
+indentation per level, a neutral connector rail, and a rounded elbow ending at
+the last direct child's row center. Ancestor rails continue past expanded
+descendants; each nested group owns its own connector. Keep project-embedded
+and standalone lists on the same recursive renderer, with row-height-aware
+connectors, iconless titles, selection, streaming status and delete actions.
+Search results stay flat and role-filtered orphans remain roots. Verify nested
+selection, collapse after navigation, deletion and narrow title truncation in
+light/dark and English/Chinese with `bun run test:blackbox:conversation-tree`
+against a task-owned Tauri instance selected by `TAURI_PILOT_SOCKET`. The
+scenario mounts the real ConversationList with synthetic data and touches no
+saved conversations.
+
 Production Help -> Debug mode exposes Export complete conversation trace in the
 current conversation's debug context bar. The page container calls the scoped
 SDK diagnostic operation only on an explicit click, then saves its UTF-8 JSON
@@ -16,7 +29,8 @@ Verify the debug entry, pending state, failure/retry and real local JSON saving 
 light/dark and English/Chinese with `bun run test:blackbox:conversation-trace-export`.
 
 The context indicator prefers `active_context_tokens` (latest request input plus
-output or Runtime's pre-request estimate). Keep `context_tokens` as the input-only
+output reported by the provider). Sending input publishes no local estimate.
+Keep `context_tokens` as the input-only
 fallback for existing usage records, and never derive context occupancy from
 cumulative task cost. The denominator follows the selected model's effective
 compaction threshold, capped at 90% of its optional configured window. Model
@@ -115,9 +129,16 @@ alongside its live row: that duplicates its trajectory and response key. Keep
 pre-compaction text, reasoning and tool results in the live stream, replace its
 transient divider in place, and hydrate the complete transcript after termination.
 Manual compaction without an active reply still hydrates the full checkpoint.
+The durable completion divider replaces either the in-flight progress slot or
+its completed marker in place, regardless of checkpoint/event arrival order.
+Repeated hydration updates that divider by ID without appending another one.
+Completed replies fold only the prefix before their first visible UI boundary
+or final output; keep the boundary and its entire continuation in source order,
+including answered/cancelled approvals. Never hoist a later approval ahead of
+the compaction that preceded it.
 Verify live compaction, completed tool-result disclosure and page restoration in
 all light/dark and English/Chinese combinations with
-`bun scripts/test-compaction-transcript-blackbox.mjs` in a task-owned Tauri window
+`bun run test:blackbox:compaction-transcript` in a task-owned Tauri window
 selected by `TAURI_PILOT_SOCKET`. Its development-only transcript fixture needs
 no provider calls or conversation data.
 Paired browser state updates reload the checkpoint tree when an idle checkpoint

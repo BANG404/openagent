@@ -2,12 +2,29 @@ import { createHash } from "node:crypto";
 import { chmod, mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { copyFileIfChanged } from "./copy-if-changed.mjs";
+import {
+  cleanDevelopmentRuntimeImages,
+  withDevelopmentRuntimeCache,
+} from "./development-cache.mjs";
 
 /**
  * Keep running images immutable; publish the selection only after complete staging.
  * @param {{repositoryRoot: string, targetTriple: string, source: string, destination: string, resourcesDirectory?: string}} options
  */
-export async function stageDevelopmentRuntime({
+export async function stageDevelopmentRuntime(options) {
+  const result = await withDevelopmentRuntimeCache(
+    options.repositoryRoot,
+    options.targetTriple,
+    () => stageDevelopmentRuntimeUnlocked(options),
+  );
+  await cleanDevelopmentRuntimeImages({ ...options, apply: true }).catch((error) => {
+    console.warn(`Development Runtime cache cleanup skipped: ${error.message}`);
+  });
+  return result;
+}
+
+/** @param {{repositoryRoot: string, targetTriple: string, source: string, destination: string, resourcesDirectory?: string}} options */
+async function stageDevelopmentRuntimeUnlocked({
   repositoryRoot,
   targetTriple,
   source,

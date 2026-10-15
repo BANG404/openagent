@@ -62,7 +62,7 @@ jobs:
         with:
           repository: BANG404/openagent-sdk
           ref: ${{ needs.plan.outputs.sdk_sha }}
-          path: sdk
+          path: runtime
           fetch-depth: 0
           token: ${{ steps.sdk-token.outputs.token }}
           persist-credentials: false

@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { completeCompactionProgress } from "../src/lib/chatStream";
 import { checkpointRecordsToMessages } from "../src/lib/checkpointTree";
 import {
   conversationUiFromContent,
@@ -13,7 +14,7 @@ import {
   partitionAssistantSegments,
   groupStreamItems,
 } from "../src/lib/toolCallGroups";
-import type { CheckpointMessage, ChatMessage } from "../src/lib/types";
+import type { CheckpointMessage, ChatMessage, StreamItem } from "../src/lib/types";
 
 const record = (
   id: string,
@@ -212,4 +213,51 @@ test("compaction refresh keeps the live trajectory without hydrating a duplicate
   );
   expect(repeated.items.slice(0, 5)).toEqual(continued.slice(0, 5));
   expect(repeated.items[5]).toMatchObject({ type: "ui", messageId: secondDivider.id });
+});
+
+test("checkpoint arrival before or after compaction done keeps one divider before approval", () => {
+  const divider: ChatMessage = {
+    id: "divider",
+    role: "ui",
+    content: "",
+    timestamp: 2,
+    ui: {
+      version: 1,
+      component: "builtin.divider",
+      props: { label_key: "compactionCompleted" },
+      fallback: "Compacted",
+    },
+  };
+  const pending: StreamItem[] = [
+    { type: "thinking", content: "Before compaction" },
+    { type: "compaction", stage: "creating" },
+    {
+      type: "user_input",
+      request: { request_id: "approval", conv_id: "conv", fields: [] },
+      state: "cancelled",
+    },
+  ];
+  for (const doneFirst of [false, true]) {
+    const reconciled = mergeConversationUiStream(
+      [],
+      [divider],
+      doneFirst ? completeCompactionProgress(pending) : pending,
+      "conv",
+      null,
+    );
+    const completed = completeCompactionProgress(reconciled);
+    expect(completed.map((item) => item.type)).toEqual(["thinking", "ui", "user_input"]);
+    expect(mergeConversationUiStream([], [divider], completed, "conv", null)).toEqual(completed);
+    for (const status of ["completed", "interrupted", "cancelled", "running"] as const) {
+      const parts = partitionAssistantSegments(groupStreamItems(completed), status);
+      expect(
+        [...parts.processSegments, ...parts.finalSegments].map((segment) => segment.startIndex),
+      ).toEqual([0, 1, 2]);
+      expect(
+        parts.finalSegments.some(
+          (segment) => segment.kind === "item" && segment.item.type === "ui",
+        ),
+      ).toBe(true);
+    }
+  }
 });

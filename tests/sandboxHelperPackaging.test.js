@@ -40,10 +40,10 @@ describe("sandbox helper packaging", () => {
   });
 
   test("explains when the checked-out SDK differs from the parent gitlink", () => {
-    expect(windowsHelper).toContain('["rev-parse", "HEAD:sdk"]');
-    expect(windowsHelper).toContain('["-C", "sdk", "rev-parse", "HEAD"]');
+    expect(windowsHelper).toContain('["rev-parse", "HEAD:runtime"]');
+    expect(windowsHelper).toContain('["-C", "runtime", "rev-parse", "HEAD"]');
     expect(windowsHelper).toContain("Preserve any SDK work");
-    expect(windowsHelper).toContain("git submodule update --init --checkout sdk");
+    expect(windowsHelper).toContain("git submodule update --init --checkout runtime");
   });
 
   test("builds Bubblewrap from the same checkout as the pinned Linux sandbox", () => {
@@ -54,7 +54,7 @@ describe("sandbox helper packaging", () => {
   });
 
   test("keeps private sandbox compiler output outside the public Tauri target", () => {
-    expect(linuxHelper).toContain('targetDirectory = path.join(root, "sdk", "target")');
+    expect(linuxHelper).toContain('targetDirectory = path.join(root, "runtime", "target")');
     expect(windowsHelper).toContain('argument("--target-dir", environment.CARGO_TARGET_DIR)');
     const environment = sourceCargoEnvironment({
       repositoryRoot: root,
@@ -66,8 +66,10 @@ describe("sandbox helper packaging", () => {
     expect(
       sourceCargoEnvironment({ repositoryRoot: root, profile: "release", environment: {} })
         .CARGO_TARGET_DIR,
-    ).toBe(join(root, "sdk", "target"));
-    expect(nativeWorkflow).toContain('$env:CARGO_TARGET_DIR = (Resolve-Path "sdk\\target").Path');
+    ).toBe(join(root, "runtime", "target"));
+    expect(nativeWorkflow).toContain(
+      '$env:CARGO_TARGET_DIR = (Resolve-Path "runtime\\target").Path',
+    );
   });
 
   test("stages Windows helpers where the sandbox orchestrator finds them", () => {
@@ -77,15 +79,15 @@ describe("sandbox helper packaging", () => {
     );
     expect(windowsHelper).toContain('...(requestedTarget ? ["--target", requestedTarget] : []),');
     expect(windowsHelper).toContain("path.join(helperProfileDirectory, helperName)");
-    expect(cargoProfileDirectory(join(root, "sdk", "target"), "debug", undefined)).toBe(
-      join(root, "sdk", "target", "debug"),
+    expect(cargoProfileDirectory(join(root, "runtime", "target"), "debug", undefined)).toBe(
+      join(root, "runtime", "target", "debug"),
     );
   });
 
   test("materializes the Windows private target before the sandbox steps resolve it", () => {
     const helperStep = nativeWorkflow.indexOf("- name: Build pinned Windows sandbox helpers");
     const resolvedTarget = nativeWorkflow.indexOf(
-      '$env:CARGO_TARGET_DIR = (Resolve-Path "sdk\\target").Path',
+      '$env:CARGO_TARGET_DIR = (Resolve-Path "runtime\\target").Path',
     );
 
     expect(helperStep).toBeGreaterThan(-1);
@@ -95,7 +97,7 @@ describe("sandbox helper packaging", () => {
         helperStep,
         nativeWorkflow.indexOf("- name: Check all Rust targets on Windows"),
       ),
-    ).toContain("CARGO_TARGET_DIR: sdk/target");
+    ).toContain("CARGO_TARGET_DIR: runtime/target");
   });
 
   test("packages Windows helpers only in the NSIS Windows bundle", () => {

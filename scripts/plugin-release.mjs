@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSyn
 import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getLatestReleaseTag } from "./release-version.mjs";
+import { readPluginDevIndex, resolvePluginDevPath } from "./plugin-dev-paths.mjs";
 
 const stableVersion = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/;
 
@@ -109,23 +110,25 @@ export function pluginProtocolRange(compatibility, id) {
   return { min, max };
 }
 
-/** @param {string} root @param {string} [base] @param {string} [hostRevision] */
-export function verifyPinnedPluginVersions(root, base, hostRevision = "HEAD") {
-  const index = JSON.parse(readFileSync(join(root, "plugins/dev-index.json"), "utf8"));
-  if (!index || typeof index !== "object" || Array.isArray(index) || !Object.keys(index).length)
-    throw new Error("Invalid pinned plugin index");
-  return Object.entries(index).map(([id, relative]) => {
-    if (!/^[a-z0-9-]+$/.test(id) || typeof relative !== "string" || !/^[a-z0-9-]+$/.test(relative))
-      throw new Error("Invalid pinned plugin path");
-    const directory = join(root, "plugins", relative);
-    const revision =
-      hostRevision === "INDEX" ? `:plugins/${relative}` : `${hostRevision}:plugins/${relative}`;
-    const sha = git(root, ["rev-parse", revision]);
-    if (git(directory, ["rev-parse", "HEAD"]) !== sha || git(directory, ["status", "--porcelain"]))
-      throw new Error(`Plugin ${id} is not the clean pinned source`);
+/** Snapshot clean plugin checkouts once; parent history does not own versions.
+ * @param {string} root
+ */
+export function verifyPluginSources(root) {
+  const index = readPluginDevIndex({ indexFile: join(root, "plugins/dev-index.json") });
+  return Object.keys(index.directories).map((id) => {
+    const { directory } = resolvePluginDevPath(index, id);
+    const sha = git(directory, ["rev-parse", "HEAD"]);
+    if (git(directory, ["status", "--porcelain"]))
+      throw new Error(`Plugin ${id} is not a clean source checkout`);
     const manifest = JSON.parse(git(directory, ["show", `${sha}:plugin.json`]));
     const repository = /^https:\/\/github\.com\/([\w.-]+\/[\w.-]+)$/.exec(manifest.repository)?.[1];
-    if (manifest.name !== id || !repository || !stableVersion.test(manifest.version))
+    if (
+      manifest.name !== id ||
+      !repository ||
+      !stableVersion.test(manifest.version) ||
+      manifest.repository.replace(/\.git$/, "") !==
+        index.sources[id].repository.replace(/\.git$/, "")
+    )
       throw new Error(`Invalid release identity for ${id}`);
     const range = pluginProtocolRange(manifest.extensions?.openagent?.compatibility, id);
     const tags = git(directory, ["tag", "--list"])
@@ -142,32 +145,18 @@ export function verifyPinnedPluginVersions(root, base, hostRevision = "HEAD") {
         sourceSha: git(directory, ["rev-parse", `${tag}^{commit}`]),
       })),
     });
-    if (base) {
-      const previous = /^160000 commit ([a-f0-9]+)\t/.exec(
-        git(root, ["ls-tree", base, "--", `plugins/${relative}`]),
-      );
-      if (previous && previous[1] !== sha) {
-        const oldManifest = JSON.parse(git(directory, ["show", `${previous[1]}:plugin.json`]));
-        if (
-          !stableVersion.test(oldManifest.version) ||
-          oldManifest.version === manifest.version ||
-          getLatestReleaseTag([`v${oldManifest.version}`, `v${manifest.version}`]) !==
-            `v${manifest.version}`
-        )
-          throw new Error(
-            `Plugin ${id} changed source without advancing version ${oldManifest.version}; bump plugin.json`,
-          );
-      }
-    }
     return { id, directory, sha, manifest, repository, plan, range };
   });
 }
 
 /** @param {{root: string, output: string, publish: boolean, runGh?: typeof gh}} options */
-export function releasePinnedPlugins({ root, output, publish, runGh = gh }) {
-  const packages = verifyPinnedPluginVersions(root);
-  const runtimeSourceSha = git(join(root, "sdk"), ["rev-parse", "HEAD"]);
-  const protocolSource = readFileSync(join(root, "sdk/rust/openagent-protocol/src/lib.rs"), "utf8");
+export function releasePlugins({ root, output, publish, runGh = gh }) {
+  const packages = verifyPluginSources(root);
+  const runtimeSourceSha = git(join(root, "runtime"), ["rev-parse", "HEAD"]);
+  const protocolSource = readFileSync(
+    join(root, "runtime/rust/openagent-protocol/src/lib.rs"),
+    "utf8",
+  );
   const protocol = Number(/PLUGIN_PROTOCOL_VERSION:\s*u32\s*=\s*(\d+)/.exec(protocolSource)?.[1]);
   if (!Number.isInteger(protocol) || protocol < 1)
     throw new Error("Missing pinned plugin protocol version");
@@ -301,12 +290,9 @@ function verifyPublishedPlugin({ repository, tag, sha, range, existing, runGh })
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   if (process.argv.includes("--verify")) {
-    const baseIndex = process.argv.indexOf("--base");
-    const base = baseIndex < 0 ? undefined : process.argv[baseIndex + 1];
-    if (baseIndex >= 0 && !base) throw new Error("--base requires an immutable host revision");
     console.log(
       JSON.stringify(
-        verifyPinnedPluginVersions(resolve("."), base, "INDEX").map(({ id, sha, plan }) => ({
+        verifyPluginSources(resolve(".")).map(({ id, sha, plan }) => ({
           id,
           source_sha: sha,
           ...plan,
@@ -319,7 +305,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     const output = process.argv[process.argv.indexOf("--output") + 1];
     if (!process.argv.includes("--output") || !output)
       throw new Error("Usage: plugin-release.mjs --verify | --output <directory> [--publish]");
-    releasePinnedPlugins({
+    releasePlugins({
       root: resolve("."),
       output: resolve(output),
       publish: process.argv.includes("--publish"),

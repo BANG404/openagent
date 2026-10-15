@@ -18,9 +18,9 @@ const rebuildDelayMs = 250;
 
 export function runtimeServerDevWatchTargets(repositoryRoot = root) {
   return [
-    { path: path.join(repositoryRoot, "sdk", "rust"), recursive: true },
-    { path: path.join(repositoryRoot, "sdk", "Cargo.toml"), recursive: false },
-    { path: path.join(repositoryRoot, "sdk", "Cargo.lock"), recursive: false },
+    { path: path.join(repositoryRoot, "runtime", "rust"), recursive: true },
+    { path: path.join(repositoryRoot, "runtime", "Cargo.toml"), recursive: false },
+    { path: path.join(repositoryRoot, "runtime", "Cargo.lock"), recursive: false },
   ];
 }
 

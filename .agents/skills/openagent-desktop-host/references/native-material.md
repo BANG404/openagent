@@ -7,9 +7,17 @@
   Acrylic and Blur fallbacks; macOS uses the Tauri-compatible
   `window-vibrancy` integration. Linux uses an opaque WebView inside
   its native window-manager frame.
-- Main, onboarding, feature, Settings, and role-editor window canvases remain
-  fully transparent where native material is available; do not overlay a
-  theme-color tint. Content controls and the inset conversation stage remain
+- Main, onboarding, feature, Settings, and role-editor window canvases default
+  to transparent where native material is available. General Appearance can
+  disable the native background with `theme_overrides.opaque_background`; then
+  the WebView paints the same theme canvas as Linux (built-in gray by default).
+  A selected theme's `--bg` or a user background color also paints an opaque
+  canvas, taking priority over native material. PageRuntime derives the native
+  CSS class from the effective preview/saved config and resolved theme tokens;
+  never force body transparency when an explicit canvas color is present.
+  The Rust material can remain behind the opaque WebView. Reset, theme removal,
+  and palette changes restore native transparency only when no canvas override
+  or opaque preference remains. Content controls and the inset conversation stage remain
   surfaced; quick chat, browser previews, and development inspector windows
   keep their intentional separate backgrounds.
 - On macOS, the frontend clips transparent Tauri window content to a 12px outer

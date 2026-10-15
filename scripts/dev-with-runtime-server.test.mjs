@@ -17,9 +17,9 @@ import {
 test("watches only Runtime server source inputs before requesting a Tauri reload", () => {
   const targets = runtimeServerDevWatchTargets("C:/openagent");
   expect(targets).toEqual([
-    { path: path.join("C:/openagent", "sdk", "rust"), recursive: true },
-    { path: path.join("C:/openagent", "sdk", "Cargo.toml"), recursive: false },
-    { path: path.join("C:/openagent", "sdk", "Cargo.lock"), recursive: false },
+    { path: path.join("C:/openagent", "runtime", "rust"), recursive: true },
+    { path: path.join("C:/openagent", "runtime", "Cargo.toml"), recursive: false },
+    { path: path.join("C:/openagent", "runtime", "Cargo.lock"), recursive: false },
   ]);
 });
 
@@ -59,10 +59,10 @@ test("writes a pending signal without requesting a Tauri reload", async () => {
 
 test("rebuilds changed Runtime sources before emitting the pending stamp", async () => {
   const repositoryRoot = await mkdtemp(path.join(os.tmpdir(), "openagent-runtime-watch-"));
-  const rustRoot = path.join(repositoryRoot, "sdk", "rust");
+  const rustRoot = path.join(repositoryRoot, "runtime", "rust");
   await mkdir(rustRoot, { recursive: true });
-  await writeFile(path.join(repositoryRoot, "sdk", "Cargo.toml"), "[workspace]\n");
-  await writeFile(path.join(repositoryRoot, "sdk", "Cargo.lock"), "");
+  await writeFile(path.join(repositoryRoot, "runtime", "Cargo.toml"), "[workspace]\n");
+  await writeFile(path.join(repositoryRoot, "runtime", "Cargo.lock"), "");
   let builds = 0;
   const watcher = startRuntimeServerDevWatcher({
     repositoryRoot,

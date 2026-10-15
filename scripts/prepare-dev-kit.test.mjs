@@ -62,6 +62,7 @@ test("prepares a complete, signed kit in a checkout with no private SDK", async 
     const bytes = Buffer.from(JSON.stringify(manifest));
     const fetchRequest = async (url) => {
       const name = new URL(url).pathname.split("/").at(-1);
+      expect(name).not.toBe("client.tar.gz");
       return new Response(
         name === "sdk-dev-manifest.json"
           ? bytes
@@ -84,14 +85,14 @@ test("prepares a complete, signed kit in a checkout with no private SDK", async 
         "utf8",
       ),
     ).toBe("runtime-fixture");
-    expect(
-      await readFile(join(directory, ".cache/openagent-dev-kit/client/src/index.ts"), "utf8"),
-    ).toContain("fixture = true");
+    await expect(
+      readFile(join(directory, ".cache/openagent-dev-kit/client/src/index.ts")),
+    ).rejects.toThrow();
     expect(
       JSON.parse(await readFile(join(directory, ".cache/openagent-dev-kit/lock.json"), "utf8"))
         .sdk_sha,
     ).toBe(sdkSha);
-    await expect(readFile(join(directory, "sdk/Cargo.toml"))).rejects.toThrow();
+    await expect(readFile(join(directory, "runtime/Cargo.toml"))).rejects.toThrow();
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

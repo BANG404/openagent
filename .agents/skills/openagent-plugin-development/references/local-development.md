@@ -53,28 +53,30 @@ path in the default project checkout. Keep the accepted candidate available
 there after cleanup; report the final project-relative path and derive the
 concrete installation path from the checkout actually in use.
 
-## Pinned source checkouts
+## Independent source checkouts
 
-Plugin source checkouts live under `plugins/`. Goal, Graph, Chat Groups, Cua
-Driver, Message Board, and Plugin Developer (`openagent-plugin-kit`) are independent
-Git submodules: `.gitmodules` records
-their repositories and the parent gitlinks pin their exact commits. Initialize
-them in every checkout or isolated worktree before using the development tools:
+Plugin source checkouts live under `plugins/` as independent, ignored Git
+repositories. The host tracks `{ path, repository, branch }` subscriptions in
+`plugins/dev-index.json`, never plugin gitlinks or a lockfile. Initialize them
+in every checkout or isolated worktree before using development tools:
 
 ```bash
-bun scripts/prepare-submodules.mjs
+bun scripts/prepare-plugin-sources.mjs
+bun run plugin:sync
 bun run plugin:dev
 ```
 
-Use this preparation helper (also run by `prepare:worktree:dev`) instead of a
-plain submodule checkout. It disables automatic newline conversion before the
-first recursive checkout and persists `core.autocrlf=false` / `core.eol=lf` in
-each submodule's local Git configuration, without changing global Git settings.
-Parent attributes do not apply across submodule repository boundaries. Existing
-CRLF conversions are repaired only when the unstaged regular file matches its
-index blob after CRLF removal and repository filters permit those bytes; actual
-edits and staged files are preserved. Provenance hashes remain byte-exact and
-must never be regenerated merely to accommodate Windows checkout conversion.
+Preparation clones missing subscriptions from the declared branch with LF
+checkout configuration. Existing checkouts remain unchanged unless `--update`
+is explicit (`plugin:sync`). Synchronization fetches and fast-forwards clean
+subscribed branches only. Dirty sources, feature branches and local ahead or
+diverged commits are reported as preserved, never reset or stashed. A clean
+detached former submodule can join the subscribed branch only when its HEAD and
+any existing local subscription branch are ancestors of the remote branch.
+Mismatched origins and linked destinations fail before updating.
+Former submodule directories and Git metadata remain usable in place; never
+deinitialize or delete developer checkouts during this migration. The private
+SDK remains a pinned submodule with its separate preparation contract.
 
 The reviewed Claude external adaptations follow the same ownership: Asana,
 Context7, Fakechat, Firebase, GitHub, GitLab, iMessage, Laravel Boost,
@@ -88,8 +90,7 @@ byte-bound validation/test/Runtime evidence and prior naming/visibility
 authorization. Account-backed service operations and macOS access remain
 separate qualification requirements; setup status alone does not prove them.
 
-The tracked `plugins/dev-index.json` maps manifest plugin IDs to directories
-relative to that file. Paths must remain inside its directory, including through
+Subscription paths are relative to the index and must remain inside its directory, including through
 symlinks or junctions. The index is explicit: unrelated folders are never scanned
 or enabled. Add a third-party source under `plugins/` and deliberately add its
 ID/path to the index; do not add machine-specific paths or secrets.
@@ -102,12 +103,12 @@ index is resolved beside the script, independently of the current directory.
 rules. Neither `.env` nor `OPENAGENT_PLUGIN_DIRS` / `OPENAGENT_PLUGIN_ENV_FILE`
 participates in lookup. Old plugin path entries can be removed from local `.env`
 without changing provider or tracing credentials. Missing mappings, empty or
-uninitialized submodules, and manifest identity/version mismatches fail
-explicitly; initialize the pinned sources rather than searching sibling folders.
+uninitialized repositories, and manifest identity/version mismatches fail
+explicitly; initialize subscriptions rather than searching sibling folders.
 
 Read each plugin repository's own instructions before changing it. Commit and
-explicitly publish accepted plugin source changes in that repository before
-advancing the parent's gitlink for reproducible remote clones. Do not treat a
+publish accepted plugin source changes in that repository independently. Ordinary
+updates require no parent commit, catalog version bump or desktop release. Do not treat a
 local Git commit as published or silently replace an unpublished candidate with
 an older upstream version. Preserve existing checkouts outside the project;
 they may contain local commits or developer work. Moving them is a separate
@@ -115,7 +116,7 @@ explicit task, not an incidental part of choosing a new candidate's location.
 
 Apply [plugin versioning](versioning.md) during implementation: update source
 package versions and verified compatibility declarations before committing and
-advancing a gitlink. Runtime publication validates these identities rather than
+publishing. Runtime publication snapshots and validates these identities rather than
 calculating versions or repairing missing bumps.
 
 ## Association, tests, and use
@@ -142,7 +143,7 @@ from source digest/copy; there is no symlink mount or arbitrary directory scan.
 `bun run test:blackbox:plugin-functionality` reads the same index and validates
 all selected sources before touching fixture settings. Set `BLACKBOX_PLUGIN_IDS`
 to select Goal, Graph, or Chat Groups. Every worktree uses its own initialized
-plugin submodules and tracked index. Reports include the exact resolved
+plugin repositories and tracked subscriptions. Reports include the exact resolved
 directories and manifest versions.
 Run package-owned validation and the applicable native black-box scenario;
 retain report paths and record tested Git revisions. Index validation alone
