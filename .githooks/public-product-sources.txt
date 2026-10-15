@@ -5,6 +5,7 @@ crates/openagent-app/src/embedding_resource.rs
 crates/openagent-app/src/lib.rs
 crates/openagent-app/src/paths.rs
 crates/openagent-app/src/persistence.rs
+crates/openagent-app/src/plugin_updates.rs
 crates/openagent-app/src/process_lifetime.rs
 crates/openagent-app/src/runtime_process.rs
 crates/openagent-config/src/config.rs

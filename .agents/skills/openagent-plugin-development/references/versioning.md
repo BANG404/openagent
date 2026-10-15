@@ -68,6 +68,15 @@ manifest edits alone do not.
 
 ## Release validation and reuse
 
+Public `crates/openagent-app/src/plugin_updates.rs` owns startup synchronization
+policy. The primary server holds its process lock before calling it, before
+mounting plugin processes. An immutable executable digest and plugin protocol
+identify the successful check. Checks have a three-second deadline; updates
+share an eight-second startup budget with at most five seconds per package.
+Stale results and failures retain the previous marker so startup retries. The
+engine implements the package-operation port and retains package leases,
+permission enforcement and data preservation.
+
 `scripts/plugin-release.mjs --verify` checks clean independent source snapshots
 and immutable tag ownership. Host preflight does not compare moving package
 versions with parent history. Version increases belong to each plugin repository

@@ -136,7 +136,7 @@ describe("desktop command boundary", () => {
       ]
         .map((path) => readFileSync(path, "utf8"))
         .join("\n");
-      const protocol = readFileSync("runtime/rust/openagent-protocol/src/lib.rs", "utf8");
+      const protocol = readFileSync("crates/openagent-protocol/src/lib.rs", "utf8");
       const settings = readFileSync(
         "src/lib/components/settings/SettingsPluginsTab.svelte",
         "utf8",
