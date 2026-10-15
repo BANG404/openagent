@@ -8,10 +8,11 @@ import { fileURLToPath } from "node:url";
 import { parseRustHost } from "./prepare-runtime-server.mjs";
 import { sourceCargoEnvironment, withSourceCargoWorkspaceLock } from "./source-cargo.mjs";
 
-/** @param {{ packageName: string; testTarget?: string; caseName: string; targetTriple: string; qualify?: boolean; ignored?: boolean }} options */
+/** @param {{ packageName: string; testTarget?: string; binaryTarget?: string; caseName: string; targetTriple: string; qualify?: boolean; ignored?: boolean }} options */
 export function runtimeVerificationPlan({
   packageName,
   testTarget,
+  binaryTarget,
   caseName,
   targetTriple,
   qualify = false,
@@ -19,6 +20,8 @@ export function runtimeVerificationPlan({
 }) {
   if (!packageName?.trim() || !caseName?.trim())
     throw new Error("A package and focused case are required.");
+  if (testTarget && binaryTarget)
+    throw new Error("Select either an integration test or a binary test target.");
   const base = [
     "test",
     "--locked",
@@ -29,6 +32,7 @@ export function runtimeVerificationPlan({
   ];
   const focused = [...base, "-p", packageName];
   if (testTarget) focused.push("--test", testTarget);
+  else if (binaryTarget) focused.push("--bin", binaryTarget);
   else focused.push("--lib");
   focused.push(caseName, "--", "--exact", "--nocapture");
   if (ignored) focused.push("--ignored");
@@ -84,7 +88,15 @@ function sourceState(root) {
 
 async function main() {
   const args = process.argv.slice(2);
-  const allowed = new Set(["--package", "--test", "--case", "--target", "--qualify", "--ignored"]);
+  const allowed = new Set([
+    "--package",
+    "--test",
+    "--bin",
+    "--case",
+    "--target",
+    "--qualify",
+    "--ignored",
+  ]);
   const values = new Map();
   for (let index = 0; index < args.length; index++) {
     const flag = args[index];
@@ -102,6 +114,7 @@ async function main() {
   const plan = runtimeVerificationPlan({
     packageName: values.get("--package") ?? "openagent-runtime",
     testTarget: values.get("--test"),
+    binaryTarget: values.get("--bin"),
     caseName: values.get("--case") ?? "",
     targetTriple:
       values.get("--target") ??

@@ -12,14 +12,14 @@ test("development admission follows the checked-out host protocol across version
   const directory = await mkdtemp(join(tmpdir(), "openagent-runtime-protocol-"));
   try {
     const hostFile = join(directory, "crates/openagent-protocol/src/lib.rs");
-    const sdkFile = join(directory, "runtime/rust/openagent-protocol/src/lib.rs");
+    const sdkFile = join(directory, "runtime/scripts/public-protocol.mjs");
     await mkdir(join(directory, "crates/openagent-protocol/src"), { recursive: true });
-    await mkdir(join(directory, "runtime/rust/openagent-protocol/src"), { recursive: true });
+    await mkdir(join(directory, "runtime/scripts"), { recursive: true });
     const sdkSha = "a".repeat(40);
     const artifact = { file: "fixture", size: 1, sha256: "b".repeat(64) };
     for (const version of [3, 7]) {
       await writeFile(hostFile, `pub const SDK_PROTOCOL_VERSION: u32 = ${version};\r\n`);
-      await writeFile(sdkFile, `pub const SDK_PROTOCOL_VERSION: u32 = ${version};\n`);
+      await writeFile(sdkFile, `console.log(${version});\n`);
       expect(verifyDevelopmentRuntimeProtocol(directory)).toBe(version);
       const manifest = {
         schema_version: 2,
@@ -37,7 +37,7 @@ test("development admission follows the checked-out host protocol across version
           .runtime,
       ).toEqual(artifact);
     }
-    await writeFile(sdkFile, "pub const SDK_PROTOCOL_VERSION: u32 = 2;\n");
+    await writeFile(sdkFile, "console.log(2);\n");
     expect(() => verifyDevelopmentRuntimeProtocol(directory)).toThrow(
       "must match the desktop host",
     );

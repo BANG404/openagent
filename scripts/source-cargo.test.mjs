@@ -116,6 +116,23 @@ test("qualification runs serially after the focused case passes", () => {
   expect(calls).toEqual(["focused", "workspace"]);
 });
 
+test("binary unit tests retain focused admission and reject mixed targets", () => {
+  const options = {
+    packageName: "openagent-server",
+    binaryTarget: "openagent-server",
+    caseName: "storage::tests::failed_database_backup_leaves_original_state_untouched",
+    targetTriple: "x86_64-pc-windows-msvc",
+  };
+  const [focused, workspace] = runtimeVerificationPlan({ ...options, qualify: true });
+  expect(focused).toContain("--bin");
+  expect(focused).not.toContain("--lib");
+  expect(focused).toContain("--exact");
+  expect(workspace).not.toContain("--bin");
+  expect(() => runtimeVerificationPlan({ ...options, testTarget: "integration" })).toThrow(
+    "Select either an integration test or a binary test target.",
+  );
+});
+
 test("source edits invalidate the focused pass before full qualification", () => {
   let source = "before";
   const calls = [];

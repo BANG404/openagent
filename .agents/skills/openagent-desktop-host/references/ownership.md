@@ -19,7 +19,7 @@ child teardown, and parent-liveness monitors; quit and restart share that owner.
 replacement, frontend activation, resource source, and version identity adapters.
 Keep rollback with its activation transaction and confirmation deadlines with
 frontend selection. Moving commands between modules preserves their public IPC
-names; register the defining module's command path in both Runtime modes.
+names; register the defining module's native or proxy command path.
 Add only these Tauri-owned adapter files to the public Rust source allowlist.
 
 `cua_driver/` owns the installed daemon's native adapter. `policy.rs` derives
@@ -35,20 +35,14 @@ remain hidden until requester-relative placement and saved geometry restoration
 finish. Startup reveal and exit share one `DesktopWindowState`; window modules
 must not create a separate exit or Runtime state.
 
-`desktop_bootstrap/` separates Runtime mode selection, the user-confirmed
-persistence helper flow, instance policy, and external process startup.
-The versioned helper still owns data inspection and transitions in the SDK.
-`embedded_commands/` contains only typed forwarding adapters, grouped by
-product domain and compiled only for explicit embedded diagnostics. Keep
-command argument shapes aligned with the SDK contract and register their
-defining module paths without changing public operation names.
+`desktop_bootstrap/` adapts prepared launch inputs, the user-confirmed persistence
+helper flow, instance policy, and external process startup. Public App owns
+product decisions; the versioned server helper binds private storage operations.
 
-`invoke_handlers.rs` registers the defining adapter paths for each Runtime mode.
+`invoke_handlers.rs` registers the defining native and proxy adapter paths.
 `runtime_proxy_commands.rs` owns the native request/event proxy entry points;
 `native_commands.rs` owns OS capabilities and resolves open paths through the
-active Runtime. `embedding_adapter.rs` discovers the packaged model seed and
-forwards explicit diagnostic commands, while `embedded_host.rs` implements the
-SDK host bridge only when embedded diagnostics are enabled.
+supervised Runtime. `embedding_adapter.rs` discovers the packaged model seed.
 `desktop_plugins.rs` preserves single-instance-first registration and separates
 window-state restoration from global desktop integrations. Window startup lives
 in `desktop_windows/startup.rs`; the development inspector is scheduled by its
@@ -56,11 +50,10 @@ own debug-only adapter. Arm frontend confirmation after those surfaces exist.
 
 ## Runtime and SDK roles
 
-- Ordinary host builds must not link private SDK Rust crates. Compile and stage
-  `openagent-server` first, then use its versioned desktop-bootstrap JSON command
+- Host builds link public App and protocol crates, with no private Rust source
+  dependency. Use a verified `openagent-server` binary and its desktop-bootstrap JSON command
   for compatibility inspection, confirmed persistence transitions, locale, and
-  launch inputs. Private Rust dependencies resolve only in the generated SDK-owned embedded
-  diagnostic manifest, never as optional dependencies of the public host.
+  launch inputs. Authorized source development builds the server separately.
 - The supervised desktop server exposes the typed product `/api/desktop/*`
   router through `--desktop-api`. The server remains the one Runtime process;
   do not introduce an embedded or parallel agent Runtime in the desktop host.
@@ -122,7 +115,7 @@ ambient permissions.
   Bearer-authenticated `/api/desktop/plugin-daemon-launch` endpoint. Runtime checks
   the installed manifest, enablement and explicit host-access grant. The launch
   environment stays in native Rust; WebView proxy requests to this endpoint are
-  rejected. Embedded diagnostics use the same Runtime resolver. Persist a new
+  rejected. Persist a new
   grant before requesting launch, and reconnect the reserved MCP client after
   a fresh daemon start. Revoking host access or disabling Cua stops the daemon.
 
@@ -232,19 +225,14 @@ endpoint>`. Pass the same values again through
 
 ## Asset protocols and native opener
 
-- The installed Cua Driver plugin daemon must be resolved before any Runtime
-  bootstrap in development mode, because the embedded diagnostic can initialize
-  MCP connections before Tauri `setup`.
+- Resolve the installed Cua Driver plugin descriptor through the authenticated
+  Runtime before provisioning its host-supervised daemon.
 - Rewrite Runtime media asset URLs to the host-owned `openagent-runtime`
   protocol. Permit only GET/HEAD requests for bounded media asset paths,
   preserve byte-range response headers, and attach the process token only in
   Rust.
-- Resolve workspace paths in the Runtime before the host invokes the
-  native opener. Native open requests must select the active Runtime mode
-  at runtime: ordinary debug and release shells use the supervised
-  Runtime proxy, while the explicit embedded diagnostic uses its managed
-  Runtime state. Do not select this boundary with compile-time debug
-  cfgs.
+- Resolve workspace paths through the supervised Runtime before the host
+  invokes the native opener. Debug and release use the same authenticated proxy.
 - Serve replaceable frontend versions only through the host-owned
   `openagent-ui` protocol. Activation must atomically retain the previous
   selection, reload every product WebView with the candidate version,
@@ -260,7 +248,8 @@ The normal release shell creates its window before Runtime persistence inspectio
 The independent bootstrap and `desktop_bootstrap/provisioning.rs` recover missing
 or failed resource installation without SDK frontend or Runtime availability.
 Native managers still verify signatures and their own compatibility boundaries;
-Runtime still owns persistence consent and semantic embedding validation.
+Public App owns persistence consent policy; the server binds private storage
+maintenance and performs semantic embedding validation.
 
 ## Bundled terminal commands
 

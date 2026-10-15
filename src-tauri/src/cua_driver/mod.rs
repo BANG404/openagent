@@ -5,12 +5,11 @@ use crate::plugin_daemon_supervisor::{
     PluginDaemonLaunch, PluginDaemonSpec, PluginDaemonStop, PluginDaemonSupervisor,
     PluginDaemonTransport,
 };
-#[cfg(not(feature = "embedded-runtime"))]
+
 use crate::runtime_process::RuntimeProcessSupervisor;
-#[cfg(not(feature = "embedded-runtime"))]
+
 use crate::runtime_transport::{self, RuntimeProxyRequest};
-#[cfg(feature = "embedded-runtime")]
-use openagent_runtime::state::OpenAgentRuntime;
+
 use ownership::{
     acquire_cua_driver_ownership, cua_driver_endpoint_is_ready, plan_cua_driver_launch,
     remove_stale_cua_driver_endpoint, CuaDriverOwnership, CuaDriverPlan,
@@ -378,7 +377,7 @@ fn cua_driver_daemon_spec(
 /// connected its persisted MCP list before this call that it has to reconnect.
 ///
 /// The ordinary desktop architecture connects MCP servers in the supervised
-/// Runtime process, so the host cannot rely on the embedded-runtime bootstrap to
+/// Runtime process, so the host resolves its launch descriptor over HTTP to
 /// start this daemon; the frontend asks the host while the entry is enabled.
 ///
 /// Endpoint ownership decides what this process may do, and every window process
@@ -439,102 +438,6 @@ fn ensure_cua_driver_serve_with_launch(launch: PluginDaemonLaunch) -> Result<boo
 
 /// Resolve and supervise a plugin-owned daemon through the standard package
 /// contract. The host never downloads or bundles a Cua executable.
-#[cfg(feature = "embedded-runtime")]
-pub(crate) async fn ensure_cua_driver_serve(
-    runtime: Arc<OpenAgentRuntime>,
-) -> Result<bool, String> {
-    let descriptor = openagent_runtime::commands::resolve_host_plugin_daemon(
-        runtime.state(),
-        "cua-driver".to_string(),
-    )
-    .await?;
-    let launch: PluginDaemonLaunch = serde_json::from_value(descriptor)
-        .map_err(|error| format!("Runtime returned an invalid daemon launch: {error}"))?;
-    tauri::async_runtime::spawn_blocking(move || ensure_cua_driver_serve_with_launch(launch))
-        .await
-        .map_err(|error| format!("Cua Driver startup task failed: {error}"))?
-}
-
-#[cfg(feature = "embedded-runtime")]
-async fn ensure_declared_plugin_daemon(
-    runtime: Arc<OpenAgentRuntime>,
-    plugin_id: &str,
-) -> Result<bool, String> {
-    if plugin_id == openagent_runtime::agent_plugins::CUA_DRIVER_ID {
-        return Ok(false);
-    }
-    let state = runtime.state();
-    let roots = state
-        .agent_plugin_roots
-        .clone()
-        .ok_or_else(|| "Agent Plugin support is not configured".to_string())?;
-    let enabled = state.config.lock().await.agent_plugins_enabled.clone();
-    let process_launch = state.plugin_process_launch().await;
-    let launch = openagent_runtime::agent_plugins::resolve_installed_plugin_daemon(
-        &roots.packages,
-        &roots.data,
-        &enabled,
-        &process_launch,
-        plugin_id,
-    )
-    .await?;
-    if launch.process_policy.managed().is_some() {
-        return Err(format!(
-            "Agent Plugin '{plugin_id}' daemon requires a managed process adapter"
-        ));
-    }
-    let endpoint = (launch.transport == "socket")
-        .then(|| std::path::PathBuf::from(&launch.data_root).join("daemon.sock"))
-        .map(|path| path.to_string_lossy().into_owned());
-    let mut env = launch.environment.clone();
-    if let Some(endpoint) = &endpoint {
-        env.push(("OPENAGENT_PLUGIN_ENDPOINT".to_string(), endpoint.clone()));
-    }
-    let transport = match endpoint {
-        Some(endpoint) => PluginDaemonTransport::Socket {
-            endpoint,
-            startup_timeout: std::time::Duration::from_secs(15),
-        },
-        None => PluginDaemonTransport::Stdio,
-    };
-    plugin_daemon_supervisor().start(
-        PluginDaemonSpec {
-            plugin_id: launch.plugin_id.clone(),
-            label: format!("Agent Plugin {plugin_id}"),
-            command: launch.command,
-            args: launch.args,
-            cwd: std::path::PathBuf::from(launch.root),
-            env,
-            transport,
-        },
-        None,
-    )
-}
-
-#[cfg(feature = "embedded-runtime")]
-pub(crate) async fn ensure_declared_plugin_daemons(runtime: Arc<OpenAgentRuntime>) {
-    let state = runtime.state();
-    let Some(roots) = state.agent_plugin_roots.clone() else {
-        return;
-    };
-    let enabled = state.config.lock().await.agent_plugins_enabled.clone();
-    let plugins =
-        openagent_runtime::agent_plugins::load_installed_plugins(&roots.packages, &roots.data)
-            .await;
-    for plugin in plugins {
-        if plugin.summary.daemon.is_none()
-            || !enabled.get(&plugin.summary.id).copied().unwrap_or(true)
-        {
-            continue;
-        }
-        if let Err(error) = ensure_declared_plugin_daemon(runtime.clone(), &plugin.summary.id).await
-        {
-            tracing::warn!(plugin = %plugin.summary.id, %error, "plugin daemon was not started");
-        }
-    }
-}
-
-#[cfg(not(feature = "embedded-runtime"))]
 pub(crate) async fn ensure_cua_driver_serve(
     supervisor: &RuntimeProcessSupervisor,
 ) -> Result<bool, String> {
@@ -599,26 +502,12 @@ pub(crate) fn cua_driver_endpoint() -> String {
 /// Ask the desktop host to start the installed Cua Driver plugin daemon for the reserved
 /// entry and wait until it is accepting connections. Returns whether this call
 /// spawned the daemon.
-#[cfg(feature = "embedded-runtime")]
-#[tauri::command]
-pub(crate) async fn start_cua_driver_serve(
-    runtime: State<'_, Arc<OpenAgentRuntime>>,
-) -> Result<bool, String> {
-    ensure_cua_driver_serve(runtime.inner().clone()).await
-}
 
 #[tauri::command]
 pub(crate) fn agent_plugin_daemon_running(plugin_id: String) -> Result<bool, String> {
     plugin_daemon_supervisor().is_running(&plugin_id)
 }
 
-#[cfg(feature = "embedded-runtime")]
-#[tauri::command]
-pub(crate) fn stop_agent_plugin_daemon(plugin_id: String) -> Result<bool, String> {
-    plugin_daemon_supervisor().stop(&plugin_id)
-}
-
-#[cfg(not(feature = "embedded-runtime"))]
 #[tauri::command]
 pub(crate) async fn start_cua_driver_serve(
     supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,

@@ -2,7 +2,6 @@ use crate::component_updates::{acquire_component_update_barrier, RuntimeUpdateSt
 use crate::cua_driver::stop_cua_driver_serve;
 #[cfg(desktop)]
 use crate::desktop_windows::DESKTOP_TRAY_ID;
-use crate::diagnostics::shutdown_host_tracing;
 use crate::runtime_process::RuntimeProcessSupervisor;
 use crate::runtime_transport::RuntimeEventProxy;
 use crate::workspace_process::{
@@ -253,7 +252,6 @@ async fn finish_desktop_exit(
             tracing::warn!(%error, "desktop child teardown did not finish during exit");
         }
     }
-    shutdown_host_tracing();
     match action {
         DesktopExitAction::Quit => {
             app.cleanup_before_exit();

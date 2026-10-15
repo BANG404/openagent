@@ -395,7 +395,6 @@ describe("desktop navigation chrome", () => {
     expect(exit).toContain("timeout(DESKTOP_RUNTIME_STOP_TIMEOUT, supervisor.stop())");
     expect(exit).toContain("timeout(DESKTOP_EVENT_PROXY_STOP_TIMEOUT, proxy.stop())");
     expect(exit).toContain("finish_child_workspace_window_shutdown");
-    expect(exit).toContain("shutdown_host_tracing()");
     expect(exit).toContain("app.cleanup_before_exit()");
     expect(exit).toContain("std::process::exit(0)");
     expect(exit).toContain("app.request_restart()");

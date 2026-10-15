@@ -27,11 +27,10 @@ seed installation, download, verification and progress reporting. Resource DTOs
 and model identity live in the public protocol crate. The supervised server
 binds this policy to its live encoder and event channel. Tauri resolves an optional packaged seed path and proxies the typed
 operations and Runtime events; preparing the resource does not drain or restart
-the server. The explicit embedded debug mode retains a diagnostic host adapter
-with the same operation and event contract.
-The host's `embedding_adapter.rs` owns packaged seed discovery and embedded
-command forwarding; `embedded_host.rs` contains the diagnostic Runtime host
-bridge. Resource installation, verification, and activation use the public App.
+the server. The host's `embedding_adapter.rs` owns packaged seed discovery.
+Public native CI verifies resource bytes and product policies without private
+source. SDK CI separately exercises verified seed installation, encoder loading
+and authenticated plugin inference on Linux, Windows and macOS.
 
 ## Plugin inference
 
@@ -78,7 +77,6 @@ When replacing the model, keep its license beside the weights, pin an immutable
 source revision and hashes, and update the platform inference test. A change of
 embedding dimension or semantic model family also requires an explicit stored
 vector migration; swapping files alone is not safe.
-
 
 Online shell provisioning downloads the exact model files alongside other signed
 release resources and passes their verified seed directory into the external

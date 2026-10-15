@@ -34,25 +34,6 @@ if (developmentParentLifetime) {
   arguments_ = parsed.arguments_;
   developmentInstanceName = parsed.instanceName ?? environment.OPENAGENT_DEV_INSTANCE?.trim();
 }
-const embeddedRuntime = arguments_.includes("--embedded-runtime");
-if (embeddedRuntime) {
-  if (arguments_[0] !== "dev") {
-    throw new Error("--embedded-runtime is available only with tauri dev");
-  }
-  arguments_ = arguments_.filter((argument) => argument !== "--embedded-runtime");
-  arguments_.push(
-    "--runner",
-    path.join(
-      root,
-      "scripts",
-      process.platform === "win32" ? "embedded-cargo.cmd" : "embedded-cargo.sh",
-    ),
-  );
-  environment.OPENAGENT_RUNTIME_MODE = "embedded";
-  environment.OPENAGENT_DEV_RUNTIME_SOURCE = "1";
-  environment.CARGO_TARGET_DIR ??= path.join(root, "runtime", "target", "desktop-host", "target");
-  console.log("Using the explicit embedded development Runtime");
-}
 if (developmentParentLifetime) {
   if (developmentInstanceName) {
     Object.assign(

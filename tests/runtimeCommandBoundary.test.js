@@ -159,17 +159,15 @@ describe("desktop command boundary", () => {
     },
   );
 
-  test("resolves native open paths through the active desktop Runtime mode", () => {
+  test("resolves native open paths through the supervised Runtime", () => {
     const host = readFileSync("src-tauri/src/native_commands.rs", "utf8");
     const start = host.indexOf("async fn resolve_desktop_open_path");
     const end = host.indexOf("async fn read_text_file", start);
     const openPathBoundary = host.slice(start, end);
 
     expect(start).toBeGreaterThanOrEqual(0);
-    expect(openPathBoundary).toContain("embedded_runtime: Option<&OpenAgentRuntime>");
-    expect(openPathBoundary).toContain("if let Some(runtime) = embedded_runtime");
     expect(openPathBoundary).toContain('"operation": "resolve_open_path"');
-    expect(openPathBoundary).toContain("embedded_runtime: State<'_, EmbeddedRuntimeState>");
+    expect(openPathBoundary).not.toContain("openagent_runtime");
     expect(openPathBoundary).toContain("supervisor: State<'_, Arc<RuntimeProcessSupervisor>>");
     expect(openPathBoundary).not.toContain("#[cfg(debug_assertions)]");
     expect(openPathBoundary).not.toContain("#[cfg(not(debug_assertions))]");

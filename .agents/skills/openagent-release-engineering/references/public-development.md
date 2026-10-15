@@ -10,6 +10,10 @@ Public Rust product, configuration and protocol source lives in `crates/`.
 The private submodule declares `update = none`, so consuming public Git crates
 and ordinary recursive clones never fetch the private repository. Explicit
 source preparation overrides that default with `--checkout`.
+Public preflight validates publication when the Runtime gitlink changes; an
+unchanged pin inherits its baseline qualification and needs no private checkout.
+Public native CI compiles App, configuration, protocol and Tauri without private
+credentials. Private execution, sandbox and encoder qualification belongs to SDK CI.
 Preflight and the pre-push hook reject unlisted files, symlinks and private
 Runtime source in the public tree. Push verification also inspects immutable
 commits from before the directory split using their historical SDK gitlink.
@@ -56,10 +60,12 @@ private source watching and rebuilding. OWT preparation initializes pinned
 submodules and installs dependencies/resources; `--native` adds helper and
 Runtime compilation. It does not materialize a second client copy.
 
-The public Cargo manifest declares no private dependencies, even optional ones.
-Explicit embedded diagnostics generate a manifest under
-`runtime/target/desktop-host/`, combine the host and Runtime lock inputs and
-copy native locales. Their dependencies never enter the public host lockfile.
+The public Cargo manifests declare no private dependencies, even optional ones.
+The private server pins all public Rust crates to one immutable host revision.
+Changing those crates selects both shell and Runtime delivery: advance the
+private dependency pin, qualify and publish the server, then update the host
+gitlink. The signed development kit must match that final gitlink; a missing
+exact-SHA kit fails until trusted SDK development publication produces it.
 
 Qualification covers preparation without private source, no client archive
 requests, stale cached-client isolation, source/protocol mismatch, tampering,

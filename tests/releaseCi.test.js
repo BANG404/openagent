@@ -1,112 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { TOML } from "bun";
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import { tmpdir } from "node:os";
-import path from "node:path";
-import { prepareEmbeddedManifest } from "../scripts/embedded-cargo.mjs";
+import { readFileSync, readdirSync } from "node:fs";
 
 /** @param {URL|string} url */
 const readText = (url) => readFileSync(url, "utf8").replace(/\r\n/g, "\n");
-
-/** @param {string} hostNewline @param {string} sdkNewline */
-function embeddedLockFixture(hostNewline, sdkNewline) {
-  const root = mkdtempSync(path.join(tmpdir(), "openagent-embedded-lock-"));
-  const host = path.join(root, "src-tauri");
-  const sdk = path.join(root, "runtime");
-  for (const directory of ["capabilities", "locales", "resources/models", "icons", "binaries"]) {
-    mkdirSync(path.join(host, directory), { recursive: true });
-  }
-  mkdirSync(sdk);
-  writeFileSync(
-    path.join(host, "Cargo.toml"),
-    '[package]\nname = "openagent"\nversion = "0.1.0"\nedition = "2021"\n[dependencies]\n',
-  );
-  writeFileSync(
-    path.join(host, "tauri.conf.json"),
-    JSON.stringify({ build: { frontendDist: "../build" }, bundle: { icon: [], externalBin: [] } }),
-  );
-  const lock = 'version = 4\n\n[[package]]\nname = "reqwest"\nversion = "0.13.4"\n';
-  const hostLock = lock.replace("0.13.4", "0.13.3").replaceAll("\n", hostNewline);
-  const sdkLock = lock.replaceAll("\n", sdkNewline);
-  writeFileSync(path.join(host, "Cargo.lock"), hostLock);
-  writeFileSync(path.join(sdk, "Cargo.lock"), sdkLock);
-  const destination = path.join(sdk, "target", "desktop-host");
-  return { root, host, sdk, destination, hostLock, sdkLock };
-}
-
-describe("embedded diagnostic dependency resolution", () => {
-  for (const [hostNewline, sdkNewline] of [
-    ["\n", "\n"],
-    ["\r\n", "\r\n"],
-    ["\n", "\r\n"],
-    ["\r\n", "\n"],
-  ]) {
-    test(`seeds one compatible graph with ${JSON.stringify([hostNewline, sdkNewline])} checkouts`, async () => {
-      const fixture = embeddedLockFixture(hostNewline, sdkNewline);
-      try {
-        await prepareEmbeddedManifest(fixture.root);
-        const lock = readText(path.join(fixture.destination, "Cargo.lock"));
-        expect(TOML.parse(lock)).toEqual({
-          version: 4,
-          package: [{ name: "reqwest", version: "0.13.4" }],
-        });
-        expect(readFileSync(path.join(fixture.host, "Cargo.lock"), "utf8")).toBe(fixture.hostLock);
-        expect(readFileSync(path.join(fixture.sdk, "Cargo.lock"), "utf8")).toBe(fixture.sdkLock);
-      } finally {
-        rmSync(fixture.root, { recursive: true, force: true });
-      }
-    });
-  }
-
-  test("retains Cargo's resolved graph until inputs change and restores a missing lock", async () => {
-    const fixture = embeddedLockFixture("\n", "\n");
-    try {
-      await prepareEmbeddedManifest(fixture.root);
-      const lockFile = path.join(fixture.destination, "Cargo.lock");
-      const resolved = `${fixture.sdkLock}\n[[package]]\nname = "host-only"\nversion = "1.0.0"\n`;
-      writeFileSync(lockFile, resolved);
-      await prepareEmbeddedManifest(fixture.root);
-      expect(readText(lockFile)).toBe(resolved);
-      writeFileSync(path.join(fixture.host, "Cargo.lock"), `${fixture.hostLock}\n`);
-      await prepareEmbeddedManifest(fixture.root);
-      expect(readText(lockFile)).toBe(fixture.sdkLock);
-      writeFileSync(
-        path.join(fixture.sdk, "Cargo.lock"),
-        fixture.sdkLock.replace("0.13.4", "0.13.5"),
-      );
-      await prepareEmbeddedManifest(fixture.root);
-      expect(readText(lockFile)).toContain('version = "0.13.5"');
-      rmSync(lockFile);
-      await prepareEmbeddedManifest(fixture.root);
-      expect(readText(lockFile)).toContain('version = "0.13.5"');
-    } finally {
-      rmSync(fixture.root, { recursive: true, force: true });
-    }
-  });
-
-  test("replaces a previously cached concatenated lockfile", async () => {
-    const fixture = embeddedLockFixture("\n", "\n");
-    try {
-      const manifest = await prepareEmbeddedManifest(fixture.root);
-      const oldFingerprint = createHash("sha256")
-        .update(readText(manifest))
-        .update(fixture.hostLock)
-        .update(fixture.sdkLock)
-        .digest("hex");
-      writeFileSync(path.join(fixture.destination, "lock-inputs.sha256"), oldFingerprint);
-      writeFileSync(path.join(fixture.destination, "Cargo.lock"), "version = 4\n[[package]]\n");
-      await prepareEmbeddedManifest(fixture.root);
-      expect(TOML.parse(readText(path.join(fixture.destination, "Cargo.lock")))).toEqual({
-        version: 4,
-        package: [{ name: "reqwest", version: "0.13.4" }],
-      });
-    } finally {
-      rmSync(fixture.root, { recursive: true, force: true });
-    }
-  });
-});
 
 const releaseWorkflow = readText(new URL("../.github/workflows/release.yml", import.meta.url));
 const ciWorkflow = readText(new URL("../.github/workflows/ci.yml", import.meta.url));
@@ -137,6 +33,29 @@ const privateRunnerEnvironment = readText(
   new URL("../scripts/ci/self-hosted-runner/.env.example", import.meta.url),
 );
 describe("release CI verification", () => {
+  test("public native checks require no private source or credentials", () => {
+    expect(nativeWorkflow).not.toContain("secrets:");
+    expect(nativeWorkflow).not.toContain("create-github-app-token");
+    expect(nativeWorkflow).not.toContain("repository: BANG404/openagent-sdk");
+    expect(nativeWorkflow).not.toContain("runtime/Cargo.toml");
+    expect(nativeWorkflow).not.toContain("embedded-cargo");
+    expect(nativeWorkflow).toContain(
+      "cargo test --manifest-path crates/Cargo.toml --workspace --all-features",
+    );
+    expect(sdkWorkflow).toContain(
+      "bootstrap::tests::verified_seed_installs_and_loads -- --exact --ignored",
+    );
+    expect(sdkWorkflow).toContain(
+      "plugin_embedding::tests::bundled_model_inference_through_authenticated_plugin_http -- --exact --ignored",
+    );
+    expect(sdkWorkflow).toContain("ENGINE_EMBEDDING_RESULT: ${{ needs.engine-embedding.result }}");
+    expect(sdkWorkflow).toContain(
+      "grep -Fq 'test bootstrap::tests::verified_seed_installs_and_loads ... ok'",
+    );
+    expect(sdkWorkflow).toContain(
+      "grep -Fq 'test plugin_embedding::tests::bundled_model_inference_through_authenticated_plugin_http ... ok'",
+    );
+  });
   test("every workflow uses the Bun version declared in package.json", () => {
     const manifest = JSON.parse(readText(new URL("../package.json", import.meta.url)));
     const version = manifest.packageManager.replace(/^bun@/, "");
@@ -154,41 +73,6 @@ describe("release CI verification", () => {
     }
   });
 
-  test("prepares Bun and preserves embedding retries under Bash errexit", () => {
-    const embeddingJob = nativeWorkflow
-      .split("  embedding-platform:\n")[1]
-      .split("  required:\n")[0];
-    const setup = embeddingJob.indexOf("uses: oven-sh/setup-bun@v2");
-    const exercise = embeddingJob.indexOf("name: Exercise bundled embedding model");
-    expect(setup).toBeGreaterThan(-1);
-    expect(setup).toBeLessThan(exercise);
-    expect(embeddingJob).toContain("bun-version: 1.3.14");
-    const retryScript = embeddingJob
-      .slice(exercise)
-      .split("        run: |\n")[1]
-      .split("      - name: Exercise authenticated plugin embedding")[0]
-      .split("\n")
-      .map((line) => line.replace(/^ {10}/, ""))
-      .join("\n");
-
-    for (const succeeds of [true, false]) {
-      const result = spawnSync(
-        "bash",
-        [
-          "-e",
-          "-c",
-          `calls=0\nbun() { calls=$((calls + 1)); echo "call=$calls"; ${succeeds ? '[ "$calls" -eq 3 ] && return 0;' : ""} return 9; }\nsleep() { echo "delay=$1"; }\n${retryScript}`,
-        ],
-        { encoding: "utf8" },
-      );
-      expect(result.error).toBeUndefined();
-      expect(result.status).toBe(succeeds ? 0 : 9);
-      expect(result.stdout.match(/call=/g)).toHaveLength(3);
-      expect(result.stdout).toContain("delay=20");
-      expect(result.stdout).toContain("delay=40");
-    }
-  });
-
   test("reserves complete qualification for release, scheduled, and manual runs", () => {
     expect(ciWorkflow).toContain("workflow_call:");
     expect(ciWorkflow).toContain("pull_request:");
@@ -201,7 +85,7 @@ describe("release CI verification", () => {
     expect(frontendWorkflow).toContain("if: inputs.full && !inputs.external_build");
     expect(frontendWorkflow).toContain("uses: ./.github/workflows/build-frontend.yml");
     expect(nativeWorkflow).toContain("if: inputs.full && inputs.platform");
-    expect(nativeWorkflow).toContain("if: inputs.full && inputs.embedding");
+    expect(sdkWorkflow).toContain("if: inputs.full && inputs.rust");
   });
 
   test("keeps fast SDK validation separate from release qualification", () => {
@@ -221,7 +105,6 @@ describe("release CI verification", () => {
 
     expect(nativeWorkflow).toContain("runs-on: ubuntu-24.04");
     expect(nativeWorkflow).toContain("runner: '\"windows-2025\"'");
-    expect(nativeWorkflow).toContain("cache-targets: false");
     expect(ciWorkflow).toContain(
       "github.event.pull_request.head.repo.full_name == github.repository",
     );
@@ -241,7 +124,7 @@ describe("release CI verification", () => {
     expect(nativeCargoManifest).not.toContain('path = "../runtime/');
     expect(nativeWorkflow).toContain("shared-key: public-host-linux");
     expect(nativeWorkflow).toContain("cache-targets: true");
-    expect(nativeWorkflow).toContain("CARGO_TARGET_DIR: runtime/target/desktop-host/target");
+    expect(nativeWorkflow).not.toContain("runtime/target");
     expect(sdkWorkflow).toContain("shared-key: public-sdk-host-dependencies");
     expect(releaseWorkflow).toContain(
       "shared-key: public-host-release-${{ matrix.runtime_target }}",
@@ -267,7 +150,7 @@ describe("release CI verification", () => {
       expect(workflow).not.toContain("ssh-key:");
     }
 
-    for (const workflow of [nativeWorkflow, sdkWorkflow, releaseWorkflow, prepareReleaseWorkflow]) {
+    for (const workflow of [sdkWorkflow, releaseWorkflow, prepareReleaseWorkflow]) {
       expect(workflow).toContain("uses: actions/create-github-app-token@v2");
       expect(workflow).toContain("permission-contents: read");
       expect(workflow).toContain("token: ${{ steps.");
@@ -275,9 +158,9 @@ describe("release CI verification", () => {
   });
 
   test("keeps native-only compilation independent from a frontend production build", () => {
-    expect(nativeWorkflow.match(/Materialize frontendDist for Tauri macros/g)).toHaveLength(3);
-    expect(nativeWorkflow.match(/Materialize Runtime sidecar for Tauri macros/g)).toHaveLength(3);
-    expect(nativeWorkflow.match(/prepare-runtime-server\.mjs --placeholder/g)).toHaveLength(3);
+    expect(nativeWorkflow.match(/Materialize frontendDist for Tauri macros/g)).toHaveLength(2);
+    expect(nativeWorkflow.match(/Materialize Runtime sidecar for Tauri macros/g)).toHaveLength(2);
+    expect(nativeWorkflow.match(/prepare-runtime-server\.mjs --placeholder/g)).toHaveLength(2);
     const hostCompatibilityJob = sdkWorkflow.match(
       / {2}host-compatibility:\n(?<job>[\s\S]*?)\n {2}required:/,
     )?.groups?.job;
@@ -307,7 +190,7 @@ describe("release CI verification", () => {
       ),
       hostCompatibilityJob ?? "",
     ];
-    expect(jobs).toHaveLength(4);
+    expect(jobs).toHaveLength(3);
     for (const job of jobs) {
       const compile = job.search(/cargo (?:clippy|check|test)|embedded-cargo\.mjs/);
       for (const script of ["prepare-node-runtime.mjs", "prepare-terminal-tools.mjs"]) {
@@ -340,25 +223,8 @@ describe("release CI verification", () => {
     expect(tauriConfig.build.removeUnusedCommands).toBe(false);
   });
 
-  test("delivers public-host Windows sandbox failures only to the private SDK commit", () => {
-    expect(ciWorkflow).toContain(
-      "OPENAGENT_CI_REPORTER_PRIVATE_KEY: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}",
-    );
-    expect(nativeWorkflow).toContain('OPENAGENT_WINDOWS_NETWORK_PRIVATE_DIAGNOSTIC: "1"');
-    expect(nativeWorkflow).toContain('SBX_DEBUG: "1"');
-    expect(nativeWorkflow).toContain(
-      '"sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name"',
-    );
-    expect(nativeWorkflow).toContain("name: Report Windows diagnostic to private SDK");
-    expect(nativeWorkflow).toContain("permission-checks: write");
-    expect(nativeWorkflow).toContain("permission-contents: read");
-    expect(nativeWorkflow).toContain("SDK_SHA: ${{ steps.sdk.outputs.sha }}");
-    expect(nativeWorkflow).toContain("run: node scripts/report-private-sdk-diagnostic.mjs");
-    expect(nativeWorkflow).not.toContain("Get-Content $log");
-  });
-
   test("runs each Windows sandbox capability in its own test target", () => {
-    for (const workflow of [nativeWorkflow, sdkWorkflow]) {
+    for (const workflow of [sdkWorkflow]) {
       expect(workflow).toContain("name: Exercise confined plugin MCP on Windows");
       expect(workflow).toContain("-p openagent-server --test plugin_process_confinement");
       expect(workflow).toContain(
@@ -366,8 +232,8 @@ describe("release CI verification", () => {
       );
       expect(workflow).not.toContain("-p openagent-server $test");
     }
-    expect(nativeWorkflow).toContain(
-      "--test windows_process_sandbox restricted_token_writes_workspace_and_blocks_outside_and_metadata -- --exact",
+    expect(sdkWorkflow).toContain(
+      "restricted_token_writes_workspace_and_blocks_outside_and_metadata",
     );
   });
 
@@ -593,7 +459,9 @@ describe("release CI verification", () => {
     expect(sdkWorkflow).toContain("sdk-dev-manifest.json");
     const pendingJob = sdkWorkflow.split("  pending:\n")[1].split("  rust-format:\n")[0];
     expect(pendingJob).toContain("if: inputs.publish_dev && inputs.full");
-    expect(pendingJob).toContain("sparse-checkout: rust/openagent-protocol/src/lib.rs");
+    expect(pendingJob).toContain("sparse-checkout: |");
+    expect(pendingJob).toContain("Cargo.toml");
+    expect(pendingJob).toContain("scripts/public-protocol.mjs");
     expect(pendingJob).toContain("run: node scripts/runtime-protocol.mjs");
     expect(sdkWorkflow).toContain('--sdk-sha "$SDK_SHA"');
     expect(

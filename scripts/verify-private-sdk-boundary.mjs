@@ -54,7 +54,7 @@ if (!cargoManifest.includes('path = "src/lib.rs"')) {
 }
 for (const crate of ["openagent-runtime"]) {
   if (cargoManifest.includes(`${crate} = {`)) {
-    throw new Error(`${crate} must resolve only in the SDK-owned diagnostic workspace`);
+    throw new Error(`${crate} must remain behind the external Runtime binary boundary`);
   }
 }
 

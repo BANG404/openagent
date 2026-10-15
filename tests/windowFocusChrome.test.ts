@@ -76,9 +76,7 @@ describe("window focus chrome", () => {
     expect(nativeHost).toMatch(
       /tauri_plugin_single_instance::init[\s\S]*?show_desktop_window\(app\)/,
     );
-    expect(nativeHost).toMatch(
-      /fn activate_workspace_window[\s\S]*?window\.set_focus\(\)[\s\S]*?workspace-window-open-request[\s\S]*?window[\s\S]*?emit\(DESKTOP_WINDOW_ACTIVATED_EVENT/,
-    );
+    expect(surfaceEvents).toContain('await invoke("reveal_main_window")');
     expect(nativeHost).not.toContain("register_webview_focus_handoff");
     expect(nativeHost).not.toContain("focus_webview_host");
     expect(nativeManifest).toContain("[patch.crates-io]");

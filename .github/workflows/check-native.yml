@@ -23,9 +23,6 @@ on:
         required: false
         default: false
         type: boolean
-    secrets:
-      OPENAGENT_CI_REPORTER_PRIVATE_KEY:
-        required: true
 
 permissions:
   contents: read
@@ -38,30 +35,6 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
-
-      - name: Resolve pinned SDK revision
-        id: sdk
-        shell: bash
-        run: echo "sha=$(git rev-parse HEAD:runtime)" >> "$GITHUB_OUTPUT"
-
-      - name: Create private SDK read token
-        id: sdk-read-token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
-          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
-          owner: BANG404
-          repositories: openagent-sdk
-          permission-contents: read
-
-      - name: Check out private SDK
-        uses: actions/checkout@v7
-        with:
-          repository: BANG404/openagent-sdk
-          ref: ${{ steps.sdk.outputs.sha }}
-          path: runtime
-          token: ${{ steps.sdk-read-token.outputs.token }}
-          persist-credentials: false
 
       - name: Materialize frontendDist for Tauri macros
         run: |
@@ -102,20 +75,6 @@ jobs:
           shared-key: public-host-linux
           cache-targets: true
 
-      - name: Prepare pinned Linux sandbox helper
-        shell: bash
-        run: |
-          profile=dev
-          github_env=()
-          if [[ "${{ inputs.full }}" == "true" ]]; then
-            profile=release
-            github_env=(--github-env)
-          fi
-          if ! node scripts/prepare-linux-sandbox-helper.mjs --profile "$profile" "${github_env[@]}" >"$RUNNER_TEMP/linux-sandbox-helper-build.log" 2>&1; then
-            echo "::error::Linux sandbox helper build failed; diagnostic output was suppressed."
-            exit 1
-          fi
-
       - name: Check Rust formatting
         run: |
           cargo fmt --manifest-path crates/Cargo.toml --all -- --check
@@ -130,10 +89,6 @@ jobs:
         run: |
           cargo test --manifest-path crates/Cargo.toml --workspace --all-features
           cargo test --manifest-path src-tauri/Cargo.toml
-
-      - name: Verify Linux release sandbox digest guard
-        if: inputs.full
-        run: cargo check --release --manifest-path runtime/Cargo.toml -p openagent-app
 
   platform:
     name: Check ${{ matrix.name }}
@@ -152,30 +107,6 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7
-
-      - name: Resolve pinned SDK revision
-        id: sdk
-        shell: bash
-        run: echo "sha=$(git rev-parse HEAD:runtime)" >> "$GITHUB_OUTPUT"
-
-      - name: Create private SDK read token
-        id: sdk-read-token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
-          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
-          owner: BANG404
-          repositories: openagent-sdk
-          permission-contents: read
-
-      - name: Check out private SDK
-        uses: actions/checkout@v7
-        with:
-          repository: BANG404/openagent-sdk
-          ref: ${{ steps.sdk.outputs.sha }}
-          path: runtime
-          token: ${{ steps.sdk-read-token.outputs.token }}
-          persist-credentials: false
 
       - name: Materialize frontendDist for Tauri macros
         run: |
@@ -203,120 +134,11 @@ jobs:
           shared-key: platform-${{ matrix.cache_key }}
           cache-targets: true
 
-      - name: Build pinned Windows sandbox helpers
-        if: runner.os == 'Windows'
-        shell: pwsh
-        env:
-          # Release qualification compiles private sandbox output under the
-          # checkout's runtime/target. The development profile otherwise defaults to
-          # the shared openagent-source-target cache, which every Windows
-          # sandbox boundary step below resolves and must not consume.
-          CARGO_TARGET_DIR: runtime/target
-        run: |
-          $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
-          bun run prepare:windows-sandbox:dev *> $log
-          if ($LASTEXITCODE -ne 0) {
-            "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
-            Write-Error "Windows sandbox helper build failed; private diagnostic output was suppressed."
-            exit 1
-          }
-
-      - name: Check all Rust targets on Windows
-        if: runner.os == 'Windows'
+      - name: Check all Rust targets
         run: cargo check --manifest-path src-tauri/Cargo.toml --all-targets
 
-      - name: Exercise the Windows restricted-token filesystem boundary
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $env:CARGO_TARGET_DIR = (Resolve-Path "runtime\target").Path
-          $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
-          cargo test --manifest-path runtime/Cargo.toml -p openagent-server --test windows_process_sandbox restricted_token_writes_workspace_and_blocks_outside_and_metadata -- --exact *>> $log
-          if ($LASTEXITCODE -ne 0) {
-            "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
-            Write-Error "Windows process sandbox test failed; private diagnostic output was suppressed."
-            exit 1
-          }
-
-      - name: Exercise confined plugin MCP on Windows
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $env:CARGO_TARGET_DIR = (Resolve-Path "runtime\target").Path
-          $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
-          cargo test --manifest-path runtime/Cargo.toml -p openagent-server --test plugin_process_confinement *>> $log
-          if ($LASTEXITCODE -ne 0) {
-            "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
-            Write-Error "Windows plugin confinement test failed; private diagnostic output was suppressed."
-            exit 1
-          }
-
-      - name: Exercise the Windows offline-account network boundary
-        if: runner.os == 'Windows'
-        shell: pwsh
-        env:
-          OPENAGENT_WINDOWS_WFP_INTEGRATION: "1"
-          OPENAGENT_WINDOWS_NETWORK_PRIVATE_DIAGNOSTIC: "1"
-          SBX_DEBUG: "1"
-        run: |
-          Set-NetFirewallProfile -Profile Domain,Private,Public -Enabled True
-          $disabledProfiles = Get-NetFirewallProfile | Where-Object { -not $_.Enabled }
-          if ($disabledProfiles) {
-            Write-Error "Windows Firewall profiles could not be enabled for the sandbox boundary test."
-            exit 1
-          }
-          $env:CARGO_TARGET_DIR = (Resolve-Path "runtime\target").Path
-          $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
-          $tests = @(
-            "elevated_offline_account_firewall_blocks_non_loopback_network_access",
-            "elevated_offline_account_wfp_blocks_dns_network_access"
-          )
-          $failed = $false
-          foreach ($test in $tests) {
-            cargo test --manifest-path runtime/Cargo.toml -p openagent-server --test windows_process_sandbox $test -- --exact --test-threads=1 *>> $log
-            if ($LASTEXITCODE -ne 0) {
-              $failed = $true
-              break
-            }
-          }
-          if ($failed) {
-            "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
-            $diagnostic = Select-String -Path $log -Pattern 'OPENAGENT_WFP_DIAGNOSTIC=[a-z-]+' -AllMatches |
-              ForEach-Object { $_.Matches.Value } |
-              Select-Object -Last 1
-            if ($diagnostic) {
-              Write-Error "Windows offline-network sandbox test failed: $diagnostic. Private diagnostic output was suppressed."
-            } else {
-              Write-Error "Windows offline-network sandbox test failed; private diagnostic output was suppressed."
-            }
-            exit 1
-          }
-
-      - name: Create private SDK diagnostic token
-        id: sdk-diagnostic-token
-        if: failure() && runner.os == 'Windows'
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
-          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
-          owner: BANG404
-          repositories: openagent-sdk
-          permission-checks: write
-          permission-contents: read
-
-      - name: Report Windows diagnostic to private SDK
-        if: failure() && runner.os == 'Windows'
-        env:
-          GH_TOKEN: ${{ steps.sdk-diagnostic-token.outputs.token }}
-          SDK_REPOSITORY: BANG404/openagent-sdk
-          SDK_SHA: ${{ steps.sdk.outputs.sha }}
-          SDK_DIAGNOSTIC_NAME: Public host Windows process sandbox
-          CI_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: node scripts/report-private-sdk-diagnostic.mjs
-
-      - name: Check all Rust targets on macOS
-        if: runner.os != 'Windows'
-        run: cargo check --manifest-path src-tauri/Cargo.toml --all-targets
+      - name: Test public Rust product policies
+        run: cargo test --manifest-path crates/Cargo.toml --workspace --all-features
 
   embedding-resources:
     name: Verify embedding resources
@@ -333,107 +155,6 @@ jobs:
       - name: Verify bundled embedding resources
         run: bun run check:embedding-model
 
-  embedding-platform:
-    name: Exercise embedding model on ${{ matrix.name }}
-    if: inputs.full && inputs.embedding
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Windows x64
-            runner: '"windows-2025"'
-            cache_key: windows-x64
-          - name: macOS arm64
-            runner: '"macos-15"'
-            cache_key: macos-arm64
-    runs-on: ${{ fromJSON(matrix.runner) }}
-    timeout-minutes: 90
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Resolve pinned SDK revision
-        id: sdk
-        shell: bash
-        run: echo "sha=$(git rev-parse HEAD:runtime)" >> "$GITHUB_OUTPUT"
-
-      - name: Create private SDK read token
-        id: sdk-read-token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
-          private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
-          owner: BANG404
-          repositories: openagent-sdk
-          permission-contents: read
-
-      - name: Check out private SDK
-        uses: actions/checkout@v7
-        with:
-          repository: BANG404/openagent-sdk
-          ref: ${{ steps.sdk.outputs.sha }}
-          path: runtime
-          token: ${{ steps.sdk-read-token.outputs.token }}
-          persist-credentials: false
-
-      - name: Materialize frontendDist for Tauri macros
-        run: |
-          node -e "for(const p of ['build','.cache/bootstrap-dist'])require('fs').mkdirSync(p,{recursive:true})"
-
-      - uses: dtolnay/rust-toolchain@stable
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.3.14
-
-      - name: Materialize Runtime sidecar for Tauri macros
-        run: node scripts/prepare-runtime-server.mjs --placeholder
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: ./src-tauri -> target
-          shared-key: embedding-${{ matrix.cache_key }}
-          cache-targets: false
-
-      - name: Prepare bundled plugin Node.js
-        run: node scripts/prepare-node-runtime.mjs
-
-      - name: Prepare bundled terminal tools
-        run: node scripts/prepare-terminal-tools.mjs
-
-      - name: Exercise bundled embedding model
-        env:
-          CARGO_TARGET_DIR: runtime/target/desktop-host/target
-        shell: bash
-        run: |
-          max_attempts=3
-          for ((attempt = 1; attempt <= max_attempts; attempt++)); do
-            echo "Running bundled embedding model test (attempt ${attempt}/${max_attempts})."
-            if bun scripts/embedded-cargo.mjs test bundled_embedding_model_runs_offline; then
-              exit 0
-            else
-              status=$?
-            fi
-
-            if (( attempt == max_attempts )); then
-              exit "$status"
-            fi
-
-            delay=$((attempt * 20))
-            echo "Embedding model test failed with exit code ${status}; retrying in ${delay}s."
-            sleep "$delay"
-          done
-
-      - name: Exercise authenticated plugin embedding
-        env:
-          CARGO_TARGET_DIR: runtime/target/desktop-host/target
-          OPENAGENT_TEST_EMBEDDING_MODEL_DIR: ${{ github.workspace }}/src-tauri/resources/models/all-MiniLM-L6-v2-q
-        shell: bash
-        run: |
-          if ! cargo test --manifest-path runtime/Cargo.toml -p openagent-runtime --lib bundled_model_inference_through_authenticated_plugin_http -- --ignored >"$RUNNER_TEMP/plugin-embedding.log" 2>&1; then
-            echo "::error::Authenticated plugin embedding test failed; private diagnostic output was suppressed."
-            exit 1
-          fi
-
   required:
     name: Required native capabilities
     if: always()
@@ -441,19 +162,16 @@ jobs:
       - quality
       - platform
       - embedding-resources
-      - embedding-platform
     runs-on: ubuntu-24.04
     env:
       CHANGES_RESULT: success
-      CI_RESULT_MODULES: quality,platform,embedding-resources,embedding-platform
+      CI_RESULT_MODULES: quality,platform,embedding-resources
       QUALITY_SELECTED: ${{ inputs.quality }}
       QUALITY_RESULT: ${{ needs.quality.result }}
       PLATFORM_SELECTED: ${{ inputs.full && inputs.platform }}
       PLATFORM_RESULT: ${{ needs.platform.result }}
       EMBEDDING_RESOURCES_SELECTED: ${{ inputs.embedding }}
       EMBEDDING_RESOURCES_RESULT: ${{ needs.embedding-resources.result }}
-      EMBEDDING_PLATFORM_SELECTED: ${{ inputs.full && inputs.embedding }}
-      EMBEDDING_PLATFORM_RESULT: ${{ needs.embedding-platform.result }}
     steps:
       - uses: actions/checkout@v7
 

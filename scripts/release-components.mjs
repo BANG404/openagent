@@ -51,18 +51,13 @@ function classifySdkPath(file, components) {
     components.frontend = true;
     return;
   }
-  if (
-    file.startsWith("rust/openagent-protocol/") ||
-    file === "Cargo.toml" ||
-    file === "Cargo.lock"
-  ) {
+  if (file === "Cargo.toml" || file === "Cargo.lock") {
     components.frontend = true;
     components.runtime = true;
     return;
   }
   if (
     file.startsWith("rust/openagent-runtime/") ||
-    file.startsWith("rust/openagent-app/") ||
     file.startsWith("rust/openagent-server/") ||
     file.startsWith("scripts/server-")
   ) {
@@ -85,6 +80,10 @@ function classifySdkPath(file, components) {
 /** @param {string} file @param {ReleaseComponents} components */
 function classifyHostPath(file, components) {
   if (file.startsWith("crates/")) components.nativeShell = true;
+  // The private server also consumes these public libraries at an immutable
+  // revision. Rebuild its binary when product policy or shared contracts change.
+  if (/^crates\/openagent-(app|config|protocol)\//.test(file)) components.runtime = true;
+  if (file.startsWith("crates/openagent-protocol/")) components.frontend = true;
   if (file.startsWith("src-tauri/")) components.nativeShell = true;
   if (["scripts/prepare-terminal-tools.mjs", "scripts/terminal-tool-releases.mjs"].includes(file)) {
     components.nativeShell = true;

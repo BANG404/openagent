@@ -123,7 +123,7 @@ jobs:
         with:
           ref: ${{ github.sha }}
 
-      - name: Check out private SDK protocol contract
+      - name: Check out private SDK public-contract pin
         if: inputs.publish_dev && inputs.full
         uses: actions/checkout@v7
         with:
@@ -132,7 +132,9 @@ jobs:
           path: runtime
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: false
-          sparse-checkout: rust/openagent-protocol/src/lib.rs
+          sparse-checkout: |
+            Cargo.toml
+            scripts/public-protocol.mjs
           sparse-checkout-cone-mode: false
 
       - name: Validate development Runtime protocol before builds
@@ -235,7 +237,7 @@ jobs:
           args=()
           if [[ "$SDK_RUST_PACKAGES" == "workspace" ]]; then
             args+=(--workspace)
-          elif [[ "$SDK_RUST_PACKAGES" =~ ^(openagent-protocol|openagent-runtime|openagent-app|openagent-server)(,(openagent-protocol|openagent-runtime|openagent-app|openagent-server))*$ ]]; then
+          elif [[ "$SDK_RUST_PACKAGES" =~ ^(openagent-runtime|openagent-server|openagent-benchmark)(,(openagent-runtime|openagent-server|openagent-benchmark))*$ ]]; then
             IFS=',' read -ra packages <<< "$SDK_RUST_PACKAGES"
             for package in "${packages[@]}"; do args+=(-p "$package"); done
           else
@@ -279,7 +281,7 @@ jobs:
           args=()
           if [[ "$SDK_RUST_PACKAGES" == "workspace" ]]; then
             args+=(--workspace)
-          elif [[ "$SDK_RUST_PACKAGES" =~ ^(openagent-protocol|openagent-runtime|openagent-app|openagent-server)(,(openagent-protocol|openagent-runtime|openagent-app|openagent-server))*$ ]]; then
+          elif [[ "$SDK_RUST_PACKAGES" =~ ^(openagent-runtime|openagent-server|openagent-benchmark)(,(openagent-runtime|openagent-server|openagent-benchmark))*$ ]]; then
             IFS=',' read -ra packages <<< "$SDK_RUST_PACKAGES"
             for package in "${packages[@]}"; do args+=(-p "$package"); done
           else
@@ -437,6 +439,16 @@ jobs:
             Write-Error "Windows sandbox helper build failed; private diagnostic output was suppressed."
             exit 1
           }
+      - name: Exercise the Windows restricted-token filesystem boundary
+        shell: pwsh
+        run: |
+          $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
+          cargo test --manifest-path runtime/Cargo.toml -p openagent-server --test windows_process_sandbox restricted_token_writes_workspace_and_blocks_outside_and_metadata -- --exact *>> $log
+          if ($LASTEXITCODE -ne 0) {
+            "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
+            Write-Error "Windows filesystem sandbox test failed; private diagnostic output was suppressed."
+            exit 1
+          }
       - name: Exercise confined plugin MCP on Windows
         shell: pwsh
         run: |
@@ -474,6 +486,61 @@ jobs:
               exit 1
             }
           }
+      - *checkout-private-diagnostic-reporter
+      - *report-private-diagnostic
+
+  engine-embedding:
+    name: Engine embedding (${{ matrix.name }})
+    if: inputs.full && inputs.rust
+    needs: pending
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x64
+            runner: '"ubuntu-24.04"'
+          - name: Windows x64
+            runner: '"windows-2025"'
+          - name: macOS arm64
+            runner: '"macos-15"'
+    runs-on: ${{ fromJSON(matrix.runner) }}
+    timeout-minutes: 90
+    env:
+      SDK_DIAGNOSTIC_NAME: Engine embedding
+      OPENAGENT_TEST_EMBEDDING_MODEL_DIR: ${{ github.workspace }}/model-source/src-tauri/resources/models/all-MiniLM-L6-v2-q
+    steps:
+      - name: Create SDK reporter token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with: *reporter
+      - name: Check out private SDK
+        uses: actions/checkout@v7
+        with: *sdk-checkout
+      - name: Check out public model resources
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: model-source
+          sparse-checkout: src-tauri/resources/models/all-MiniLM-L6-v2-q
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: *rust-cache
+      - name: Exercise verified resource installation and inference
+        shell: bash
+        working-directory: runtime
+        run: |
+          log="$RUNNER_TEMP/sdk-engine-embedding.log"
+          if ! cargo test --locked -p openagent-server --bin openagent-server bootstrap::tests::verified_seed_installs_and_loads -- --exact --ignored >"$log" 2>&1 || ! grep -Fq 'test bootstrap::tests::verified_seed_installs_and_loads ... ok' "$log"; then
+            echo "sdk-engine-embedding.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
+            echo "::error::Verified embedding installation or inference failed; private diagnostic output was suppressed."
+            exit 1
+          fi
+          if ! cargo test --locked -p openagent-runtime --lib plugin_embedding::tests::bundled_model_inference_through_authenticated_plugin_http -- --exact --ignored >>"$log" 2>&1 || ! grep -Fq 'test plugin_embedding::tests::bundled_model_inference_through_authenticated_plugin_http ... ok' "$log"; then
+            echo "sdk-engine-embedding.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
+            echo "::error::Authenticated plugin embedding failed; private diagnostic output was suppressed."
+            exit 1
+          fi
       - *checkout-private-diagnostic-reporter
       - *report-private-diagnostic
 
@@ -640,6 +707,15 @@ jobs:
             echo "::error::Public native compatibility failed; private diagnostic output was suppressed."
             exit 1
           fi
+      - name: Verify Linux release sandbox digest guard
+        if: inputs.full
+        working-directory: host
+        run: |
+          if ! cargo check --locked --release --manifest-path runtime/Cargo.toml -p openagent-server >"$RUNNER_TEMP/sdk-host-release-guard.log" 2>&1; then
+            echo "sdk-host-release-guard.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
+            echo "::error::Runtime release sandbox digest guard failed; private diagnostic output was suppressed."
+            exit 1
+          fi
       - *checkout-private-diagnostic-reporter
       - *report-private-diagnostic
 
@@ -654,6 +730,7 @@ jobs:
       - linux-process-sandbox
       - macos-process-sandbox
       - windows-process-sandbox
+      - engine-embedding
       - typescript
       - host-compatibility
     runs-on: ubuntu-24.04
@@ -665,7 +742,7 @@ jobs:
         continue-on-error: true
         env:
           CHANGES_RESULT: ${{ needs.pending.result }}
-          CI_RESULT_MODULES: rust-format,rust-clippy,rust-tests,linux-process-sandbox,macos-process-sandbox,windows-process-sandbox,typescript,host-compatibility
+          CI_RESULT_MODULES: rust-format,rust-clippy,rust-tests,linux-process-sandbox,macos-process-sandbox,windows-process-sandbox,engine-embedding,typescript,host-compatibility
           RUST_FORMAT_SELECTED: ${{ inputs.rust }}
           RUST_FORMAT_RESULT: ${{ needs.rust-format.result }}
           RUST_CLIPPY_SELECTED: ${{ inputs.rust }}
@@ -678,6 +755,8 @@ jobs:
           MACOS_PROCESS_SANDBOX_RESULT: ${{ needs.macos-process-sandbox.result }}
           WINDOWS_PROCESS_SANDBOX_SELECTED: ${{ inputs.windows_sandbox }}
           WINDOWS_PROCESS_SANDBOX_RESULT: ${{ needs.windows-process-sandbox.result }}
+          ENGINE_EMBEDDING_SELECTED: ${{ inputs.full && inputs.rust }}
+          ENGINE_EMBEDDING_RESULT: ${{ needs.engine-embedding.result }}
           TYPESCRIPT_SELECTED: ${{ inputs.typescript }}
           TYPESCRIPT_RESULT: ${{ needs.typescript.result }}
           HOST_COMPATIBILITY_SELECTED: ${{ inputs.host }}
@@ -901,7 +980,7 @@ jobs:
         shell: bash
         run: |
           version="$(cat sdk-development-components/version.txt)"
-          protocol="$(sed -n 's/^pub const SDK_PROTOCOL_VERSION: u32 = \([0-9][0-9]*\);/\1/p' runtime/rust/openagent-protocol/src/lib.rs)"
+          protocol="$(node runtime/scripts/public-protocol.mjs --sdk)"
           node runtime/scripts/server-artifacts.mjs \
             --artifacts sdk-development-components \
             --output sdk-development-components/openagent-sdk-manifest.json \

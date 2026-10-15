@@ -17,7 +17,7 @@
 
 OpenAgent combines a streaming chat interface with an agent that can inspect projects, edit files, run commands, and use external tools. Choose your model service and workspace, keep conversation history and application data on your device, and extend the agent with skills, roles, MCP servers, and plugins.
 
-The desktop application targets Windows, macOS, and Linux. It uses Svelte 5 with SvelteKit 2 for the interface, Tauri 2 for the native shell, and a Rust Runtime maintained in a pinned private submodule. The typed TypeScript SDK is public in this repository; Runtime implementation remains private.
+The desktop application targets Windows, macOS, and Linux. It uses Svelte 5 with SvelteKit 2 for the interface and Tauri 2 for the native shell. Product bootstrap, settings, protocol and typed clients are public source in this repository. The private Rust execution engine runs as a supervised `openagent-server` binary over authenticated loopback HTTP/SSE.
 
 ## What you can do
 
@@ -95,7 +95,7 @@ Application configuration and durable data use one root:
 | Global / project skills   | `~/.agents/skills/` / `<workspace>/.agents/skills/` |
 | Workspace design context  | `<workspace>/DESIGN.md`                             |
 
-The application root contains `config.toml`, the conversation SQLite database, attachments, logs, installed plugins, plugin data, and versioned resources. Valid external configuration edits reload automatically. The Runtime owns persistence, backup, and migration behavior; see [configuration and application data](.agents/skills/openagent-configuration/references/data-and-startup.md).
+The application root contains `config.toml`, the conversation SQLite database, attachments, logs, installed plugins, plugin data, and versioned resources. Valid external configuration edits reload automatically. Public App owns settings and startup backup/confirmation policy; Runtime owns conversation storage and migrations. See [configuration and application data](.agents/skills/openagent-configuration/references/data-and-startup.md).
 
 User memory supplies standing context. Structured agent memory is stored separately and supports local hybrid text/vector retrieval. Manage the background memory task and retrieval controls under **Agent → Flash Tasks**; automatic retrieval is disabled by default. The **Memory** surface manages user and agent memory.
 
@@ -166,7 +166,9 @@ flowchart LR
   UI["SvelteKit interface"] -->|"Typed SDK client"| Host["Thin Tauri host"]
   Host -->|"Authenticated loopback HTTP / SSE"| Runtime["Supervised SDK Runtime"]
   Host --> Native["Native windows, tray, dialogs, updater"]
-  Runtime --> Data["Configuration, conversations, memory"]
+  Host --> App["Public App, settings and protocol"]
+  Runtime --> App
+  Runtime --> Data["Conversations, checkpoints, attachments"]
   Runtime --> Tools["Providers, tools, MCP, plugins"]
 ```
 
@@ -174,13 +176,14 @@ flowchart LR
 | -------------------- | ------------------------------------------------------------------------------------- |
 | `src/`               | Svelte routes, feature controllers, components, localization, and streamed rendering. |
 | `src-tauri/`         | Native host adapters, resource protocols, process supervision, and packaging.         |
-| `sdk/typescript/`    | Public typed SDK clients and transports. |
-| `runtime/`           | Pinned private Runtime source. |
-| `plugins/`           | Independent plugin checkouts and branch subscriptions.               |
+| `sdk/typescript/`    | Public typed SDK clients and transports.                                              |
+| `crates/`            | Public App, configuration and protocol libraries; no execution engine.                |
+| `runtime/`           | Pinned private Runtime source.                                                        |
+| `plugins/`           | Independent plugin checkouts and branch subscriptions.                                |
 | `scripts/`, `tests/` | Preparation, checks, release automation, and deterministic verification.              |
 | `.agents/skills/`    | Focused architecture contracts and contributor workflows.                             |
 
-The host remains thin; runtime state machines and durable data belong to the SDK. The public frontend and host can be contributed to separately, and Runtime source changes need the pinned private dependencies.
+The host remains thin; execution state machines and conversation storage belong to Runtime. Public builds require no private source. Private source development compiles the pinned engine separately; the host always uses its authenticated process boundary.
 
 ### Contribute
 

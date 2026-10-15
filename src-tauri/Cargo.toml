@@ -13,10 +13,6 @@ members = ["."]
 default-members = ["."]
 resolver = "2"
 
-[lints.rust]
-# Embedded adapters compile only through the isolated SDK-owned diagnostic manifest.
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("embedded-runtime"))'] }
-
 [profile.release]
 codegen-units = 1
 lto = true

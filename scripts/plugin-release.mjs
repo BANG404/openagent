@@ -153,10 +153,7 @@ export function verifyPluginSources(root) {
 export function releasePlugins({ root, output, publish, runGh = gh }) {
   const packages = verifyPluginSources(root);
   const runtimeSourceSha = git(join(root, "runtime"), ["rev-parse", "HEAD"]);
-  const protocolSource = readFileSync(
-    join(root, "runtime/rust/openagent-protocol/src/lib.rs"),
-    "utf8",
-  );
+  const protocolSource = readFileSync(join(root, "crates/openagent-protocol/src/lib.rs"), "utf8");
   const protocol = Number(/PLUGIN_PROTOCOL_VERSION:\s*u32\s*=\s*(\d+)/.exec(protocolSource)?.[1]);
   if (!Number.isInteger(protocol) || protocol < 1)
     throw new Error("Missing pinned plugin protocol version");

@@ -560,7 +560,6 @@ async fn start_installed_resources(
         runtime_manager.inner(),
         launch,
         super::instances::should_start_primary_desktop_services(
-            false,
             crate::workspace_process::is_workspace_window_process(),
             super::instances::is_development_multi_instance(),
         ),
@@ -579,7 +578,6 @@ async fn start_installed_resources(
         let result = crate::desktop_windows::startup::initialize(
             &windows_app,
             &windows_frontend,
-            false,
             crate::workspace_process::is_workspace_window_process(),
             super::instances::is_development_multi_instance(),
         )

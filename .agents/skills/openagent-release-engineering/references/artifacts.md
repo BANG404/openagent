@@ -4,7 +4,7 @@
   configured `frontendDist` and target-named placeholders for configured
   `externalBin` resources before invoking Cargo; frontend qualification and
   release component builds own the production bytes.
-  SDK public-host compatibility and embedded-model qualification must also run
+  SDK public-host compatibility must also run
   `prepare-node-runtime.mjs` and `prepare-terminal-tools.mjs` before Cargo: Tauri
   validates the configured bundle resource paths even during compile checks.
   Prepare the verified shell resources in both fast and full SDK runs, from the
@@ -62,14 +62,9 @@
   Runtime. Compare executable and compressed artifact sizes using the same
   source, target and toolchain, and exercise the resulting release binary before
   packaging it. SDK-owned documentation defines its build and inference checks.
-  The ordinary desktop build must leave the
-  `embedded-runtime` Cargo feature disabled; only the explicit embedded
-  diagnostic may link the in-process Runtime command adapter.
-  Keep its agent-server entry point outside `src-tauri/src/bin/`: Tauri CLI
-  scans that directory for bundle binaries even with Cargo `autobins = false`.
-  `scripts/embedded-cargo.mjs` declares the diagnostic binary only in its
-  generated SDK-owned manifest. Preserve retired source allowlist paths until
-  their unpublished history has been delivered.
+  Desktop builds link only public product libraries and supervise the verified
+  Runtime binary. There is no embedded engine build manifest or second server
+  entry point in the Tauri source tree.
 - Treat the ordinary Tauri build as the lightweight installer and sole updater
   input. Build the full first-install overlay separately, upload its renamed
   manual installer without updater metadata, and keep its embedding seed out of
@@ -111,8 +106,7 @@
   and fail when one is missing or duplicated, including frontend-only and
   Runtime-only releases. Keep signatures, updater metadata, and component
   resources out of the user-facing download table.
-  Keep the product TypeScript client private and distribute it only as pinned
-  source or a checksummed development snapshot. The release-qualified server is
+  Build the public TypeScript client from the checked-out host source. The release-qualified server is
   the executable Runtime sidecar used by the desktop host.
   Publish an exact desktop-to-SDK mapping manifest with the desktop release.
   include the exact pinned server in the complete offline resource set and
@@ -158,8 +152,7 @@
   the derived directory into helper or private Runtime builds. Stage rebuilt
   helper resources only when their bytes change. Ordinary public development
   verifies and supervises its exact signed prebuilt Runtime; explicit source
-  development rebuilds the debug Runtime. Keep embedded
-  composition as an explicit diagnostic command rather than a silent fallback.
+  development rebuilds the debug Runtime. The host has no embedded execution path.
   In source development, watch private Runtime Rust and Cargo inputs through the development command,
   finish rebuilding and staging changed server bytes before signaling a pending
   update. In Tauri development, defer both frontend HMR and the final Tauri reload

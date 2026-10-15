@@ -13,8 +13,8 @@ describe("release component classification", () => {
       "crates/openagent-protocol/src/lib.rs",
     ]) {
       expect(classifyReleaseComponents([file])).toEqual({
-        frontend: false,
-        runtime: false,
+        frontend: file.startsWith("crates/openagent-protocol/"),
+        runtime: true,
         nativeShell: true,
       });
     }
@@ -42,10 +42,15 @@ describe("release component classification", () => {
       runtime: false,
       nativeShell: false,
     });
-    expect(classifyReleaseComponents(["runtime"], ["rust/openagent-protocol/src/lib.rs"])).toEqual({
+    expect(classifyReleaseComponents(["crates/openagent-protocol/src/lib.rs"])).toEqual({
       frontend: true,
       runtime: true,
-      nativeShell: false,
+      nativeShell: true,
+    });
+    expect(classifyReleaseComponents(["crates/openagent-app/src/bootstrap.rs"])).toEqual({
+      frontend: false,
+      runtime: true,
+      nativeShell: true,
     });
   });
 

@@ -34,8 +34,7 @@ Ordinary desktop development supervises an external `openagent-server` and uses
 `~/.openagent-dev`; select `OPENAGENT_HOME` only for a task-specific fixture.
 Public development without SDK permissions uses `bun run dev:prepare` then
 `bun run dev:desktop`; see [public development](public-development.md).
-Use `bun run dev` for frontend-only work and `bun run tauri:dev:embedded` only
-for an explicit embedded-Runtime diagnostic. See
+Use `bun run dev` for frontend-only work. See
 [development Runtime refresh](development-runtime.md) for reload ordering and
 build-directory ownership.
 
@@ -46,6 +45,7 @@ During implementation, run exact affected cases before broad qualification:
 ```bash
 bun scripts/verify-runtime.mjs --package openagent-runtime --case '<fully-qualified-unit-test>'
 bun scripts/verify-runtime.mjs --package openagent-runtime --test '<integration-target>' --case '<exact-case>'
+bun scripts/verify-runtime.mjs --package openagent-server --bin openagent-server --case '<exact-case>'
 # Once focused behavior is stable, qualify that final source serially:
 bun scripts/verify-runtime.mjs --package openagent-runtime --case '<fully-qualified-unit-test>' --qualify
 ```
@@ -61,8 +61,8 @@ require a new focused pass before any broad checks. Final host preflight follows
 the stabilized affected cases; do not run full preflight repeatedly as a debugger.
 
 Runtime preparation and verification record the source worktree in the shared
-Cargo target directory. Switching source directories invalidates only the five
-SDK workspace packages under the build/staging lock; third-party dependencies
+Cargo target directory. Switching source directories invalidates only the three
+private workspace packages under the build/staging lock; immutable public crates and third-party dependencies
 remain cached. This prevents Cargo's relative dependency timestamps from treating
 a newer artifact compiled from another worktree as the current SDK interface.
 An unknown existing cache receives the same one-time workspace invalidation.

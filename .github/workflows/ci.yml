@@ -219,8 +219,6 @@ jobs:
       embedding: ${{ needs.changes.outputs.embedding == 'true' }}
     permissions:
       contents: read
-    secrets:
-      OPENAGENT_CI_REPORTER_PRIVATE_KEY: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
 
   required:
     name: Required

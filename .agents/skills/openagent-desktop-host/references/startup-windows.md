@@ -4,9 +4,9 @@
 
 - Convert Tauri's Windows window handle through its raw pointer into the host's
   `windows::Win32::Foundation::HWND` before calling Win32 functions. The ordinary
-  shell and SDK-owned embedded diagnostic can resolve different `windows` crate
-  versions; wrapper types from those versions are not interchangeable. Verify
-  both dependency graphs when changing this native boundary.
+  shell and native plugins can resolve different `windows` crate versions;
+  wrapper types from those versions are not interchangeable. Verify the public
+  host dependency graph when changing this native boundary.
 
 - Debug hosts resolve the current worktree's prepared Runtime under
   `src-tauri/binaries/` before an executable-directory sidecar. Cargo host output
@@ -237,6 +237,7 @@ resource-repair behavior.
   authorization to make cross-workspace navigation succeed.
 - Tray and window lifecycle handlers must not retain the host or leave
   desktop and server processes alive.
+
 ## Windows command output
 
 WSL command adapters decode even-length UTF-16LE output with zero high bytes,

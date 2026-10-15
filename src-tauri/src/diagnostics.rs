@@ -1,42 +1,8 @@
-#[cfg(feature = "embedded-runtime")]
-use openagent_runtime::state::OpenAgentRuntime;
-#[cfg(feature = "embedded-runtime")]
-use std::sync::Arc;
-#[cfg(not(feature = "embedded-runtime"))]
 use tracing_subscriber::fmt::writer::MakeWriterExt;
 
-#[cfg(not(feature = "embedded-runtime"))]
 const RETAINED_HOST_LOG_FILES: usize = 15;
 
-pub(crate) fn init_host_tracing(
-    data_dir: &std::path::Path,
-    #[cfg(feature = "embedded-runtime")] runtime: Option<&Arc<OpenAgentRuntime>>,
-) {
-    #[cfg(feature = "embedded-runtime")]
-    {
-        let _ = data_dir;
-        tauri::async_runtime::block_on(async {
-            let diagnostic_logs_enabled = if let Some(runtime) = runtime {
-                runtime
-                    .state()
-                    .config
-                    .lock()
-                    .await
-                    .diagnostic_log_collection_enabled
-            } else {
-                openagent_runtime::config::load_config()
-                    .map(|config| config.diagnostic_log_collection_enabled)
-                    .unwrap_or(true)
-            };
-            openagent_runtime::tracing_setup::set_diagnostic_log_collection_enabled(
-                diagnostic_logs_enabled,
-            );
-            openagent_runtime::tracing_setup::init_tracing_with_service_version(env!(
-                "CARGO_PKG_VERSION"
-            ));
-        });
-    }
-    #[cfg(not(feature = "embedded-runtime"))]
+pub(crate) fn init_host_tracing(data_dir: &std::path::Path) {
     {
         let logs_dir = data_dir.join("logs");
         if let Err(error) = std::fs::create_dir_all(&logs_dir) {
@@ -71,11 +37,6 @@ pub(crate) fn init_host_tracing(
             .with_writer(writer)
             .try_init();
     }
-}
-
-pub(crate) fn shutdown_host_tracing() {
-    #[cfg(feature = "embedded-runtime")]
-    openagent_runtime::tracing_setup::shutdown_tracing();
 }
 
 fn diagnostic_error_type(value: &str) -> &'static str {
@@ -189,17 +150,6 @@ pub(crate) fn report_component_update_event(
     Ok(())
 }
 
-#[cfg(feature = "embedded-runtime")]
-#[tauri::command]
-pub(crate) fn report_frontend_diagnostic(
-    event_name: String,
-    component: String,
-    error_kind: String,
-) {
-    openagent_runtime::commands::report_frontend_diagnostic(&event_name, &component, &error_kind);
-}
-
-#[cfg(not(feature = "embedded-runtime"))]
 #[tauri::command]
 pub(crate) async fn report_frontend_diagnostic(
     supervisor: tauri::State<'_, std::sync::Arc<crate::runtime_process::RuntimeProcessSupervisor>>,
@@ -222,16 +172,6 @@ pub(crate) async fn report_frontend_diagnostic(
         return Err("Runtime frontend diagnostic reporting failed".to_string());
     }
     Ok(())
-}
-
-#[cfg(feature = "embedded-runtime")]
-#[tauri::command]
-pub(crate) async fn submit_problem_report(
-    runtime: tauri::State<'_, std::sync::Arc<openagent_runtime::OpenAgentRuntime>>,
-    description: String,
-    conv_id: Option<String>,
-) -> Result<openagent_runtime::commands::ProblemReportReceipt, String> {
-    openagent_runtime::commands::submit_problem_report(runtime.state(), description, conv_id).await
 }
 
 #[cfg(test)]

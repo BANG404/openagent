@@ -25,9 +25,7 @@ changes write the watched stamp that asks Tauri to rebuild and restart its host.
 Standalone browser development retains ordinary Vite HMR. This ordering also
 prevents a hot frontend or host from connecting to a stale sidecar that lacks a
 newly added desktop operation. A failed server build leaves the currently
-running development process intact and the next source change retries. The
-explicit embedded diagnostic command does not use this sidecar path. Embedded
-diagnostic compilation stays under `runtime/target`. Private source
+running development process intact and the next source change retries. Private source
 development Runtime and Windows-helper builds use
 `<host-common-git-directory>/openagent-source-target/<platform>` so related OWT
 worktrees reuse Cargo dependency output. Cargo still checks the current source,
@@ -42,8 +40,8 @@ Windows uses explicit target triples and `CARGO_INCREMENTAL=0` for Runtime,
 helpers and the test wrapper to avoid ReFS cleanup failures and differing
 dependency build modes. Release defaults remain under the checkout's `runtime/target`,
 and release qualification does not consume this development cache. Linux sandbox
-preparation retains its existing dedicated helper output. The SDK embedded
-diagnostic and public host output are separate from this private cache;
+preparation retains its existing dedicated helper output. Public host output
+is separate from this private cache;
 the ordinary `bun tauri dev` launcher selects a separate external host target
 directory derived from the worktree and `OPENAGENT_HOME`. Windows defaults to
 `%LOCALAPPDATA%/OpenAgent/dev-targets/`; macOS uses

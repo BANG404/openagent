@@ -45,7 +45,6 @@ pub(crate) async fn get_onboarding_resource_status(
             Ok(None) => "failed",
             Err(_) => "failed",
         },
-        Ok(None) if cfg!(feature = "embedded-runtime") => "bundled",
         _ => "failed",
     };
     Ok(OnboardingResourceStatus { frontend, runtime })

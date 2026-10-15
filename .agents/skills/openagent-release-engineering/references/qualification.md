@@ -53,12 +53,12 @@
   Do not upload fixture homes or print Runtime output in public CD logs.
 - Treat the private SDK gitlink as release-relevant input. Private SDK output
   must not leak into public logs or public caches, and do not configure a
-  compiler cache. Compile Runtime servers, embedded diagnostics, and sandbox
+  compiler cache. Compile Runtime servers and sandbox
   helpers cold under `runtime/target` with `cache-targets: false`. The Windows
-  helper build pins `CARGO_TARGET_DIR` to `runtime/target` explicitly, because its
-  `dev` profile otherwise defaults to the shared private source cache while
-  every Windows sandbox boundary step resolves `runtime\target` before it runs
-  cargo. It also omits `--target` unless a target was explicitly requested:
+  helper build selects `runtime/target` explicitly. SDK CI owns confinement,
+  filesystem, Firewall/WFP and actual encoder tests; public native CI compiles
+  public App/protocol and the shell without private source or credentials.
+  Helper preparation omits `--target` unless a target was explicitly requested:
   Codex's orchestrator only discovers the setup helper beside its own
   executable, and an explicit target would move the helpers into a triple
   subdirectory that the qualification build of that orchestrator never
@@ -76,7 +76,7 @@
 - Route trusted Linux, Windows, and macOS native, Public SDK, release
   preparation, and release jobs exclusively to standard GitHub-hosted runners.
   Fork pull-request code must not receive private SDK credentials. Keep Rust
-  private SDK, Runtime, embedded-diagnostic, and sandbox-helper target output
+  private SDK, Runtime, and sandbox-helper target output
   out of GitHub caches. Ordinary Tauri target caching is permitted only after
   the private-SDK boundary check; release candidates use cold target output.
 - Keep embedded ShellCheck directives parser-compatible: put only supported
@@ -92,19 +92,10 @@
   `check:tests` script must run `svelte-kit sync` before TypeScript so
   automation-only jobs have the generated `.svelte-kit/tsconfig.json` that the
   repository TypeScript configuration extends.
-- The full native embedding-model exercise retries its Cargo test up to three
-  times on the same runner, with 20-second and 40-second backoff delays. This
-  covers transient package-host or DNS failures during `ort-sys` setup while
-  preserving the final non-zero status for deterministic build or test errors.
-  Each embedding platform runner installs the pinned Bun before invoking the
-  embedded-Cargo launcher. Capture failures through a shell conditional so
-  GitHub Actions' `bash -e` cannot bypass the retries and backoff.
-- Embedded diagnostics seed their ignored `runtime/target/desktop-host/Cargo.lock`
-  from the pinned SDK lockfile and let Cargo resolve additional public-host
-  dependencies into one graph. Do not concatenate the independent host and SDK
-  locks: compatible shared crates can have conflicting pinned patch versions,
-  and CRLF checkouts can produce malformed package tables. Keep both source
-  locks untouched, normalize the seed to LF, and retain Cargo's resolved lock
-  across retries until the manifest or source locks change. A changed seeding
-  policy must invalidate existing generated locks; recreate a missing lock even
-  when its input fingerprint remains present.
+- Full SDK qualification runs verified model installation and authenticated
+  plugin inference on Linux, Windows and macOS. Both commands select one exact
+  ignored test and require its successful test record; an empty filtered suite
+  must fail. Public native CI verifies model bytes without linking an encoder.
+- Keep the public host and private Runtime Cargo workspaces and lockfiles
+  independent. The private workspace consumes immutable public crate revisions;
+  no combined desktop-engine manifest or generated lockfile is maintained.

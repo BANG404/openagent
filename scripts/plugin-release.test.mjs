@@ -77,7 +77,7 @@ function fixtureSource(root, prepared) {
     return git(source, ["rev-parse", "HEAD"]);
   };
   const initial = prepared?.initial ?? commitSource("feat: initial package");
-  const protocolFile = join(root, "runtime/rust/openagent-protocol/src/lib.rs");
+  const protocolFile = join(root, "crates/openagent-protocol/src/lib.rs");
   const sdk = join(root, "runtime");
   if (!prepared) {
     git(source, ["tag", "v1.0.0"]);
@@ -91,9 +91,11 @@ function fixtureSource(root, prepared) {
         },
       }),
     );
-    mkdirSync(join(root, "runtime/rust/openagent-protocol/src"), { recursive: true });
+    mkdirSync(join(root, "crates/openagent-protocol/src"), { recursive: true });
     writeFileSync(protocolFile, "pub const PLUGIN_PROTOCOL_VERSION: u32 = 1;");
+    mkdirSync(sdk, { recursive: true });
     initializeFixtureRepository(sdk);
+    writeFileSync(join(sdk, "runtime-fixture.txt"), "private execution fixture\n");
     git(sdk, ["add", "."]);
     git(sdk, ["commit", "-m", "feat: protocol"]);
   }

@@ -3,14 +3,10 @@ use tauri::Manager;
 
 mod embedding_adapter;
 mod resource_download;
-#[cfg(feature = "embedded-runtime")]
-use embedding_adapter::EmbeddedRuntimeState;
+
 mod desktop_bootstrap;
 mod desktop_plugins;
-#[cfg(feature = "embedded-runtime")]
-mod embedded_commands;
-#[cfg(feature = "embedded-runtime")]
-mod embedded_host;
+
 mod invoke_handlers;
 mod native_commands;
 mod node_runtime;
@@ -38,7 +34,7 @@ mod diagnostics;
 use desktop_exit::{
     install_dev_parent_shutdown_monitor, install_parent_shutdown_monitor, DesktopWindowState,
 };
-use diagnostics::{init_host_tracing, shutdown_host_tracing};
+use diagnostics::init_host_tracing;
 
 pub mod frontend_resource;
 pub mod local_capabilities;
@@ -72,21 +68,12 @@ fn windows_test_harness_uses_common_controls_v6() {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
-    run_with_mode(false);
-}
-
-pub fn run_agent_server() {
-    run_with_mode(true);
-}
-
 #[allow(clippy::too_many_lines)]
-fn run_with_mode(agent_server: bool) {
+pub fn run() {
     // NOSONAR: this protocol or state boundary is intentionally kept together for auditability.
-    let shell_provisioning = !agent_server
-        && (!cfg!(debug_assertions)
-            || std::env::var("OPENAGENT_BOOTSTRAP_TEST").is_ok_and(|value| value == "1"));
-    let external_launch = if !agent_server && !shell_provisioning {
+    let shell_provisioning = !cfg!(debug_assertions)
+        || std::env::var("OPENAGENT_BOOTSTRAP_TEST").is_ok_and(|value| value == "1");
+    let external_launch = if !shell_provisioning {
         match prepare_interactive_persistence() {
             Ok(Some(launch)) => Some(launch),
             Ok(None) => return,
@@ -111,17 +98,11 @@ fn run_with_mode(agent_server: bool) {
     let HostRuntimeBootstrap {
         initial_locale,
         data_dir,
-        #[cfg(feature = "embedded-runtime")]
-        runtime,
         external_launch,
-    } = prepare_host_runtime(agent_server, external_launch)
+    } = prepare_host_runtime(external_launch)
         .unwrap_or_else(|error| panic!("Failed to initialize OpenAgent runtime: {error:#}"));
 
-    init_host_tracing(
-        &data_dir,
-        #[cfg(feature = "embedded-runtime")]
-        runtime.as_ref(),
-    );
+    init_host_tracing(&data_dir);
     tracing::info!(
         target: "openagent::component_update",
         component = "shell",
@@ -148,12 +129,8 @@ fn run_with_mode(agent_server: bool) {
     let startup_runtime_manager = runtime_manager.clone();
     let builder = tauri::Builder::default().manage(desktop_data_dir);
 
-    let builder = desktop_plugins::register_base(
-        builder,
-        agent_server,
-        is_workspace_window,
-        development_multi_instance,
-    );
+    let builder =
+        desktop_plugins::register_base(builder, is_workspace_window, development_multi_instance);
 
     let builder = builder
         .register_asynchronous_uri_scheme_protocol(
@@ -176,8 +153,7 @@ fn run_with_mode(agent_server: bool) {
         )
         .plugin(tauri_plugin_i18n::init(Some(initial_locale)));
 
-    let builder =
-        desktop_plugins::register_integrations(builder, agent_server, development_multi_instance);
+    let builder = desktop_plugins::register_integrations(builder, development_multi_instance);
 
     let mut context = tauri::generate_context!();
     if development_multi_instance {
@@ -209,11 +185,8 @@ fn run_with_mode(agent_server: bool) {
             window.visible = false;
         }
     }
-    if agent_server {
-        context.config_mut().app.windows.clear();
-    }
     #[cfg(target_os = "linux")]
-    if !agent_server {
+    {
         if let Some(main_window) = context
             .config_mut()
             .app
@@ -230,14 +203,7 @@ fn run_with_mode(agent_server: bool) {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init());
-    #[cfg(feature = "embedded-runtime")]
-    let builder = if let Some(runtime) = runtime.clone() {
-        builder.manage(runtime)
-    } else {
-        builder
-    };
-    #[cfg(feature = "embedded-runtime")]
-    let builder = builder.manage(EmbeddedRuntimeState(runtime.clone()));
+
     let builder = builder
         .manage(runtime_supervisor)
         .manage(RuntimeEventProxy::default())
@@ -271,7 +237,6 @@ fn run_with_mode(agent_server: bool) {
                     &startup_runtime_manager,
                     launch,
                     should_start_primary_desktop_services(
-                        agent_server,
                         is_workspace_window,
                         development_multi_instance,
                     ),
@@ -280,11 +245,7 @@ fn run_with_mode(agent_server: bool) {
             }
 
             #[cfg(desktop)]
-            if should_install_desktop_tray(
-                agent_server,
-                is_workspace_window,
-                development_multi_instance,
-            ) {
+            if should_install_desktop_tray(is_workspace_window, development_multi_instance) {
                 install_desktop_tray(app)?;
             }
 
@@ -292,7 +253,6 @@ fn run_with_mode(agent_server: bool) {
                 desktop_windows::startup::initialize(
                     app.handle(),
                     &startup_frontend_manager,
-                    agent_server,
                     is_workspace_window,
                     development_multi_instance,
                 )?;
@@ -309,13 +269,7 @@ fn run_with_mode(agent_server: bool) {
             }
             #[cfg(debug_assertions)]
             if !shell_provisioning {
-                desktop_windows::inspector::initialize(
-                    app,
-                    agent_server,
-                    is_workspace_window,
-                    #[cfg(feature = "embedded-runtime")]
-                    runtime.as_ref(),
-                )?;
+                desktop_windows::inspector::initialize(app, is_workspace_window)?;
             }
 
             // A previous process that ended with a frontend activation pending —
@@ -334,9 +288,7 @@ fn run_with_mode(agent_server: bool) {
                 }
             }
 
-            if !shell_provisioning
-                && should_reveal_workspace_shell_early(agent_server, is_workspace_window)
-            {
+            if !shell_provisioning {
                 if let Some(window) = app.get_webview_window("main") {
                     window.show()?;
                     window.set_focus()?;
@@ -351,18 +303,7 @@ fn run_with_mode(agent_server: bool) {
                 }
             }
 
-            #[cfg(feature = "embedded-runtime")]
-            if let Some(runtime) = runtime.as_ref() {
-                embedded_host::install(
-                    app.handle(),
-                    runtime,
-                    agent_server,
-                    is_workspace_window,
-                    startup_started_at,
-                );
-            }
-
-            if !agent_server && !shell_provisioning {
+            if !shell_provisioning {
                 let startup_app = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
                     tokio::time::sleep(std::time::Duration::from_secs(10)).await;
@@ -404,6 +345,4 @@ fn run_with_mode(agent_server: bool) {
             #[cfg(not(target_os = "macos"))]
             let _ = app;
         });
-
-    shutdown_host_tracing();
 }

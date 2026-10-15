@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { cargoProfileDirectory, sourceCargoEnvironment } from "../scripts/source-cargo.mjs";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -10,6 +10,7 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const readText = (url) => readFileSync(url, "utf8").replace(/\r\n/g, "\n");
 
 const nativeWorkflow = readText(new URL("../.github/workflows/check-native.yml", import.meta.url));
+const sdkWorkflow = readText(new URL("../.github/workflows/sdk-ci.yml", import.meta.url));
 const windowsHelper = readText(
   new URL("../scripts/prepare-windows-sandbox-helpers.mjs", import.meta.url),
 );
@@ -27,15 +28,16 @@ const windowsTauriConfig = JSON.parse(
 );
 
 describe("sandbox helper packaging", () => {
-  test("prepares the Linux sidecar before Rust compilation and gates the release digest", () => {
-    const prepare = nativeWorkflow.indexOf("- name: Prepare pinned Linux sandbox helper");
-    const lint = nativeWorkflow.indexOf("- name: Lint Rust");
-
-    expect(prepare).toBeGreaterThan(-1);
-    expect(lint).toBeGreaterThan(prepare);
-    expect(nativeWorkflow).toContain('if [[ "${{ inputs.full }}" == "true" ]]');
-    expect(nativeWorkflow).toContain(
+  test("qualifies private Linux helpers and release digest in SDK CI", () => {
+    expect(nativeWorkflow).not.toContain("prepare-linux-sandbox-helper");
+    expect(sdkWorkflow).toContain(
+      "prepare-linux-sandbox-helper.mjs --profile release --github-env",
+    );
+    expect(sdkWorkflow).toContain(
       "- name: Verify Linux release sandbox digest guard\n        if: inputs.full",
+    );
+    expect(sdkWorkflow).toContain(
+      "--release --manifest-path runtime/Cargo.toml -p openagent-server",
     );
   });
 
@@ -67,9 +69,8 @@ describe("sandbox helper packaging", () => {
       sourceCargoEnvironment({ repositoryRoot: root, profile: "release", environment: {} })
         .CARGO_TARGET_DIR,
     ).toBe(join(root, "runtime", "target"));
-    expect(nativeWorkflow).toContain(
-      '$env:CARGO_TARGET_DIR = (Resolve-Path "runtime\\target").Path',
-    );
+    expect(nativeWorkflow).not.toContain("runtime/target");
+    expect(sdkWorkflow).toContain("--target-dir runtime/target");
   });
 
   test("stages Windows helpers where the sandbox orchestrator finds them", () => {
@@ -84,20 +85,12 @@ describe("sandbox helper packaging", () => {
     );
   });
 
-  test("materializes the Windows private target before the sandbox steps resolve it", () => {
-    const helperStep = nativeWorkflow.indexOf("- name: Build pinned Windows sandbox helpers");
-    const resolvedTarget = nativeWorkflow.indexOf(
-      '$env:CARGO_TARGET_DIR = (Resolve-Path "runtime\\target").Path',
-    );
-
+  test("builds Windows helpers before the SDK confinement scenarios", () => {
+    const helperStep = sdkWorkflow.indexOf("- name: Build pinned Windows sandbox helpers");
+    const confinement = sdkWorkflow.indexOf("- name: Exercise confined plugin MCP on Windows");
     expect(helperStep).toBeGreaterThan(-1);
-    expect(resolvedTarget).toBeGreaterThan(helperStep);
-    expect(
-      nativeWorkflow.slice(
-        helperStep,
-        nativeWorkflow.indexOf("- name: Check all Rust targets on Windows"),
-      ),
-    ).toContain("CARGO_TARGET_DIR: runtime/target");
+    expect(confinement).toBeGreaterThan(helperStep);
+    expect(sdkWorkflow.slice(helperStep, confinement)).toContain("--target-dir runtime/target");
   });
 
   test("packages Windows helpers only in the NSIS Windows bundle", () => {
@@ -113,16 +106,17 @@ describe("sandbox helper packaging", () => {
       'openagent-protocol = { path = "../crates/openagent-protocol" }',
     );
     expect(cargoManifest).toContain("autobins = false");
-    expect(tauriLauncher).toContain('"embedded-cargo.cmd"');
-    expect(packageManifest.scripts["dev:agent-server"]).toContain("scripts/embedded-cargo.mjs");
+    expect(tauriLauncher).not.toContain("embedded-cargo");
+    expect(packageManifest.scripts["dev:agent-server"]).toBeUndefined();
+    expect(packageManifest.scripts["tauri:dev:embedded"]).toBeUndefined();
     const discoveredBinaries = readdirSync(new URL("../src-tauri/src/", import.meta.url), {
       withFileTypes: true,
     })
       .filter((entry) => entry.isDirectory() && entry.name === "bin")
       .flatMap((entry) => readdirSync(new URL(`../src-tauri/src/${entry.name}/`, import.meta.url)));
     expect(discoveredBinaries).toEqual([]);
-    expect(
-      readText(new URL("../src-tauri/src/embedded-agent-server.rs", import.meta.url)),
-    ).toContain("openagent_lib::run_agent_server()");
+    expect(existsSync(new URL("../src-tauri/src/embedded-agent-server.rs", import.meta.url))).toBe(
+      false,
+    );
   });
 });

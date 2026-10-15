@@ -8,17 +8,12 @@ use tauri::Manager;
 pub(crate) fn initialize(
     app: &tauri::AppHandle,
     startup_frontend_manager: &FrontendResourceManager,
-    agent_server: bool,
     is_workspace_window: bool,
     development_multi_instance: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if let Some(window) = app.get_webview_window("main") {
         apply_native_window_material(&window);
-        if should_install_desktop_tray(
-            agent_server,
-            is_workspace_window,
-            development_multi_instance,
-        ) {
+        if should_install_desktop_tray(is_workspace_window, development_multi_instance) {
             let close_window = window.clone();
             window.on_window_event(move |event| {
                 if let tauri::WindowEvent::CloseRequested { api, .. } = event {
@@ -29,7 +24,7 @@ pub(crate) fn initialize(
         }
     }
 
-    if !agent_server && !is_workspace_window {
+    if !is_workspace_window {
         if app.get_webview_window("onboarding").is_none() {
             let onboarding_window = tauri::WebviewWindowBuilder::new(
                 app,

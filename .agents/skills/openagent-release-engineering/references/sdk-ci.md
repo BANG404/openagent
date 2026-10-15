@@ -27,15 +27,18 @@ The Windows job enables every Windows Firewall profile before exercising the
 offline account. It verifies Codex's two network layers separately: after a
 parent reachability preflight, the user-scoped Firewall rules block the same
 numeric external HTTPS address, and the persistent WFP filters still block DNS
-port 53 when ordinary local binding is allowed. Both the public SDK workflow
-and the public host's complete native qualification run the same two exact
+port 53 when ordinary local binding is allowed. The SDK workflow runs both exact
 tests sequentially with detailed setup/wrapper logging enabled only in a Check
-Run on the pinned private SDK commit. The host qualification accumulates its
+Run on the pinned private SDK commit. SDK qualification accumulates its
 helper build and Windows sandbox test output in the same runner-temporary SDK
 log, records that allowlisted log only after a failure, and uses the same
 least-privileged reporter App. Public logs retain only the fixed `firewall-*`
 or `wfp-dns-*` diagnostic category; they never print, summarize, cache, or
 upload the captured private output.
+Public native CI requires no private checkout or reporter credential. Full SDK
+CI separately qualifies verified model installation and authenticated plugin
+inference on Linux, Windows and macOS, and includes that matrix in its required
+capability result. Public Rust product tests also run on Windows and macOS.
 Windows filesystem and network commands select `--test windows_process_sandbox`
 and an exact test name. The harness-free `plugin_process_confinement` target runs
 once in its own required step; a libtest name filter cannot skip that target and
@@ -48,7 +51,7 @@ revision and report the aggregate `Public SDK CI` commit status. Because
 workflow logs are public, SDK command output is suppressed. The cross-repository
 status reporter sends JSON payloads directly to the GitHub REST API, so SDK jobs
 do not depend on a preinstalled GitHub CLI. Ordinary build
-outputs are never uploaded. Runtime servers, embedded diagnostics, and sandbox
+outputs are never uploaded. Runtime servers and sandbox
 helpers compile cold into `runtime/target`; their Rust caches use
 `cache-targets: false`. The ordinary Tauri dependency graph contains no private
 SDK crate and compiles into the separate `src-tauri/target`, which may use
@@ -119,8 +122,7 @@ the public release log. GitHub's
 failed-job rerun therefore repeats only failed capabilities and the aggregate
 status. Dependency caches may hold Cargo registry/git data, Bun's public package
 downloads, and ordinary Tauri target output after the default dependency graph
-passes the private-SDK boundary check. Every SDK, server, embedded diagnostic,
-and sandbox-helper Rust cache must set `cache-targets: false`; private target or
+passes the private-SDK boundary check. Every SDK, server, and sandbox-helper Rust cache must set `cache-targets: false`; private target or
 compiler outputs remain forbidden in public caches. A host-repository SDK gitlink update still selects
 every public consumer capability because that repository cannot infer the
 private path delta from the gitlink alone.

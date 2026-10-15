@@ -6,29 +6,16 @@ mod persistence;
 pub(crate) mod provisioning;
 pub(crate) use external::start_external_desktop_runtime;
 pub(crate) use mode::prepare_host_runtime;
-#[cfg(feature = "embedded-runtime")]
-use openagent_runtime::state::OpenAgentRuntime;
+
 pub(crate) use persistence::prepare_interactive_persistence;
-#[cfg(feature = "embedded-runtime")]
-use std::sync::Arc;
 
 pub(crate) struct HostRuntimeBootstrap {
     pub(crate) initial_locale: String,
     pub(crate) data_dir: std::path::PathBuf,
-    #[cfg(feature = "embedded-runtime")]
-    pub(crate) runtime: Option<Arc<OpenAgentRuntime>>,
     pub(crate) external_launch: Option<ExternalRuntimeLaunch>,
 }
 
-#[derive(Clone, Debug, serde::Deserialize)]
-pub(crate) struct ExternalRuntimeLaunch {
-    pub(crate) openagent_home: std::path::PathBuf,
-    pub(crate) workspace: std::path::PathBuf,
-    pub(crate) conversation_id: Option<String>,
-    pub(crate) message_id: Option<String>,
-    pub(crate) new_conversation: bool,
-    pub(crate) initial_locale: String,
-}
+pub(crate) use openagent_app::bootstrap::ExternalRuntimeLaunch;
 
 #[derive(Debug, serde::Deserialize)]
 pub(super) struct PersistenceTransitionPlan {

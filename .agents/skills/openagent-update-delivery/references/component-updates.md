@@ -198,9 +198,10 @@ standard-package pipeline; desktop publication requires that pipeline to succeed
 
 Ordinary debug and release desktop builds use one supervised external
 `openagent-server` as the only Runtime process that owns configuration, SQLite,
-memory, and other durable state. Development builds prepare the local debug
-server and retain an explicit embedded mode only for Runtime-local diagnosis; a
-failed default external launch does not silently fall back to it. Product
+memory, and other durable state. Public App owns configuration and startup
+policy, linked into both server and shell without an execution dependency.
+Public development prepares a verified binary; authorized source development
+builds the server separately. Product
 operations travel through the typed SDK operation map and an authenticated
 loopback HTTP/SSE transport. Tauri retains only native
 capabilities such as windows, updater, tray, notifications, dialogs, path

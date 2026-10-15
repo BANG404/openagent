@@ -13,6 +13,7 @@ import { bindRuntimeHelpers } from "./bind-runtime-helpers.mjs";
 import { createDistribution } from "./distribution-artifacts.mjs";
 import { createFrontendManifest } from "./frontend-artifacts.mjs";
 import { stageDistribution } from "./stage-distribution.mjs";
+import { readRuntimeProtocol } from "./runtime-protocol.mjs";
 import { stageFullInstaller } from "./release-candidate-artifacts.mjs";
 import {
   checkUpdateDataCompatibility,
@@ -138,10 +139,7 @@ export async function buildAlphaWindows({ version, sourceSha, sdkSha, baselineTa
     },
   );
   const binary = path.join(root, "src-tauri/binaries/openagent-server-x86_64-pc-windows-msvc.exe");
-  const runtimeProtocol = await rustConstant(
-    "runtime/rust/openagent-protocol/src/lib.rs",
-    "SDK_PROTOCOL_VERSION",
-  );
+  const runtimeProtocol = readRuntimeProtocol(root);
   const hostProtocol = await rustConstant(
     "crates/openagent-protocol/src/lib.rs",
     "SDK_PROTOCOL_VERSION",

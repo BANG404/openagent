@@ -127,7 +127,7 @@ export async function withSourceCargoWorkspaceLock(
       if (cleanWorkspace) await cleanWorkspace();
       else {
         const args = ["clean", "--manifest-path", path.join(sourceRoot, "runtime", "Cargo.toml")];
-        for (const name of ["protocol", "runtime", "app", "server", "benchmark"])
+        for (const name of ["runtime", "server", "benchmark"])
           args.push("--package", `openagent-${name}`);
         const result = spawnSync(environment.CARGO ?? "cargo", args, {
           cwd: sourceRoot,

@@ -1,23 +1,17 @@
 //! Native capabilities: paths, downloads, workspace processes, and WSL.
-#[cfg(feature = "embedded-runtime")]
-use crate::embedding_adapter::EmbeddedRuntimeState;
+
 use crate::runtime_process::RuntimeProcessSupervisor;
 use crate::runtime_transport::{self, RuntimeProxyRequest};
 use crate::{local_capabilities, workspace_process, wsl, DesktopDataDir};
-#[cfg(feature = "embedded-runtime")]
-use openagent_runtime::state::OpenAgentRuntime;
+
 use std::sync::Arc;
 use tauri::State;
 
 pub(crate) async fn resolve_desktop_open_path(
     path: String,
-    #[cfg(feature = "embedded-runtime")] embedded_runtime: Option<&OpenAgentRuntime>,
+
     supervisor: &RuntimeProcessSupervisor,
 ) -> Result<String, String> {
-    #[cfg(feature = "embedded-runtime")]
-    if let Some(runtime) = embedded_runtime {
-        return openagent_runtime::commands::resolve_open_path(path, runtime.state()).await;
-    }
     let response = runtime_transport::proxy_runtime_request(
         supervisor,
         RuntimeProxyRequest {
@@ -44,28 +38,6 @@ pub(crate) async fn resolve_desktop_open_path(
 }
 
 #[tauri::command]
-#[cfg(feature = "embedded-runtime")]
-pub(crate) async fn open_path(
-    path: String,
-    app_handle: tauri::AppHandle,
-    embedded_runtime: State<'_, EmbeddedRuntimeState>,
-    supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
-) -> Result<(), String> {
-    use tauri_plugin_opener::OpenerExt;
-
-    let resolved = resolve_desktop_open_path(
-        path,
-        embedded_runtime.inner().0.as_deref(),
-        supervisor.inner(),
-    )
-    .await?;
-    app_handle
-        .opener()
-        .open_path(resolved, None::<&str>)
-        .map_err(|error| error.to_string())
-}
-
-#[tauri::command]
 pub(crate) fn open_logs_folder(
     app_handle: tauri::AppHandle,
     data_dir: State<'_, DesktopDataDir>,
@@ -81,7 +53,7 @@ pub(crate) fn open_logs_folder(
 }
 
 #[tauri::command]
-#[cfg(not(feature = "embedded-runtime"))]
+
 pub(crate) async fn open_path(
     path: String,
     app_handle: tauri::AppHandle,

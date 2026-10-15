@@ -24,9 +24,8 @@ it with the selected durable checkpoint, and leaves any package-specific view
 inside the package sidebar surface.
 
 - Keep ordinary debug and release desktop product operations on the same shared
-  SDK selection path: both use the supervised external Runtime transport, while
-  the explicit embedded diagnostic mode maps the same finite operations to Tauri
-  commands. Development Inspector Runtime operations belong to that finite map
+  SDK selection path: both use the supervised external Runtime transport.
+  Development Inspector Runtime operations belong to the finite operation map
   and remain confined to their Inspector surfaces; native onboarding and window
   controls stay local to Tauri.
 - Route replaceable Runtime behavior through the shared SDK client. Keep direct

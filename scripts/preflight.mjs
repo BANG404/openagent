@@ -241,12 +241,16 @@ function main() {
       command: "git",
       args: ["diff", "--check", baseSha, "--"],
     },
-    {
-      id: "sdk-gitlink",
-      label: "Published private Runtime gitlink",
-      command: "bun",
-      args: ["scripts/verify-sdk-gitlink.mjs"],
-    },
+    ...(files.includes("runtime")
+      ? [
+          {
+            id: "sdk-gitlink",
+            label: "Published private Runtime gitlink",
+            command: "bun",
+            args: ["scripts/verify-sdk-gitlink.mjs"],
+          },
+        ]
+      : []),
     ...commands,
   ];
 

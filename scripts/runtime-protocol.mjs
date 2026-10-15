@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -29,14 +30,29 @@ export function readDesktopRuntimeProtocol(repositoryRoot = root) {
  */
 export function verifyDevelopmentRuntimeProtocol(repositoryRoot = root) {
   const desktopProtocol = readDesktopRuntimeProtocol(repositoryRoot);
-  const sdkProtocol = readProtocolConstant(
-    path.join(repositoryRoot, "runtime/rust/openagent-protocol/src/lib.rs"),
-    "SDK_PROTOCOL_VERSION",
-  );
+  const sdkProtocol = readRuntimeProtocol(repositoryRoot);
   if (desktopProtocol !== sdkProtocol) {
     throw new Error("Development Runtime protocol must match the desktop host");
   }
   return desktopProtocol;
+}
+
+/** Resolve the immutable public contract consumed by this private Runtime.
+ * @param {string} [repositoryRoot]
+ */
+export function readRuntimeProtocol(repositoryRoot = root) {
+  const result = spawnSync(process.execPath, ["runtime/scripts/public-protocol.mjs", "--sdk"], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+    windowsHide: true,
+    timeout: 25_000,
+  });
+  if (result.error || result.status !== 0)
+    throw new Error("Could not resolve the pinned public Runtime protocol");
+  const value = Number(result.stdout.trim());
+  if (!Number.isInteger(value) || value < 1 || value > 0xffff_ffff)
+    throw new Error("Invalid pinned public Runtime protocol");
+  return value;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
