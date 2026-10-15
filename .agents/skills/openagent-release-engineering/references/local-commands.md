@@ -75,6 +75,9 @@ requests and is outside automatic preflight. The SDK's
 `docs/runtime-model-tests.md` owns request budgets, selection, accounting and
 failure semantics; do not implement provider requests or cache accounting in
 the public host. Its output contains only usage and timing metadata.
+Use `bun run test:model:cache --cache-matrix` for the explicit mutation matrix;
+the SDK documentation owns its larger request budget and optional image,
+concurrency and retention experiments.
 
 For an owner-required ignored fixture test, add `--ignored` explicitly. This
 selects only the exact case and retains the same nonzero-pass, isolated-data and
