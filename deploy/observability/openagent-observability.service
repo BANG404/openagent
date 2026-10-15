@@ -1,0 +1,24 @@
+[Unit]
+Description=OpenAgent read-only diagnostics query
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Document/opentelemetry/observability
+ExecStart=%h/Document/opentelemetry/support-reports/.venv/bin/python %h/Document/opentelemetry/observability/server.py
+Environment=OBSERVE_CREDENTIAL_FILE=%h/Document/opentelemetry/secrets/observe_credentials.json
+Environment=OBSERVE_DATABASE=%h/Document/opentelemetry/observability/state/index.sqlite
+Environment=OBSERVE_LOG_DIRECTORY=%h/Document/opentelemetry/data/archive
+Environment=OBSERVE_REPORT_DIRECTORY=%h/Document/opentelemetry/support-reports/data
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadOnlyPaths=%h/Document/opentelemetry/data/archive %h/Document/opentelemetry/support-reports/data
+ReadWritePaths=%h/Document/opentelemetry/observability/state
+MemoryMax=256M
+TasksMax=32
+
+[Install]
+WantedBy=default.target

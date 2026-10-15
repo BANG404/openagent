@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenAgent · 日志与报告</title>
+    <link rel="icon" href="/observe/favicon.ico" />
+    <link rel="stylesheet" href="/observe/style.css" />
+    <script src="/observe/app.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <div>
+        <p class="eyebrow">OPENAGENT / OBSERVABILITY</p>
+        <h1>日志与问题报告</h1>
+        <p>查询诊断事件，按报告编号排查问题。</p>
+      </div>
+      <a href="/observe/api">Agent API</a>
+    </header>
+    <main>
+      <nav aria-label="查询内容">
+        <button id="logs-tab" aria-pressed="true">诊断日志</button
+        ><button id="reports-tab" aria-pressed="false">问题报告</button
+        ><span id="status" role="status">正在读取索引状态…</span>
+      </nav>
+      <form id="search">
+        <label class="wide"
+          >关键词<input name="q" placeholder="错误类型、事件名称、问题描述或报告编号" /></label
+        ><label>版本<input name="version" placeholder="全部版本" /></label
+        ><label id="severity-field"
+          >严重程度<input name="severity" placeholder="例如 ERROR" /></label
+        ><label>开始时间<input name="start" type="datetime-local" /></label
+        ><label>结束时间<input name="end" type="datetime-local" /></label
+        ><button type="submit" class="primary">查询</button>
+      </form>
+      <p id="notice" role="status"></p>
+      <section id="results" aria-label="查询结果" aria-busy="true">
+        <p class="loading">正在读取…</p>
+      </section>
+      <div class="paging">
+        <button id="previous" disabled>上一页</button><span id="page-label">第 1 页</span
+        ><button id="next" disabled>下一页</button>
+      </div>
+      <section id="detail" hidden>
+        <div class="detail-heading">
+          <h2>报告详情</h2>
+          <button id="close-detail">关闭详情</button>
+        </div>
+        <pre id="summary"></pre>
+        <div id="attachments"></div>
+        <pre id="content"></pre>
+        <button id="more-content" hidden>继续读取</button>
+      </section>
+    </main>
+    <footer>
+      只读查询 · 自动刷新索引 · <a href="/observe/agent.py" download>下载 Agent CLI</a>
+    </footer>
+  </body>
+</html>
