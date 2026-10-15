@@ -654,8 +654,9 @@ const en: Record<TranslationKeys, string> = {
   contextCompaction: "Automatically summarize context",
   contextCompactionHint:
     "After the threshold, checkpoint model messages are compacted with a recent execution timeline; the full visible conversation is preserved.",
-  contextCompactionThreshold: "Summary threshold (approx. tokens)",
-  contextCompactionThresholdHint: "Starts compaction at this approximate context size.",
+  contextCompactionThreshold: "Summary threshold (tokens)",
+  contextCompactionThresholdHint:
+    "Starts compaction when provider-reported input plus output tokens reach this value.",
   contextCompactionRecentMessageCount: "Recent timeline entries",
   contextCompactionRecentMessageCountHint:
     "Keeps the newest user messages, tool calls, and assistant text; set to 0 to omit it.",

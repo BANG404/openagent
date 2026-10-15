@@ -626,8 +626,8 @@ export const zh = {
   contextCompaction: "自动总结对话上下文",
   contextCompactionHint:
     "达到阈值后压缩 checkpoint 中的模型消息，并附带近期执行时间线；界面仍保留完整对话。",
-  contextCompactionThreshold: "总结阈值（近似 token）",
-  contextCompactionThresholdHint: "达到此上下文规模后启动压缩。",
+  contextCompactionThreshold: "总结阈值（token）",
+  contextCompactionThresholdHint: "模型服务返回的输入与输出 token 总量达到此值后启动压缩。",
   contextCompactionRecentMessageCount: "近期时间线条数",
   contextCompactionRecentMessageCountHint:
     "保留最新的用户消息、tool call 和 assistant 文本；设为 0 时不附加。",

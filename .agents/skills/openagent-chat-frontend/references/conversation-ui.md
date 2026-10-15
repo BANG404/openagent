@@ -29,7 +29,8 @@ Verify the debug entry, pending state, failure/retry and real local JSON saving 
 light/dark and English/Chinese with `bun run test:blackbox:conversation-trace-export`.
 
 The context indicator prefers `active_context_tokens` (latest request input plus
-output or Runtime's pre-request estimate). Keep `context_tokens` as the input-only
+output reported by the provider). Sending input publishes no local estimate.
+Keep `context_tokens` as the input-only
 fallback for existing usage records, and never derive context occupancy from
 cumulative task cost. The denominator follows the selected model's effective
 compaction threshold, capped at 90% of its optional configured window. Model
