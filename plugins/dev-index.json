@@ -21,7 +21,7 @@
   },
   "message-board": {
     "path": "message-board",
-    "repository": "https://github.com/BANG404/message-board.git",
+    "repository": "https://github.com/BANG404/openagent-message-board.git",
     "branch": "main"
   },
   "openagent-plugin-kit": {

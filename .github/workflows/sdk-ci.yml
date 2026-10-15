@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       sdk_sha:
-        description: Immutable commit from BANG404/openagent-sdk
+        description: Immutable commit from BANG404/openagent-runtime
         required: true
         type: string
       full:
@@ -61,7 +61,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  SDK_REPOSITORY: BANG404/openagent-sdk
+  SDK_REPOSITORY: BANG404/openagent-runtime
   SDK_STATUS_CONTEXT: ${{ inputs.full && 'Public SDK CI' || 'Public SDK Fast CI' }}
   GIT_CONFIG_COUNT: 1
   GIT_CONFIG_KEY_0: http.version
@@ -91,7 +91,7 @@ jobs:
           app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
           private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
           owner: BANG404
-          repositories: openagent-sdk
+          repositories: openagent-runtime
 
       - name: Report pending SDK status
         env:
@@ -127,7 +127,7 @@ jobs:
         if: inputs.publish_dev && inputs.full
         uses: actions/checkout@v7
         with:
-          repository: BANG404/openagent-sdk
+          repository: BANG404/openagent-runtime
           ref: ${{ inputs.sdk_sha }}
           path: runtime
           token: ${{ steps.app-token.outputs.token }}
@@ -157,14 +157,14 @@ jobs:
           app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
           private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
           owner: BANG404
-          repositories: openagent-sdk
+          repositories: openagent-runtime
           permission-checks: write
           permission-contents: read
           permission-statuses: write
       - name: Check out private SDK
         uses: actions/checkout@v7
         with:
-          repository: BANG404/openagent-sdk
+          repository: BANG404/openagent-runtime
           ref: ${{ inputs.sdk_sha }}
           path: runtime
           token: ${{ steps.app-token.outputs.token }}
@@ -215,7 +215,7 @@ jobs:
       - name: Check out private SDK
         uses: actions/checkout@v7
         with: &sdk-checkout
-          repository: BANG404/openagent-sdk
+          repository: BANG404/openagent-runtime
           ref: ${{ inputs.sdk_sha }}
           path: runtime
           token: ${{ steps.app-token.outputs.token }}
@@ -619,7 +619,7 @@ jobs:
       - name: Check out private SDK
         uses: actions/checkout@v7
         with:
-          repository: BANG404/openagent-sdk
+          repository: BANG404/openagent-runtime
           ref: ${{ inputs.sdk_sha }}
           path: host/runtime
           token: ${{ steps.app-token.outputs.token }}

@@ -293,9 +293,9 @@
       "category": "communication",
       "display_name": "Message Board",
       "description": "Durable channels, threads, search, subscriptions, and idempotent agent collaboration.",
-      "repository": "https://github.com/BANG404/message-board",
-      "homepage": "https://github.com/BANG404/message-board",
-      "source_url": "https://github.com/BANG404/message-board",
+      "repository": "https://github.com/BANG404/openagent-message-board",
+      "homepage": "https://github.com/BANG404/openagent-message-board",
+      "source_url": "https://github.com/BANG404/openagent-message-board",
       "i18n": {
         "supported_locales": ["en", "zh"],
         "default_locale": "en",

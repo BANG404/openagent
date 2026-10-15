@@ -76,7 +76,7 @@ state under `~/.openagent`.
 ## Repository boundaries
 - `crates/` owns public App, settings, and protocol; follow `crates/AGENTS.md`. Register Rust source in `.githooks/public-product-sources.txt`.
 - `sdk/typescript/` is public client source owned by this repository. Keep it behavior-free.
-- `runtime/` pins the private `openagent-sdk` repository. Commit and push Runtime changes there first,
+- `runtime/` pins the private `openagent-runtime` repository. Commit and push Runtime changes there first,
   then commit only its gitlink and required host/frontend integration here.
 - `plugins/` contains independent ignored repositories; `plugins/dev-index.json`
   subscribes to their branches. Plugin updates require no parent gitlink or release.

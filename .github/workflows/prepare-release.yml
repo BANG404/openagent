@@ -183,13 +183,13 @@ jobs:
           app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
           private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
           owner: BANG404
-          repositories: openagent-sdk
+          repositories: openagent-runtime
           permission-contents: read
 
       - name: Check out private SDK for component classification
         uses: actions/checkout@v7
         with:
-          repository: BANG404/openagent-sdk
+          repository: BANG404/openagent-runtime
           ref: ${{ steps.sdk.outputs.sha }}
           path: runtime
           token: ${{ steps.sdk-read-token.outputs.token }}

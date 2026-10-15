@@ -79,10 +79,10 @@ describe("SDK release workflow orchestration", () => {
         databaseId: 42,
         status: "completed",
         conclusion: "success",
-        url: "https://github.com/BANG404/openagent-sdk/actions/runs/42",
+        url: "https://github.com/BANG404/openagent-runtime/actions/runs/42",
       }),
     ).toBe(
-      "ci.yml run 42: completed/success (https://github.com/BANG404/openagent-sdk/actions/runs/42)",
+      "ci.yml run 42: completed/success (https://github.com/BANG404/openagent-runtime/actions/runs/42)",
     );
   });
 
@@ -98,7 +98,7 @@ describe("SDK release workflow orchestration", () => {
 
   test("dispatches current CI automation for an immutable SDK SHA", () => {
     expect(
-      workflowDispatchInvocation("BANG404/openagent-sdk", "ci.yml", "main", [
+      workflowDispatchInvocation("BANG404/openagent-runtime", "ci.yml", "main", [
         `sdk_sha=${"b".repeat(40)}`,
         "full=true",
       ]),
@@ -107,7 +107,7 @@ describe("SDK release workflow orchestration", () => {
       "run",
       "ci.yml",
       "--repo",
-      "BANG404/openagent-sdk",
+      "BANG404/openagent-runtime",
       "--ref",
       "main",
       "-f",
@@ -119,7 +119,7 @@ describe("SDK release workflow orchestration", () => {
 
   test("dispatches staged workflows against an immutable SDK tag", () => {
     expect(
-      workflowDispatchInvocation("BANG404/openagent-sdk", "release.yml", "main", [
+      workflowDispatchInvocation("BANG404/openagent-runtime", "release.yml", "main", [
         "sdk_tag=sdk-v0.2.1",
         "operation=stage",
       ]),
@@ -128,7 +128,7 @@ describe("SDK release workflow orchestration", () => {
       "run",
       "release.yml",
       "--repo",
-      "BANG404/openagent-sdk",
+      "BANG404/openagent-runtime",
       "--ref",
       "main",
       "-f",

@@ -6,7 +6,7 @@ testing and acceptance at `plugins/openagent-plugin-kit/`. They are independent
 repositories and packages; never place the development assistant's sources in
 `plugins/message-board/` or publish it through the Message Board subscription.
 
-The independent [Message Board repository](https://github.com/BANG404/message-board)
+The independent [Message Board repository](https://github.com/BANG404/openagent-message-board)
 is an independent main-branch checkout at `plugins/message-board/` and adapts
 Codex's agent message board to the portable Agent Plugin boundary. Its
 stdio MCP server exposes the nine board tools (channels, threads, search,

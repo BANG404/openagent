@@ -101,7 +101,7 @@ describe("official plugin registry", () => {
     expect(registry.plugins.every((plugin) => plugin.version === undefined)).toBe(true);
     expect(registry.plugins.every((plugin) => plugin.sourceUrl === plugin.repository)).toBe(true);
     expect(findOfficialPlugin(registry, "message-board")?.sourceUrl).toBe(
-      "https://github.com/BANG404/message-board",
+      "https://github.com/BANG404/openagent-message-board",
     );
     expect(findOfficialPlugin(registry, "openagent-plugin-kit")?.sourceUrl).toBe(
       "https://github.com/BANG404/openagent-plugin-kit",

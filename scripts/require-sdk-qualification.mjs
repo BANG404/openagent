@@ -26,7 +26,7 @@ function loadStatusHistory(sdkSha) {
         "api",
         "--paginate",
         "--slurp",
-        `repos/BANG404/openagent-sdk/commits/${sdkSha}/statuses?per_page=100`,
+        `repos/BANG404/openagent-runtime/commits/${sdkSha}/statuses?per_page=100`,
       ],
       { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
     ),

@@ -1,9 +1,11 @@
 # Public SDK and pinned Runtime development
 
 `sdk/typescript/` is public source owned by the host repository. The
-`runtime/` gitlink pins the private `BANG404/openagent-sdk` repository; its
-repository name, release tags, signed manifest names and `sdk_sha` fields remain
-Runtime distribution identities. Never copy private Rust execution, prompts,
+`runtime/` gitlink pins the private `BANG404/openagent-runtime` repository.
+Private checkouts, repository-scoped App tokens and qualification API calls use
+that canonical repository name. SDK release tags, signed manifest names and
+`sdk_sha` fields retain their existing distribution identities independently of
+the GitHub repository name. Never copy private Rust execution, prompts,
 persistence, provider implementations or internal documentation into `sdk/`.
 The reviewed public SDK file allowlist is `.githooks/public-sdk-sources.txt`.
 Public Rust product, configuration and protocol source lives in `crates/`.

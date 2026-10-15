@@ -47,13 +47,13 @@ jobs:
           app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
           private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
           owner: BANG404
-          repositories: openagent-sdk
+          repositories: openagent-runtime
           permission-contents: read
           permission-statuses: read
       - name: Check out immutable Runtime contract
         uses: actions/checkout@v7
         with:
-          repository: BANG404/openagent-sdk
+          repository: BANG404/openagent-runtime
           ref: ${{ inputs.sdk_sha }}
           path: runtime
           fetch-depth: 0

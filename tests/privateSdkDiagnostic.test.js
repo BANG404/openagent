@@ -93,7 +93,7 @@ describe("private SDK diagnostic reporting", () => {
         GH_TOKEN: "private-token",
         RUNNER_TEMP: directory,
         SDK_DIAGNOSTIC_NAME: "Rust lint",
-        SDK_REPOSITORY: "BANG404/openagent-sdk",
+        SDK_REPOSITORY: "BANG404/openagent-runtime",
         SDK_SHA: "a".repeat(40),
         CI_RUN_URL: "https://github.com/BANG404/openagent/actions/runs/123",
       },
@@ -103,7 +103,7 @@ describe("private SDK diagnostic reporting", () => {
       },
     });
 
-    expect(request.url).toBe("https://api.github.com/repos/BANG404/openagent-sdk/check-runs");
+    expect(request.url).toBe("https://api.github.com/repos/BANG404/openagent-runtime/check-runs");
     expect(request.options.headers.Authorization).toBe("Bearer private-token");
     expect(JSON.parse(request.options.body)).toMatchObject({
       name: "Public SDK diagnostics / Rust lint",
@@ -126,7 +126,7 @@ describe("private SDK diagnostic reporting", () => {
           GH_TOKEN: "private-token",
           RUNNER_TEMP: directory,
           SDK_DIAGNOSTIC_NAME: "Rust tests",
-          SDK_REPOSITORY: "BANG404/openagent-sdk",
+          SDK_REPOSITORY: "BANG404/openagent-runtime",
           SDK_SHA: "a".repeat(40),
         },
         fetchImpl: async () => ({

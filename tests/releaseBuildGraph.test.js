@@ -26,7 +26,7 @@ test("shell compilation starts independently and packaging consumes its exact ou
   expect(compile).toContain("needs: [detect, frontend-build]");
   expect(compile).not.toContain("sdk-release");
   expect(compile).not.toContain("distribution-resources");
-  expect(compile).not.toContain("repository: BANG404/openagent-sdk");
+  expect(compile).not.toContain("repository: BANG404/openagent-runtime");
   expect(compile).toContain("--no-bundle --config .github/tauri-prebuilt.conf.json");
   expect(compile).toContain("cache-targets: false");
   expect(job("build")).toContain("- shell-build");

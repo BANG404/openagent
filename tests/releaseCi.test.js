@@ -36,7 +36,7 @@ describe("release CI verification", () => {
   test("public native checks require no private source or credentials", () => {
     expect(nativeWorkflow).not.toContain("secrets:");
     expect(nativeWorkflow).not.toContain("create-github-app-token");
-    expect(nativeWorkflow).not.toContain("repository: BANG404/openagent-sdk");
+    expect(nativeWorkflow).not.toContain("repository: BANG404/openagent-runtime");
     expect(nativeWorkflow).not.toContain("runtime/Cargo.toml");
     expect(nativeWorkflow).not.toContain("embedded-cargo");
     expect(nativeWorkflow).toContain(
@@ -208,7 +208,7 @@ describe("release CI verification", () => {
 
   test("uses checked-in SDK source for every frontend pull request", () => {
     expect(frontendWorkflow).not.toContain("fetch-public-typescript-sdk");
-    expect(frontendWorkflow).not.toContain("repository: BANG404/openagent-sdk");
+    expect(frontendWorkflow).not.toContain("repository: BANG404/openagent-runtime");
     expect(frontendWorkflow).not.toContain("create-github-app-token");
     expect(ciWorkflow).toContain("if: needs.changes.outputs.frontend == 'true'");
   });
@@ -499,7 +499,7 @@ describe("release CI verification", () => {
     )?.groups?.job;
 
     expect(frontendJob).not.toContain("- build");
-    expect(frontendJob).toContain("repository: BANG404/openagent-sdk");
+    expect(frontendJob).toContain("repository: BANG404/openagent-runtime");
     expect(frontendJob).not.toContain("needs.detect.outputs.frontend");
     expect(storeJob).not.toContain("needs.detect.outputs.native_shell");
     expect(storeJob).toContain("needs.detect.outputs.prerelease != 'true'");

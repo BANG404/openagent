@@ -240,11 +240,11 @@ jobs:
           app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
           private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
           owner: BANG404
-          repositories: openagent-sdk
+          repositories: openagent-runtime
           permission-contents: read
       - uses: actions/checkout@v7
         with:
-          repository: BANG404/openagent-sdk
+          repository: BANG404/openagent-runtime
           ref: ${{ steps.sdk.outputs.sha }}
           path: runtime
           fetch-depth: 0
@@ -254,7 +254,7 @@ jobs:
         id: plan
         run: >-
           node scripts/ensure-sdk-release.mjs --sdk-dir runtime --sdk-sha "${{ steps.sdk.outputs.sha }}"
-          --host-version "${{ needs.detect.outputs.version }}" --repository BANG404/openagent-sdk
+          --host-version "${{ needs.detect.outputs.version }}" --repository BANG404/openagent-runtime
           --output "$GITHUB_OUTPUT" --mode plan --plan-file sdk-release-plan.json
       - uses: actions/upload-artifact@v4
         with:
@@ -295,13 +295,13 @@ jobs:
           app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
           private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
           owner: BANG404
-          repositories: openagent-sdk
+          repositories: openagent-runtime
           permission-contents: read
 
       - name: Check out exact private SDK source
         uses: actions/checkout@v7
         with:
-          repository: BANG404/openagent-sdk
+          repository: BANG404/openagent-runtime
           ref: ${{ steps.sdk.outputs.sha }}
           path: runtime
           fetch-depth: 0
@@ -321,7 +321,7 @@ jobs:
           --sdk-dir runtime
           --sdk-sha "${{ steps.sdk.outputs.sha }}"
           --host-version "${{ needs.detect.outputs.version }}"
-          --repository BANG404/openagent-sdk
+          --repository BANG404/openagent-runtime
           --output "$GITHUB_OUTPUT"
           --artifacts-dir "$RUNNER_TEMP/sdk-runtime"
           --mode stage
@@ -921,11 +921,11 @@ jobs:
           app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
           private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
           owner: BANG404
-          repositories: openagent-sdk
+          repositories: openagent-runtime
           permission-contents: read
       - uses: actions/checkout@v7
         with:
-          repository: BANG404/openagent-sdk
+          repository: BANG404/openagent-runtime
           ref: ${{ needs.sdk-plan.outputs.sdk_release_sha }}
           path: runtime
           token: ${{ steps.sdk-token.outputs.token }}
@@ -967,14 +967,14 @@ jobs:
           app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
           private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
           owner: BANG404
-          repositories: openagent-sdk
+          repositories: openagent-runtime
           permission-contents: read
       - name: Resolve client source revision
         id: sdk-source
         run: echo "sha=$(git rev-parse HEAD:runtime)" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v7
         with:
-          repository: BANG404/openagent-sdk
+          repository: BANG404/openagent-runtime
           ref: ${{ steps.sdk-source.outputs.sha }}
           path: runtime
           token: ${{ steps.sdk-token.outputs.token }}
@@ -1101,13 +1101,13 @@ jobs:
           app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
           private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
           owner: BANG404
-          repositories: openagent-sdk
+          repositories: openagent-runtime
           permission-contents: read
 
       - name: Check out private SDK
         uses: actions/checkout@v7
         with:
-          repository: BANG404/openagent-sdk
+          repository: BANG404/openagent-runtime
           ref: ${{ steps.sdk.outputs.sha }}
           path: runtime
           token: ${{ steps.sdk-read-token.outputs.token }}
@@ -1403,13 +1403,13 @@ jobs:
           app-id: ${{ vars.OPENAGENT_CI_REPORTER_APP_ID }}
           private-key: ${{ secrets.OPENAGENT_CI_REPORTER_PRIVATE_KEY }}
           owner: BANG404
-          repositories: openagent-sdk
+          repositories: openagent-runtime
           permission-contents: read
 
       - name: Check out exact private SDK source
         uses: actions/checkout@v7
         with:
-          repository: BANG404/openagent-sdk
+          repository: BANG404/openagent-runtime
           ref: ${{ needs.sdk-release.outputs.sdk_sha }}
           path: runtime
           fetch-depth: 0
@@ -1424,7 +1424,7 @@ jobs:
           --sdk-dir runtime
           --sdk-sha "${{ needs.sdk-release.outputs.sdk_sha }}"
           --host-version "${{ needs.detect.outputs.version }}"
-          --repository BANG404/openagent-sdk
+          --repository BANG404/openagent-runtime
           --output "$RUNNER_TEMP/sdk-publish-output"
           --mode publish
 

@@ -4,6 +4,11 @@ The standard package templates, validator, and authoring/release Skills live
 in the public [openagent-plugin-kit](https://github.com/BANG404/openagent-plugin-kit)
 repository. The product-owned standard packages are published separately:
 
+Official plugin GitHub repositories use the `openagent-` prefix, including
+`openagent-message-board`. Keep canonical repository URLs aligned across package
+manifests, the official registry and development subscriptions. Repository names
+do not rename installed plugin IDs, commands, tools or plugin data directories.
+
 Public plugin authoring tutorials live in the Astro Starlight content under
 `website/docs/src/content/docs/`, with matching `zh-cn/` translations. Keep
 examples aligned with the public kit validator and templates. The release
@@ -17,7 +22,7 @@ owns site builds and deployment; these tutorials expose public package APIs only
 - [Goal](https://github.com/BANG404/openagent-goal)
 - [Graph](https://github.com/BANG404/openagent-graph)
 - [Cua Driver](https://github.com/BANG404/openagent-cua-driver)
-- [Message Board](https://github.com/BANG404/message-board)
+- [Message Board](https://github.com/BANG404/openagent-message-board)
 
 Plugin Developer and Message Board are independent packages. Their project source
 checkouts are `plugins/openagent-plugin-kit/` and `plugins/message-board/`,

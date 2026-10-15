@@ -112,7 +112,7 @@ of the registry. Focused coverage lives in `tests/officialPluginRegistry.test.ts
 
 The catalog distinguishes Plugin Developer / 插件开发助手 (`openagent-plugin-kit`,
 `BANG404/openagent-plugin-kit`) from Message Board / 留言板 (`message-board`,
-`BANG404/message-board`). The former creates and qualifies other plugins; the
+`BANG404/openagent-message-board`). The former creates and qualifies other plugins; the
 latter stores agent collaboration messages. Localized search must resolve each
 name to its own ID and installation source. Preserve their independent update
 subscriptions and data directories.
