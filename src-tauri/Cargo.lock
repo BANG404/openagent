@@ -2810,7 +2810,7 @@ dependencies = [
 
 [[package]]
 name = "openagent"
-version = "0.82.0-beta.1"
+version = "0.83.0-beta.1"
 dependencies = [
  "anyhow",
  "async-trait",
