@@ -57,7 +57,7 @@ for (const crate of ["openagent-app", "openagent-protocol", "openagent-runtime"]
 }
 
 const sdkProtocolSource = readFileSync(
-  resolve(repositoryRoot, "sdk", "rust", "openagent-protocol", "src", "lib.rs"),
+  resolve(repositoryRoot, "runtime", "rust", "openagent-protocol", "src", "lib.rs"),
   "utf8",
 );
 const hostProtocolSource = readFileSync(
@@ -87,7 +87,7 @@ const requiredRuntimeSources = [
   "tool_approval.rs",
   "tools.rs",
 ];
-const runtimeSourceRoot = resolve(repositoryRoot, "sdk", "rust", "openagent-runtime", "src");
+const runtimeSourceRoot = resolve(repositoryRoot, "runtime", "rust", "openagent-runtime", "src");
 const availableRuntimeSources = new Set(
   filesBelow(runtimeSourceRoot).map((path) =>
     relative(runtimeSourceRoot, path).replaceAll("\\", "/"),

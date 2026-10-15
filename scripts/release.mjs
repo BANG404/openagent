@@ -38,7 +38,8 @@ const releaseFiles = [
 const releaseRelevantPaths = [
   "assets/**",
   "patches/**",
-  "sdk",
+  "sdk/**",
+  "runtime",
   "src/**",
   "src-tauri/**",
   "static/**",
@@ -52,6 +53,7 @@ const promotionSourcePaths = [
   "assets",
   "patches",
   "sdk",
+  "runtime",
   "src",
   "src-tauri",
   "static",
@@ -757,12 +759,12 @@ function main() {
         .map((file) => file.trim())
         .filter(Boolean);
   let sdkFiles = null;
-  if (!promotionSourceTag && sourceFiles.includes("sdk")) {
+  if (!promotionSourceTag && sourceFiles.includes("runtime")) {
     try {
-      const previousSdk = sourceBase ? git(["rev-parse", `${sourceBase}:sdk`]) : "";
-      const currentSdk = git(["rev-parse", "HEAD:sdk"]);
+      const previousSdk = sourceBase ? git(["rev-parse", `${sourceBase}:runtime`]) : "";
+      const currentSdk = git(["rev-parse", "HEAD:runtime"]);
       sdkFiles = previousSdk
-        ? execFileSync("git", ["-C", "sdk", "diff", "--name-only", previousSdk, currentSdk], {
+        ? execFileSync("git", ["-C", "runtime", "diff", "--name-only", previousSdk, currentSdk], {
             // NOSONAR: git is the fixed repository tool.
             encoding: "utf8",
           })

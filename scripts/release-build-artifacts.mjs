@@ -23,7 +23,7 @@ export function buildSourceIdentity(repositoryRoot = root) {
     execFileSync("git", ["rev-parse", ref], { cwd: repositoryRoot, encoding: "utf8" }).trim();
   return {
     desktop_sha: git("HEAD"),
-    sdk_sha: git("HEAD:sdk"),
+    sdk_sha: git("HEAD:runtime"),
     version: JSON.parse(readFileSync(path.join(repositoryRoot, "package.json"), "utf8")).version,
   };
 }

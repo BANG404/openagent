@@ -29,7 +29,10 @@ export function sourceCargoEnvironment({
   }
   return {
     ...environment,
-    CARGO_TARGET_DIR: path.resolve(repositoryRoot, targetDirectory || path.join("sdk", "target")),
+    CARGO_TARGET_DIR: path.resolve(
+      repositoryRoot,
+      targetDirectory || path.join("runtime", "target"),
+    ),
     ...(platform === "win32" ? { CARGO_INCREMENTAL: "0" } : {}),
   };
 }
@@ -123,7 +126,7 @@ export async function withSourceCargoWorkspaceLock(
     if (previous !== identity || (await foreignWorkspaceArtifacts(targetDirectory, sourceRoot))) {
       if (cleanWorkspace) await cleanWorkspace();
       else {
-        const args = ["clean", "--manifest-path", path.join(sourceRoot, "sdk", "Cargo.toml")];
+        const args = ["clean", "--manifest-path", path.join(sourceRoot, "runtime", "Cargo.toml")];
         for (const name of ["protocol", "runtime", "app", "server", "benchmark"])
           args.push("--package", `openagent-${name}`);
         const result = spawnSync(environment.CARGO ?? "cargo", args, {
@@ -168,7 +171,7 @@ async function foreignWorkspaceArtifacts(targetDirectory, sourceRoot) {
         );
         const normalized = process.platform === "win32" ? actual.toLowerCase() : actual;
         const crate = file.match(/^openagent_(\w+)-/)?.[1];
-        const expected = path.join(sourceRoot, "sdk", "rust", `openagent-${crate}`);
+        const expected = path.join(sourceRoot, "runtime", "rust", `openagent-${crate}`);
         if (normalized !== (process.platform === "win32" ? expected.toLowerCase() : expected))
           return true;
       }

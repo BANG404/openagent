@@ -166,8 +166,11 @@ export function verifyPinnedPluginVersions(root, base, hostRevision = "HEAD") {
 /** @param {{root: string, output: string, publish: boolean, runGh?: typeof gh}} options */
 export function releasePinnedPlugins({ root, output, publish, runGh = gh }) {
   const packages = verifyPinnedPluginVersions(root);
-  const runtimeSourceSha = git(join(root, "sdk"), ["rev-parse", "HEAD"]);
-  const protocolSource = readFileSync(join(root, "sdk/rust/openagent-protocol/src/lib.rs"), "utf8");
+  const runtimeSourceSha = git(join(root, "runtime"), ["rev-parse", "HEAD"]);
+  const protocolSource = readFileSync(
+    join(root, "runtime/rust/openagent-protocol/src/lib.rs"),
+    "utf8",
+  );
   const protocol = Number(/PLUGIN_PROTOCOL_VERSION:\s*u32\s*=\s*(\d+)/.exec(protocolSource)?.[1]);
   if (!Number.isInteger(protocol) || protocol < 1)
     throw new Error("Missing pinned plugin protocol version");

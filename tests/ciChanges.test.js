@@ -82,8 +82,16 @@ describe("CI module classification", () => {
     });
   });
 
+  test("public SDK changes qualify frontend and automation without private native checks", () => {
+    expect(classifyChangedModules(["sdk/typescript/src/client.ts"])).toEqual({
+      ...nothing,
+      automation: true,
+      frontend: true,
+    });
+  });
+
   test("runs every SDK consumer when the pinned private SDK changes", () => {
-    expect(classifyChangedModules(["sdk"])).toEqual({
+    expect(classifyChangedModules(["runtime"])).toEqual({
       automation: false,
       frontend: true,
       nativeQuality: true,

@@ -81,10 +81,10 @@ run(process.execPath, [
 const sdkCargoTestArgs = [
   "test",
   "--manifest-path",
-  resolve(repositoryRoot, "sdk", "Cargo.toml"),
+  resolve(repositoryRoot, "runtime", "Cargo.toml"),
   "--workspace",
   "--target-dir",
-  resolve(repositoryRoot, "sdk", "target", "sonar"),
+  resolve(repositoryRoot, "runtime", "target", "sonar"),
 ];
 
 if (process.platform === "win32") sdkCargoTestArgs.push("--jobs", "1");

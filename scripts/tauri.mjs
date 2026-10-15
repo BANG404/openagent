@@ -50,7 +50,7 @@ if (embeddedRuntime) {
   );
   environment.OPENAGENT_RUNTIME_MODE = "embedded";
   environment.OPENAGENT_DEV_RUNTIME_SOURCE = "1";
-  environment.CARGO_TARGET_DIR ??= path.join(root, "sdk", "target", "desktop-host", "target");
+  environment.CARGO_TARGET_DIR ??= path.join(root, "runtime", "target", "desktop-host", "target");
   console.log("Using the explicit embedded development Runtime");
 }
 if (developmentParentLifetime) {

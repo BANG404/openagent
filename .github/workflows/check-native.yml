@@ -42,7 +42,7 @@ jobs:
       - name: Resolve pinned SDK revision
         id: sdk
         shell: bash
-        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
+        run: echo "sha=$(git rev-parse HEAD:runtime)" >> "$GITHUB_OUTPUT"
 
       - name: Create private SDK read token
         id: sdk-read-token
@@ -59,7 +59,7 @@ jobs:
         with:
           repository: BANG404/openagent-sdk
           ref: ${{ steps.sdk.outputs.sha }}
-          path: sdk
+          path: runtime
           token: ${{ steps.sdk-read-token.outputs.token }}
           persist-credentials: false
 
@@ -127,7 +127,7 @@ jobs:
 
       - name: Verify Linux release sandbox digest guard
         if: inputs.full
-        run: cargo check --release --manifest-path sdk/Cargo.toml -p openagent-app
+        run: cargo check --release --manifest-path runtime/Cargo.toml -p openagent-app
 
   platform:
     name: Check ${{ matrix.name }}
@@ -150,7 +150,7 @@ jobs:
       - name: Resolve pinned SDK revision
         id: sdk
         shell: bash
-        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
+        run: echo "sha=$(git rev-parse HEAD:runtime)" >> "$GITHUB_OUTPUT"
 
       - name: Create private SDK read token
         id: sdk-read-token
@@ -167,7 +167,7 @@ jobs:
         with:
           repository: BANG404/openagent-sdk
           ref: ${{ steps.sdk.outputs.sha }}
-          path: sdk
+          path: runtime
           token: ${{ steps.sdk-read-token.outputs.token }}
           persist-credentials: false
 
@@ -202,10 +202,10 @@ jobs:
         shell: pwsh
         env:
           # Release qualification compiles private sandbox output under the
-          # checkout's sdk/target. The development profile otherwise defaults to
+          # checkout's runtime/target. The development profile otherwise defaults to
           # the shared openagent-source-target cache, which every Windows
           # sandbox boundary step below resolves and must not consume.
-          CARGO_TARGET_DIR: sdk/target
+          CARGO_TARGET_DIR: runtime/target
         run: |
           $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
           bun run prepare:windows-sandbox:dev *> $log
@@ -223,9 +223,9 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $env:CARGO_TARGET_DIR = (Resolve-Path "sdk\target").Path
+          $env:CARGO_TARGET_DIR = (Resolve-Path "runtime\target").Path
           $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
-          cargo test --manifest-path sdk/Cargo.toml -p openagent-server --test windows_process_sandbox restricted_token_writes_workspace_and_blocks_outside_and_metadata -- --exact *>> $log
+          cargo test --manifest-path runtime/Cargo.toml -p openagent-server --test windows_process_sandbox restricted_token_writes_workspace_and_blocks_outside_and_metadata -- --exact *>> $log
           if ($LASTEXITCODE -ne 0) {
             "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
             Write-Error "Windows process sandbox test failed; private diagnostic output was suppressed."
@@ -236,9 +236,9 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $env:CARGO_TARGET_DIR = (Resolve-Path "sdk\target").Path
+          $env:CARGO_TARGET_DIR = (Resolve-Path "runtime\target").Path
           $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
-          cargo test --manifest-path sdk/Cargo.toml -p openagent-server --test plugin_process_confinement *>> $log
+          cargo test --manifest-path runtime/Cargo.toml -p openagent-server --test plugin_process_confinement *>> $log
           if ($LASTEXITCODE -ne 0) {
             "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
             Write-Error "Windows plugin confinement test failed; private diagnostic output was suppressed."
@@ -259,7 +259,7 @@ jobs:
             Write-Error "Windows Firewall profiles could not be enabled for the sandbox boundary test."
             exit 1
           }
-          $env:CARGO_TARGET_DIR = (Resolve-Path "sdk\target").Path
+          $env:CARGO_TARGET_DIR = (Resolve-Path "runtime\target").Path
           $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
           $tests = @(
             "elevated_offline_account_firewall_blocks_non_loopback_network_access",
@@ -267,7 +267,7 @@ jobs:
           )
           $failed = $false
           foreach ($test in $tests) {
-            cargo test --manifest-path sdk/Cargo.toml -p openagent-server --test windows_process_sandbox $test -- --exact --test-threads=1 *>> $log
+            cargo test --manifest-path runtime/Cargo.toml -p openagent-server --test windows_process_sandbox $test -- --exact --test-threads=1 *>> $log
             if ($LASTEXITCODE -ne 0) {
               $failed = $true
               break
@@ -348,7 +348,7 @@ jobs:
       - name: Resolve pinned SDK revision
         id: sdk
         shell: bash
-        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
+        run: echo "sha=$(git rev-parse HEAD:runtime)" >> "$GITHUB_OUTPUT"
 
       - name: Create private SDK read token
         id: sdk-read-token
@@ -365,7 +365,7 @@ jobs:
         with:
           repository: BANG404/openagent-sdk
           ref: ${{ steps.sdk.outputs.sha }}
-          path: sdk
+          path: runtime
           token: ${{ steps.sdk-read-token.outputs.token }}
           persist-credentials: false
 
@@ -396,7 +396,7 @@ jobs:
 
       - name: Exercise bundled embedding model
         env:
-          CARGO_TARGET_DIR: sdk/target/desktop-host/target
+          CARGO_TARGET_DIR: runtime/target/desktop-host/target
         shell: bash
         run: |
           max_attempts=3
@@ -419,11 +419,11 @@ jobs:
 
       - name: Exercise authenticated plugin embedding
         env:
-          CARGO_TARGET_DIR: sdk/target/desktop-host/target
+          CARGO_TARGET_DIR: runtime/target/desktop-host/target
           OPENAGENT_TEST_EMBEDDING_MODEL_DIR: ${{ github.workspace }}/src-tauri/resources/models/all-MiniLM-L6-v2-q
         shell: bash
         run: |
-          if ! cargo test --manifest-path sdk/Cargo.toml -p openagent-runtime --lib bundled_model_inference_through_authenticated_plugin_http -- --ignored >"$RUNNER_TEMP/plugin-embedding.log" 2>&1; then
+          if ! cargo test --manifest-path runtime/Cargo.toml -p openagent-runtime --lib bundled_model_inference_through_authenticated_plugin_http -- --ignored >"$RUNNER_TEMP/plugin-embedding.log" 2>&1; then
             echo "::error::Authenticated plugin embedding test failed; private diagnostic output was suppressed."
             exit 1
           fi

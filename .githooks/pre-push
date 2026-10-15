@@ -29,10 +29,13 @@ verify_backend_absent() {
     return 1
   fi
 
-  sdk_entry="$(git ls-tree "$commit" -- sdk)"
+  sdk_entry="$(git ls-tree "$commit" -- runtime)"
+  if [ -z "$sdk_entry" ]; then
+    sdk_entry="$(git ls-tree "$commit" -- sdk)"
+  fi
   set -- $sdk_entry
-  if [ "$#" -ne 4 ] || [ "$1" != "160000" ] || [ "$2" != "commit" ] || [ "$4" != "sdk" ]; then
-    echo "Push blocked: commit $commit does not store sdk as a gitlink." >&2
+  if [ "$#" -ne 4 ] || [ "$1" != "160000" ] || [ "$2" != "commit" ] || { [ "$4" != "runtime" ] && [ "$4" != "sdk" ]; }; then
+    echo "Push blocked: commit $commit does not store the private Runtime as a gitlink." >&2
     return 1
   fi
 

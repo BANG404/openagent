@@ -46,7 +46,7 @@ function revision(directory) {
   return result.stdout.trim();
 }
 const sourceRevision = revision(source);
-const sdkRevision = revision(join(repo, "sdk"));
+const sdkRevision = revision(join(repo, "runtime"));
 const hostRevision = revision(repo);
 const artifacts =
   process.env.BLACKBOX_ARTIFACT_DIR ||

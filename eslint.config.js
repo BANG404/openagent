@@ -13,7 +13,7 @@ export default tseslint.config(
       "dist/**",
       "dist-pages/**",
       "node_modules/**",
-      "sdk/**",
+      "runtime/**",
       "src-tauri/**",
     ],
   },
@@ -68,6 +68,7 @@ export default tseslint.config(
       "src/**/*.{js,ts,svelte,mjs,cjs}",
       "tests/**/*.{js,ts,svelte,mjs,cjs}",
       "scripts/**/*.{js,ts,svelte,mjs,cjs}",
+      "sdk/typescript/**/*.{js,ts}",
       "*.{js,ts,mjs,cjs}",
     ],
     rules: {
@@ -124,7 +125,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["tests/**/*.{js,ts}", "scripts/**/*.mjs"],
+    files: ["tests/**/*.{js,ts}", "sdk/typescript/tests/**/*.ts", "scripts/**/*.mjs"],
     languageOptions: {
       globals: {
         ...globals.builtin,

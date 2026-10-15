@@ -54,7 +54,8 @@ export function classifyChangedModules(files, forceAll = false) {
 
   const sharedDependencyFiles = new Set(["package.json", "bun.lock"]);
   const nativeWorkflow = ".github/workflows/check-native.yml";
-  const sdkChanged = normalized.includes("sdk");
+  const sdkChanged = normalized.includes("runtime");
+  const clientChanged = normalized.some((file) => file.startsWith("sdk/"));
   const pluginSourcesChanged = normalized.some(
     (file) => file === ".gitmodules" || file.startsWith("plugins/"),
   );
@@ -107,6 +108,7 @@ export function classifyChangedModules(files, forceAll = false) {
 
   const automation =
     all ||
+    clientChanged ||
     pluginSourcesChanged ||
     normalized.some((file) =>
       matchesPath(file, [
@@ -125,6 +127,7 @@ export function classifyChangedModules(files, forceAll = false) {
 
   const frontend =
     all ||
+    clientChanged ||
     pluginSourcesChanged ||
     normalized.some((file) =>
       matchesPath(file, [
@@ -140,7 +143,7 @@ export function classifyChangedModules(files, forceAll = false) {
         "eslint.config.js",
         "vite.config.js",
         "bootstrap.vite.config.js",
-        "sdk",
+        "runtime",
       ]),
     ) ||
     frontendPackagingChanged ||

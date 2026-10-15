@@ -388,7 +388,7 @@ try {
         process.execPath,
         [
           resolve(
-            "sdk/.agents/skills/inspect-conversation-checkpoints/scripts/inspect-conversation-records.ts",
+            "runtime/.agents/skills/inspect-conversation-checkpoints/scripts/inspect-conversation-records.ts",
           ),
           "--db",
           join(home, "messages.db"),

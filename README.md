@@ -17,7 +17,7 @@
 
 OpenAgent combines a streaming chat interface with an agent that can inspect projects, edit files, run commands, and use external tools. Choose your model service and workspace, keep conversation history and application data on your device, and extend the agent with skills, roles, MCP servers, and plugins.
 
-The desktop application targets Windows, macOS, and Linux. It uses Svelte 5 with SvelteKit 2 for the interface, Tauri 2 for the native shell, and a Rust Runtime maintained in the pinned private SDK. The project is under active development; source access to the public host does not include access to the private SDK.
+The desktop application targets Windows, macOS, and Linux. It uses Svelte 5 with SvelteKit 2 for the interface, Tauri 2 for the native shell, and a Rust Runtime maintained in a pinned private submodule. The typed TypeScript SDK is public in this repository; Runtime implementation remains private.
 
 ## What you can do
 
@@ -115,7 +115,7 @@ Local host and Runtime logs live in `<OPENAGENT_HOME>/logs`, with up to 15 files
 
 ## Develop from source
 
-### Public frontend development (no private SDK access)
+### Public frontend and desktop development
 
 Install Bun **1.3.14** and Node.js; native debugging also requires Rust and your
 platform's Tauri build dependencies. Choose a source tag with a published kit:
@@ -129,17 +129,18 @@ bun run dev:prepare
 bun run dev:desktop
 ```
 
-Preparation verifies and downloads the TypeScript snapshot, Runtime and helpers
-matching the source's SDK SHA, without initializing private submodules. Select a
-desktop release kit with `bun run dev:prepare --release vX.Y.Z`; its client SHA
-must match source. Interrupted downloads resume; desktop launch rechecks cached
-bytes. Browser-only development uses `bun run dev:frontend`.
+The TypeScript SDK is checked in under `sdk/typescript`. Browser-only development
+needs `bun install --frozen-lockfile` and `bun run dev:frontend`.
+Desktop preparation downloads signed Runtime and helpers matching `HEAD:runtime`
+without initializing private submodules. Select a desktop release kit with
+`bun run dev:prepare --release vX.Y.Z`; its Runtime source must match the pin.
+Interrupted downloads resume; desktop launch rechecks cached executable bytes.
 See [public development kits](.agents/skills/openagent-release-engineering/references/public-development.md).
 
 ### SDK source and delivery
 
-With private SDK access, use `bun run prepare:worktree:dev`, then
-`bun run dev:desktop:source` for SDK watching and Runtime rebuilding. Keep the
+With private Runtime access, use `bun run prepare:worktree:dev`, then
+`bun run dev:desktop:source` for private source watching and Runtime rebuilding. Keep the
 default directory on `main` for debugging; use isolated OWT worktrees for
 changes and release tags for reproducible product versions.
 
@@ -173,7 +174,8 @@ flowchart LR
 | -------------------- | ------------------------------------------------------------------------------------- |
 | `src/`               | Svelte routes, feature controllers, components, localization, and streamed rendering. |
 | `src-tauri/`         | Native host adapters, resource protocols, process supervision, and packaging.         |
-| `sdk/`               | Pinned private Runtime and typed transport/client source.                             |
+| `sdk/typescript/` | Public typed SDK clients and transports. |
+| `runtime/` | Pinned private Runtime source. |
 | `plugins/`           | Pinned independent plugin repositories and the local development index.               |
 | `scripts/`, `tests/` | Preparation, checks, release automation, and deterministic verification.              |
 | `.agents/skills/`    | Focused architecture contracts and contributor workflows.                             |
@@ -184,7 +186,7 @@ The host remains thin; runtime state machines and durable data belong to the SDK
 
 Read [`AGENTS.md`](AGENTS.md) and the applicable subsystem skill before editing. Repository changes use [isolated OWT worktrees](.agents/skills/deliver-via-owt/SKILL.md): preserve the default checkout on local `main`, implement and verify in a task worktree, then fast-forward the verified result back. Inspect the complete diff, stage intended files, and run `bun run preflight` before a Conventional Commit.
 
-Update the primary owner documentation when behavior changes. Visible desktop changes also require the matching real-window [native black-box scenario](.agents/skills/openagent-desktop-host/references/native-verification.md). SDK and plugin changes follow their own repository instructions before the parent gitlink is advanced.
+Update the primary owner documentation when behavior changes. Visible desktop changes also require the matching real-window [native black-box scenario](.agents/skills/openagent-desktop-host/references/native-verification.md). Private Runtime and plugin changes follow their own repository instructions before the parent gitlink is advanced.
 
 For runtime model checks, use the SDK-owned instructions and [`.env.example`](.env.example). `bun run test:sonar` runs the host and SDK test gates before submitting analysis to the locally configured SonarQube instance.
 

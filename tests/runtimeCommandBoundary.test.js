@@ -112,11 +112,11 @@ describe("desktop command boundary", () => {
   });
 
   test.skipIf(
-    !existsSync("sdk/rust/openagent-runtime/src/commands/remote_gateway/desktop_operations.rs"),
+    !existsSync("runtime/rust/openagent-runtime/src/commands/remote_gateway/desktop_operations.rs"),
   )("routes Agent Plugin asset reads through the Runtime product dispatcher", () => {
     const contracts = readFileSync(join(sdkClientSource(), "contracts.ts"), "utf8");
     const gateway = readFileSync(
-      "sdk/rust/openagent-runtime/src/commands/remote_gateway/desktop_operations.rs",
+      "runtime/rust/openagent-runtime/src/commands/remote_gateway/desktop_operations.rs",
       "utf8",
     );
 
@@ -127,16 +127,16 @@ describe("desktop command boundary", () => {
     );
   });
 
-  test.skipIf(!existsSync("sdk/rust/openagent-runtime/src/agent_plugins.rs"))(
+  test.skipIf(!existsSync("runtime/rust/openagent-runtime/src/agent_plugins.rs"))(
     "registers product capabilities through the Agent Plugin descriptor",
     () => {
       const plugins = [
-        "sdk/rust/openagent-runtime/src/agent_plugins.rs",
-        "sdk/rust/openagent-runtime/src/agent_plugins/builtins.rs",
+        "runtime/rust/openagent-runtime/src/agent_plugins.rs",
+        "runtime/rust/openagent-runtime/src/agent_plugins/builtins.rs",
       ]
         .map((path) => readFileSync(path, "utf8"))
         .join("\n");
-      const protocol = readFileSync("sdk/rust/openagent-protocol/src/lib.rs", "utf8");
+      const protocol = readFileSync("runtime/rust/openagent-protocol/src/lib.rs", "utf8");
       const settings = readFileSync(
         "src/lib/components/settings/SettingsPluginsTab.svelte",
         "utf8",

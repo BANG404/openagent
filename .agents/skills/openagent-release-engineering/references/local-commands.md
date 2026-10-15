@@ -21,7 +21,7 @@ bun run dev:desktop:source
 ```
 
 Preparation initializes pinned submodules, installs the frozen Bun lockfile,
-materializes the pinned SDK source client, and stages the checksummed portable
+uses the checked-in public SDK client, and stages the checksummed portable
 Node.js and terminal tools required by Tauri compile checks. Its submodule
 preparation preserves LF bytes from the first checkout and repairs unchanged
 legacy CRLF conversions;

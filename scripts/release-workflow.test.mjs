@@ -157,11 +157,11 @@ git() {
   if [[ "$1 $2" == "submodule update" ]]; then return 0; fi
   if [[ "$1 $2" == "submodule foreach" ]]; then
     local displaypath
-    for displaypath in plugins/chat-groups plugins/goal/nested sdk; do
+    for displaypath in plugins/chat-groups plugins/goal/nested runtime; do
       eval "$4" || return $?
     done
   elif [[ "$1" == "fetch" ]]; then
-    if [[ "$displaypath" == sdk ]]; then echo 'private SDK fetch denied' >&2; return 128; fi
+    if [[ "$displaypath" == runtime ]]; then echo 'private SDK fetch denied' >&2; return 128; fi
     echo "$displaypath"
   else
     return 2

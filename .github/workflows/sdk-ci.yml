@@ -73,6 +73,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
+      - name: Check out public SDK source
+        uses: actions/checkout@v7
       - name: Validate SDK revision
         env:
           SDK_SHA: ${{ inputs.sdk_sha }}
@@ -127,7 +129,7 @@ jobs:
         with:
           repository: BANG404/openagent-sdk
           ref: ${{ inputs.sdk_sha }}
-          path: sdk
+          path: runtime
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: false
           sparse-checkout: rust/openagent-protocol/src/lib.rs
@@ -162,14 +164,14 @@ jobs:
         with:
           repository: BANG404/openagent-sdk
           ref: ${{ inputs.sdk_sha }}
-          path: sdk
+          path: runtime
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
       - name: Check Rust formatting
-        working-directory: sdk
+        working-directory: runtime
         run: |
           if ! cargo fmt --all -- --check >"$RUNNER_TEMP/sdk-rust-format.log" 2>&1; then
             echo "sdk-rust-format.log" >"$RUNNER_TEMP/sdk-private-diagnostic-name"
@@ -213,7 +215,7 @@ jobs:
         with: &sdk-checkout
           repository: BANG404/openagent-sdk
           ref: ${{ inputs.sdk_sha }}
-          path: sdk
+          path: runtime
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
@@ -221,11 +223,11 @@ jobs:
           components: clippy
       - uses: Swatinem/rust-cache@v2
         with: &rust-cache
-          workspaces: ./sdk -> target
+          workspaces: ./runtime -> target
           shared-key: public-sdk-dependencies
           cache-targets: false
       - name: Lint Rust workspace
-        working-directory: sdk
+        working-directory: runtime
         env:
           SDK_CI_FULL: ${{ inputs.full }}
           SDK_RUST_PACKAGES: ${{ inputs.rust_packages }}
@@ -269,7 +271,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with: *rust-cache
       - name: Test Rust workspace
-        working-directory: sdk
+        working-directory: runtime
         env:
           SDK_CI_FULL: ${{ inputs.full }}
           SDK_RUST_PACKAGES: ${{ inputs.rust_packages }}
@@ -320,7 +322,7 @@ jobs:
             sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 >/dev/null
           fi
       - name: Exercise the Bubblewrap filesystem boundary
-        working-directory: sdk
+        working-directory: runtime
         env:
           OPENAGENT_BWRAP_INTEGRATION: "1"
         run: |
@@ -357,7 +359,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with: *rust-cache
       - name: Exercise the Seatbelt filesystem boundary
-        working-directory: sdk
+        working-directory: runtime
         env:
           OPENAGENT_SEATBELT_INTEGRATION: "1"
         run: |
@@ -402,7 +404,7 @@ jobs:
           $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
           $metadata = $null
           foreach ($attempt in 1..3) {
-            $metadataJson = cargo metadata --locked --format-version 1 --manifest-path sdk/Cargo.toml 2>> $log
+            $metadataJson = cargo metadata --locked --format-version 1 --manifest-path runtime/Cargo.toml 2>> $log
             if ($LASTEXITCODE -eq 0) {
               try {
                 $metadata = $metadataJson | ConvertFrom-Json -ErrorAction Stop
@@ -429,7 +431,7 @@ jobs:
             "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
             exit 1
           }
-          cargo build --locked --manifest-path $package.manifest_path --package codex-windows-sandbox --bin codex-windows-sandbox-setup --bin codex-command-runner --target-dir sdk/target *>> $log
+          cargo build --locked --manifest-path $package.manifest_path --package codex-windows-sandbox --bin codex-windows-sandbox-setup --bin codex-command-runner --target-dir runtime/target *>> $log
           if ($LASTEXITCODE -ne 0) {
             "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
             Write-Error "Windows sandbox helper build failed; private diagnostic output was suppressed."
@@ -439,7 +441,7 @@ jobs:
         shell: pwsh
         run: |
           $log = "$env:RUNNER_TEMP/sdk-windows-sandbox-test.log"
-          cargo test --manifest-path sdk/Cargo.toml -p openagent-server --test plugin_process_confinement *>> $log
+          cargo test --manifest-path runtime/Cargo.toml -p openagent-server --test plugin_process_confinement *>> $log
           if ($LASTEXITCODE -ne 0) {
             "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
             Write-Error "Windows plugin confinement test failed; private diagnostic output was suppressed."
@@ -458,7 +460,7 @@ jobs:
             "elevated_offline_account_wfp_blocks_dns_network_access"
           )
           foreach ($test in $tests) {
-            cargo test --manifest-path sdk/Cargo.toml -p openagent-server --test windows_process_sandbox $test -- --exact --test-threads=1 *>> $log
+            cargo test --manifest-path runtime/Cargo.toml -p openagent-server --test windows_process_sandbox $test -- --exact --test-threads=1 *>> $log
             if ($LASTEXITCODE -ne 0) {
               "sdk-windows-sandbox-test.log" | Out-File "$env:RUNNER_TEMP/sdk-private-diagnostic-name" -Encoding ascii
               $diagnostic = Select-String -Path $log -Pattern 'OPENAGENT_WFP_DIAGNOSTIC=[a-z-]+' -AllMatches |
@@ -484,6 +486,8 @@ jobs:
     env:
       SDK_DIAGNOSTIC_NAME: TypeScript SDK
     steps:
+      - name: Check out public SDK source
+        uses: actions/checkout@v7
       - name: Create SDK reporter token
         id: app-token
         uses: actions/create-github-app-token@v2
@@ -550,7 +554,7 @@ jobs:
         with:
           repository: BANG404/openagent-sdk
           ref: ${{ inputs.sdk_sha }}
-          path: host/sdk
+          path: host/runtime
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: false
       - name: Materialize frontendDist for Tauri macros
@@ -765,7 +769,7 @@ jobs:
         with: *rust-cache
       - name: Prepare pinned Linux sandbox helper
         if: matrix.runner_os == 'Linux'
-        working-directory: sdk
+        working-directory: runtime
         shell: bash
         run: |
           if ! node scripts/prepare-linux-sandbox-helper.mjs --profile release --github-env \
@@ -774,7 +778,7 @@ jobs:
             exit 1
           fi
       - name: Build release Runtime server
-        working-directory: sdk
+        working-directory: runtime
         env:
           OPENAGENT_LOGS_INGEST_TOKEN: ${{ secrets.OPENAGENT_LOGS_INGEST_TOKEN }}
         shell: pwsh
@@ -793,15 +797,15 @@ jobs:
         run: |
           node scripts/prepare-windows-sandbox-helpers.mjs --profile release
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          New-Item -ItemType Directory -Force sdk/release-artifacts | Out-Null
-          Copy-Item src-tauri/resources/codex-resources/*.exe sdk/release-artifacts/ -Force
+          New-Item -ItemType Directory -Force runtime/release-artifacts | Out-Null
+          Copy-Item src-tauri/resources/codex-resources/*.exe runtime/release-artifacts/ -Force
       - name: Package development Runtime server
-        working-directory: sdk
+        working-directory: runtime
         run: node scripts/package-server.mjs "${{ matrix.source }}" "${{ matrix.artifact }}"
       - uses: actions/upload-artifact@v4
         with:
           name: sdk-development-runtime-${{ matrix.artifact }}
-          path: sdk/release-artifacts/*
+          path: runtime/release-artifacts/*
           if-no-files-found: error
           retention-days: 1
 
@@ -812,6 +816,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
+      - name: Check out public SDK source
+        uses: actions/checkout@v7
       - name: Create SDK reporter token
         id: app-token
         uses: actions/create-github-app-token@v2
@@ -828,7 +834,7 @@ jobs:
           SDK_SHA: ${{ inputs.sdk_sha }}
         run: |
           short_sha="${SDK_SHA:0:12}"
-          base_version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' sdk/rust/openagent-server/Cargo.toml | head -n 1)"
+          base_version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' runtime/rust/openagent-server/Cargo.toml | head -n 1)"
           version="${base_version%%-*}-dev.$short_sha"
           mkdir -p sdk-development-clients
           printf '%s\n' "$version" > sdk-development-clients/version.txt
@@ -895,8 +901,8 @@ jobs:
         shell: bash
         run: |
           version="$(cat sdk-development-components/version.txt)"
-          protocol="$(sed -n 's/^pub const SDK_PROTOCOL_VERSION: u32 = \([0-9][0-9]*\);/\1/p' sdk/rust/openagent-protocol/src/lib.rs)"
-          node sdk/scripts/server-artifacts.mjs \
+          protocol="$(sed -n 's/^pub const SDK_PROTOCOL_VERSION: u32 = \([0-9][0-9]*\);/\1/p' runtime/rust/openagent-protocol/src/lib.rs)"
+          node runtime/scripts/server-artifacts.mjs \
             --artifacts sdk-development-components \
             --output sdk-development-components/openagent-sdk-manifest.json \
             --version "$version" \

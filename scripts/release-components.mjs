@@ -93,6 +93,7 @@ function classifyHostPath(file, components) {
     components.frontend = true;
   }
   if (
+    file.startsWith("sdk/") ||
     file.startsWith("src/") ||
     file.startsWith("static/") ||
     file.startsWith("assets/") ||
@@ -118,7 +119,7 @@ export function classifyReleaseComponents(files, sdkFiles = null) {
   const components = { frontend: false, runtime: false, nativeShell: false };
   for (const source of files) {
     const file = source.replaceAll("\\", "/");
-    if (file === "sdk") {
+    if (file === "runtime") {
       if (!sdkFiles) {
         components.frontend = true;
         components.runtime = true;

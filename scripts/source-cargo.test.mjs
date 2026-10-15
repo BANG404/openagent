@@ -34,11 +34,11 @@ test("worktrees share private dependency output while explicit targets and relea
       repositoryRoot: path.resolve("worktree-a"),
       profile: "release",
     }).CARGO_TARGET_DIR,
-  ).toBe(path.resolve("worktree-a/sdk/target"));
+  ).toBe(path.resolve("worktree-a/runtime/target"));
 });
 
 test("only an explicit Cargo target adds the triple directory to staged bytes", () => {
-  const targetDirectory = path.resolve("repository/sdk/target");
+  const targetDirectory = path.resolve("repository/runtime/target");
   expect(cargoProfileDirectory(targetDirectory, "debug", undefined)).toBe(
     path.join(targetDirectory, "debug"),
   );
@@ -203,7 +203,7 @@ test("a legacy launcher cannot hide foreign SDK artifacts behind the current own
     await writeFile(path.join(directory, ".openagent-source-worktree"), marker);
     const deps = path.join(directory, "x86_64-pc-windows-msvc", "debug", "deps");
     await mkdir(deps, { recursive: true });
-    const manifest = path.resolve("default-worktree/sdk/rust/openagent-runtime");
+    const manifest = path.resolve("default-worktree/runtime/rust/openagent-runtime");
     await writeFile(
       path.join(deps, "openagent_runtime-fixture.d"),
       `# env-dep:CARGO_MANIFEST_DIR=${manifest.replaceAll("\\", "\\\\")}\n`,

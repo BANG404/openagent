@@ -32,7 +32,7 @@ const pilot = (args) => run(process.env.TAURI_PILOT_BIN || "tauri-pilot", args);
 /** @param {string} action */
 const fixture = (action) =>
   run("python", [
-    join(repo, "sdk/scripts/file-projection-blackbox-fixture.py"),
+    join(repo, "runtime/scripts/file-projection-blackbox-fixture.py"),
     "--home",
     isolatedHome,
     "--action",

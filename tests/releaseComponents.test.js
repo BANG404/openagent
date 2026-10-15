@@ -17,19 +17,19 @@ describe("release component classification", () => {
   test("publishes runtime-only SDK changes without selecting a native installer", () => {
     expect(
       classifyReleaseComponents(
-        ["sdk"],
+        ["runtime"],
         ["rust/openagent-runtime/src/lib.rs", "rust/openagent-server/src/main.rs"],
       ),
     ).toEqual({ frontend: false, runtime: true, nativeShell: false });
   });
 
   test("keeps SDK TypeScript and protocol changes on their actual consumers", () => {
-    expect(classifyReleaseComponents(["sdk"], ["typescript/src/client.ts"])).toEqual({
+    expect(classifyReleaseComponents(["sdk/typescript/src/client.ts"])).toEqual({
       frontend: true,
       runtime: false,
       nativeShell: false,
     });
-    expect(classifyReleaseComponents(["sdk"], ["rust/openagent-protocol/src/lib.rs"])).toEqual({
+    expect(classifyReleaseComponents(["runtime"], ["rust/openagent-protocol/src/lib.rs"])).toEqual({
       frontend: true,
       runtime: true,
       nativeShell: false,
@@ -58,7 +58,7 @@ describe("release component classification", () => {
   });
 
   test("uses a conservative fallback when private SDK paths are unavailable", () => {
-    expect(classifyReleaseComponents(["sdk"])).toEqual({
+    expect(classifyReleaseComponents(["runtime"])).toEqual({
       frontend: true,
       runtime: true,
       nativeShell: false,
