@@ -92,7 +92,7 @@ describe("CI module classification", () => {
     });
   });
 
-  test("qualifies plugin gitlinks and the portable index without native SDK checks", () => {
+  test("qualifies plugin source paths and subscriptions without native SDK checks", () => {
     for (const path of [
       ".gitmodules",
       "plugins/goal",

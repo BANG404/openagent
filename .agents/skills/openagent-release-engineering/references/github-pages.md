@@ -18,7 +18,7 @@ copy describes continuations arranged and managed through the Agent's hook tools
 
 ## Build and preview
 
-Install the site package without initializing private SDK or plugin submodules:
+Install the site package without initializing the private SDK or independent plugin checkouts:
 
 ```sh
 cd website/docs

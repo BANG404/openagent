@@ -78,6 +78,8 @@ state under `~/.openagent`.
 ## Repository boundaries
 - `sdk/` is a pinned private submodule. Commit and push SDK changes there first,
   then commit only its gitlink and required host/frontend integration here.
+- `plugins/` contains independent ignored repositories; `plugins/dev-index.json`
+  subscribes to their branches. Plugin updates require no parent gitlink or release.
 - `src-tauri/` contains thin entry points, Tauri plugins and commands, event
   adapters, desktop capabilities, build configuration, and packaging metadata.
   Runtime state machines and transport ownership stay in the SDK. Multi-Agent
@@ -143,8 +145,6 @@ layout-stable skeleton.
   `tauri-pilot` black-box scenario, including light/dark themes and Chinese/English where applicable. See `.agents/skills/openagent-desktop-host/references/native-verification.md`.
 
 ## Delivery
-Every repository-changing task uses `deliver-via-owt`: implement in isolated worktrees,
-verify, and fast-forward into local `main`, keeping the default directory available for debugging.
+Every repository-changing task uses `deliver-via-owt`: implement in isolated worktrees, verify, and fast-forward into local `main`, keeping the default directory available for debugging.
 Batches coordinate concurrent tasks; the skill owns preservation, reconciliation, and cleanup.
-The workspace owner authorizes plugin updates and pushes, and proactive synchronization and pushes of verified
-repository changes to remote `main` without further confirmation. User instructions override delivery.
+The workspace owner authorizes plugin updates and pushes, and proactive synchronization and pushes of verified repository changes to remote `main` without further confirmation. User instructions override delivery.

@@ -7,6 +7,13 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { readPluginDevIndex, resolvePluginDevPath } from "./plugin-dev-paths.mjs";
 
+/** @param {string} path */
+const subscription = (path) => ({
+  path,
+  repository: "https://github.com/example/goal.git",
+  branch: "main",
+});
+
 describe("tracked plugin development index", () => {
   test("resolves portable paths without .env and validates package identity", () => {
     const root = mkdtempSync(join(tmpdir(), "plugin-dev-"));
@@ -16,7 +23,7 @@ describe("tracked plugin development index", () => {
       const manifest = join(directory, "plugin.json");
       writeFileSync(manifest, JSON.stringify({ name: "goal", version: "2.2.0" }));
       const indexFile = join(root, "dev-index.json");
-      writeFileSync(indexFile, JSON.stringify({ goal: "directory with spaces" }));
+      writeFileSync(indexFile, JSON.stringify({ goal: subscription("directory with spaces") }));
       const index = readPluginDevIndex({ indexFile });
       expect(resolvePluginDevPath(index, "goal")).toEqual({
         id: "goal",
@@ -52,14 +59,17 @@ describe("tracked plugin development index", () => {
         '{"goal":""}',
         '{"goal":"."}',
         '{"goal":"../outside"}',
-        JSON.stringify({ goal: root }),
+        JSON.stringify({ goal: subscription(root) }),
+        JSON.stringify({ goal: subscription("../outside") }),
+        JSON.stringify({ goal: { ...subscription("goal"), repository: "file:///tmp/goal" } }),
+        JSON.stringify({ goal: { ...subscription("goal"), branch: "../main" } }),
       ]) {
         writeFileSync(indexFile, raw);
         expect(() => readPluginDevIndex({ indexFile })).toThrow();
       }
-      writeFileSync(indexFile, JSON.stringify({ goal: "goal" }));
+      writeFileSync(indexFile, JSON.stringify({ goal: subscription("goal") }));
       const index = readPluginDevIndex({ indexFile });
-      expect(() => resolvePluginDevPath(index, "goal")).toThrow("prepare-submodules.mjs");
+      expect(() => resolvePluginDevPath(index, "goal")).toThrow("prepare-plugin-sources.mjs");
       mkdirSync(join(root, "goal"));
       expect(() => resolvePluginDevPath(index, "goal")).toThrow("has no plugin.json");
     } finally {
@@ -74,7 +84,7 @@ describe("tracked plugin development index", () => {
       writeFileSync(join(outside, "plugin.json"), JSON.stringify({ name: "goal", version: "1" }));
       symlinkSync(outside, join(root, "goal"), process.platform === "win32" ? "junction" : "dir");
       const indexFile = join(root, "dev-index.json");
-      writeFileSync(indexFile, JSON.stringify({ goal: "goal" }));
+      writeFileSync(indexFile, JSON.stringify({ goal: subscription("goal") }));
       expect(() => resolvePluginDevPath(readPluginDevIndex({ indexFile }), "goal")).toThrow(
         "escapes plugins",
       );

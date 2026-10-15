@@ -84,7 +84,7 @@ uses every script test plus the policy test names in `test-selection.mjs`.
 New frontend tests are discovered without a registry edit. New policy tests
 under `tests/` must join that automation name set and the module classifier.
 
-Shared dependencies, SDK/plugin gitlinks, resources, workflow/selector changes,
+Shared dependencies, SDK gitlinks and plugin subscriptions, resources, workflow/selector changes,
 an unavailable CI baseline, or changed paths without known dependency coverage
 fall back to complete scope coverage. Deletions participate in classification
 and selection. Never suppress an unmatched source path or treat zero selected
@@ -105,20 +105,11 @@ bun scripts/run-selected-tests.mjs --scope frontend --base main --dry-run
 bun scripts/run-selected-tests.mjs --scope automation --all --dry-run
 ```
 
-Plugin gitlinks, `plugins/` source indexes, and `.gitmodules` changes select
-automation and frontend checks, including Message Board integration coverage.
-Frontend and automation jobs initialize only the pinned `plugins` submodules
-before validation; private SDK checkout keeps its separate token and fork route.
-Publish accepted package commits before advancing their parent gitlinks so clean
-CI checkouts can retrieve the pinned revisions. Plugin source changes alone do
-not select native or embedding checks.
-
-Automation fetches plugin tags and runs the
-[source version guard](../../openagent-plugin-development/references/versioning.md#release-validation-and-reuse)
-against the supplied PR/merge/release baseline. Local preflight runs the same
-guard against its OWT base before module checks. A changed plugin gitlink requires
-a source manifest version increase even before a release tag exists; tagged
-version collisions are also rejected.
+Plugin source subscriptions and `.gitmodules` changes select automation and
+frontend checks. These jobs clone independent repositories from subscribed
+branches; private SDK checkout keeps its separate token and fork route. Ordinary
+plugin pushes do not select host CI. Host preflight does not compare source
+versions with parent history; publication checks clean snapshots and immutable tags.
 
 The pre-push source boundary checks every commit introduced by a push using
 `.githooks/public-host-sources.txt`. Retain entries for retired public Tauri

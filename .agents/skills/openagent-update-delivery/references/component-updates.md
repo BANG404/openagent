@@ -193,7 +193,7 @@ preserve installed bytes/data and retry on the next startup. Debug Runtime
 bootstrap retains explicit plugin updates. Synchronization uses an eight-second
 network budget so existing desktop readiness deadlines continue to apply.
 The plugin contract owns schema, selection, publication and retry details.
-SDK and desktop Runtime publication run the pinned
+SDK and desktop Runtime publication run the independent
 standard-package pipeline; desktop publication requires that pipeline to succeed.
 
 Ordinary debug and release desktop builds use one supervised external

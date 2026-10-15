@@ -26,20 +26,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Initialize pinned plugin sources
+      - name: Prepare independent plugin sources
         run: |
-          git submodule update --init --recursive -- plugins
-          git submodule foreach --recursive 'git fetch --tags origin'
-
-      - name: Require source-owned plugin versions
-        env:
-          PLUGIN_BASE_SHA: ${{ inputs.base_sha }}
-        run: |
-          base="$PLUGIN_BASE_SHA"
-          if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
-            base="$(git rev-parse HEAD^)"
-          fi
-          node scripts/plugin-release.mjs --verify --base "$base"
+          node scripts/prepare-plugin-sources.mjs
 
       - name: Resolve pinned SDK revision
         id: sdk

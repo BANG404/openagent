@@ -2,6 +2,9 @@
 node_modules/
 coverage/
 
+# Independent plugin source checkouts
+plugins/*/
+
 # Build outputs
 build/
 dist/

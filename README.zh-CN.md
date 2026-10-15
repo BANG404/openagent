@@ -171,7 +171,7 @@ flowchart LR
 | `src/`               | Svelte 路由、功能控制器、组件、本地化与流式内容渲染。 |
 | `src-tauri/`         | 原生宿主适配、资源协议、进程监督与打包。              |
 | `sdk/`               | 固定版本的私有 Runtime 与类型化传输／客户端源码。     |
-| `plugins/`           | 固定版本的独立插件仓库与本地开发索引。                |
+| `plugins/`           | 独立插件仓库与主分支订阅清单。                |
 | `scripts/`、`tests/` | 环境准备、检查、发布自动化与确定性验证。              |
 | `.agents/skills/`    | 按领域组织的架构约定与贡献流程。                      |
 
@@ -181,7 +181,7 @@ flowchart LR
 
 编辑前阅读 [`AGENTS.md`](AGENTS.md) 和适用领域的技能。仓库变更使用[隔离 OWT 工作树](.agents/skills/deliver-via-owt/SKILL.md)：默认目录留在本地 `main`，在任务工作树实现和验证，再将验证结果快进合入。提交前检查完整差异、暂存目标文件，并执行 `bun run preflight`；提交采用 Conventional Commits。
 
-行为变化需要同步更新主要归属文档。可见桌面变化还需执行对应的真实窗口[原生黑盒场景](.agents/skills/openagent-desktop-host/references/native-verification.md)。修改 SDK 或插件时，先遵循各自仓库说明，再推进父仓库 gitlink。
+行为变化需要同步更新主要归属文档。可见桌面变化还需执行对应的真实窗口[原生黑盒场景](.agents/skills/openagent-desktop-host/references/native-verification.md)。SDK 改动先按其仓库说明交付，再推进父仓库 gitlink；插件独立发布，无需同步修改主仓库或发布桌面应用。
 
 Runtime 真模型检查遵循 SDK 内部说明，环境变量模板见 [`.env.example`](.env.example)。`bun run test:sonar` 在向本地配置的 SonarQube 提交分析前，执行宿主与 SDK 测试门禁。
 

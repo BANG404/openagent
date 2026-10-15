@@ -47,8 +47,10 @@ test("every official package source and marketplace entry declares the complete 
     expect([...sourceI18n.supported_locales].sort(), entry.id).toEqual(
       [...PLATFORM_LOCALES].sort(),
     );
-    expect(entry.version, entry.id).toBe(manifest.version);
-    expect(entry.i18n, entry.id).toEqual(sourceI18n);
+    // Discovery metadata and moving source checkouts have independent lifetimes.
+    expect([...entry.i18n!.supported_locales].sort(), entry.id).toEqual(
+      [...PLATFORM_LOCALES].sort(),
+    );
   }
 });
 test("locale resolves exact, base, and declared fallback without inventing support", () => {

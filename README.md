@@ -174,7 +174,7 @@ flowchart LR
 | `src/`               | Svelte routes, feature controllers, components, localization, and streamed rendering. |
 | `src-tauri/`         | Native host adapters, resource protocols, process supervision, and packaging.         |
 | `sdk/`               | Pinned private Runtime and typed transport/client source.                             |
-| `plugins/`           | Pinned independent plugin repositories and the local development index.               |
+| `plugins/`           | Independent plugin checkouts and branch subscriptions.               |
 | `scripts/`, `tests/` | Preparation, checks, release automation, and deterministic verification.              |
 | `.agents/skills/`    | Focused architecture contracts and contributor workflows.                             |
 
@@ -184,7 +184,7 @@ The host remains thin; runtime state machines and durable data belong to the SDK
 
 Read [`AGENTS.md`](AGENTS.md) and the applicable subsystem skill before editing. Repository changes use [isolated OWT worktrees](.agents/skills/deliver-via-owt/SKILL.md): preserve the default checkout on local `main`, implement and verify in a task worktree, then fast-forward the verified result back. Inspect the complete diff, stage intended files, and run `bun run preflight` before a Conventional Commit.
 
-Update the primary owner documentation when behavior changes. Visible desktop changes also require the matching real-window [native black-box scenario](.agents/skills/openagent-desktop-host/references/native-verification.md). SDK and plugin changes follow their own repository instructions before the parent gitlink is advanced.
+Update the primary owner documentation when behavior changes. Visible desktop changes also require the matching real-window [native black-box scenario](.agents/skills/openagent-desktop-host/references/native-verification.md). SDK changes advance the parent gitlink after SDK delivery. Plugins follow their own repository instructions and publish independently without a parent commit or desktop release.
 
 For runtime model checks, use the SDK-owned instructions and [`.env.example`](.env.example). `bun run test:sonar` runs the host and SDK test gates before submitting analysis to the locally configured SonarQube instance.
 

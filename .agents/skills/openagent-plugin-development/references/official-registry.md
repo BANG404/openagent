@@ -31,30 +31,25 @@ with explicit `TAURI_PILOT_SOCKET`. Its network boundary fixtures drive the real
 Plugins controls in light/dark and English/Chinese; no packages are installed.
 
 Each entry requires a lowercase plugin id, a display name, an HTTPS repository,
-and an HTTPS `source_url`. The checked-in `version` is copied from that
-repository's root `plugin.json` during catalog generation, so the store can
-show package versions without a GitHub API credential. `source_url` may point to
+and an HTTPS `source_url`. Official entries use their repository address as a
+release subscription, without a checked-in version or archive digest. Runtime
+resolves the newest compatible stable Release and verifies its digest, package
+identity and manifest version before first installation. Installed manifests own
+displayed versions; discovery does not claim the moving source's version.
+The generic registry format also permits `source_url` to point to
 a public Git repository or
 an archive that the existing Runtime marketplace installer understands. Optional
 `sha256` values use the `sha256:<64 hex characters>` form. Credentials,
 fragments, duplicate ids, unsupported schema versions, and oversized catalogs
 are rejected before a source is passed to the installer.
 
-Advance a package gitlink, its reviewed catalog version and the explicit catalog
-test expectations together. Source-manifest parity remains a required check.
-This applies to release-qualification fixes in package state or tests as well;
-the parent catalog must advertise the newly pinned source version before full
-frontend qualification runs.
-When the pinned source version has no published archive, use its published Git
-repository as `source_url` and omit the archive digest. Do not advertise an older
-release archive under a newer catalog version. Replace the Git source with the
-verified archive URL and digest when that version is released.
-Plugin Kit 1.12.0 defines explicit conversation and per-model observations and
-content-free context session identity.
-Its catalog source follows published Git while the immutable package archive is
-unreleased. Langfuse 0.4.0 is an independent published integration: its catalog
-entry uses the verified immutable archive and digest, and its source is a pinned
-submodule in the development index.
+Publishing an existing plugin requires only its own repository and release
+pipeline. The rolling feed discovers that release without a host commit or
+application release. Never install an unpublished main revision as a fallback
+when no compatible Release exists. Parent catalog edits are reserved for source
+identity, presentation, category, addition or withdrawal, not routine package
+version bumps. Development branches follow the independent source subscriptions
+in [local development](local-development.md#independent-source-checkouts).
 
 Optional `i18n` entries use the validated `AgentPluginI18n` presentation shape.
 Uninstalled cards use catalog declarations; installed cards refresh from the
@@ -111,7 +106,7 @@ failure must not trigger per-package API fallback. The registry and marketplace
 installer accept credential-free HTTPS URLs without a query or fragment.
 
 Update the reviewed catalog and this contract together when an official plugin is
-published, renamed, withdrawn, or moved. Keep private provider credentials out
+added, renamed, withdrawn, or moved. Keep private provider credentials out
 of the registry. Focused coverage lives in `tests/officialPluginRegistry.test.ts`.
 
 The catalog distinguishes Plugin Developer / 插件开发助手 (`openagent-plugin-kit`,
@@ -184,8 +179,8 @@ Small archives can finish while the surface is closed: the retained queue task
 and installed card qualify completion, and the absence of another Install action
 qualifies duplicate protection after the progress button disappears.
 
-The twelve independently maintained Claude external adaptations use immutable
-release archive URLs and SHA-256 catalog entries. Lifecycle qualification calls
+The twelve independently maintained Claude external adaptations subscribe to
+compatible immutable Releases with verified SHA-256 digests. Lifecycle qualification calls
 their `integration_status` setup tool so missing external accounts cannot be
 mistaken for broken package installation. Fakechat additionally requires Plugin
 Kit's production receive/Host Bridge/Agent/reply scenario; authenticated services
@@ -234,7 +229,7 @@ WebView screenshot, which does not qualify native layout.
 For Goal, Graph, and Chat Groups functional qualification, run
 `bun run test:blackbox:plugin-functionality` against the same isolated window.
 Resolve each checkout through the tracked `plugins/dev-index.json` described in
-[local development](local-development.md); initialize the pinned plugin submodules
+[local development](local-development.md); initialize the independent plugin repositories
 in the qualification worktree.
 This exercises installed package commands and tools with
 a deterministic local model, including Goal completion, Graph child execution,

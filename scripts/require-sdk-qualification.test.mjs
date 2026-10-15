@@ -76,7 +76,7 @@ describe("immutable SDK qualification for plugin publication", () => {
     );
     const gate = source.indexOf("bun scripts/require-sdk-qualification.mjs");
     expect(gate).toBeGreaterThan(source.indexOf("git -C sdk merge-base --is-ancestor"));
-    expect(gate).toBeLessThan(source.indexOf("Initialize pinned standard package sources"));
+    expect(gate).toBeLessThan(source.indexOf("Synchronize independent standard package sources"));
     expect(source).not.toContain('/commits/$SDK_SHA/status"');
   });
 });

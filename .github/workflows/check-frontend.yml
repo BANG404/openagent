@@ -34,8 +34,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Initialize pinned plugin sources
-        run: git submodule update --init --recursive -- plugins
+      - name: Prepare independent plugin sources
+        run: node scripts/prepare-plugin-sources.mjs
 
       - name: Resolve pinned SDK revision
         id: sdk

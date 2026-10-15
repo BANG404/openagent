@@ -96,42 +96,21 @@ describe("official plugin registry", () => {
       "terraform",
     ]);
     expect(findOfficialPlugin(registry, "goal")?.sourceUrl).toBe(
-      "https://github.com/BANG404/openagent-goal.git",
+      "https://github.com/BANG404/openagent-goal",
     );
-    expect(registry.plugins.map((plugin) => plugin.version)).toEqual([
-      "3.0.2",
-      "2.2.2",
-      "1.0.8",
-      "1.3.1",
-      "1.1.2",
-      "1.12.0",
-      "0.2.0",
-      "0.1.1",
-      "0.2.0",
-      "0.1.2",
-      "0.2.0",
-      "0.2.0",
-      "0.1.0",
-      "0.1.0",
-      "0.4.0",
-      "0.2.0",
-      "0.1.1",
-      "0.1.1",
-      "0.2.0",
-    ]);
+    expect(registry.plugins.every((plugin) => plugin.version === undefined)).toBe(true);
+    expect(registry.plugins.every((plugin) => plugin.sourceUrl === plugin.repository)).toBe(true);
     expect(findOfficialPlugin(registry, "message-board")?.sourceUrl).toBe(
-      "https://github.com/BANG404/message-board.git",
+      "https://github.com/BANG404/message-board",
     );
     expect(findOfficialPlugin(registry, "openagent-plugin-kit")?.sourceUrl).toBe(
       "https://github.com/BANG404/openagent-plugin-kit",
     );
     expect(findOfficialPlugin(registry, "openagent-plugin-kit")?.sha256).toBeUndefined();
     expect(findOfficialPlugin(registry, "langfuse")?.sourceUrl).toBe(
-      "https://github.com/BANG404/openagent-langfuse/releases/download/v0.4.0/langfuse-0.4.0.zip",
+      "https://github.com/BANG404/openagent-langfuse",
     );
-    expect(findOfficialPlugin(registry, "langfuse")?.sha256).toBe(
-      "sha256:22fccdb6fbf9904c60f304e179bcf7333a31e3513f02aa71a297fe15e3f1c22a",
-    );
+    expect(findOfficialPlugin(registry, "langfuse")?.sha256).toBeUndefined();
     expect(findOfficialPlugin(registry, "discord")).toBeUndefined();
     expect(findOfficialPlugin(registry, "telegram")).toBeUndefined();
   });

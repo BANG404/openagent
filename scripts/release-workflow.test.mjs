@@ -143,43 +143,15 @@ describe("release workflow publication gates", () => {
     expect(step).not.toContain("--pattern 'openagent-server-*'");
   });
 
-  test("plugin tag setup excludes the separately checked-out private SDK", async () => {
+  test("plugin publication synchronizes moving sources once before staging", async () => {
     const source = (
       await readFile(new URL("../.github/workflows/plugin-releases.yml", import.meta.url), "utf8")
     ).replaceAll("\r\n", "\n");
-    const step = source.slice(
-      source.indexOf("      - name: Initialize pinned standard package sources"),
-    );
-    const runSource = step.match(/ {8}run: \|\n((?: {10}.*\n|\n)+)/)?.[1].replace(/^ {10}/gm, "");
-    expect(runSource).toBeDefined();
-    const mockGit = `
-git() {
-  if [[ "$1 $2" == "submodule update" ]]; then return 0; fi
-  if [[ "$1 $2" == "submodule foreach" ]]; then
-    local displaypath
-    for displaypath in plugins/chat-groups plugins/goal/nested sdk; do
-      eval "$4" || return $?
-    done
-  elif [[ "$1" == "fetch" ]]; then
-    if [[ "$displaypath" == sdk ]]; then echo 'private SDK fetch denied' >&2; return 128; fi
-    echo "$displaypath"
-  else
-    return 2
-  fi
-}
-`;
-    const result = spawnSync(
-      "bash",
-      ["--noprofile", "--norc", "-e", "-o", "pipefail", "-c", mockGit + (runSource ?? "")],
-      {
-        encoding: "utf8",
-        timeout: 5000,
-      },
-    );
-    expect(result.error).toBeUndefined();
-    expect(result.status).toBe(0);
-    expect(result.stdout).toBe("plugins/chat-groups\nplugins/goal/nested\n");
-    expect(result.stderr).toBe("");
+    const sync = source.indexOf("bun scripts/prepare-plugin-sources.mjs --update");
+    expect(sync).toBeGreaterThan(0);
+    expect(source.match(/prepare-plugin-sources\.mjs/g)).toHaveLength(1);
+    expect(source.indexOf("scripts/plugin-release.mjs --output")).toBeGreaterThan(sync);
+    expect(source).not.toContain("git submodule");
   });
 
   test("Runtime publication credentials fail before expensive qualification", async () => {

@@ -68,14 +68,14 @@ manifest edits alone do not.
 
 ## Release validation and reuse
 
-`scripts/plugin-release.mjs --verify --base <host-base-sha>` checks clean pinned
-package sources, immutable tag ownership and version increases across changed
-parent gitlinks. Local preflight supplies its recorded OWT baseline; automation
-CI supplies the PR/merge/release baseline and fetches package tags first. The
-guard does not require the private Rust SDK, so fork automation can run it.
+`scripts/plugin-release.mjs --verify` checks clean independent source snapshots
+and immutable tag ownership. Host preflight does not compare moving package
+versions with parent history. Version increases belong to each plugin repository
+and its published tags. Source subscriptions require no private SDK, including fork CI.
 
 `plugin-releases.yml` uses the exact qualified Runtime contract to stage and test
-pinned standard packages. It uses source versions verbatim, checks protocol
+independent standard packages resolved once from subscribed branches. It uses
+source versions verbatim, checks protocol
 ranges, then publishes missing releases or reuses exact existing ones. New
 automation tags remain `plugin-vX.Y.Z` to avoid triggering package-owned manual
 tag workflows; matching manual `vX.Y.Z` tags are reusable as well. A tag without

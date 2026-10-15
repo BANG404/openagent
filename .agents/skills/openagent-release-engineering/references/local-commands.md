@@ -3,7 +3,7 @@
 Use Bun 1.3.14, matching `package.json` and CI, plus Node.js for scripts that
 invoke `node`. Native builds use a current stable Rust toolchain and the
 platform's Tauri dependencies. Complete source preparation requires access to
-the pinned private SDK and the public plugin submodules.
+the pinned private SDK and the independent public plugin repositories.
 Keep every workflow's Bun setup and the README prerequisites aligned with
 `package.json`. Preflight checks the actual Bun version before launching any
 checks and rejects mismatches with an upgrade instruction. Bun 1.3.14 is the
@@ -20,12 +20,13 @@ bun run prepare:worktree:dev --native   # Only for a desktop/native scenario
 bun run dev:desktop:source
 ```
 
-Preparation initializes pinned submodules, installs the frozen Bun lockfile,
+Preparation initializes the pinned SDK and independent plugin subscriptions,
+installs the frozen Bun lockfile,
 materializes the pinned SDK source client, and stages the checksummed portable
 Node.js and terminal tools required by Tauri compile checks. Its submodule
 preparation preserves LF bytes from the first checkout and repairs unchanged
 legacy CRLF conversions;
-see [pinned plugin checkouts](../../openagent-plugin-development/references/local-development.md#pinned-source-checkouts)
+see [independent plugin checkouts](../../openagent-plugin-development/references/local-development.md#independent-source-checkouts)
 for configuration and edit-preservation boundaries. The default development command
 does not compile Rust; `--native` additionally builds and stages the platform's
 sandbox helpers and Runtime sidecar. Release preparation still builds both.

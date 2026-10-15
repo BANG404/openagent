@@ -77,6 +77,7 @@
     "test:blackbox:plugin-functionality": "bun scripts/test-official-plugin-functionality.mjs",
     "test:blackbox:message-board": "bun scripts/test-message-board-blackbox.mjs",
     "plugin:dev": "bun scripts/plugin-dev.mjs",
+    "plugin:sync": "bun scripts/prepare-plugin-sources.mjs --update",
     "test:blackbox:goal-scroll": "bun scripts/test-goal-scroll-blackbox.mjs",
     "test:blackbox:goal-controls": "bun scripts/test-goal-controls-blackbox.mjs",
     "test:blackbox:goal-approval": "bun scripts/test-goal-approval-blackbox.mjs",

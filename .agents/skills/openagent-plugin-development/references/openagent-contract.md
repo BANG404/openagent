@@ -51,7 +51,7 @@ and name/version agreement before atomic replacement. No host-access grant or
 plugin enablement setting is changed. Plugin data migrations remain package-owned.
 
 Package authors determine versions and verified protocol ranges during the
-change, following [plugin versioning](versioning.md). Pinned standard package
+change, following [plugin versioning](versioning.md). Independent standard package
 publication uses `scripts/plugin-release.mjs` and `plugin-releases.yml` to validate
 and package those source identities without rewriting manifests. Every staged
 package is tested before publication; unchanged source reuses an existing

@@ -2,8 +2,8 @@ import { afterAll, describe, expect, setDefaultTimeout, test } from "bun:test";
 import {
   planPluginRelease,
   pluginProtocolRange,
-  releasePinnedPlugins,
-  verifyPinnedPluginVersions,
+  releasePlugins,
+  verifyPluginSources,
 } from "./plugin-release.mjs";
 import { execFileSync } from "node:child_process";
 import {
@@ -81,23 +81,32 @@ function fixtureSource(root, prepared) {
   const sdk = join(root, "sdk");
   if (!prepared) {
     git(source, ["tag", "v1.0.0"]);
-    writeFileSync(join(root, "plugins", "dev-index.json"), JSON.stringify({ demo: "demo" }));
+    writeFileSync(
+      join(root, "plugins", "dev-index.json"),
+      JSON.stringify({
+        demo: {
+          path: "demo",
+          repository: "https://github.com/example/demo",
+          branch: "main",
+        },
+      }),
+    );
     mkdirSync(join(root, "sdk/rust/openagent-protocol/src"), { recursive: true });
     writeFileSync(protocolFile, "pub const PLUGIN_PROTOCOL_VERSION: u32 = 1;");
     initializeFixtureRepository(sdk);
     git(sdk, ["add", "."]);
     git(sdk, ["commit", "-m", "feat: protocol"]);
   }
-  /** @param {string} sha */
-  const pin = (sha) => {
+  /** @param {string} _sha */
+  const checkpoint = (_sha) => {
     git(root, ["add", "plugins/dev-index.json", "sdk"]);
-    git(root, ["update-index", "--add", "--cacheinfo", "160000", sha, "plugins/demo"]);
-    git(root, ["commit", "-m", "feat: pin package"]);
+
+    git(root, ["commit", "--allow-empty", "-m", "feat: checkpoint package"]);
     return git(root, ["rev-parse", "HEAD"]);
   };
-  const base = prepared?.base ?? pin(initial);
+  const base = prepared?.base ?? checkpoint(initial);
   const output = join(root, "candidates");
-  return { root, source, manifest, initial, base, output, protocolFile, commitSource, pin };
+  return { root, source, manifest, initial, base, output, protocolFile, commitSource, checkpoint };
 }
 
 // Copy a committed seed into each independent test root. This preserves real
@@ -201,13 +210,13 @@ describe("source-owned plugin release versions", () => {
       );
     }
   });
-  test("packages pinned bytes without rewriting the source manifest or compatibility", () => {
-    withFixture(({ root, source, manifest, output, commitSource, pin }) => {
+  test("packages snapshot bytes without rewriting the source manifest or compatibility", () => {
+    withFixture(({ root, source, manifest, output, commitSource, checkpoint }) => {
       manifest.version = "1.1.0";
       writeFileSync(join(source, "README.md"), "Changed standard code");
       const sha = commitSource("fix: standard package");
-      pin(sha);
-      expect(releasePinnedPlugins({ root, output, publish: false })[0]).toMatchObject({
+      checkpoint(sha);
+      expect(releasePlugins({ root, output, publish: false })[0]).toMatchObject({
         version: "1.1.0",
         source_sha: sha,
         publish: true,
@@ -237,10 +246,10 @@ describe("source-owned plugin release versions", () => {
   });
   test("repeated staging excludes files retained from earlier package candidates", () => {
     withFixture(({ root, output }) => {
-      releasePinnedPlugins({ root, output, publish: false });
+      releasePlugins({ root, output, publish: false });
       mkdirSync(join(output, "demo"));
       writeFileSync(join(output, "demo", "stale-secret.txt"), "retained output");
-      releasePinnedPlugins({ root, output, publish: false });
+      releasePlugins({ root, output, publish: false });
       const members = execFileSync(tar, ["-tf", join(output, "demo-1.0.0.tar.gz")], {
         encoding: "utf8",
       });
@@ -250,51 +259,48 @@ describe("source-owned plugin release versions", () => {
       );
     });
   });
-  test("requires a version bump for changed pins even when no release tag exists", () => {
-    withFixture(({ root, source, base, commitSource, pin }) => {
+  test("source can advance without changing the parent commit or index", () => {
+    withFixture(({ root, source, base, commitSource }) => {
       git(source, ["tag", "-d", "v1.0.0"]);
       writeFileSync(join(source, "README.md"), "Changed content");
-      pin(commitSource("docs: package instructions"));
-      expect(() => verifyPinnedPluginVersions(root, base)).toThrow(
-        "changed source without advancing version",
-      );
+      const sha = commitSource("docs: package instructions");
+      expect(verifyPluginSources(root)[0].sha).toBe(sha);
+      expect(git(root, ["rev-parse", "HEAD"])).toBe(base);
     });
   });
   test("accepts an advanced source version against the parent baseline", () => {
-    withFixture(({ root, manifest, base, commitSource, pin }) => {
+    withFixture(({ root, manifest, commitSource, checkpoint }) => {
       manifest.version = "1.0.1";
-      pin(commitSource("fix: package behavior"));
-      expect(verifyPinnedPluginVersions(root, base)[0].plan.version).toBe("1.0.1");
+      checkpoint(commitSource("fix: package behavior"));
+      expect(verifyPluginSources(root)[0].plan.version).toBe("1.0.1");
     });
   });
   test("rejects dirty source and incompatible Runtime protocols", () => {
     withFixture(({ root, source, output, protocolFile }) => {
       writeFileSync(join(source, "README.md"), "Uncommitted");
-      expect(() => releasePinnedPlugins({ root, output, publish: false })).toThrow(
-        "clean pinned source",
+      expect(() => releasePlugins({ root, output, publish: false })).toThrow(
+        "clean source checkout",
       );
       rmSync(join(source, "README.md"));
       writeFileSync(protocolFile, "pub const PLUGIN_PROTOCOL_VERSION: u32 = 2;");
-      expect(() => releasePinnedPlugins({ root, output, publish: false })).toThrow(
+      expect(() => releasePlugins({ root, output, publish: false })).toThrow(
         "does not support protocol 2",
       );
     });
   });
   test("rejects changed source without a source version bump", () => {
-    withFixture(({ root, source, output, commitSource, pin }) => {
+    withFixture(({ root, source, output, commitSource, checkpoint }) => {
       writeFileSync(join(source, "README.md"), "Changed package");
-      pin(commitSource("feat!: breaking change"));
-      expect(() => releasePinnedPlugins({ root, output, publish: false })).toThrow(
-        "different source",
-      );
+      checkpoint(commitSource("feat!: breaking change"));
+      expect(() => releasePlugins({ root, output, publish: false })).toThrow("different source");
     });
   });
   test("preserves the protocol-1 default without adding a declaration to package bytes", () => {
-    withFixture(({ root, manifest, output, commitSource, pin }) => {
+    withFixture(({ root, manifest, output, commitSource, checkpoint }) => {
       manifest.version = "1.0.1";
       Reflect.deleteProperty(manifest, "extensions");
-      pin(commitSource("fix: legacy package"));
-      expect(releasePinnedPlugins({ root, output, publish: false })[0].plugin_protocol).toEqual({
+      checkpoint(commitSource("fix: legacy package"));
+      expect(releasePlugins({ root, output, publish: false })[0].plugin_protocol).toEqual({
         min: 1,
         max: 1,
       });
@@ -324,7 +330,7 @@ describe("source-owned plugin release versions", () => {
           ]);
         return JSON.stringify({ object: { type: "commit", sha: initial } });
       };
-      expect(releasePinnedPlugins({ root, output, publish: true, runGh })[0].tag).toBe("v1.0.0");
+      expect(releasePlugins({ root, output, publish: true, runGh })[0].tag).toBe("v1.0.0");
       expect(calls.some((args) => args.includes("create"))).toBe(false);
     });
   });
@@ -343,7 +349,7 @@ describe("source-owned plugin release versions", () => {
           });
         return JSON.stringify({ object: { type: "commit", sha: initial } });
       };
-      releasePinnedPlugins({ root, output, publish: true, runGh });
+      releasePlugins({ root, output, publish: true, runGh });
       expect(calls.find((args) => args.includes("create"))).toContain("v1.0.0");
       expect(calls.find((args) => args.includes("create"))).toContain(initial);
     });
@@ -378,7 +384,7 @@ describe("source-owned plugin release versions", () => {
             object: { type: "commit", sha: failure === "source" ? "wrong" : initial },
           });
         };
-        expect(() => releasePinnedPlugins({ root, output, publish: true, runGh })).toThrow();
+        expect(() => releasePlugins({ root, output, publish: true, runGh })).toThrow();
       });
     },
   );
