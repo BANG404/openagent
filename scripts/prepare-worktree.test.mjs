@@ -1,6 +1,6 @@
 import { afterAll, expect, test } from "bun:test";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -76,6 +76,15 @@ test("recursive first checkout preserves LF despite inherited Windows autocrlf",
   // Future checkout without the helper also keeps artifact bytes unchanged.
   rmSync(join(plugin, "artifact"));
   git(plugin, ["checkout-index", "--force", "--", "artifact"]);
+  expect(readFileSync(join(plugin, "artifact"), "utf8")).toBe("first\nsecond\n");
+}, 60_000);
+
+test("private source stays optional until explicitly prepared", () => {
+  const { root, env, git, plugin } = checkoutFixture();
+  git(root, ["config", "-f", ".gitmodules", "submodule.plugin.update", "none"]);
+  git(root, ["submodule", "update", "--init", "--recursive"]);
+  expect(existsSync(join(plugin, "artifact"))).toBe(false);
+  expect(prepareSubmodules({ root, env }).submodules).toBe(2);
   expect(readFileSync(join(plugin, "artifact"), "utf8")).toBe("first\nsecond\n");
 }, 60_000);
 

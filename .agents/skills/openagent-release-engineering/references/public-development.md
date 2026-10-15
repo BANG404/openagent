@@ -6,6 +6,10 @@ repository name, release tags, signed manifest names and `sdk_sha` fields remain
 Runtime distribution identities. Never copy private Rust execution, prompts,
 persistence, provider implementations or internal documentation into `sdk/`.
 The reviewed public SDK file allowlist is `.githooks/public-sdk-sources.txt`.
+Public Rust product, configuration and protocol source lives in `crates/`.
+The private submodule declares `update = none`, so consuming public Git crates
+and ordinary recursive clones never fetch the private repository. Explicit
+source preparation overrides that default with `--checkout`.
 Preflight and the pre-push hook reject unlisted files, symlinks and private
 Runtime source in the public tree. Push verification also inspects immutable
 commits from before the directory split using their historical SDK gitlink.

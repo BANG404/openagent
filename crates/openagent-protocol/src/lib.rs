@@ -7,6 +7,8 @@
 
 use serde::{Deserialize, Serialize};
 use std::fmt;
+mod resources;
+pub use resources::*;
 
 pub const SDK_PROTOCOL_VERSION: u32 = 3;
 

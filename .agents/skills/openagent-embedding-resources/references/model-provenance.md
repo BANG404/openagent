@@ -22,15 +22,16 @@ configured user repairs resources in the setup window's Welcome step with the
 existing Start action; provider configuration is preserved. The design owner
 documents the status card's placement and startup's unknown-status behavior.
 
-The supervised `openagent-server` owns status inspection, seed installation or
-download, verification, progress events, and loading the verified model into its
-live Runtime. Tauri resolves an optional packaged seed path and proxies the typed
+Public `crates/openagent-app/src/embedding_resource.rs` owns status inspection,
+seed installation, download, verification and progress reporting. Resource DTOs
+and model identity live in the public protocol crate. The supervised server
+binds this policy to its live encoder and event channel. Tauri resolves an optional packaged seed path and proxies the typed
 operations and Runtime events; preparing the resource does not drain or restart
 the server. The explicit embedded debug mode retains a diagnostic host adapter
 with the same operation and event contract.
 The host's `embedding_adapter.rs` owns packaged seed discovery and embedded
 command forwarding; `embedded_host.rs` contains the diagnostic Runtime host
-bridge. Resource installation, verification, and activation stay in the SDK.
+bridge. Resource installation, verification, and activation use the public App.
 
 ## Plugin inference
 
@@ -82,5 +83,5 @@ vector migration; swapping files alone is not safe.
 Online shell provisioning downloads the exact model files alongside other signed
 release resources and passes their verified seed directory into the external
 Runtime. Offline distributions carry the same model files. The host does not
-load models or mark the SDK's persistent resource ready; Runtime retains provenance,
-checksums, installation and semantic load verification.
+load models. Public App retains provenance, checksums and installation; Runtime
+owns encoder loading and semantic inference verification.

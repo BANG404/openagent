@@ -1,6 +1,10 @@
+crates/openagent-app/src/bootstrap.rs
 crates/openagent-app/src/client.rs
+crates/openagent-app/src/defaults.rs
+crates/openagent-app/src/embedding_resource.rs
 crates/openagent-app/src/lib.rs
 crates/openagent-app/src/paths.rs
+crates/openagent-app/src/persistence.rs
 crates/openagent-app/src/process_lifetime.rs
 crates/openagent-app/src/runtime_process.rs
 crates/openagent-config/src/config.rs
@@ -11,3 +15,4 @@ crates/openagent-config/src/plugin_identity.rs
 crates/openagent-config/src/plugins.rs
 crates/openagent-protocol/examples/contract_api.rs
 crates/openagent-protocol/src/lib.rs
+crates/openagent-protocol/src/resources.rs

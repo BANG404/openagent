@@ -90,7 +90,7 @@ function repairCheckout(root, env) {
 /** @param {{ root?: string; env?: NodeJS.ProcessEnv }} [options] */
 export function prepareSubmodules({ root = projectRoot, env = process.env } = {}) {
   // Command configuration propagates into recursive clones before their first checkout.
-  git(root, env, ["submodule", "update", "--init", "--recursive"]);
+  git(root, env, ["submodule", "update", "--init", "--recursive", "--checkout"]);
   const directories = git(root, env, [
     "submodule",
     "foreach",

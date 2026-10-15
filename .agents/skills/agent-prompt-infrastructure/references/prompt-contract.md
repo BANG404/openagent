@@ -41,7 +41,8 @@ Skill discovery uses directory paths, visible counts, and names for global,
 project, and enabled plugin skills. Models inspect candidate SKILL.md metadata
 and instructions progressively. Categories are not required or generated.
 
-Product-bundled skills are owned and seeded by the SDK bootstrap into the global
+Product-bundled skills are owned by public `crates/openagent-app/resources/skills`
+and seeded by its product bootstrap into the global
 skill directory, preserving existing user instructions. The fixed terminal
 command conventions apply independently of skill discovery and role filtering;
 the contextual terminal declaration identifies the workspace's default shell

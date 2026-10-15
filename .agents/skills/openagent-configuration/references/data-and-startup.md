@@ -37,12 +37,20 @@ explicitly when a development run should use a specific fixture or deliberately
 share another root.
 
 Before constructing the desktop shell, the packaged `openagent-server` runs a
-short-lived, versioned bootstrap command. It inspects configuration and database
-compatibility inside the private SDK, returns locale and launch inputs as JSON,
+short-lived, versioned bootstrap command. Public App policy inspects the shared
+configuration contract and asks the engine's storage-maintenance adapter about
+database compatibility, then returns locale and launch inputs as JSON,
 and exits. When a destructive transition is required, Tauri presents the user
 confirmation and asks that command to perform the backup and reset before it
 starts the long-lived supervised server. The ordinary Tauri binary therefore
 does not link the private SDK Rust crates.
+`crates/openagent-app/src/persistence.rs` owns transition scope and backup
+destinations. It finishes every requested backup before resetting either scope;
+the private adapter alone inspects, backs up and resets conversation storage.
+Supported storage upgrades require restart, never a destructive reset. Public
+`openagent-config` owns config normalization and atomic persistence; the running
+server remains the authoritative settings writer. Initial product preparation
+runs before execution services, and fails if a fresh config cannot be persisted.
 The host adapters live in `src-tauri/src/desktop_bootstrap/`: mode selection
 composes prepared inputs, persistence presents the existing backup confirmation,
 and external startup selects verified or packaged binaries. They do not inspect

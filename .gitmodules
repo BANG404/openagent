@@ -1,3 +1,4 @@
 [submodule "sdk"]
 	path = runtime
 	url = git@github.com:BANG404/openagent-sdk.git
+	update = none
