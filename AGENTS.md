@@ -1,13 +1,12 @@
 # OpenAgent contributor map
-OpenAgent is a Tauri 2 desktop app. SvelteKit owns presentation and interaction
-state, the private `sdk` submodule owns runtime behavior and typed transports,
-and `src-tauri` is a thin desktop host. The project is in active debugging; do
+OpenAgent is a Tauri 2 app: SvelteKit owns UI, `sdk/typescript` owns public clients,
+`runtime` is the private execution submodule, and `src-tauri` is a thin desktop host. The project is in active debugging; do
 not add compatibility paths unless the task explicitly requires them.
 
 Keep this file at or below 150 lines. It is a routing map and repository
 boundary, not a complete development manual. Put product behavior, architecture,
 repeatable procedures, and fragile subsystem invariants in focused workspace
-skills; keep private SDK internals in the SDK repository.
+skills; keep private Runtime internals in its repository.
 
 ## Route the task before editing
 Read every applicable owner before changing files:
@@ -35,10 +34,10 @@ The `openagent-*` skills own implementation; starting skills route verification 
 | Modular frontend, Runtime, and shell updates | `.agents/skills/openagent-update-delivery/` |
 | Embedding resource provenance and activation | `.agents/skills/openagent-embedding-resources/` |
 | Windows development environment | `.agents/skills/openagent-windows-development/` |
-| Private SDK changes | `sdk/AGENTS.md` and every skill it requires |
+| Public SDK contracts or transports | `sdk/AGENTS.md` |
+| Private Runtime changes | `runtime/AGENTS.md` and every skill it requires |
 
-Treat implementation and agent-facing documentation as one change. Identify
-the affected behavior or invariant and its primary owner before editing; do not
+Treat implementation and agent-facing documentation as one change. Identify the affected behavior or invariant and its primary owner before editing; do not
 duplicate the same detailed rule across this file, a skill, and README files.
 
 ## Commands and verification
@@ -76,7 +75,8 @@ task-specific fixture; routine development must not touch installed release
 state under `~/.openagent`.
 
 ## Repository boundaries
-- `sdk/` is a pinned private submodule. Commit and push SDK changes there first,
+- `sdk/typescript/` is public client source owned by this repository. Keep it behavior-free.
+- `runtime/` pins the private `openagent-sdk` repository. Commit and push Runtime changes there first,
   then commit only its gitlink and required host/frontend integration here.
 - `plugins/` contains independent ignored repositories; `plugins/dev-index.json`
   subscribes to their branches. Plugin updates require no parent gitlink or release.
@@ -86,7 +86,7 @@ state under `~/.openagent`.
   V2 is an SDK Runtime capability, not an installed Agent Plugin.
 - `.githooks/public-host-sources.txt` explicitly lists public Rust host adapters.
   Add entries only for Tauri-owned native boundaries; SDK runtime behavior must
-  remain behind the `sdk` gitlink. Unlisted host Rust modules block pushes.
+  remain behind the `runtime` gitlink. Unlisted host Rust modules block pushes.
 - `src/routes/+page.svelte` is the frontend composition root. Put views in
   `src/lib/components/` and keep leaf components presentational.
 - Keep Tailwind source detection rooted in `src/`; repository documentation and
@@ -137,7 +137,7 @@ layout-stable skeleton.
 - Tests prove behavior; they do not replace agent-facing documentation. Reject
   logic-only changes and stale instructions during review.
 - Keep repository-wide rules here, subsystem architecture and repeatable
-  procedures in the triggering skill, and SDK internals in `sdk/`.
+  procedures in the triggering skill, and Runtime internals in `runtime/`.
 - Automation JavaScript is checked through the repository TypeScript config;
   add explicit JSDoc types where inference cannot establish safe boundaries.
 - Treat the private submodule revision as release-relevant source input.

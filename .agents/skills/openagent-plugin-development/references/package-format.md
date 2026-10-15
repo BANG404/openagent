@@ -79,8 +79,8 @@ resolved light/dark map. For example:
       "theme": {
         "version": 1,
         "tokens": {"--app-radius": "20px", "--plugin-card-radius": "18px"},
-        "light": {"--primary": "#663399", "--surface": "#fffaf5"},
-        "dark": {"--primary": "#cc99ff", "--surface": "#211b29"}
+        "light": {"--primary": "#663399", "--bg": "#fffaf5", "--surface": "#fffaf5"},
+        "dark": {"--primary": "#cc99ff", "--bg": "#211b29", "--surface": "#211b29"}
       }
     }
   }
@@ -101,7 +101,10 @@ Settings → General → Appearance selects one installed theme or OpenAgent def
 Selection enables that package; other enabled themes do not affect presentation.
 The selected, enabled, valid theme overlays the application's existing design,
 with common tokens followed by the resolved light/dark map. Saved user overrides
-apply last. Disablement, uninstall, refresh and update rebuild the overlay;
+apply last. Declare `--bg` to paint the window canvas as well as any desired
+`--surface` content color. Explicit canvas colors take precedence over native
+background transparency; user background overrides still win over package colors.
+Disablement, uninstall, refresh and update rebuild the overlay;
 absent tokens restore their original inline value or the ordinary stylesheet.
 Unavailable selections retain their ID and temporarily use the built-in design.
 System appearance selects the resolved map. The same styling applies to every

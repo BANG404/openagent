@@ -77,8 +77,8 @@ function fixtureSource(root, prepared) {
     return git(source, ["rev-parse", "HEAD"]);
   };
   const initial = prepared?.initial ?? commitSource("feat: initial package");
-  const protocolFile = join(root, "sdk/rust/openagent-protocol/src/lib.rs");
-  const sdk = join(root, "sdk");
+  const protocolFile = join(root, "runtime/rust/openagent-protocol/src/lib.rs");
+  const sdk = join(root, "runtime");
   if (!prepared) {
     git(source, ["tag", "v1.0.0"]);
     writeFileSync(
@@ -91,7 +91,7 @@ function fixtureSource(root, prepared) {
         },
       }),
     );
-    mkdirSync(join(root, "sdk/rust/openagent-protocol/src"), { recursive: true });
+    mkdirSync(join(root, "runtime/rust/openagent-protocol/src"), { recursive: true });
     writeFileSync(protocolFile, "pub const PLUGIN_PROTOCOL_VERSION: u32 = 1;");
     initializeFixtureRepository(sdk);
     git(sdk, ["add", "."]);
@@ -99,7 +99,7 @@ function fixtureSource(root, prepared) {
   }
   /** @param {string} _sha */
   const checkpoint = (_sha) => {
-    git(root, ["add", "plugins/dev-index.json", "sdk"]);
+    git(root, ["add", "plugins/dev-index.json", "runtime"]);
 
     git(root, ["commit", "--allow-empty", "-m", "feat: checkpoint package"]);
     return git(root, ["rev-parse", "HEAD"]);
@@ -241,7 +241,7 @@ describe("source-owned plugin release versions", () => {
       expect(
         JSON.parse(readFileSync(join(output, "openagent-plugin-releases.json"), "utf8"))
           .runtime_source_sha,
-      ).toBe(git(join(root, "sdk"), ["rev-parse", "HEAD"]));
+      ).toBe(git(join(root, "runtime"), ["rev-parse", "HEAD"]));
     });
   });
   test("repeated staging excludes files retained from earlier package candidates", () => {

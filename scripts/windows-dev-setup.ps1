@@ -8,7 +8,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $paths = @(
     (Join-Path $repoRoot "target"),
-    (Join-Path $repoRoot "sdk\target"),
+    (Join-Path $repoRoot "runtime\target"),
     (Join-Path $env:USERPROFILE ".cargo\registry"),
     (Join-Path $env:USERPROFILE ".cargo\git")
 ) | Select-Object -Unique

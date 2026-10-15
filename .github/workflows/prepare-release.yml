@@ -128,7 +128,7 @@ jobs:
                 exit 1
               fi
               if ! git diff --quiet "$source_tag" "$base_sha" -- \
-                assets patches sdk src src-tauri static bun.lock package.json \
+                assets patches sdk runtime src src-tauri static bun.lock package.json \
                 svelte.config.js tsconfig.json vite.config.js; then
                 echo "$base_branch no longer matches the product source in $source_tag." >&2
                 exit 1
@@ -174,7 +174,7 @@ jobs:
       - name: Resolve pinned SDK revision for component classification
         id: sdk
         shell: bash
-        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
+        run: echo "sha=$(git rev-parse HEAD:runtime)" >> "$GITHUB_OUTPUT"
 
       - name: Create private SDK read token
         id: sdk-read-token
@@ -191,7 +191,7 @@ jobs:
         with:
           repository: BANG404/openagent-sdk
           ref: ${{ steps.sdk.outputs.sha }}
-          path: sdk
+          path: runtime
           token: ${{ steps.sdk-read-token.outputs.token }}
           fetch-depth: 0
           persist-credentials: false

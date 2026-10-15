@@ -233,7 +233,7 @@ jobs:
         with:
           ref: ${{ needs.detect.outputs.sha }}
       - id: sdk
-        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
+        run: echo "sha=$(git rev-parse HEAD:runtime)" >> "$GITHUB_OUTPUT"
       - id: sdk-token
         uses: actions/create-github-app-token@v2
         with:
@@ -246,14 +246,14 @@ jobs:
         with:
           repository: BANG404/openagent-sdk
           ref: ${{ steps.sdk.outputs.sha }}
-          path: sdk
+          path: runtime
           fetch-depth: 0
           token: ${{ steps.sdk-token.outputs.token }}
           persist-credentials: false
       - name: Resolve exact Runtime and helper source
         id: plan
         run: >-
-          node scripts/ensure-sdk-release.mjs --sdk-dir sdk --sdk-sha "${{ steps.sdk.outputs.sha }}"
+          node scripts/ensure-sdk-release.mjs --sdk-dir runtime --sdk-sha "${{ steps.sdk.outputs.sha }}"
           --host-version "${{ needs.detect.outputs.version }}" --repository BANG404/openagent-sdk
           --output "$GITHUB_OUTPUT" --mode plan --plan-file sdk-release-plan.json
       - uses: actions/upload-artifact@v4
@@ -286,7 +286,7 @@ jobs:
       - name: Resolve pinned SDK revision
         id: sdk
         shell: bash
-        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
+        run: echo "sha=$(git rev-parse HEAD:runtime)" >> "$GITHUB_OUTPUT"
 
       - name: Create private SDK read token
         id: sdk-read-token
@@ -303,7 +303,7 @@ jobs:
         with:
           repository: BANG404/openagent-sdk
           ref: ${{ steps.sdk.outputs.sha }}
-          path: sdk
+          path: runtime
           fetch-depth: 0
           token: ${{ steps.sdk-read-token.outputs.token }}
           persist-credentials: false
@@ -318,7 +318,7 @@ jobs:
           GH_TOKEN: ${{ secrets.OPENAGENT_SDK_RELEASE_TOKEN }}
         run: >-
           node scripts/ensure-sdk-release.mjs
-          --sdk-dir sdk
+          --sdk-dir runtime
           --sdk-sha "${{ steps.sdk.outputs.sha }}"
           --host-version "${{ needs.detect.outputs.version }}"
           --repository BANG404/openagent-sdk
@@ -628,7 +628,7 @@ jobs:
       - name: Resolve pinned SDK revision
         id: sdk
         shell: bash
-        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
+        run: echo "sha=$(git rev-parse HEAD:runtime)" >> "$GITHUB_OUTPUT"
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -927,7 +927,7 @@ jobs:
         with:
           repository: BANG404/openagent-sdk
           ref: ${{ needs.sdk-plan.outputs.sdk_release_sha }}
-          path: sdk
+          path: runtime
           token: ${{ steps.sdk-token.outputs.token }}
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
@@ -971,12 +971,12 @@ jobs:
           permission-contents: read
       - name: Resolve client source revision
         id: sdk-source
-        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
+        run: echo "sha=$(git rev-parse HEAD:runtime)" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v7
         with:
           repository: BANG404/openagent-sdk
           ref: ${{ steps.sdk-source.outputs.sha }}
-          path: sdk
+          path: runtime
           token: ${{ steps.sdk-token.outputs.token }}
           persist-credentials: false
       - uses: oven-sh/setup-bun@v2
@@ -1092,7 +1092,7 @@ jobs:
       - name: Resolve pinned SDK revision
         id: sdk
         shell: bash
-        run: echo "sha=$(git rev-parse HEAD:sdk)" >> "$GITHUB_OUTPUT"
+        run: echo "sha=$(git rev-parse HEAD:runtime)" >> "$GITHUB_OUTPUT"
 
       - name: Create private SDK read token
         id: sdk-read-token
@@ -1109,7 +1109,7 @@ jobs:
         with:
           repository: BANG404/openagent-sdk
           ref: ${{ steps.sdk.outputs.sha }}
-          path: sdk
+          path: runtime
           token: ${{ steps.sdk-read-token.outputs.token }}
           persist-credentials: false
 
@@ -1136,7 +1136,7 @@ jobs:
           tar --format=ustar -C build -czf frontend-components/openagent-frontend.tar.gz .
           version="$(node -p "require('./package.json').version")"
           shell_protocol="$(sed -n 's/^pub const FRONTEND_HOST_PROTOCOL_VERSION: u32 = \([0-9][0-9]*\);/\1/p' src-tauri/src/frontend_resource.rs)"
-          runtime_protocol="$(sed -n 's/^pub const SDK_PROTOCOL_VERSION: u32 = \([0-9][0-9]*\);/\1/p' sdk/rust/openagent-protocol/src/lib.rs)"
+          runtime_protocol="$(sed -n 's/^pub const SDK_PROTOCOL_VERSION: u32 = \([0-9][0-9]*\);/\1/p' runtime/rust/openagent-protocol/src/lib.rs)"
           if [[ -z "$shell_protocol" || -z "$runtime_protocol" ]]; then
             echo "Unable to resolve the frontend compatibility protocols." >&2
             exit 1
@@ -1411,7 +1411,7 @@ jobs:
         with:
           repository: BANG404/openagent-sdk
           ref: ${{ needs.sdk-release.outputs.sdk_sha }}
-          path: sdk
+          path: runtime
           fetch-depth: 0
           token: ${{ steps.sdk-read-token.outputs.token }}
           persist-credentials: false
@@ -1421,7 +1421,7 @@ jobs:
           GH_TOKEN: ${{ secrets.OPENAGENT_SDK_RELEASE_TOKEN }}
         run: >-
           node scripts/ensure-sdk-release.mjs
-          --sdk-dir sdk
+          --sdk-dir runtime
           --sdk-sha "${{ needs.sdk-release.outputs.sdk_sha }}"
           --host-version "${{ needs.detect.outputs.version }}"
           --repository BANG404/openagent-sdk

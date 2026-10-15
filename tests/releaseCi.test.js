@@ -14,7 +14,7 @@ const readText = (url) => readFileSync(url, "utf8").replace(/\r\n/g, "\n");
 function embeddedLockFixture(hostNewline, sdkNewline) {
   const root = mkdtempSync(path.join(tmpdir(), "openagent-embedded-lock-"));
   const host = path.join(root, "src-tauri");
-  const sdk = path.join(root, "sdk");
+  const sdk = path.join(root, "runtime");
   for (const directory of ["capabilities", "locales", "resources/models", "icons", "binaries"]) {
     mkdirSync(path.join(host, directory), { recursive: true });
   }
@@ -238,10 +238,10 @@ describe("release CI verification", () => {
       "shared-key: public-host-release-${{ matrix.runtime_target }}",
     );
     expect(prepareReleaseWorkflow).toContain("runs-on: ubuntu-24.04");
-    expect(nativeCargoManifest).not.toContain('path = "../sdk/');
+    expect(nativeCargoManifest).not.toContain('path = "../runtime/');
     expect(nativeWorkflow).toContain("shared-key: public-host-linux");
     expect(nativeWorkflow).toContain("cache-targets: true");
-    expect(nativeWorkflow).toContain("CARGO_TARGET_DIR: sdk/target/desktop-host/target");
+    expect(nativeWorkflow).toContain("CARGO_TARGET_DIR: runtime/target/desktop-host/target");
     expect(sdkWorkflow).toContain("shared-key: public-sdk-host-dependencies");
     expect(releaseWorkflow).toContain(
       "shared-key: public-host-release-${{ matrix.runtime_target }}",
@@ -267,13 +267,7 @@ describe("release CI verification", () => {
       expect(workflow).not.toContain("ssh-key:");
     }
 
-    for (const workflow of [
-      frontendWorkflow,
-      nativeWorkflow,
-      sdkWorkflow,
-      releaseWorkflow,
-      prepareReleaseWorkflow,
-    ]) {
+    for (const workflow of [nativeWorkflow, sdkWorkflow, releaseWorkflow, prepareReleaseWorkflow]) {
       expect(workflow).toContain("uses: actions/create-github-app-token@v2");
       expect(workflow).toContain("permission-contents: read");
       expect(workflow).toContain("token: ${{ steps.");
@@ -329,13 +323,10 @@ describe("release CI verification", () => {
     }
   });
 
-  test("uses public SDK artifacts for untrusted frontend pull requests", () => {
-    expect(frontendWorkflow).toContain("required: false");
-    expect(frontendWorkflow).toContain("Fetch public TypeScript SDK for fork pull request");
-    expect(frontendWorkflow).toContain("scripts/fetch-public-typescript-sdk.mjs");
-    expect(frontendWorkflow).toContain(
-      "github.event.pull_request.head.repo.full_name != github.repository",
-    );
+  test("uses checked-in SDK source for every frontend pull request", () => {
+    expect(frontendWorkflow).not.toContain("fetch-public-typescript-sdk");
+    expect(frontendWorkflow).not.toContain("repository: BANG404/openagent-sdk");
+    expect(frontendWorkflow).not.toContain("create-github-app-token");
     expect(ciWorkflow).toContain("if: needs.changes.outputs.frontend == 'true'");
   });
 

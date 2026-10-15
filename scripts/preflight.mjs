@@ -218,7 +218,7 @@ function main() {
     },
     {
       id: "sdk-gitlink",
-      label: "Published SDK gitlink",
+      label: "Published private Runtime gitlink",
       command: "bun",
       args: ["scripts/verify-sdk-gitlink.mjs"],
     },

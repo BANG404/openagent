@@ -43,6 +43,9 @@ Version 1 configuration additively persists `theme_plugin` (empty selects the
 built-in design) and `theme_overrides`. Older snapshots default to no selection
 and no overrides. Missing, disabled or invalid selected packages fall back to
 the built-in design while retaining the selected ID; user overrides still apply.
+`theme_overrides.opaque_background` defaults to false and stores the inverse
+of the Native background switch. It uses the same appearance-only save and
+cross-window refresh path; resetting overrides restores native-background preference.
 Overrides carry separate `light`/`dark` palettes with optional `accent`,
 `background`, and `foreground` six-digit hex colors, normalized to uppercase;
 invalid colors are dropped. `font_family` is empty (follow theme), `system`,

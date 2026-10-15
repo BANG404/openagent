@@ -16,7 +16,7 @@ each behavior or invariant in one primary source of truth.
 | CI classification, release workflows, Tauri bundles, sidecars, or pinned helper artifacts | `.agents/skills/openagent-release-engineering/` |
 | A repeatable agent procedure or fragile subsystem invariant | The workspace skill that must trigger for future work |
 | Repository-wide ownership, commands, safety, verification, or contribution policy | `AGENTS.md` |
-| Private SDK implementation | Follow `sdk/AGENTS.md` and update SDK-owned documentation in the SDK commit before updating the parent gitlink |
+| Private SDK implementation | Follow `runtime/AGENTS.md` and update SDK-owned documentation in the SDK commit before updating the parent gitlink |
 
 Prefer an existing owner. Create a focused document, skill, or skill reference
 only when no existing owner fits. Keep skill bodies concise: place the core

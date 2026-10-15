@@ -145,7 +145,7 @@ try {
     const result = spawnSync(
       "python",
       [
-        path.join(root, "sdk/.agents/skills/openagent-dev-chat/scripts/openagent_dev.py"),
+        path.join(root, "runtime/.agents/skills/openagent-dev-chat/scripts/openagent_dev.py"),
         command,
         conversationId,
       ],

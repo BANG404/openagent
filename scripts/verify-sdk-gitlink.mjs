@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
+import { verifyPublicSdkBoundary } from "./public-sdk-boundary.mjs";
 
 /**
  * @param {string} cwd
@@ -37,10 +38,15 @@ export function verifySdkGitlink(options = {}) {
   const hostRevision = options.hostRevision ?? "INDEX";
   const mainRef = options.mainRef ?? "origin/main";
   const git = options.git ?? runGit;
-  const sdkDirectory = resolve(repository, "sdk");
-  const gitlinkRevision = hostRevision === "INDEX" ? ":sdk" : `${hostRevision}:sdk`;
+  const sdkDirectory = resolve(repository, "runtime");
+  const gitlinkRevision = hostRevision === "INDEX" ? ":runtime" : `${hostRevision}:runtime`;
 
-  const gitlink = git(repository, ["rev-parse", "--verify", gitlinkRevision]);
+  let gitlink = git(repository, ["rev-parse", "--verify", gitlinkRevision]);
+  // Older introduced commits used sdk as the private gitlink. Inspect those
+  // immutable commits during pushes without treating the public SDK tree as one.
+  if (gitlink.status !== 0 && hostRevision !== "INDEX") {
+    gitlink = git(repository, ["rev-parse", "--verify", `${hostRevision}:sdk`]);
+  }
   if (gitlink.status !== 0) {
     throw new Error(`Cannot resolve the SDK gitlink from ${hostRevision}: ${gitlink.stderr}`);
   }
@@ -49,7 +55,7 @@ export function verifySdkGitlink(options = {}) {
   const sdkCommit = git(sdkDirectory, ["cat-file", "-e", `${sdkSha}^{commit}`]);
   if (sdkCommit.status !== 0) {
     throw new Error(
-      `SDK gitlink ${sdkSha} is not present in the initialized sdk repository. ` +
+      `SDK gitlink ${sdkSha} is not present in the initialized runtime repository. ` +
         "Fetch or initialize the pinned SDK revision before delivery.",
     );
   }
@@ -91,7 +97,9 @@ function parseArguments() {
 const entry = process.argv[1] ? resolve(process.argv[1]) : "";
 if (entry && fileURLToPath(import.meta.url) === entry) {
   try {
-    const result = verifySdkGitlink(parseArguments());
+    const options = parseArguments();
+    verifyPublicSdkBoundary(resolve("."), options.hostRevision);
+    const result = verifySdkGitlink(options);
     console.log(
       `SDK gitlink ${result.sdkSha.slice(0, 12)} is contained in origin/main (${result.mainSha.slice(0, 12)}).`,
     );

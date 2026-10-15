@@ -25,7 +25,6 @@ export function worktreePreparationPlan({
     [bun, ["scripts/prepare-plugin-sources.mjs"]],
     [bun, ["install", "--frozen-lockfile"]],
   ];
-  commands.push([bun, ["scripts/prepare-source-dev.mjs", "--client-only"]]);
   commands.push([bun, ["scripts/prepare-node-runtime.mjs"]]);
   commands.push([bun, ["scripts/prepare-terminal-tools.mjs"]]);
   if (!native) return commands;

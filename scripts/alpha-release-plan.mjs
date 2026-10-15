@@ -100,7 +100,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const tags = [...new Set([...publishedTags, ...reservedTags])];
   const plan = alphaReleasePlan(current, tags);
   const sha = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
-  const sdkSha = execFileSync("git", ["rev-parse", "HEAD:sdk"], {
+  const sdkSha = execFileSync("git", ["rev-parse", "HEAD:runtime"], {
     cwd: root,
     encoding: "utf8",
   }).trim();

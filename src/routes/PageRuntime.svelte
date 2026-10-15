@@ -27,7 +27,11 @@
   import { chatTaskUsagesByCheckpoint } from "$lib/cacheUsage";
   import { Tooltip as TooltipPrimitive } from "bits-ui";
   import { normalizeConfigShape } from "$lib/config";
-  import { applyPluginThemeTokens, appearanceTokens } from "$lib/pluginPresentation";
+  import {
+    applyPluginThemeTokens,
+    appearanceTokens,
+    usesNativeBackground,
+  } from "$lib/pluginPresentation";
   import { appearancePreview } from "$lib/appearancePreview";
   import { get } from "svelte/store";
   import { applyDocumentTheme, createNativeThemeSynchronizer, type AppTheme } from "$lib/appTheme";
@@ -1668,10 +1672,15 @@
     }
   }
 
-  onMount(() => {
-    if (!usesNativeWindowMaterial) return;
-    document.documentElement.classList.add("native-window-material");
-    return () => document.documentElement.classList.remove("native-window-material");
+  $effect(() => {
+    const appearance = $appearancePreview ?? config ?? pluginAppearanceConfig;
+    const tokens = appearanceTokens(agentPlugins, appearance, pluginThemeDark);
+    const root = document.documentElement;
+    root.classList.toggle(
+      "native-window-material",
+      usesNativeWindowMaterial && usesNativeBackground(appearance?.theme_overrides, tokens),
+    );
+    return () => root.classList.remove("native-window-material");
   });
 
   /**

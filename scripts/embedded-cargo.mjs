@@ -11,7 +11,7 @@ const root = fileURLToPath(new URL("../", import.meta.url));
  */
 export async function prepareEmbeddedManifest(repositoryRoot = root) {
   const host = path.join(repositoryRoot, "src-tauri");
-  const destination = path.join(repositoryRoot, "sdk", "target", "desktop-host");
+  const destination = path.join(repositoryRoot, "runtime", "target", "desktop-host");
   /** @param {string} value */
   const quotePath = (value) => JSON.stringify(value.replaceAll("\\", "/"));
   let manifest = await readFile(path.join(host, "Cargo.toml"), "utf8");
@@ -24,7 +24,7 @@ export async function prepareEmbeddedManifest(repositoryRoot = root) {
     .replaceAll('path = "src/main.rs"', `path = ${quotePath(path.join(host, "src/main.rs"))}`)
     .replace(
       "[dependencies]",
-      `[features]\ndefault = []\nembedded-runtime = ["dep:openagent-app", "dep:openagent-protocol", "dep:openagent-runtime"]\n\n[dependencies]\n${["openagent-app", "openagent-protocol", "openagent-runtime"].map((crate) => `${crate} = { path = ${quotePath(path.join(repositoryRoot, "sdk/rust", crate))}, optional = true }`).join("\n")}`,
+      `[features]\ndefault = []\nembedded-runtime = ["dep:openagent-app", "dep:openagent-protocol", "dep:openagent-runtime"]\n\n[dependencies]\n${["openagent-app", "openagent-protocol", "openagent-runtime"].map((crate) => `${crate} = { path = ${quotePath(path.join(repositoryRoot, "runtime/rust", crate))}, optional = true }`).join("\n")}`,
     );
   // The main binary must also be explicit because the diagnostic workspace has no src/main.rs.
   manifest += `\n[[bin]]\nname = "openagent-agent-server"\npath = ${quotePath(path.join(host, "src/embedded-agent-server.rs"))}\nrequired-features = ["embedded-runtime"]\n`;
@@ -69,7 +69,7 @@ export async function prepareEmbeddedManifest(repositoryRoot = root) {
   await cp(path.join(host, "binaries"), path.join(destination, "binaries"), { recursive: true });
   await writeFile(path.join(destination, "Cargo.toml"), manifest);
   const hostLock = await readFile(path.join(host, "Cargo.lock"), "utf8");
-  const sdkLock = await readFile(path.join(repositoryRoot, "sdk", "Cargo.lock"), "utf8");
+  const sdkLock = await readFile(path.join(repositoryRoot, "runtime", "Cargo.lock"), "utf8");
   // Seed one coherent SDK graph and let Cargo resolve the additional host
   // dependencies. Concatenating lockfiles can pin incompatible shared versions
   // (for example reqwest 0.13.3 and 0.13.4) and breaks on CRLF checkouts.

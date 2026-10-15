@@ -1,5 +1,18 @@
 # Conversation components
 
+Sidebar child conversations expand beneath the active ancestor with 24px of
+indentation per level, a neutral connector rail, and a rounded elbow ending at
+the last direct child's row center. Ancestor rails continue past expanded
+descendants; each nested group owns its own connector. Keep project-embedded
+and standalone lists on the same recursive renderer, with row-height-aware
+connectors, iconless titles, selection, streaming status and delete actions.
+Search results stay flat and role-filtered orphans remain roots. Verify nested
+selection, collapse after navigation, deletion and narrow title truncation in
+light/dark and English/Chinese with `bun run test:blackbox:conversation-tree`
+against a task-owned Tauri instance selected by `TAURI_PILOT_SOCKET`. The
+scenario mounts the real ConversationList with synthetic data and touches no
+saved conversations.
+
 Production Help -> Debug mode exposes Export complete conversation trace in the
 current conversation's debug context bar. The page container calls the scoped
 SDK diagnostic operation only on an explicit click, then saves its UTF-8 JSON

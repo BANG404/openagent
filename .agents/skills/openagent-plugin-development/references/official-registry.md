@@ -80,10 +80,11 @@ the management container, including when manually resized in a wide native
 window. Verify resize, expansion, restore, and native viewport changes through
 `bun run test:blackbox:plugin-layout` in all light/dark and English/Chinese
 combinations. Installation crosses the typed
-`install_official_agent_plugin` Runtime product command. The Runtime writes a
-one-entry temporary marketplace under the supported personal marketplace root,
-delegates to the normal marketplace installer, and removes the temporary
-document after staging. This keeps source addresses visible in the store
+`install_official_agent_plugin` Runtime product command. Repository subscriptions
+resolve the newest compatible stable release through the shared release index,
+verify its archive digest and package identity, then activate it through the
+normal atomic installer. Explicit archive sources use the temporary marketplace
+adapter. This keeps source addresses visible in the store
 without teaching the frontend how to copy, validate, or activate a package.
 
 The published catalog packages use the generic plugin contract: Goal and Graph

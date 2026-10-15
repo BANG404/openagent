@@ -143,7 +143,7 @@ describe("affected test selection", () => {
       ["src/app.css"],
       ["src/lib/schema.json"],
       ["bun.lock"],
-      ["sdk"],
+      ["runtime"],
       ["plugins/goal"],
       ["scripts/run-selected-tests.mjs"],
     ]) {
@@ -174,10 +174,11 @@ describe("affected test selection", () => {
     ];
     expect(testInventory(files, "automation")).toEqual([
       "scripts/new.test.mjs",
+      "sdk/typescript/tests/client.test.ts",
       "tests/ciReuse.test.js",
       "tests/testSelection.test.ts",
     ]);
-    expect(testInventory(files, "frontend")).toHaveLength(4);
+    expect(testInventory(files, "frontend")).toHaveLength(5);
   });
 
   test("collects tracked and untracked tests while respecting ignored generated files", () => {

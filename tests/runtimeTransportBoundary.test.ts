@@ -41,14 +41,14 @@ describe("external Runtime transport boundary", () => {
   test.skipIf(
     !existsSync(
       new URL(
-        "../sdk/rust/openagent-runtime/src/commands/remote_gateway/desktop_operations.rs",
+        "../runtime/rust/openagent-runtime/src/commands/remote_gateway/desktop_operations.rs",
         import.meta.url,
       ),
     ),
   )("implements every typed desktop product operation in the external Runtime router", async () => {
     const router = await readFile(
       new URL(
-        "../sdk/rust/openagent-runtime/src/commands/remote_gateway/desktop_operations.rs",
+        "../runtime/rust/openagent-runtime/src/commands/remote_gateway/desktop_operations.rs",
         import.meta.url,
       ),
       "utf8",

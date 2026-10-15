@@ -33,7 +33,7 @@ layout through implementation and handoff; plugin destinations are owned by
    working tree. Never relocate, reset, clean, or reuse an unrelated
    worktree. From the task worktree, run `bun run prepare:worktree:dev`
    before validation. This initializes pinned submodules, installs frozen
-   Bun dependencies, and materializes the pinned source client. This light
+   Bun dependencies, and uses the checked-in public client. This light
    preparation does not compile Rust. Add `--native` only when a desktop run
    or native scenario actually needs development sandbox and Runtime sidecars.
    Private development Cargo builds share dependency output across associated
@@ -97,7 +97,7 @@ Restore the backup immediately if integration fails. Never use this procedure
 for ambiguous ownership or a patch conflict; keep both sides pending instead.
 Do not delete recovery data until preservation has been verified.
 
-The preparation command can fail before the private `sdk` submodule is
+The preparation command can fail before the private `runtime` submodule is
 initialized. A common cause is a pinned SDK revision that is not available from
 the configured remote (`upload-pack: not our ref`). Do not change the parent
 gitlink, fetch a different revision into the task, or claim that the pinned
@@ -126,14 +126,14 @@ task-owned SDK checkout may contain prepared source and build files; after
 confirming it has no user changes, unregister it from the task worktree first:
 
 ```bash
-git -C <task-worktree> submodule deinit --force sdk
+git -C <task-worktree> submodule deinit --force runtime
 ```
 
 Confirm that the task submodule directory is now empty, remove only that
 directory, and use the explicit task-worktree fallback:
 
 ```bash
-rmdir <task-worktree>/sdk
+rmdir <task-worktree>/runtime
 git worktree remove --force <task-worktree>
 git worktree prune
 ```

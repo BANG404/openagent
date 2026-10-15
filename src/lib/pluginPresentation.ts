@@ -26,11 +26,20 @@ export function normalizeThemeOverrides(input?: Partial<ThemeOverrides>): ThemeO
   return {
     light: colors(input?.light),
     dark: colors(input?.dark),
+    opaque_background: input?.opaque_background === true,
     font_family:
       input?.font_family && Object.hasOwn(THEME_FONTS, input.font_family) ? input.font_family : "",
     ui_font_size: size(input?.ui_font_size),
     code_font_size: size(input?.code_font_size),
   };
+}
+
+/** An explicit theme/user canvas takes precedence over the native backdrop. */
+export function usesNativeBackground(
+  overrides: ThemeOverrides | undefined,
+  tokens: Record<string, string>,
+): boolean {
+  return overrides?.opaque_background !== true && !tokens["--bg"];
 }
 
 export function integrationPlugins(plugins: AgentPluginSummary[]): AgentPluginSummary[] {

@@ -146,7 +146,7 @@ try {
     JSON.stringify(
       {
         sources,
-        sdkRevision: revision(join(repo, "sdk")),
+        sdkRevision: revision(join(repo, "runtime")),
         checks: [
           "names",
           "live locale",

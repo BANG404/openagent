@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { posix, resolve } from "node:path";
 import ts from "typescript";
 
-const TEST_FILE = /^(?:tests|scripts)\/.*\.(?:test|spec)\.(?:[cm]?js|tsx?)$/;
+const TEST_FILE = /^(?:tests|scripts|sdk\/typescript\/tests)\/.*\.(?:test|spec)\.(?:[cm]?js|tsx?)$/;
 const AUTOMATION_TESTS = new Set([
   "agentSkills",
   "ciChanges",
@@ -34,7 +34,7 @@ const SHARED_FILES = new Set([
   "vite.config.js",
   "svelte.config.js",
   "eslint.config.js",
-  "sdk",
+  "runtime",
   ".gitmodules",
   "scripts/ci-changes.mjs",
   "scripts/preflight.mjs",
@@ -53,7 +53,8 @@ export function testInventory(files, scope) {
   return [...new Set(files.map(normalize))]
     .filter((file) => {
       if (!TEST_FILE.test(file)) return false;
-      if (scope === "frontend" || file.startsWith("scripts/")) return true;
+      if (scope === "frontend" || file.startsWith("scripts/") || file.startsWith("sdk/"))
+        return true;
       return AUTOMATION_TESTS.has(posix.basename(file).split(".")[0]);
     })
     .sort();
@@ -152,6 +153,7 @@ export function selectTests({ root, files, changed, scope, full = false }) {
     delta.some(
       (file) =>
         SHARED_FILES.has(file) ||
+        file.startsWith("sdk/") ||
         file.startsWith("plugins/") ||
         file.startsWith("static/") ||
         file.startsWith(".github/workflows/") ||

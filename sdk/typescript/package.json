@@ -1,0 +1,53 @@
+{
+  "name": "@bang404/openagent-sdk",
+  "version": "0.1.1",
+  "private": true,
+  "description": "Typed OpenAgent client and browser/Tauri transports",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BANG404/openagent.git",
+    "directory": "sdk/typescript"
+  },
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./httpTransport": {
+      "types": "./dist/httpTransport.d.ts",
+      "import": "./dist/httpTransport.js"
+    },
+    "./tauriClient": {
+      "types": "./dist/tauriClient.d.ts",
+      "import": "./dist/tauriClient.js"
+    },
+    "./tauriTransport": {
+      "types": "./dist/tauriTransport.d.ts",
+      "import": "./dist/tauriTransport.js"
+    },
+    "./transport": {
+      "types": "./dist/transport.d.ts",
+      "import": "./dist/transport.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "tsc --noEmit",
+    "test": "bun test",
+    "prepack": "bun run build"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "~5.6.2"
+  }
+}

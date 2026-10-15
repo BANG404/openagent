@@ -16,7 +16,7 @@ settings:
 Without `-ApplyDefenderExclusions`, the script only prints the paths and checks
 whether `rust-lld` is available. The exclusions are intentionally limited to:
 
-- `target\` and `sdk\target\`
+- `target\` and `runtime\target\`
 - `%USERPROFILE%\.cargo\registry\`
 - `%USERPROFILE%\.cargo\git\`
 
@@ -25,7 +25,7 @@ The script's fixed list does not cover the ordinary desktop launcher's external
 host output under `%LOCALAPPDATA%\OpenAgent\dev-targets\`, nor direct Cargo
 output under `src-tauri\target\`. Source development Runtime and Windows helpers
 share the host repository's private Cargo cache across OWT worktrees; release
-defaults retain `sdk\target\`. These new cache paths are not added to Defender
+defaults retain `runtime\target\`. These new cache paths are not added to Defender
 exclusions automatically.
 See the [development Runtime owner](../../openagent-release-engineering/references/development-runtime.md)
 for actual target selection and overrides. Preview the script's output before

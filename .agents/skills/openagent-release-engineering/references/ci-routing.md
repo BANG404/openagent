@@ -1,11 +1,11 @@
 # Modular CI
 
 The local SonarQube scan classifies `tests/`, `scripts/**/*.test.mjs`, the
-TypeScript SDK test tree, and `sdk/rust/**/tests/**/*.rs` as tests. Keep those
+TypeScript SDK test tree, and `runtime/rust/**/tests/**/*.rs` as tests. Keep those
 paths out of production duplication measurements when changing
 `sonar-project.properties`. Host and TypeScript SDK LCOV reports supply coverage;
 Rust tests gate upload but do not currently produce a coverage report.
-The SDK workspace test uses the persistent `sdk/target/sonar` directory so it
+The SDK workspace test uses the persistent `runtime/target/sonar` directory so it
 does not share Cargo build artifacts with an active desktop or SDK build. On
 Windows it uses one Cargo job to avoid pagefile exhaustion while compiling the
 large Runtime crate, which can otherwise surface as misleading missing-crate
@@ -78,13 +78,14 @@ Literal repository-file reads establish component contract coverage; directory
 scans stay shared guards and do not imply unit coverage for every new source.
 
 The inventory discovers tracked and untracked host tests under `tests/` and
-`scripts/`, excluding ignored/generated output and submodule test trees.
+`scripts/`, and `sdk/typescript/tests/`, excluding ignored/generated output
+and submodule test trees.
 Frontend selection includes both frontend and automation tests; automation
-uses every script test plus the policy test names in `test-selection.mjs`.
+uses every script and public SDK test plus the policy test names in `test-selection.mjs`.
 New frontend tests are discovered without a registry edit. New policy tests
 under `tests/` must join that automation name set and the module classifier.
 
-Shared dependencies, SDK gitlinks and plugin subscriptions, resources, workflow/selector changes,
+Shared dependencies, public SDK source, Runtime gitlinks and plugin subscriptions, resources, workflow/selector changes,
 an unavailable CI baseline, or changed paths without known dependency coverage
 fall back to complete scope coverage. Deletions participate in classification
 and selection. Never suppress an unmatched source path or treat zero selected
@@ -94,7 +95,9 @@ failure status propagates to the calling preflight or CI job.
 CI passes an immutable base/head delta; local preflight passes its resolved base
 and includes staged, unstaged, and untracked changes. Nightly, manual, and release
 qualification set `TEST_FULL=true`; local `preflight --all` passes `--all`.
-Complete frontend runs retain the existing `bun run test` discovery. Type,
+Complete frontend runs use `bun run test`, scoped to host tests, automation
+scripts and the public SDK tests; private Runtime and plugin test trees are
+qualified in their owning repositories. Type,
 lint, format, build, bundle, native and desktop black-box gates retain their
 existing ownership; affected test selection does not replace them.
 
@@ -107,7 +110,7 @@ bun scripts/run-selected-tests.mjs --scope automation --all --dry-run
 
 Plugin source subscriptions and `.gitmodules` changes select automation and
 frontend checks. These jobs clone independent repositories from subscribed
-branches; private SDK checkout keeps its separate token and fork route. Ordinary
+branches; public SDK source needs no additional checkout, while private Runtime qualification keeps its separate token and fork route. Ordinary
 plugin pushes do not select host CI. Host preflight does not compare source
 versions with parent history; publication checks clean snapshots and immutable tags.
 

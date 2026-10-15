@@ -200,7 +200,7 @@ describe("sidebar project order", () => {
     expect(browser).not.toContain(".project-group.empty");
   });
 
-  test("renders child conversations as iconless, increasingly indented rows", async () => {
+  test("renders child conversations as iconless, connected and increasingly indented rows", async () => {
     const list = await readFile(
       new URL("../src/lib/components/ConversationList.svelte", import.meta.url),
       "utf8",
@@ -208,9 +208,8 @@ describe("sidebar project order", () => {
 
     expect(list).not.toContain("delegatedRoleBadge");
     expect(list).not.toContain('class="role-badge"');
-    expect(list).toContain('style:padding-left="calc(var(--conversation-title-inset) + 12px)"');
     expect(list).toContain(
-      "style:padding-left={`calc(var(--conversation-title-inset) + ${depth * 12}px)`}",
+      "style:padding-left={`calc(var(--conversation-title-inset) + ${depth} * var(--sub-conv-indent))`}",
     );
     expect(list).toContain(".conv-list.embedded {");
     expect(list).toContain("--conversation-title-inset: calc(");
