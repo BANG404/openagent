@@ -461,6 +461,40 @@ try {
               join(artifacts, `${theme}-${language}-${target}.png`),
             );
           }
+          // Losing the package view restores common progress; enabling it
+          // again must replace a saved Status selection without a second tab.
+          await invoke("save_settings", {
+            config: {
+              ...config,
+              theme,
+              language,
+              agent_plugins_enabled: { ...config.agent_plugins_enabled, graph: false },
+            },
+          });
+          await evaluate("location.reload(); true");
+          await until(
+            async () =>
+              (await evaluate(`(() => {
+              [...document.querySelectorAll('button')].find(button => /^(Expand right sidebar|展开右侧栏)$/.test(button.getAttribute('aria-label') ?? ''))?.click();
+              const tabs = [...document.querySelectorAll('#checkpoint-flow-panel .panel-navigation button')];
+              return tabs.length === 1 && tabs[0].textContent.trim() === ${JSON.stringify(language === "zh" ? "状态" : "Status")} &&
+                !!document.querySelector('#checkpoint-flow-panel .flow-header') && !document.querySelector('.plugin-panel iframe');
+            })()`)) === "true",
+            "disabled Graph did not restore the common progress fallback",
+          );
+          await invoke("save_settings", { config: { ...config, theme, language } });
+          await evaluate("location.reload(); true");
+          await until(
+            async () =>
+              (await evaluate(`(() => {
+              [...document.querySelectorAll('button')].find(button => /^(Expand right sidebar|展开右侧栏)$/.test(button.getAttribute('aria-label') ?? ''))?.click();
+              const tabs = [...document.querySelectorAll('#checkpoint-flow-panel .panel-navigation button')];
+              return tabs.length === 1 && tabs[0].textContent.trim() === ${JSON.stringify(language === "zh" ? "任务图" : "Graph")} &&
+                tabs[0].getAttribute('aria-current') === 'page' && !!document.querySelector('.plugin-panel iframe')?.getBoundingClientRect().height &&
+                !document.querySelector('#checkpoint-flow-panel .flow-header');
+            })()`)) === "true",
+            "enabled Graph did not replace the restored Status selection",
+          );
         }
       }
       report.push({
@@ -478,6 +512,7 @@ try {
                 "parent/child durable projection equality",
                 "restored package diagram, dependency paths and results",
                 "narrow-width edge geometry",
+                "single package progress tab and disabled-view fallback recovery",
                 "light/en",
                 "light/zh",
                 "dark/en",

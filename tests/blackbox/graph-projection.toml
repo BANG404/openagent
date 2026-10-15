@@ -33,6 +33,10 @@ script = '''(async () => {
   }
   const diagram = window.__graphDiagram;
   if (!document.querySelector('.plugin-panel iframe')?.getBoundingClientRect().height) throw new Error('Graph sidebar did not preserve its selected panel');
+  const tabs = [...document.querySelectorAll('#checkpoint-flow-panel .panel-navigation button')];
+  if (tabs.length !== 1 || tabs[0].textContent.trim() !== (probe.language === 'zh' ? '任务图' : 'Graph')) throw new Error('Graph must own the only progress tab');
+  if (tabs[0].getAttribute('aria-current') !== 'page') throw new Error('Graph progress tab is not selected');
+  if (document.querySelector('#checkpoint-flow-panel .flow-header')) throw new Error('duplicate common progress surface is mounted');
   if (!document.getElementById(`message-${probe.messageId}`)) throw new Error('target conversation result did not restore');
   if (document.documentElement.classList.contains('dark') !== (probe.theme === 'dark')) throw new Error('fixture theme differs');
   if (diagram?.conversationId !== probe.convId || diagram.objective !== probe.objective) throw new Error('Graph diagram did not follow conversation scope');

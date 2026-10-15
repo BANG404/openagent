@@ -26,8 +26,11 @@ exactly matches the declared namespaced sidebar view ID. This lets a package
 show its own projection on child branches without fabricating transcript calls.
 No domain payload is inspected or sent to the frame. Scope, enabled/error and
 asset gates still apply. New-flow auto-opening selects that available view;
-unmatched projections retain the common status list. Subsequent updates preserve
-the user's selected tab and collapse choice.
+the matching package view replaces the common Status tab rather than appearing
+beside a duplicate progress list. Restoring a saved Status selection or losing
+another built-in tab routes to that package view. Unmatched projections and
+disabled, invalid or unavailable package views retain the common status list.
+Subsequent updates preserve the user's selected tab and collapse choice.
 An absent projection has no auto-open key: never treat two null keys as a
 new-flow request during navigation hydration, which would reset a returning
 branch's saved plugin selection to Status.

@@ -70,17 +70,26 @@ export function pluginSidebarLifecycle(
 }
 
 /** A package can route its common projection to its own declared sidebar view. */
+export function flowSidebarPanel(
+  views: readonly AgentPluginSidebarViewSummary[],
+  flow: PluginSidebarContext["flow"],
+): PluginSidebarPanel | null {
+  if (!flow?.pluginId) return null;
+  return (
+    views.find((view) => view.id === flow.flowId && view.id.startsWith(`plugin:${flow.pluginId}:`))
+      ?.id ?? null
+  );
+}
+
 export function flowPluginSidebarPanel(
   entries: readonly PluginSidebarEntry[],
   flow: PluginSidebarContext["flow"],
 ): PluginSidebarPanel | null {
-  return (
-    entries.find(
-      (entry) =>
-        entry.lifecycle === "available" &&
-        entry.pluginId === flow?.pluginId &&
-        entry.panel === flow?.flowId,
-    )?.panel ?? null
+  return flowSidebarPanel(
+    entries
+      .filter((entry) => entry.lifecycle === "available" && entry.pluginId === flow?.pluginId)
+      .map((entry) => entry.view),
+    flow,
   );
 }
 
