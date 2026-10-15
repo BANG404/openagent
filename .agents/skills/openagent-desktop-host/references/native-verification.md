@@ -414,6 +414,19 @@ that completion and Continue remain blocked until Check again succeeds. The
 shell runner additionally asserts the same three groups during preparation and
 their verified results after importing the signed offline distribution.
 
+For onboarding acceptance, use the geometry and layout contracts in
+[startup windows](startup-windows.md) and the
+[design-system overview](../../openagent-design-system/references/overview.md).
+Assert the selected setup window's logical client bounds, title, non-resizable
+and non-maximizable state; account for display DPI in native screenshots.
+Exercise Continue, Back, completed-step navigation, locale/theme selection,
+workspace selection, provider connection and model loading, and default-model
+selection. Check internal scrolling, footer and heading visibility, text clipping,
+focus states, shared controls, and native window material in all four theme/locale
+combinations. Inspect the selected window's error log. Record the source commit,
+fixture, command, process/window/socket, artifact paths, and observed assertions
+in the handoff; a checklist alone is not evidence of a passing run.
+
 ## Plugin theme and integration presentation
 
 Start `bun tauri dev --multi-instance plugin-presentation` with an isolated
