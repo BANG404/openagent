@@ -4,6 +4,7 @@ import {
   branchToolNames,
   firstAvailablePluginSidebarPanel,
   flowPluginSidebarPanel,
+  flowSidebarPanel,
   pluginSidebarEntries,
   pluginSidebarLifecycle,
   pluginSidebarRevision,
@@ -127,6 +128,16 @@ describe("pluginSidebarLifecycle", () => {
 });
 
 describe("branch tool activation", () => {
+  test("replaces common progress only with an available view owned by that flow", () => {
+    const views = [view()];
+    const flow = { pluginId: "demo", flowId: views[0].id };
+    expect(flowSidebarPanel(views, flow)).toBe(views[0].id);
+    expect(flowSidebarPanel([], flow)).toBeNull();
+    expect(flowSidebarPanel(views, undefined)).toBeNull();
+    expect(flowSidebarPanel(views, { ...flow, pluginId: undefined })).toBeNull();
+    expect(flowSidebarPanel(views, { ...flow, pluginId: "other" })).toBeNull();
+    expect(flowSidebarPanel(views, { ...flow, flowId: "plugin:demo:other" })).toBeNull();
+  });
   test("a package projection activates only its owning view, including child branches", () => {
     const package_ = plugin({ sidebar_views: [view({ activation_tools: ["create_group"] })] });
     const flow = { pluginId: "demo", flowId: "plugin:demo:panel" } as const;

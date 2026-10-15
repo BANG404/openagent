@@ -14,6 +14,7 @@
   import ScrollArea from "$lib/components/ui/ScrollArea.svelte";
   import PluginSidebarPanel from "$lib/components/PluginSidebarPanel.svelte";
   import { isPluginSidebarPanel } from "$lib/rightSidebar";
+  import { flowSidebarPanel } from "$lib/pluginSidebar";
 
   interface Props {
     flow: CheckpointFlow | null;
@@ -95,26 +96,33 @@
   // The package projection carries its own title; the host does not need a
   // product-specific flow registry or domain-specific renderer.
   let heading = $derived(flow ? $t("checkpointPluginFlow") : "");
+  // A package's own view replaces the common progress surface. Match both
+  // authenticated owner and opaque view ID without interpreting package data.
+  let flowPanel = $derived<RightSidebarPanel>(
+    flowSidebarPanel(pluginSidebarViews, flow ?? undefined) ?? "status",
+  );
+  let statusAvailable = $derived(!!flow && flowPanel === "status");
 
   $effect(() => {
     if (scopeLoading) return;
+    if (activePanel === "status" && flowPanel !== "status") activePanel = flowPanel;
     if (activePanel === "status" && !flow) {
       if (changes.length > 0) activePanel = "files";
       else if (terminalAvailable) activePanel = "terminal";
     }
     if (activePanel === "files" && changes.length === 0) {
-      if (flow) activePanel = "status";
+      if (flow) activePanel = flowPanel;
       else if (terminalAvailable) activePanel = "terminal";
     }
     if (activePanel === "terminal" && !terminalAvailable) {
-      activePanel = flow ? "status" : changes.length > 0 ? "files" : "status";
+      activePanel = flow ? flowPanel : changes.length > 0 ? "files" : "status";
     }
     if (
       isPluginSidebarPanel(activePanel) &&
       !pluginSidebarViews.some((view) => view.id === activePanel)
     ) {
       activePanel = flow
-        ? "status"
+        ? flowPanel
         : changes.length > 0
           ? "files"
           : terminalAvailable
@@ -157,7 +165,7 @@
   <div class="flow-panel-surface">
     {#if !collapsed}
       <nav class="panel-navigation" aria-label={$t("conversationDetails")}>
-        {#if flow}
+        {#if statusAvailable}
           <button
             type="button"
             class:active={activePanel === "status"}
@@ -200,7 +208,7 @@
       </nav>
     {/if}
 
-    {#if !collapsed && activePanel === "status" && flow}
+    {#if !collapsed && activePanel === "status" && statusAvailable && flow}
       <header class="flow-header">
         <span class="flow-heading">
           <strong>{heading}</strong>
