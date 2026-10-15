@@ -85,6 +85,8 @@ source-change gates. Fixture source paths must name exported copies, never an
 installed application's database; the SDK test owns further temporary copies.
 
 Inspect the complete diff, stage intended paths, and run `bun run preflight`.
+Gitlink validation clears Git's inherited repository-selection environment before
+querying nested Runtime repositories, including pushes from isolated worktrees.
 It selects the applicable type, lint, format, test, build, and contract checks.
 Native selections prepare and revalidate the shell's Node.js and terminal tools
 before Clippy or Cargo, including a fresh or incompletely prepared worktree.

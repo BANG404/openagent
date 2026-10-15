@@ -9,11 +9,27 @@ import { verifyPublicSdkBoundary } from "./public-sdk-boundary.mjs";
  * @returns {{ status: number, stdout: string, stderr: string }}
  */
 function runGit(cwd, args) {
+  // Hooks export these for the host repository. Let cwd select the independent
+  // Runtime repository instead of accidentally querying the host object store.
+  const env = { ...process.env };
+  for (const name of [
+    "GIT_DIR",
+    "GIT_WORK_TREE",
+    "GIT_INDEX_FILE",
+    "GIT_COMMON_DIR",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_SHALLOW_FILE",
+    "GIT_PREFIX",
+  ]) {
+    delete env[name];
+  }
   const result = spawnSync("git", args, {
     // NOSONAR: git is the fixed repository tool.
     cwd,
     encoding: "utf8",
     shell: false,
+    env,
   });
   if (result.error) throw result.error;
   return {
