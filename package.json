@@ -45,6 +45,7 @@
     "test:blackbox:composer-editor": "bun scripts/test-composer-editor-blackbox.mjs",
     "test:blackbox:composer-palette": "bun scripts/test-composer-palette-blackbox.mjs",
     "test:blackbox:new-conversation-skeleton": "bun scripts/test-new-conversation-skeleton-blackbox.mjs",
+    "test:blackbox:conversation-tree": "bun scripts/test-conversation-tree-blackbox.mjs",
     "test:blackbox:quick-chat": "bun scripts/test-quick-chat-blackbox.mjs",
     "test:blackbox:user-message-markdown": "bun scripts/test-user-message-markdown-blackbox.mjs",
     "test:blackbox:book-reader": "bun scripts/test-book-reader-blackbox.mjs",
