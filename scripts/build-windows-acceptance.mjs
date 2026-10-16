@@ -128,7 +128,15 @@ export async function buildWindowsAcceptance({ output }) {
   await signFile(path.join(runtime, "openagent-sdk-manifest.json"));
   run(process.execPath, ["run", "build"]);
   const archive = path.join(frontend, "openagent-frontend.tar.gz");
-  run("tar", ["--format", "ustar", "-C", "build", "-czf", archive, "."]);
+  run(path.join(process.env.SystemRoot ?? "C:/Windows", "System32/tar.exe"), [
+    "--format",
+    "ustar",
+    "-C",
+    "build",
+    "-czf",
+    archive,
+    ".",
+  ]);
   const shellSource = await readFile(path.join(root, "src-tauri/src/frontend_resource.rs"), "utf8");
   const shellProtocol = Number(
     shellSource.match(/pub const FRONTEND_HOST_PROTOCOL_VERSION: u32 = (\d+)/)?.[1],

@@ -76,7 +76,9 @@ export async function testWindowsAcceptance({ directory, mode, reportDirectory }
   }
   /** @param {string} script @returns {any} */
   function evaluate(script) {
-    return JSON.parse(pilot(["eval", script]));
+    // A string envelope bypasses Pilot's human-readable formatting for null/status objects.
+    return JSON.parse(pilot(["eval", `(async()=>JSON.stringify({value:await(${script})}))()`]))
+      .value;
   }
   // Bundle the checked-in shared SDK to drive product operations in the installed WebView.
   const entry = path.join(root, ".cache/acceptance-client.ts");
@@ -339,7 +341,7 @@ export async function testWindowsAcceptance({ directory, mode, reportDirectory }
     // Reload the real onboarding controller with the fixture's model configuration.
     pilot([
       "eval",
-      "window.__acceptanceReloading=true; setTimeout(()=>location.reload(),100); true",
+      "(()=>{window.__acceptanceReloading=true; setTimeout(()=>location.reload(),100); return true;})()",
     ]);
     await until(() => {
       try {
@@ -371,12 +373,12 @@ export async function testWindowsAcceptance({ directory, mode, reportDirectory }
         invoke("save_settings", { config: { ...settings, theme, language } });
         pilot([
           "eval",
-          "window.__acceptanceReloading=true; setTimeout(()=>location.reload(),100); true",
+          "(()=>{window.__acceptanceReloading=true; setTimeout(()=>location.reload(),100); return true;})()",
         ]);
         await until(() => {
           try {
             return evaluate(
-              `!window.__acceptanceReloading && !!document.querySelector('[contenteditable=true]') && document.documentElement.classList.contains('dark') === ${theme === "dark"} && document.documentElement.lang === ${JSON.stringify(language)}`,
+              `!window.__acceptanceReloading && document.querySelector('[contenteditable=true]')?.getAttribute('data-placeholder')?.startsWith(${JSON.stringify(language === "en" ? "Message" : "发送消息")}) && document.documentElement.classList.contains('dark') === ${theme === "dark"}`,
             );
           } catch {
             return false;
