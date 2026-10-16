@@ -15,7 +15,7 @@ switch ($Action) {
     }
     'BlockNetwork' {
         # Leave loopback reachable for the deterministic model service.
-        $addresses = @('0.0.0.0-126.255.255.255', '128.0.0.0-255.255.255.255', '::/0')
+        $addresses = @('0.0.0.0-126.255.255.255', '128.0.0.0-255.255.255.255', '::/1', '8000::/1')
         foreach ($program in ($env:ACCEPTANCE_PROGRAMS | ConvertFrom-Json)) {
             New-NetFirewallRule -DisplayName $env:ACCEPTANCE_FIREWALL_GROUP -Group $env:ACCEPTANCE_FIREWALL_GROUP -Direction Outbound -Action Block -Program $program -RemoteAddress $addresses -Profile Any | Out-Null
         }

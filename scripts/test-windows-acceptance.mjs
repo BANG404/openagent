@@ -28,16 +28,21 @@ async function until(predicate, label, timeout = 120_000) {
 export async function testWindowsAcceptance({ directory, mode, reportDirectory }) {
   assert(process.platform === "win32", "Windows is required");
   const candidate = await verifyCandidate(directory);
-  const fixture = await mkdtemp(path.join(tmpdir(), `openagent-acceptance-${mode}-`));
+  // Keep the denied-write probe outside the implicitly writable system temp root.
+  const fixture = await mkdtemp(path.join(path.dirname(tmpdir()), `openagent-acceptance-${mode}-`));
   const installation = path.join(fixture, "installed");
   const home = path.join(fixture, "data");
   const workspace = path.join(fixture, "workspace");
+  const temporary = path.join(fixture, "tmp");
   await mkdir(workspace);
+  await mkdir(temporary);
   await mkdir(reportDirectory, { recursive: true });
   /** @type {NodeJS.ProcessEnv} */
   const environment = {
     ...process.env,
     OPENAGENT_HOME: home,
+    TEMP: temporary,
+    TMP: temporary,
     TAURI_PILOT_SOCKET: ACCEPTANCE_PIPE,
     ACCEPTANCE_INSTALLATION: installation,
     ACCEPTANCE_INSTALLER: path.join(directory, candidate.installers[mode]),
@@ -109,9 +114,13 @@ export async function testWindowsAcceptance({ directory, mode, reportDirectory }
     async fetch(request) {
       const url = new URL(request.url);
       if (url.pathname.startsWith("/v1/")) {
-        /** @type {{tools?: {function?: {name: string}}[]}} */
+        /** @type {{tools?: {function?: {name: string}}[]; messages?: {role: string; content: unknown}[]}} */
         const body = await request.json();
         modelRequests++;
+        await writeFile(
+          path.join(fixture, `model-request-${modelRequests}.json`),
+          JSON.stringify(body),
+        );
         const chunk = {
           id: "acceptance",
           object: "chat.completion.chunk",
@@ -122,28 +131,17 @@ export async function testWindowsAcceptance({ directory, mode, reportDirectory }
         /** @param {object} delta @param {string | null} [finish] */
         const event = (delta, finish = null) =>
           `data: ${JSON.stringify({ ...chunk, choices: [{ index: 0, delta, finish_reason: finish }] })}\n\n`;
-        if (!toolRequested && body.tools?.some((tool) => tool.function?.name === "exec_command")) {
-          toolRequested = true;
-          const nodeScript = `const fs=require('node:fs'); const cp=require('node:child_process'); if(process.execPath.toLowerCase()!==${JSON.stringify(path.join(installation, "node-runtime/node.exe").toLowerCase())}) process.exit(24); fs.writeFileSync('acceptance-tool.txt','acceptance tool result'); const found=cp.spawnSync('rg',['acceptance tool result','acceptance-tool.txt'],{encoding:'utf8'}); if(found.status!==0||!found.stdout.includes('acceptance tool result')) process.exit(25); let blocked=false; try {fs.writeFileSync(${JSON.stringify(path.join(fixture, "outside-workspace.txt"))},'forbidden')} catch {blocked=true} if(!blocked) process.exit(23); fs.writeFileSync('acceptance-tool-success.txt','sandbox and bundled tools verified');`;
-          const command = `node -e "eval(Buffer.from('${Buffer.from(nodeScript).toString("base64")}','base64').toString())"`;
-          return new Response(
+        /** @param {string} name @param {object} args */
+        const toolResponse = (name, args) =>
+          new Response(
             event({
               role: "assistant",
               tool_calls: [
                 {
                   index: 0,
-                  id: "acceptance-command",
+                  id: `acceptance-command-${modelRequests}`,
                   type: "function",
-                  function: {
-                    name: "exec_command",
-                    arguments: JSON.stringify({
-                      cmd: command,
-                      workdir: workspace,
-                      login: false,
-                      yield_time_ms: 10000,
-                      max_output_tokens: 1000,
-                    }),
-                  },
+                  function: { name, arguments: JSON.stringify(args) },
                 },
               ],
             }) +
@@ -151,6 +149,47 @@ export async function testWindowsAcceptance({ directory, mode, reportDirectory }
               "data: [DONE]\n\n",
             { headers: { "content-type": "text/event-stream" } },
           );
+        if (!toolRequested && body.tools?.some((tool) => tool.function?.name === "exec_command")) {
+          toolRequested = true;
+          const nodeScript = `
+const fs = require('node:fs');
+const actual = fs.statSync(process.execPath);
+const expected = fs.statSync(${JSON.stringify(path.join(installation, "node-runtime/node.exe"))});
+if (actual.dev !== expected.dev || actual.ino !== expected.ino) process.exit(24);
+fs.writeFileSync('acceptance-tool.txt', 'acceptance tool result');
+let blocked = false;
+try { fs.writeFileSync(${JSON.stringify(path.join(fixture, "outside-workspace.txt"))}, 'forbidden'); }
+catch { blocked = true; }
+if (!blocked) process.exit(23);
+fs.writeFileSync('acceptance-tool-success.txt', 'sandbox and bundled tools verified');`;
+          await writeFile(path.join(workspace, "acceptance-tool.cjs"), nodeScript);
+          const command =
+            "node acceptance-tool.cjs && where rg > acceptance-rg-path.txt && rg acceptance acceptance-tool.txt > acceptance-rg-result.txt";
+          return toolResponse("exec_command", {
+            cmd: command,
+            workdir: workspace,
+            shell: "cmd",
+            login: false,
+            yield_time_ms: 10000,
+            max_output_tokens: 1000,
+          });
+        }
+        const lastTool = body.messages?.findLast((message) => message.role === "tool");
+        if (
+          lastTool &&
+          typeof lastTool.content === "string" &&
+          lastTool.content.trimStart().startsWith("{")
+        ) {
+          const result = JSON.parse(lastTool.content);
+          const session = result.session_id ?? result.metadata?.session_id;
+          if (result.status === "running" && session) {
+            return toolResponse("write_stdin", {
+              session_id: session,
+              chars: "",
+              yield_time_ms: 1000,
+              max_output_tokens: 1000,
+            });
+          }
         }
         return new Response(
           new ReadableStream({
@@ -173,7 +212,7 @@ export async function testWindowsAcceptance({ directory, mode, reportDirectory }
       try {
         const name = safeName(decodeURIComponent(url.pathname.slice(1)));
         const asset = candidate.assets.find((asset) => asset.file === name);
-        if (!asset || (name.endsWith(".exe") && name.includes("setup")))
+        if (!asset || Object.values(candidate.installers).includes(name))
           return new Response(null, { status: 404 });
         downloads.add(name);
         return new Response(file(path.join(directory, name)));
@@ -202,6 +241,20 @@ export async function testWindowsAcceptance({ directory, mode, reportDirectory }
     console.log(`PASS ${mode}: ${name}`);
   };
   const executable = path.join(installation, "openagent.exe");
+  const runtimeManifest = JSON.parse(
+    await readFile(path.join(directory, "openagent-sdk-manifest.json"), "utf8"),
+  );
+  const offlinePrograms = [
+    executable,
+    path.join(installation, "node-runtime/node.exe"),
+    path.join(
+      home,
+      "resources/runtime",
+      runtimeManifest.version,
+      "windows-x64",
+      runtimeManifest.artifacts["windows-x64"].file,
+    ),
+  ];
   const start = () => {
     app = spawn(executable, [], {
       cwd: workspace,
@@ -246,7 +299,7 @@ export async function testWindowsAcceptance({ directory, mode, reportDirectory }
     );
     passed("installer layout and bundled tools execute");
     if (mode === "offline")
-      native("BlockNetwork", { ACCEPTANCE_PROGRAMS: JSON.stringify([executable]) });
+      native("BlockNetwork", { ACCEPTANCE_PROGRAMS: JSON.stringify(offlinePrograms) });
     start();
     if (mode === "online") {
       await until(() => {
@@ -346,7 +399,7 @@ export async function testWindowsAcceptance({ directory, mode, reportDirectory }
     await until(() => {
       try {
         return evaluate(
-          "!window.__acceptanceReloading && !!document.querySelector('[data-module=onboarding] footer button')",
+          "!window.__acceptanceReloading && [...document.querySelectorAll('[data-module=onboarding] footer button')].some(b=>/^(Continue|继续)$/.test(b.textContent.trim()) && !b.disabled)",
         );
       } catch {
         return false;
@@ -391,7 +444,13 @@ export async function testWindowsAcceptance({ directory, mode, reportDirectory }
     passed("installed UI renders in light/dark and Chinese/English");
     // Send via the real composer, whose normal handler uses the shared SDK.
     pilot(["snapshot", "-i"]);
-    pilot(["fill", "[contenteditable=true]", "Verify the installed application."]);
+    evaluate(
+      "(()=>{const e=document.querySelector('[contenteditable=true][role=textbox]'); e.focus(); e.dispatchEvent(new InputEvent('beforeinput',{bubbles:true,cancelable:true,inputType:'insertText',data:'Verify the installed application.'})); return true;})()",
+    );
+    await until(
+      () => evaluate("!document.querySelector('button.send-btn').disabled"),
+      "composer input",
+    );
     pilot(["snapshot", "-i"]);
     pilot(["click", "button.send-btn"]);
     await until(() => {
@@ -423,6 +482,20 @@ export async function testWindowsAcceptance({ directory, mode, reportDirectory }
       "Terminal tool failed its environment or confinement checks",
     );
     assert(
+      (await readFile(path.join(workspace, "acceptance-rg-result.txt"), "utf8")).includes(
+        "acceptance tool result",
+      ),
+      "Terminal rg search did not succeed",
+    );
+    const selectedRg = (await readFile(path.join(workspace, "acceptance-rg-path.txt"), "utf8"))
+      .trim()
+      .split(/\r?\n/)[0];
+    assert(
+      (await realpath(selectedRg)).toLowerCase() ===
+        (await realpath(path.join(installation, "terminal-tools/rg.exe"))).toLowerCase(),
+      "Terminal PATH did not select bundled rg",
+    );
+    assert(
       !(await stat(path.join(fixture, "outside-workspace.txt")).catch(() => null)),
       "Sandbox permitted an outside-workspace write",
     );
@@ -451,7 +524,7 @@ export async function testWindowsAcceptance({ directory, mode, reportDirectory }
     const requestsBeforeRestart = downloadCount;
     stop();
     allowDownloads = false;
-    native("BlockNetwork", { ACCEPTANCE_PROGRAMS: JSON.stringify([executable]) });
+    native("BlockNetwork", { ACCEPTANCE_PROGRAMS: JSON.stringify(offlinePrograms) });
     start();
     await until(() => {
       try {

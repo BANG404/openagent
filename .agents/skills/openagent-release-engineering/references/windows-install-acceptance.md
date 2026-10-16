@@ -23,8 +23,11 @@ server. Never enable debug assertions for the entire host to produce this packag
 
 Acceptance installs as `OpenAgent Acceptance`, identifier
 `com.iumm.openagent.acceptance`, and defaults to `~/.openagent-acceptance`.
-Every test sets a new temporary `OPENAGENT_HOME`; it never uses release or debug
-user data. Runtime remains the unmodified pinned Release binary. Resource
+Every test sets a new temporary `OPENAGENT_HOME` and an empty `TEMP`/`TMP`;
+it never uses release or debug user data or recursively prepares a developer's
+shared temp cache for sandbox writes. The fixture lives outside the system temp
+root so its outside-workspace write probe is not implicitly allowed.
+Runtime remains the unmodified pinned Release binary. Resource
 signatures and digests are verified normally against the fixed acceptance key.
 The private key exists only in the build process and is not exported.
 
@@ -48,7 +51,7 @@ draft unless `--keep-transfer` is set. Failed transfers remain for diagnosis.
 Never publish these drafts or use acceptance packages in production channels.
 
 Each mode installs into a new directory and starts with empty application data.
-Offline tests block the host's non-loopback outbound traffic with task-scoped
+Offline tests block non-loopback outbound traffic from shell, Runtime and bundled Node with task-scoped
 Windows Firewall rules and require zero resource-server requests. Online tests
 first return HTTP 503, require the real failure state and UI Retry, then serve
 the same signed resource bytes. Both modes execute bundled tools, complete
@@ -58,7 +61,12 @@ streaming, restart without network resources, confirm history/settings restore,
 and uninstall while retaining data. Product setup uses the bundled shared SDK;
 ordinary input continues through the UI's normal SDK route.
 The model fixture also requests a real managed terminal call: installed Node
-and `rg` must run in the workspace, while a write outside it must fail.
+and `rg` must run through the normal shell command chain in the workspace,
+while a write outside it must fail. Node identity uses file identity because
+Windows may expose the executable with a verbatim path prefix.
+This gate does not qualify nested Node child-process creation; a local
+restricted-token probe returned `EPERM` for Node `spawnSync`, while the shell
+command chain succeeded. Keep that limitation separate from installer success.
 
 Native tests require an interactive Windows session and administrator rights
 for their scoped Firewall rules. Session 0 fails explicitly. Hosted runners
