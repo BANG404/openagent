@@ -1,7 +1,7 @@
 use super::barrier::drain_supervised_runtime;
 use super::{ActivatedRuntimeResource, PreparedRuntimeResource, RuntimeUpdateState};
 use crate::runtime_process::{
-    inspect_runtime_bootstrap, RuntimeLaunchSpec, RuntimeProcessSupervisor,
+    inspect_runtime_update_bootstrap, RuntimeLaunchSpec, RuntimeProcessSupervisor,
 };
 use crate::runtime_resource::RuntimeResourceManager;
 use crate::runtime_transport::{self, RuntimeEventProxy, RuntimeProxyRequest};
@@ -203,25 +203,33 @@ pub(crate) async fn activate_runtime_resource(
         new_conversation: previous_spec.new_conversation,
         primary_desktop_services: previous_spec.primary_desktop_services,
     };
-    let bootstrap =
-        inspect_runtime_bootstrap(&candidate_spec.binary_path, &candidate_spec.openagent_home)
-            .await
-            .map_err(|error| {
-                tracing::error!(
-                    target: "openagent::component_update",
-                    component = "runtime",
-                    stage = "candidate_bootstrap_inspection_failed",
-                    candidate_version = candidate.version,
-                    %error,
-                    "Runtime candidate failed its pre-activation bootstrap inspection"
-                );
-                error
-            })?;
+    let previous_version = supervisor
+        .status()
+        .await
+        .ok_or_else(|| "Runtime activation requires a running source version".to_string())?
+        .version;
+    let bootstrap = inspect_runtime_update_bootstrap(
+        &candidate_spec.binary_path,
+        &candidate_spec.openagent_home,
+        &previous_version,
+    )
+    .await
+    .map_err(|error| {
+        tracing::error!(
+            target: "openagent::component_update",
+            component = "runtime",
+            stage = "candidate_bootstrap_inspection_failed",
+            candidate_version = candidate.version,
+            %error,
+            "Runtime candidate failed its pre-activation bootstrap inspection"
+        );
+        error
+    })?;
     if bootstrap.requires_restart() {
         tracing::warn!(target: "openagent::component_update", component = "runtime",
             stage = "candidate_restart_required", candidate_version = candidate.version,
-            "Runtime database upgrade requires desktop restart; previous process remains active");
-        return Err("Runtime candidate requires a desktop restart to upgrade conversation storage; install the desktop update before activating it".into());
+            "Runtime compatibility requires desktop restart; previous process remains active");
+        return Err(format!("Runtime candidate requires a desktop restart: {}; install the desktop update before activating it", bootstrap.restart_reason()));
     }
     if bootstrap.requires_persistence_transition() {
         let scope = bootstrap.transition_scope().unwrap_or("persisted data");

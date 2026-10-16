@@ -1,5 +1,11 @@
 # Modular frontend and SDK updates
 
+Runtime admission also evaluates the independent signed
+[compatibility policy](../../openagent-configuration/references/compatibility-policy.md).
+Online replacement passes the actual running source version to the candidate
+before stopping it. Policy restart/block decisions augment the existing local
+protocol, data-transition and rollback gates; they cannot authorize migration.
+
 OpenAgent separates development reloads and reusable SDK delivery from desktop
 installer updates. The separation is process- and protocol-based; the Rust SDK
 is never loaded as a replaceable dynamic library.

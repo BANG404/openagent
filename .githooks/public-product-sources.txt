@@ -1,5 +1,9 @@
+crates/openagent-app/examples/compatibility-policy.rs
 crates/openagent-app/src/bootstrap.rs
 crates/openagent-app/src/client.rs
+crates/openagent-app/src/compatibility_policy.rs
+crates/openagent-app/src/compatibility_policy/source.rs
+crates/openagent-app/src/compatibility_policy/tests.rs
 crates/openagent-app/src/defaults.rs
 crates/openagent-app/src/embedding_resource.rs
 crates/openagent-app/src/lib.rs

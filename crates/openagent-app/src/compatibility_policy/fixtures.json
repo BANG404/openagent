@@ -1,0 +1,30 @@
+{
+  "public_key": "untrusted comment: fixture public key\nRWQTv41X1LHeQXSIEESZ7uwmA6vomYYp36Vn8RwBLVYH0PBcs94PUzo1\n",
+  "policies": {
+    "1": {
+      "payload": "{\"schema_version\":1,\"revision\":1,\"issued_at\":100,\"expires_at\":4102444800,\"rules\":[{\"id\":\"pause\",\"conditions\":{\"runtime\":\">=2.0.0\"},\"action\":\"block\",\"reason\":\"Install the intermediate Runtime first\"}]}",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IGZpeHR1cmUgc2lnbmF0dXJlClJVUVR2NDFYMUxIZVFmd0FkZy9kL3V2cjZoVSszalJIMjdtNDdvVnRMQWg0RnJvQmFRb0VUc09aTGN4amNoZDRpbFBnT2VCaXFPNXI1TXM2Z2U4LzN4UnRWd1hrdm4wNEx3OD0KdHJ1c3RlZCBjb21tZW50OiB0aW1lc3RhbXA6MAlmaWxlOmZpeHR1cmUJcHJlaGFzaGVkCmJxYkppSkRrSWlSRm93STZubDJUcDJpbFlvanpCNVV2QUc4TDlwUHpqR0VDOVByeHdzODR5anFGc1g2L3dqdEhkRlcxU1NPMXdVcnZaeXJtQTEyZ0JnPT0K",
+      "checked_at": 200
+    },
+    "2": {
+      "payload": "{\"schema_version\":1,\"revision\":2,\"issued_at\":100,\"expires_at\":4102444800,\"rules\":[{\"id\":\"pause\",\"conditions\":{\"runtime\":\">=2.0.0\"},\"action\":\"block\",\"reason\":\"Install the intermediate Runtime first\"}]}",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IGZpeHR1cmUgc2lnbmF0dXJlClJVUVR2NDFYMUxIZVFlNlFQOEdKSVNJMjNYQ1QzM1YydkNwOXVMR1MyQ0RNRFdqUFlhUUR0VjlIbmd1a1k1Z21YblFoTnRxeWZ4RjJ5RFFuR1dMVHFqMU9rekJwcmQ3MXpRWT0KdHJ1c3RlZCBjb21tZW50OiB0aW1lc3RhbXA6MAlmaWxlOmZpeHR1cmUJcHJlaGFzaGVkCm1hSHkvNEtxR21KWUowTU0wVXZpaENvTUxqV1ROMC9VcnQ2VHNXYzZKN0JLcmYxelRJcDNjSkxiSVJHS1VMM0d5eUFybjBrUkNRYWE0RjdSMzVoVUNnPT0K",
+      "checked_at": 200
+    },
+    "3": {
+      "payload": "{\"schema_version\":1,\"revision\":3,\"issued_at\":100,\"expires_at\":4102444800,\"rules\":[{\"id\":\"pause\",\"conditions\":{\"runtime\":\">=2.0.0\"},\"action\":\"block\",\"reason\":\"Install the intermediate Runtime first\"}]}",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IGZpeHR1cmUgc2lnbmF0dXJlClJVUVR2NDFYMUxIZVFjTDQ4b09WUVpmWW0zbElzS0NVaFhMWnc5NU1LUW9GRVNKRkIwcUZzWnRBeDBMZlV0OFpoVXMvTmhPejNldkZXODRJbnJsMkVhVE80bGU5WWNhaUVBOD0KdHJ1c3RlZCBjb21tZW50OiB0aW1lc3RhbXA6MAlmaWxlOmZpeHR1cmUJcHJlaGFzaGVkCnNURk5wVWlLaDVUbWpIZ2dTcnFRSmJodDFYdm9zbmw4dEpjdkxJbXdlM0VxV2JTeUh0eHVRL0ZNSjU3QW51ZU5NOU80YmY3NEM1ZCttcmozVWREUEFRPT0K",
+      "checked_at": 200
+    },
+    "conflict": {
+      "payload": "{\"schema_version\":1,\"revision\":2,\"issued_at\":100,\"expires_at\":4102444800,\"rules\":[{\"id\":\"pause\",\"conditions\":{\"runtime\":\">=2.0.0\"},\"action\":\"block\",\"reason\":\"Different signed rules for the same revision\"}]}",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IGZpeHR1cmUgc2lnbmF0dXJlClJVUVR2NDFYMUxIZVFaUDZrT0tFT3VUNEVZeFBidFNGNFpSQUxlVDJDR1RGcE9mS1hhTHNtQTZTdmQ1SXAxN2s3ZlJhc0hrYkQwYW83NTg3c1dqVEpxNitPa051cEtmNGh3Zz0KdHJ1c3RlZCBjb21tZW50OiB0aW1lc3RhbXA6MAlmaWxlOmZpeHR1cmUJcHJlaGFzaGVkCm16YTVvanVxODlONEk5Nm1ic0E4TEl4VDR3WnZqUk5QZCtYYU9MdGpRNWs0Y21wNGIvTitVbkloT0dhNE9CM1RyQktzZEcrRFBDUWpVRkxpbVVSZkNBPT0K",
+      "checked_at": 200
+    },
+    "expired": {
+      "payload": "{\"schema_version\":1,\"revision\":4,\"issued_at\":100,\"expires_at\":150,\"rules\":[]}",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IGZpeHR1cmUgc2lnbmF0dXJlClJVUVR2NDFYMUxIZVFmZEtKdnZLZjBCSFF4ejR6VUVmTDV5NWxUSS9yYmVvaXA4UlZ0UHpJQXdkeHJVZlZwejF2UkhqZmMvblQ0aXRjbitFM1AyWHZLc2ppNVNEWHpPRGZnaz0KdHJ1c3RlZCBjb21tZW50OiB0aW1lc3RhbXA6MAlmaWxlOmZpeHR1cmUJcHJlaGFzaGVkCjdhTnhVTGJWdU5Obzc4UU45c0lrSFQ4VTg0VWZ3aUp5aFIxVi9YQ3l3UzFkbkZrZU1LNm8vWldGSittakVHa29FYm4wSHpWUmNmdHhueCtSTDdJWEJRPT0K",
+      "checked_at": 120
+    }
+  }
+}

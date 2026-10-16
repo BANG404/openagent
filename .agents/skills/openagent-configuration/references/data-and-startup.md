@@ -1,5 +1,8 @@
 # Configuration and application data
 
+Independent signed version restrictions and their startup/update admission follow
+[online compatibility policy](compatibility-policy.md).
+
 The desktop page delegates startup sequencing to `src/lib/page/startup.ts`.
 It restores the durable bootstrap before installing Runtime event delivery,
 retries a lost bootstrap once, restores durable fallback state on failure,
