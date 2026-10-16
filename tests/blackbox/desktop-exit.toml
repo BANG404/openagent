@@ -37,6 +37,8 @@ script = '''(async () => {
   const overlay = document.querySelector('[data-desktop-exit-progress]');
   if (!(await window.__TAURI_INTERNALS__.invoke('plugin:window|is_visible', {label:'main'}))) throw new Error('hidden product window was not revealed');
   if (!overlay || overlay.getBoundingClientRect().width < 300) throw new Error('progress is not visible');
+  if (document.documentElement.classList.contains('dark') !== window.__exitExpectedDark) throw new Error('exit theme does not match the saved appearance');
+  if (getComputedStyle(overlay.querySelector('.desktop-exit-card')).backgroundColor !== window.__exitExpectedSurface) throw new Error('exit surface does not use the saved theme colors');
   if (!document.querySelector('.application-content')?.inert) throw new Error('application remains interactive');
   if (!overlay.querySelector('h1')?.textContent.includes(window.__exitExpectedTitle)) throw new Error(overlay.textContent);
   if (!overlay.textContent.includes(window.__exitExpectedStage)) throw new Error(overlay.textContent);

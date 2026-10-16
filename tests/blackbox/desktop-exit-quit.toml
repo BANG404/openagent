@@ -13,6 +13,7 @@ script = '''(async () => {
       const overlay = document.querySelector('[data-desktop-exit-progress]');
       if (!overlay) return;
       observer.disconnect(); clearTimeout(timeout);
+      if (document.documentElement.classList.contains('dark') !== window.__exitExpectedDark) return reject(new Error('quit theme does not match saved appearance'));
       if (!overlay.textContent.includes(window.__exitExpectedTitle)) return reject(new Error(overlay.textContent));
       if (!document.querySelector('.application-content')?.inert) return reject(new Error('quit did not block input'));
       resolve(true);
