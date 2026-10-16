@@ -10,7 +10,7 @@ describe("product release identity", () => {
   test("exposes the packaged product version separately from component versions", () => {
     expect(hostSource).toContain("release: String");
     expect(hostSource).toContain("let frontend_release = manager.active_version();");
-    expect(hostSource).toContain("release: frontend_release");
+    expect(hostSource).toContain("Some(app.package_info().version.to_string())");
     expect(hostSource).toContain("resource.release_version");
     expect(hostSource).toContain("shell: shell_version");
   });

@@ -397,13 +397,18 @@ with native resource progress, retry and offline import. The component receives
 its SDK client only from the product page; the embedded welcome has no Runtime
 transport and cannot advance before resources are ready. Release startup creates a hidden
 main window and checks the installed selections through their resource owners.
-With a verified Runtime and a frontend at least as new as the shell, ordinary
+With a verified Runtime and a frontend meeting the signed installation identity, ordinary
 startup opens the product directly, without staging or recopying a distribution.
 An unfinished shell handoff still consumes its exact signed distribution.
 An existing frontend admitted by its resource owner keeps the bootstrap hidden
 through replacement-resource preparation, Runtime startup and product
 navigation, including shell continuation and cached repair. A frontend older
-than the shell may require a new distribution without reopening Welcome.
+than the required frontend component may require a new distribution without reopening Welcome.
+Formal releases can retain original shell and frontend bytes while advancing the
+installed product version. The signed packaged distribution binds those component
+versions; startup and updater handoffs use its product identity. Without packaged
+identity metadata, existing installers retain their compiled-version behavior.
+See [component reuse](../../openagent-release-engineering/references/component-reuse.md).
 Initial preparation without an admitted frontend, explicit offline import and
 actionable startup failures retain the shared welcome/recovery surface.
 An existing shell handoff also keeps preparation hidden when the new shell's

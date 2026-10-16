@@ -272,7 +272,7 @@ describe("release CI verification", () => {
 
     expect(releaseWorkflow).toContain("push:");
     expect(releaseWorkflow).toContain("- .github/release.json");
-    expect(releaseWorkflow).toContain("name: Complete release qualification");
+    expect(releaseWorkflow).toContain("name: Qualify changed components and shared release policy");
     expect(releaseWorkflow).toContain("uses: ./.github/workflows/ci.yml");
     expect(releaseWorkflow).toContain("full: true");
     expect(releaseWorkflow).toContain("needs.qualify.result == 'success'");
@@ -289,7 +289,7 @@ describe("release CI verification", () => {
       ?.job;
     const buildJob = releaseWorkflow.match(/ {2}build:\n(?<job>[\s\S]*?)\n {2}runtime-components:/)
       ?.groups?.job;
-    expect(qualifyJob).toContain("needs: detect");
+    expect(qualifyJob).toContain("needs: [detect, component-plan]");
     expect(qualifyJob).not.toContain("sdk-release");
     expect(tagJob).toContain("- sdk-release");
     expect(tagJob).toContain("- qualify");
@@ -344,11 +344,13 @@ describe("release CI verification", () => {
   test("publishes lightweight updater inputs and separate full first-install bundles", () => {
     expect(tauriConfig.bundle.createUpdaterArtifacts).toBe(true);
     expect(tauriConfig.bundle.resources).toEqual({
+      "resources/release-identity/": "release-identity/",
       "resources/node-runtime/": "node-runtime/",
       "resources/terminal-tools/": "terminal-tools/",
     });
     expect(fullTauriConfig.bundle.createUpdaterArtifacts).toBe(false);
     expect(fullTauriConfig.bundle.resources).toEqual({
+      "resources/release-identity/": "release-identity/",
       "resources/node-runtime/": "node-runtime/",
       "resources/terminal-tools/": "terminal-tools/",
       "resources/bootstrap-release/": "bootstrap-release/",
@@ -391,7 +393,7 @@ describe("release CI verification", () => {
       releaseWorkflow.match(
         /signer sign --private-key "\$TAURI_SIGNING_PRIVATE_KEY" --password ""/g,
       ),
-    ).toHaveLength(3);
+    ).toHaveLength(4);
     expect(releaseWorkflow).toContain('component_channel="frontend-$RELEASE_CHANNEL"');
     expect(releaseWorkflow).toContain("openagent-frontend-manifest.json.sig");
   });

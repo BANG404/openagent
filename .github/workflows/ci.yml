@@ -10,6 +10,16 @@ on:
         required: false
         default: false
         type: boolean
+      reuse_frontend:
+        description: Caller verified the signed release component receipt
+        default: false
+        type: boolean
+      reuse_shell:
+        default: false
+        type: boolean
+      reuse_embedding:
+        default: false
+        type: boolean
       external_frontend_build:
         description: Release caller gates on its own qualified frontend build
         default: false
@@ -144,10 +154,10 @@ jobs:
           CI_REQUEST_NATIVE_PLATFORM: ${{ steps.modules.outputs.nativePlatform }}
           CI_REQUEST_EMBEDDING: ${{ steps.modules.outputs.embedding }}
           CI_REUSE_AUTOMATION: ${{ steps.reuse.outputs.automation }}
-          CI_REUSE_FRONTEND: ${{ steps.reuse.outputs.frontend }}
-          CI_REUSE_NATIVE_QUALITY: ${{ steps.reuse.outputs.nativeQuality }}
-          CI_REUSE_NATIVE_PLATFORM: ${{ steps.reuse.outputs.nativePlatform }}
-          CI_REUSE_EMBEDDING: ${{ steps.reuse.outputs.embedding }}
+          CI_REUSE_FRONTEND: ${{ inputs.reuse_frontend || steps.reuse.outputs.frontend == 'true' }}
+          CI_REUSE_NATIVE_QUALITY: ${{ inputs.reuse_shell || steps.reuse.outputs.nativeQuality == 'true' }}
+          CI_REUSE_NATIVE_PLATFORM: ${{ inputs.reuse_shell || steps.reuse.outputs.nativePlatform == 'true' }}
+          CI_REUSE_EMBEDDING: ${{ inputs.reuse_embedding || steps.reuse.outputs.embedding == 'true' }}
         run: node scripts/ci-reuse.mjs select
 
       - name: Summarize reused verification

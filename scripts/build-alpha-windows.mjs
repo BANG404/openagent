@@ -11,6 +11,7 @@ import {
 } from "./alpha-artifacts.mjs";
 import { bindRuntimeHelpers } from "./bind-runtime-helpers.mjs";
 import { createDistribution } from "./distribution-artifacts.mjs";
+import { stageReleaseIdentity } from "./stage-release-identity.mjs";
 import { createFrontendManifest } from "./frontend-artifacts.mjs";
 import { stageDistribution } from "./stage-distribution.mjs";
 import { readRuntimeProtocol } from "./runtime-protocol.mjs";
@@ -195,6 +196,10 @@ export async function buildAlphaWindows({ version, sourceSha, sdkSha, baselineTa
   });
   sign(path.join(distributionDirectory, "openagent-distribution.json"), environment);
   await verifyAlphaDistribution({ directory: distributionDirectory, version, sdkSha });
+  await stageReleaseIdentity(
+    distributionDirectory,
+    path.join(root, "src-tauri/resources/release-identity"),
+  );
   await stageDistribution({
     source: distributionDirectory,
     destination: path.join(root, "src-tauri/resources/bootstrap-release"),

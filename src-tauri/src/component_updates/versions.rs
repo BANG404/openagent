@@ -74,6 +74,7 @@ fn runtime_release_identity(
 
 #[tauri::command]
 pub(crate) async fn get_component_versions(
+    app: tauri::AppHandle,
     manager: State<'_, FrontendResourceManager>,
     runtime_manager: State<'_, RuntimeResourceManager>,
     supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
@@ -85,12 +86,17 @@ pub(crate) async fn get_component_versions(
         .as_ref()
         .and_then(|resource| resource.release_version.clone());
     Ok(ComponentVersions {
-        // Frontend resource releases carry the product release version. This
-        // lets a frontend-only release update the user-facing identity while
-        // keeping the packaged shell version independent.
-        release: frontend_release
-            .or(runtime_release)
-            .unwrap_or_else(|| shell_version.clone()),
+        release: [
+            Some(app.package_info().version.to_string()),
+            frontend_release,
+            runtime_release,
+        ]
+        .into_iter()
+        .flatten()
+        .filter_map(|version| semver::Version::parse(&version).ok())
+        .max()
+        .map(|version| version.to_string())
+        .unwrap_or_else(|| shell_version.clone()),
         shell: shell_version.clone(),
         runtime: supervisor
             .status()

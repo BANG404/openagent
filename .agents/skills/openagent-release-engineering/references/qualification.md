@@ -10,8 +10,10 @@
   administrator permission. Administrator-authored PRs use the documented
   bypass after local preflight. Ordinary `main` pushes do not replace release
   qualification.
-- Formal Release, nightly, and manual full qualification force every frontend,
-  automation, native, and embedding capability. Release candidate
+- Nightly and manual full qualification force every frontend, automation, native,
+  and embedding capability. Formal releases may reuse independently signed
+  component qualification through [component reuse](component-reuse.md), while
+  shared automation and combination gates remain required. Release candidate
   builds may run concurrently with qualification, but a failed qualification
   stops tagging and every publication side effect.
 - Private SDK manual CI supports fast path classification against the requested

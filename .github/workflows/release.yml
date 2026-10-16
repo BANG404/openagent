@@ -335,15 +335,49 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  component-plan:
+    name: Resolve independently qualified components
+    needs: [detect, sdk-plan]
+    if: needs.detect.outputs.active == 'true'
+    runs-on: ubuntu-24.04
+    outputs:
+      reuse_frontend: ${{ steps.plan.outputs.reuse_frontend }}
+      reuse_shell: ${{ steps.plan.outputs.reuse_shell }}
+      reuse_embedding: ${{ steps.plan.outputs.reuse_embedding }}
+      reuse_runtime: ${{ steps.plan.outputs.reuse_runtime }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.detect.outputs.sha }}
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - run: bun install --frozen-lockfile
+      - name: Verify published component receipts and exact inputs
+        id: plan
+        env:
+          COMPONENT_RUNTIME_SOURCE: ${{ needs.sdk-plan.outputs.sdk_release_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/release-component-reuse.mjs plan --directory .cache/component-reuse
+      - uses: actions/upload-artifact@v4
+        with:
+          name: component-reuse-plan
+          path: .cache/component-reuse
+          if-no-files-found: error
+
   qualify:
-    name: Complete release qualification
-    needs: detect
+    name: Qualify changed components and shared release policy
+    needs: [detect, component-plan]
     if: needs.detect.outputs.active == 'true'
     uses: ./.github/workflows/ci.yml
     with:
       base_sha: ${{ github.event.before }}
       full: true
       external_frontend_build: true
+      reuse_frontend: ${{ needs.component-plan.outputs.reuse_frontend == 'true' }}
+      reuse_shell: ${{ needs.component-plan.outputs.reuse_shell == 'true' }}
+      reuse_embedding: ${{ needs.component-plan.outputs.reuse_embedding == 'true' }}
     secrets: inherit
 
   tag:
@@ -488,16 +522,20 @@ jobs:
 
   frontend-build:
     name: Qualified frontend and bootstrap
-    needs: detect
+    needs: [detect, component-plan]
     if: needs.detect.outputs.active == 'true'
     uses: ./.github/workflows/build-frontend.yml
     with:
       source_sha: ${{ needs.detect.outputs.sha }}
+      component_reuse: true
+      reuse_frontend: ${{ needs.component-plan.outputs.reuse_frontend == 'true' }}
     secrets: inherit
 
   shell-build:
     name: Compile shell ${{ matrix.name }}
-    needs: [detect, frontend-build]
+    needs: [detect, frontend-build, component-plan]
+    env:
+      OPENAGENT_COMPONENT_PLAN: .cache/component-reuse/plan.json
     if: needs.detect.outputs.published != 'true'
     strategy:
       fail-fast: false
@@ -561,14 +599,27 @@ jobs:
         with:
           name: qualified-frontend-build
           path: .cache/frontend-build
+      - uses: actions/download-artifact@v4
+        with:
+          name: component-reuse-plan
+          path: .cache/component-reuse
       - name: Restore verified frontend and bootstrap
         run: node scripts/release-build-artifacts.mjs frontend-restore --directory .cache/frontend-build
+      - name: Restore previously qualified shell
+        if: needs.component-plan.outputs.reuse_shell == 'true'
+        shell: bash
+        run: |
+          mkdir -p .cache/shell-build
+          tar -xzf .cache/component-reuse/shell-build-${{ matrix.runtime_target }}.tar.gz -C .cache/shell-build
+          node scripts/release-build-artifacts.mjs shell-restore --directory .cache/shell-build --target ${{ matrix.runtime_target }}
       - name: Compile shell without waiting for SDK or offline resources
+        if: needs.component-plan.outputs.reuse_shell != 'true'
         env:
           OPENAGENT_NODE_TARGET: ${{ matrix.sidecar_target }}
           OPENAGENT_TERMINAL_TOOLS_TARGET: ${{ matrix.sidecar_target }}
         run: bun run tauri:build -- --no-bundle --config .github/tauri-prebuilt.conf.json ${{ matrix.args }}
       - name: Bind compiled shell and portable resources to source
+        if: needs.component-plan.outputs.reuse_shell != 'true'
         run: node scripts/release-build-artifacts.mjs shell-pack --directory .cache/shell-build --target ${{ matrix.runtime_target }}
       - uses: actions/upload-artifact@v4
         with:
@@ -577,9 +628,19 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
+      - name: Archive qualified shell
+        shell: bash
+        run: tar -C .cache/shell-build -czf shell-build-${{ matrix.runtime_target }}.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: component-archive-shell-${{ matrix.runtime_target }}
+          path: shell-build-${{ matrix.runtime_target }}.tar.gz
+          if-no-files-found: error
 
   build:
     name: Build ${{ matrix.name }}
+    env:
+      OPENAGENT_COMPONENT_PLAN: .cache/component-reuse/plan.json
     needs:
       - detect
       - sdk-release
@@ -659,6 +720,10 @@ jobs:
           name: compiled-shell-${{ matrix.runtime_target }}
           path: .cache/shell-build
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: component-reuse-plan
+          path: .cache/component-reuse
       - name: Restore verified shell and portable resources
         run: node scripts/release-build-artifacts.mjs shell-restore --directory .cache/shell-build --target ${{ matrix.runtime_target }}
 
@@ -704,6 +769,10 @@ jobs:
           name: signed-distribution-resources
           path: ${{ runner.temp }}/distribution-resources
 
+      - name: Stage signed installation identity
+        shell: bash
+        run: node scripts/stage-release-identity.mjs "$RUNNER_TEMP/distribution-resources" src-tauri/resources/release-identity
+
       - name: Stage offline resource seed
         shell: bash
         run: >-
@@ -712,7 +781,7 @@ jobs:
           --output src-tauri/resources/bootstrap-release
           --target "${{ matrix.runtime_target }}"
 
-      # Package the source-bound shell compiled earlier in the same run.
+      # Package the verified shell with its original component build identity.
       - name: Bundle lightweight release candidate from compiled shell
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -726,12 +795,13 @@ jobs:
         if: matrix.runner_os == 'Windows'
         shell: pwsh
         env:
-          EXPECTED_VERSION: ${{ needs.detect.outputs.version }}
+          COMPONENT_PLAN: .cache/component-reuse/plan.json
         run: |
           $executable = Resolve-Path "src-tauri\target\release\openagent.exe"
           $actualVersion = (Get-Item $executable).VersionInfo.ProductVersion
-          if ($actualVersion -ne $env:EXPECTED_VERSION) {
-            throw "Windows executable version mismatch: expected $env:EXPECTED_VERSION, found $actualVersion."
+          $expectedVersion = (Get-Content -Raw $env:COMPONENT_PLAN | ConvertFrom-Json).components.shell.identity.version
+          if ($actualVersion -ne $expectedVersion) {
+            throw "Windows executable version mismatch: expected $expectedVersion, found $actualVersion."
           }
 
       - name: Stage lightweight release candidate
@@ -900,7 +970,7 @@ jobs:
 
   distribution-helpers:
     name: Qualify distribution helpers (${{ matrix.os }})
-    needs: [detect, sdk-plan]
+    needs: [detect, sdk-plan, component-plan]
     if: needs.detect.outputs.published != 'true'
     strategy:
       matrix:
@@ -934,7 +1004,18 @@ jobs:
       - name: Prepare Linux helper dependencies
         if: matrix.os == 'linux'
         run: sudo apt-get update && sudo apt-get install -y binutils libcap-dev pkg-config
+      - uses: actions/download-artifact@v4
+        with:
+          name: component-reuse-plan
+          path: .cache/component-reuse
+      - name: Restore previously qualified helpers
+        if: needs.component-plan.outputs.reuse_runtime == 'true'
+        shell: bash
+        run: |
+          mkdir -p distribution-helpers
+          tar -xzf .cache/component-reuse/runtime-helpers-${{ matrix.os }}.tar.gz -C distribution-helpers
       - name: Build and stage distribution helpers
+        if: needs.component-plan.outputs.reuse_runtime != 'true'
         shell: bash
         run: |
           mkdir -p distribution-helpers
@@ -951,9 +1032,28 @@ jobs:
           path: distribution-helpers/*
           if-no-files-found: error
 
+      - name: Archive qualified helpers
+        shell: bash
+        run: tar -C distribution-helpers -czf runtime-helpers-${{ matrix.os }}.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: component-archive-helpers-${{ matrix.os }}
+          path: runtime-helpers-${{ matrix.os }}.tar.gz
+          if-no-files-found: error
+
   distribution-resources:
     name: Bind complete signed resource distribution
-    needs: [detect, sdk-release, runtime-components, frontend-components, distribution-helpers]
+    env:
+      OPENAGENT_COMPONENT_PLAN: .cache/component-reuse/plan.json
+    needs:
+      [
+        detect,
+        sdk-release,
+        runtime-components,
+        frontend-components,
+        distribution-helpers,
+        component-plan,
+      ]
     if: needs.detect.outputs.published != 'true'
     runs-on: ubuntu-24.04
     steps:
@@ -995,6 +1095,19 @@ jobs:
           pattern: distribution-helpers-*
           path: distribution-helpers
           merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: component-reuse-plan
+          path: .cache/component-reuse
+      - name: Restore previously qualified embedding model
+        if: needs.component-plan.outputs.reuse_embedding == 'true'
+        shell: bash
+        run: |
+          mkdir -p src-tauri/resources/models/all-MiniLM-L6-v2-q
+          tar -xzf .cache/component-reuse/embedding-resources.tar.gz -C src-tauri/resources/models/all-MiniLM-L6-v2-q
+      - name: Fetch changed embedding model
+        if: needs.component-plan.outputs.reuse_embedding != 'true'
+        run: bun scripts/fetch-embedding-model.mjs
       - name: Create and sign full resource set and development kit
         shell: bash
         env:
@@ -1017,6 +1130,14 @@ jobs:
         with:
           name: signed-distribution-resources
           path: distribution-resources/*
+          if-no-files-found: error
+
+      - name: Archive qualified embedding model
+        run: tar -C src-tauri/resources/models/all-MiniLM-L6-v2-q -czf embedding-resources.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: component-archive-embedding
+          path: embedding-resources.tar.gz
           if-no-files-found: error
 
   runtime-components:
@@ -1081,7 +1202,9 @@ jobs:
 
   frontend-components:
     name: Prepare signed frontend candidate
-    needs: [detect, frontend-build]
+    needs: [detect, frontend-build, component-plan]
+    env:
+      OPENAGENT_COMPONENT_PLAN: .cache/component-reuse/plan.json
     if: needs.detect.outputs.published != 'true'
     runs-on: ubuntu-24.04
     steps:
@@ -1124,17 +1247,28 @@ jobs:
           name: qualified-frontend-build
           path: .cache/frontend-build
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: component-reuse-plan
+          path: .cache/component-reuse
       - name: Restore the qualified release frontend
         run: node scripts/release-build-artifacts.mjs frontend-restore --directory .cache/frontend-build
 
+      - name: Restore original signed frontend component
+        if: needs.component-plan.outputs.reuse_frontend == 'true'
+        shell: bash
+        run: |
+          mkdir -p frontend-components
+          tar -xzf .cache/component-reuse/frontend-component.tar.gz -C frontend-components
       - name: Create and sign frontend component
+        if: needs.component-plan.outputs.reuse_frontend != 'true'
         shell: bash
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         run: |
           mkdir -p frontend-components
           tar --format=ustar -C build -czf frontend-components/openagent-frontend.tar.gz .
-          version="$(node -p "require('./package.json').version")"
+          version="$(node -p "require('./.cache/component-reuse/plan.json').components.frontend.identity.version")"
           shell_protocol="$(sed -n 's/^pub const FRONTEND_HOST_PROTOCOL_VERSION: u32 = \([0-9][0-9]*\);/\1/p' src-tauri/src/frontend_resource.rs)"
           runtime_protocol="$(sed -n 's/^pub const SDK_PROTOCOL_VERSION: u32 = \([0-9][0-9]*\);/\1/p' crates/openagent-protocol/src/lib.rs)"
           if [[ -z "$shell_protocol" || -z "$runtime_protocol" ]]; then
@@ -1159,6 +1293,14 @@ jobs:
           path: frontend-components/*
           if-no-files-found: error
           retention-days: 7
+
+      - name: Archive original signed frontend component
+        run: tar -C frontend-components -czf frontend-component.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: component-archive-frontend-signed
+          path: frontend-component.tar.gz
+          if-no-files-found: error
 
   publish-native-assets:
     name: Publish native release assets
@@ -1227,10 +1369,32 @@ jobs:
       && needs.detect.outputs.published != 'true'
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.detect.outputs.sha }}
       - uses: actions/download-artifact@v4
         with:
           name: signed-distribution-resources
           path: distribution-resources
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - run: bun install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: component-reuse-plan
+          path: .cache/component-reuse
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: component-archive-*
+          path: component-archives
+          merge-multiple: true
+      - name: Sign qualified component receipt
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          node scripts/release-component-reuse.mjs receipt --directory .cache/component-reuse --artifacts component-archives --output distribution-resources
+          bun scripts/tauri.mjs signer sign --private-key "$TAURI_SIGNING_PRIVATE_KEY" --password "" distribution-resources/openagent-components.json
       - name: Upload signed online and offline resources
         env:
           GH_TOKEN: ${{ github.token }}

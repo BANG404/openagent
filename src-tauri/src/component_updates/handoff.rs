@@ -111,6 +111,7 @@ pub(crate) fn clear(home: &Path) -> Result<(), String> {
 /// not replace its Runtime or navigate to a frontend that requires the new shell.
 #[tauri::command]
 pub(crate) async fn prepare_shell_handoff(
+    app: tauri::AppHandle,
     home: tauri::State<'_, crate::DesktopDataDir>,
     updates: tauri::State<'_, super::RuntimeUpdateState>,
     shell_version: String,
@@ -132,7 +133,7 @@ pub(crate) async fn prepare_shell_handoff(
             schema_version: 1,
             shell_version,
         },
-        env!("CARGO_PKG_VERSION"),
+        &app.package_info().version.to_string(),
     )
 }
 

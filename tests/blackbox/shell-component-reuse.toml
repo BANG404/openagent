@@ -1,0 +1,23 @@
+[scenario]
+name = "reused shell and frontend retain independent identities"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "native updater sees installed product while components retain original versions"
+action = "eval"
+script = '''(async () => {
+  const invoke = window.__TAURI_INTERNALS__.invoke;
+  const versions = await invoke('get_component_versions');
+  if (versions.release !== '999.0.2-beta.1') throw new Error('product identity was not advanced');
+  if (versions.shell !== window.__originalShellVersion) throw new Error('compiled shell identity changed');
+  if (await invoke('plugin:app|version') !== versions.release) throw new Error('updater still sees the old shell version');
+  if (!location.href.includes('frontend-version=' + window.__originalShellVersion)) throw new Error('original frontend was not reused');
+  try {
+    await invoke('prepare_release_resources', {version: versions.release});
+    throw new Error('current product was offered as a newer update');
+  } catch (error) {
+    if (!String(error).includes('requires a newer shell')) throw error;
+  }
+  return true;
+})()'''

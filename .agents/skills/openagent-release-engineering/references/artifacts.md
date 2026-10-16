@@ -135,7 +135,8 @@
   ephemeral test key; never require or print the production signing key locally.
 - Record `frontend`, `runtime`, and `nativeShell` in release metadata. These
   flags describe source changes and select fixed frontend/Runtime channel updates;
-  they do not gate installer construction. Every product release prepares the
+  they do not gate installer construction. Independently qualified resources
+  follow [component reuse](component-reuse.md). Every product release prepares the
   complete signed Runtime/frontend/embedding/helper distribution and builds all
   four Tauri targets, updater artifacts, full installers, and eligible Stable
   Store packages. Refresh prerelease `latest.json` for every Beta/RC release.
@@ -190,9 +191,10 @@ its ancestry against the exact client gitlink.
 The four `shell-build` jobs start after the qualified bootstrap, without waiting
 for SDK or offline resources. `.github/tauri-prebuilt.conf.json` verifies the
 restored frontend and prepares target-specific Node and terminal tools; it never
-rebuilds frontend assets. `tauri build --no-bundle` compiles each shell once.
-Its run-scoped artifact contains only the main executable, sibling DLLs and
-portable resources, with source/target/version identity and file digests.
+rebuilds frontend assets. `tauri build --no-bundle` compiles each changed shell once; a signed receipt hit
+restores the previously qualified shell instead.
+Its artifact contains only the main executable, sibling DLLs and portable
+resources, with original component source/target/version identity and file digests.
 Private compiler outputs and Cargo target directories are excluded.
 
 Platform packaging waits for the signed distribution and its compiled shell,
