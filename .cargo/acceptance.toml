@@ -1,0 +1,7 @@
+# Explicitly passed to Cargo only by the installed-package acceptance builder.
+# Preserve release code paths everywhere except Pilot's automation bridge.
+[profile.release]
+debug-assertions = false
+
+[profile.release.package.tauri-plugin-pilot]
+debug-assertions = true

@@ -89,6 +89,12 @@ fn run_desktop_bootstrap_with_binary(
 
 pub(crate) fn selected_home() -> anyhow::Result<std::path::PathBuf> {
     let explicit = std::env::var_os("OPENAGENT_HOME").map(std::path::PathBuf::from);
+    #[cfg(feature = "acceptance")]
+    if explicit.is_none() {
+        return dirs::home_dir()
+            .map(|home| home.join(".openagent-acceptance"))
+            .ok_or_else(|| anyhow::anyhow!("Unable to determine acceptance data root"));
+    }
     openagent_app::paths::select_data_root(
         explicit.as_deref(),
         dirs::home_dir().as_deref(),

@@ -20,6 +20,9 @@ opt-level = "s"
 panic = "abort"
 strip = true
 
+[features]
+acceptance = []
+
 [patch.crates-io]
 # tauri-plugin-pilot enables Tauri's unstable multi-WebView path. Tauri 2.11.1
 # regressed the Windows Alt+Tab focus handoff in that path; pin the merged

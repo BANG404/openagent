@@ -35,6 +35,7 @@ export async function stageDistribution({ source, destination, target, publicKey
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2);
+  /** @param {string} name */
   const value = (name) => args[args.indexOf(name) + 1];
   await stageDistribution({
     source: path.resolve(value("--source")),

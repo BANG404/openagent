@@ -15,6 +15,10 @@ screenshots.
 Tauri-pilot instrumentation is an intentional debug-only dependency. Keep its
 plugin initialization and capability in place after verification; its server
 and injected bridge are compiled out of release builds.
+Installed-package acceptance uses the dedicated Release configuration and
+feature described in [Windows installer acceptance](../../openagent-release-engineering/references/windows-install-acceptance.md).
+It enables Pilot for that dependency alone and preserves the host's Release
+bootstrap; ordinary release builds still compile out the bridge.
 
 Use browser verification only when native-window state is outside the
 acceptance criteria. Do not substitute another browser control surface for the

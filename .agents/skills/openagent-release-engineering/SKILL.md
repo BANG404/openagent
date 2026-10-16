@@ -7,6 +7,5 @@ metadata:
 
 # OpenAgent release engineering
 
-Read matching references; [Alpha](references/alpha-releases.md) owns fast
-Windows previews.
-Deliver via OWT.
+Read matching references. See [Alpha](references/alpha-releases.md) and
+[installer tests](references/windows-install-acceptance.md). Deliver via OWT.

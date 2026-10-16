@@ -331,6 +331,18 @@ fn source(app: &tauri::AppHandle, offline_directory: Option<PathBuf>) -> Result<
             .map(|url| url.to_string())
             .map_err(|()| "Invalid offline resource directory".into());
     }
+    #[cfg(feature = "acceptance")]
+    if let Ok(url) = std::env::var("OPENAGENT_ACCEPTANCE_DISTRIBUTION_URL") {
+        let parsed = reqwest::Url::parse(&url).map_err(|error| error.to_string())?;
+        if parsed.scheme() != "http"
+            || parsed.host_str() != Some("127.0.0.1")
+            || !parsed.username().is_empty()
+            || parsed.password().is_some()
+        {
+            return Err("Acceptance distribution endpoint must use IPv4 loopback HTTP".into());
+        }
+        return Ok(url);
+    }
     Ok(format!(
         "https://github.com/BANG404/openagent/releases/download/v{}/openagent-distribution.json",
         app.package_info().version

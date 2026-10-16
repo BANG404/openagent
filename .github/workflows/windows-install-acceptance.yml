@@ -1,0 +1,83 @@
+name: Windows installation acceptance
+run-name: Windows installation acceptance ${{ inputs.transfer_tag }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      transfer_tag:
+        description: Temporary draft release created by the local submission script
+        required: true
+        type: string
+      archive_sha256:
+        description: SHA-256 of the exact local candidate.zip
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-install-acceptance
+  cancel-in-progress: false
+
+jobs:
+  install:
+    name: Install and exercise ${{ matrix.mode }} package
+    runs-on: windows-2025
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [offline, online]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Install public test dependencies
+        run: bun install --frozen-lockfile
+      - name: Download and verify the exact local transfer
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TRANSFER_TAG: ${{ inputs.transfer_tag }}
+          ARCHIVE_SHA256: ${{ inputs.archive_sha256 }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:TRANSFER_TAG -notmatch '^acceptance-transfer-[a-f0-9-]{36}$') { throw 'Invalid transfer tag' }
+          if ($env:ARCHIVE_SHA256 -notmatch '^[a-f0-9]{64}$') { throw 'Invalid archive hash' }
+          $transfer = Join-Path $env:RUNNER_TEMP 'acceptance-transfer'
+          New-Item -ItemType Directory -Path $transfer | Out-Null
+          gh release download $env:TRANSFER_TAG --pattern candidate.zip --dir $transfer
+          if ($LASTEXITCODE -ne 0) { throw 'Transfer download failed' }
+          $archive = Join-Path $transfer 'candidate.zip'
+          if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $env:ARCHIVE_SHA256) { throw 'Local transfer SHA-256 mismatch' }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [IO.Compression.ZipFile]::OpenRead($archive)
+          try {
+            $size = 0L
+            foreach ($entry in $zip.Entries) {
+              if ($entry.FullName -notmatch '^[A-Za-z0-9][A-Za-z0-9 ._-]{0,180}$' -or $entry.FullName -match '[. ]$') { throw 'Unsafe archive entry' }
+              $size += $entry.Length
+            }
+            if ($size -gt 2GB -or $zip.Entries.Count -gt 100) { throw 'Acceptance archive exceeds bounds' }
+          } finally { $zip.Dispose() }
+          Expand-Archive -LiteralPath $archive -DestinationPath (Join-Path $env:RUNNER_TEMP 'acceptance-candidate')
+      - name: Test real first installation, functionality, restart and uninstall
+        env:
+          INSTALL_MODE: ${{ matrix.mode }}
+        run: >-
+          bun scripts/test-windows-acceptance.mjs
+          --artifacts "$env:RUNNER_TEMP/acceptance-candidate"
+          --mode "$env:INSTALL_MODE"
+          --reports "$env:RUNNER_TEMP/acceptance-reports"
+      - name: Upload synthetic screenshots and structured results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-acceptance-${{ matrix.mode }}
+          path: ${{ runner.temp }}/acceptance-reports/*
+          if-no-files-found: error
+          retention-days: 7

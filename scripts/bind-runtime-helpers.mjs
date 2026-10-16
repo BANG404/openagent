@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 export async function bindRuntimeHelpers(directory, helperDirectory, targets) {
   const file = path.join(directory, "openagent-sdk-manifest.json");
   const manifest = JSON.parse(await readFile(file, "utf8"));
+  /** @type {Record<string, Record<string, import('./signed-artifacts.mjs').Artifact>>} */
   const helpers = {};
   for (const [target, names] of Object.entries({
     "windows-x64": ["codex-windows-sandbox-setup.exe", "codex-command-runner.exe"],

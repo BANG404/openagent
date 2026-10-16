@@ -3,6 +3,7 @@ import { readFile, readdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+/** @param {string} root */
 export async function inspectFrontendAssets(root) {
   const index = path.join(root, "index.html");
   if (!(await stat(index).catch(() => null))?.isFile()) {
@@ -12,7 +13,7 @@ export async function inspectFrontendAssets(root) {
   let unpackedSize = 0;
   const pending = [root];
   while (pending.length > 0) {
-    const directory = pending.pop();
+    const directory = /** @type {string} */ (pending.pop());
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const candidate = path.join(directory, entry.name);
       if (entry.isDirectory()) {
@@ -28,6 +29,7 @@ export async function inspectFrontendAssets(root) {
   return { files, unpackedSize };
 }
 
+/** @param {{archive: string; assets: string; version: string; shellProtocolVersion: number; runtimeProtocolVersion: number}} options */
 export async function createFrontendManifest({
   archive,
   assets,
@@ -56,6 +58,7 @@ export async function createFrontendManifest({
 
 async function main() {
   const args = process.argv.slice(2);
+  /** @param {string} name */
   const value = (name) => {
     const index = args.indexOf(name);
     return index >= 0 ? args[index + 1] : undefined;

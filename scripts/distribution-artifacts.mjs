@@ -25,6 +25,7 @@ export async function createDistribution(options) {
   )
     throw new Error("Invalid distribution identity");
   await mkdir(directory, { recursive: true });
+  /** @param {string} source @param {string} [name] */
   const stage = async (source, name = path.basename(source)) => {
     if (!/^[a-zA-Z0-9._-]+$/.test(name) || name === "." || name === "..")
       throw new Error("Unsafe distribution filename");
@@ -58,6 +59,7 @@ export async function createDistribution(options) {
       Math.min(frontendProtocol.max, runtime.protocol.max)
   )
     throw new Error("Frontend and Runtime protocols are incompatible");
+  /** @type {Record<string, import('./signed-artifacts.mjs').Artifact>} */
   const manifests = {};
   for (const [name, source] of [
     ["openagent-sdk-manifest.json", runtimeDirectory],
@@ -66,6 +68,7 @@ export async function createDistribution(options) {
     manifests[name] = await stage(path.join(source, name));
     manifests[`${name}.sig`] = await stage(path.join(source, `${name}.sig`));
   }
+  /** @type {Record<string, import('./signed-artifacts.mjs').Artifact>} */
   const runtimeArtifacts = {};
   for (const [target, artifact] of Object.entries(runtime.artifacts)) {
     if (targets && !targets.includes(target)) continue;
@@ -80,6 +83,7 @@ export async function createDistribution(options) {
     frontendArtifact.size !== frontend.artifact.size
   )
     throw new Error("Frontend artifact disagrees with signed manifest");
+  /** @type {Record<string, import('./signed-artifacts.mjs').Artifact>} */
   const embedding = {};
   for (const name of [
     "model_quantized.onnx",
@@ -93,6 +97,7 @@ export async function createDistribution(options) {
   }
   if (targets?.some((target) => !runtimeArtifacts[target]))
     throw new Error("Distribution is missing a selected Runtime target");
+  /** @type {Record<string, Record<string, import('./signed-artifacts.mjs').Artifact>>} */
   const helpers = {};
   for (const [target, names] of Object.entries({
     "windows-x64": ["codex-windows-sandbox-setup.exe", "codex-command-runner.exe"],
@@ -126,6 +131,7 @@ export async function createDistribution(options) {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2);
+  /** @param {string} name */
   const value = (name) => args[args.indexOf(name) + 1];
   const plan = process.env.OPENAGENT_COMPONENT_PLAN
     ? JSON.parse(await readFile(path.resolve(process.env.OPENAGENT_COMPONENT_PLAN), "utf8"))

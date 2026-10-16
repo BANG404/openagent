@@ -84,7 +84,9 @@ export function verifyArtifactBytes(bytes, artifact) {
   }
 }
 
-/** @param {string | URL} url @param {typeof fetch} fetchRequest @param {number} maximum */
+/** @typedef {(url: string | URL, init?: RequestInit) => Promise<Response>} ArtifactFetch */
+
+/** @param {string | URL} url @param {ArtifactFetch} fetchRequest @param {number} maximum */
 async function boundedResponse(url, fetchRequest, maximum) {
   const response = await fetchRequest(url, { signal: AbortSignal.timeout(60_000) });
   if (!response.ok) throw new Error(`Manifest download failed: HTTP ${response.status}`);
@@ -106,7 +108,7 @@ async function boundedResponse(url, fetchRequest, maximum) {
   }
 }
 
-/** @param {string} url @param {{ fetchRequest?: typeof fetch; publicKey?: string }} [options] */
+/** @param {string} url @param {{ fetchRequest?: ArtifactFetch; publicKey?: string }} [options] */
 export async function fetchSignedManifest(url, options = {}) {
   const fetchRequest = options.fetchRequest ?? globalThis.fetch.bind(globalThis);
   const [bytes, signatureBytes] = await Promise.all([
@@ -119,7 +121,7 @@ export async function fetchSignedManifest(url, options = {}) {
 }
 
 /** Download immutable, checksummed bytes with persistent partials and HTTP Range recovery.
- * @param {{ artifact: Artifact; manifestUrl: string; cacheDirectory: string; fetchRequest?: typeof fetch }} options
+ * @param {{ artifact: Artifact; manifestUrl: string; cacheDirectory: string; fetchRequest?: ArtifactFetch }} options
  */
 export async function downloadArtifact({
   artifact: input,

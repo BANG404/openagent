@@ -24,8 +24,8 @@ pub(crate) fn register_base(
     };
 
     let builder = register_window_state(builder, is_workspace_window, development_multi_instance);
-    // Pilot exposes its named-pipe automation bridge only in debug builds and
-    // becomes a no-op plugin in release builds.
+    // Ordinary release builds get a no-op. The isolated acceptance Cargo config
+    // enables debug_assertions for Pilot alone, preserving host release behavior.
     let builder = builder.plugin(tauri_plugin_pilot::init());
 
     #[cfg(desktop)]

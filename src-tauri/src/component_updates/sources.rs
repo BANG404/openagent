@@ -2,18 +2,25 @@ use crate::frontend_resource::{self, FrontendResourceManager, FrontendResourceSo
 use crate::runtime_process::DESKTOP_RUNTIME_PROTOCOL_VERSION;
 use crate::runtime_resource::{RuntimeResourceManager, RuntimeResourceSource};
 
-pub(crate) use openagent_app::compatibility_policy::UPDATE_PUBLIC_KEY;
+#[cfg(not(feature = "acceptance"))]
+use openagent_app::compatibility_policy::UPDATE_PUBLIC_KEY;
 
 pub(crate) fn update_public_key() -> String {
-    #[cfg(debug_assertions)]
-    if std::env::var("OPENAGENT_BOOTSTRAP_TEST").is_ok_and(|value| value == "1") {
-        if let Ok(path) = std::env::var("OPENAGENT_BOOTSTRAP_TEST_KEY") {
-            if let Ok(key) = std::fs::read_to_string(path) {
-                return key;
+    #[cfg(feature = "acceptance")]
+    return env!("OPENAGENT_ACCEPTANCE_PUBLIC_KEY").to_string();
+
+    #[cfg(not(feature = "acceptance"))]
+    {
+        #[cfg(debug_assertions)]
+        if std::env::var("OPENAGENT_BOOTSTRAP_TEST").is_ok_and(|value| value == "1") {
+            if let Ok(path) = std::env::var("OPENAGENT_BOOTSTRAP_TEST_KEY") {
+                if let Ok(key) = std::fs::read_to_string(path) {
+                    return key;
+                }
             }
         }
+        UPDATE_PUBLIC_KEY.to_string()
     }
-    UPDATE_PUBLIC_KEY.to_string()
 }
 
 pub(crate) fn modular_update_channel() -> &'static str {
