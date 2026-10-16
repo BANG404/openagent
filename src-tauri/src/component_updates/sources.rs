@@ -2,7 +2,7 @@ use crate::frontend_resource::{self, FrontendResourceManager, FrontendResourceSo
 use crate::runtime_process::DESKTOP_RUNTIME_PROTOCOL_VERSION;
 use crate::runtime_resource::{RuntimeResourceManager, RuntimeResourceSource};
 
-pub(crate) const UPDATE_PUBLIC_KEY: &str = "untrusted comment: minisign public key: C373284FCF9656A0\nRWSgVpbPTyhzw46ILL4vBbjg4XueHFxKhTk48DCGqAT/IfE5vSyBDSGl\n";
+pub(crate) use openagent_app::compatibility_policy::UPDATE_PUBLIC_KEY;
 
 pub(crate) fn update_public_key() -> String {
     #[cfg(debug_assertions)]

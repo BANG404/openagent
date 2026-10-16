@@ -67,6 +67,8 @@ pub struct RuntimeBootstrapInspection {
     status: String,
     #[serde(default)]
     transition: Option<RuntimePersistenceTransition>,
+    #[serde(default)]
+    compatibility_policy: Option<crate::compatibility_policy::Decision>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
@@ -82,6 +84,14 @@ impl RuntimeBootstrapInspection {
 
     pub fn requires_restart(&self) -> bool {
         self.status == "restart_required"
+    }
+
+    pub fn restart_reason(&self) -> String {
+        self.compatibility_policy
+            .as_ref()
+            .filter(|decision| decision.restart_required)
+            .map(|decision| decision.reasons.join("; "))
+            .unwrap_or_else(|| "upgrade conversation storage".into())
     }
 
     pub fn transition_scope(&self) -> Option<&'static str> {
@@ -103,6 +113,18 @@ pub async fn inspect_runtime_bootstrap_with_setup(
     openagent_home: &Path,
     configure: RuntimeCommandSetup,
 ) -> Result<RuntimeBootstrapInspection, String> {
+    inspect_runtime_bootstrap_with_policy_context(binary_path, openagent_home, None, configure)
+        .await
+}
+
+/// A source version marks an online replacement inspection. The candidate must
+/// apply online policy before the host drains or stops the currently running process.
+pub async fn inspect_runtime_bootstrap_with_policy_context(
+    binary_path: &Path,
+    openagent_home: &Path,
+    previous_runtime: Option<&str>,
+    configure: RuntimeCommandSetup,
+) -> Result<RuntimeBootstrapInspection, String> {
     if !binary_path.is_file() {
         return Err(format!(
             "Runtime bootstrap candidate does not exist: {}",
@@ -111,6 +133,18 @@ pub async fn inspect_runtime_bootstrap_with_setup(
     }
     let mut command = Command::new(binary_path);
     configure(command.as_std_mut())?;
+    command.env_remove("OPENAGENT_POLICY_PREVIOUS_RUNTIME");
+    command.env(
+        "OPENAGENT_POLICY_OPERATION",
+        if previous_runtime.is_some() {
+            "online_activation"
+        } else {
+            "startup"
+        },
+    );
+    if let Some(version) = previous_runtime {
+        command.env("OPENAGENT_POLICY_PREVIOUS_RUNTIME", version);
+    }
     command
         .arg("--desktop-bootstrap")
         .arg("inspect")
@@ -156,6 +190,17 @@ fn parse_runtime_bootstrap_inspection(bytes: &[u8]) -> Result<RuntimeBootstrapIn
             "Unsupported Runtime bootstrap inspection schema version {}",
             inspection.schema_version
         ));
+    }
+    if let Some(decision) = &inspection.compatibility_policy {
+        decision
+            .require_allowed()
+            .map_err(|error| error.to_string())?;
+        if decision.restart_required
+            && inspection.status != "restart_required"
+            && inspection.status != "transition_required"
+        {
+            return Err("Runtime policy restart decision disagrees with bootstrap status".into());
+        }
     }
     match inspection.status.as_str() {
         "ready" | "restart_required" if inspection.transition.is_none() => Ok(inspection),
@@ -270,9 +315,11 @@ impl RuntimeProcessSupervisor {
         &self,
         candidate_spec: RuntimeLaunchSpec,
     ) -> Result<RuntimeProcessStatus, String> {
-        let inspection = inspect_runtime_bootstrap_with_setup(
+        let previous_version = self.status().await.map(|status| status.version);
+        let inspection = inspect_runtime_bootstrap_with_policy_context(
             &candidate_spec.binary_path,
             &candidate_spec.openagent_home,
+            previous_version.as_deref(),
             self.configure,
         )
         .await?;
@@ -670,6 +717,28 @@ mod tests {
         // Older hosts reject this status rather than attempting a migration
         // that their automatic old-process rollback cannot read.
         assert!(parse_runtime_bootstrap_inspection(br#"{"schema_version":1,"status":"restart_required","transition":{"reset_config":false,"reset_conversations":true}}"#).is_err());
+    }
+
+    #[test]
+    fn bootstrap_policy_cannot_hide_a_block_or_restart_decision() {
+        let mut value = serde_json::json!({
+            "schema_version":1, "status":"restart_required",
+            "compatibility_policy": {
+                "revision":7, "blocked":false, "restart_required":true,
+                "matched_rules":["pause"], "reasons":["Restart before this upgrade"]
+            }
+        });
+        let inspection =
+            parse_runtime_bootstrap_inspection(&serde_json::to_vec(&value).unwrap()).unwrap();
+        assert!(inspection.requires_restart());
+        assert_eq!(inspection.restart_reason(), "Restart before this upgrade");
+        value["status"] = serde_json::json!("ready");
+        assert!(parse_runtime_bootstrap_inspection(&serde_json::to_vec(&value).unwrap()).is_err());
+        value["compatibility_policy"]["restart_required"] = serde_json::json!(false);
+        value["compatibility_policy"]["blocked"] = serde_json::json!(true);
+        let error =
+            parse_runtime_bootstrap_inspection(&serde_json::to_vec(&value).unwrap()).unwrap_err();
+        assert!(error.contains("revision 7") && error.contains("pause"));
     }
 
     #[test]

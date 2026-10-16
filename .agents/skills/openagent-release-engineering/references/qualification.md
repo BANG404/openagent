@@ -1,5 +1,9 @@
 # Keep qualification aligned
 
+Independent compatibility-rule publication follows
+[compatibility policy](compatibility-policy.md); application release workflows
+must not overwrite its separate revision history or feed.
+
 - Keep the path classifier, reusable workflow inputs, result verifier, release
   gate, and their tests aligned whenever a module boundary changes.
 - The private SDK boundary verifier checks Runtime-owned modules only. Goal,
