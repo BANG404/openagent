@@ -11,6 +11,7 @@ import {
   validateSdkReleasePlan,
   workflowDispatchInvocation,
   workflowRunProgress,
+  waitForSdkQualification,
 } from "./ensure-sdk-release.mjs";
 
 describe("SDK release version invocation", () => {
@@ -66,6 +67,67 @@ describe("SDK release manifest verification", () => {
 });
 
 describe("SDK release workflow orchestration", () => {
+  const dispatchedAt = Date.parse("2026-08-30T20:00:00Z");
+  const pendingStatus = {
+    context: "Public SDK CI",
+    state: "pending",
+    description: "Public SDK full validation is running",
+    created_at: "2026-08-30T20:00:02Z",
+    target_url: "https://github.com/BANG404/openagent/actions/runs/42",
+  };
+
+  test.each(["failure", "cancelled", "timed_out"])(
+    "stops on a %s public run even when its final status was not reported",
+    async (conclusion) => {
+      await expect(
+        waitForSdkQualification("BANG404/openagent-runtime", "b".repeat(40), dispatchedAt, {
+          loadStatuses: () => [pendingStatus],
+          readRun: () => ({ status: "completed", conclusion, url: pendingStatus.target_url }),
+          sleep: () => {
+            throw new Error("A completed failed run must not be polled again");
+          },
+        }),
+      ).rejects.toThrow(`${pendingStatus.target_url} (${conclusion})`);
+    },
+  );
+
+  test("waits for the exact full status while the public run completes", async () => {
+    let polls = 0;
+    const success = {
+      ...pendingStatus,
+      state: "success",
+      description: "Public SDK full validation passed",
+    };
+    const accepted = await waitForSdkQualification(
+      "BANG404/openagent-runtime",
+      "b".repeat(40),
+      dispatchedAt,
+      {
+        loadStatuses: () => [polls < 2 ? pendingStatus : success],
+        readRun: () => ({
+          workflow: "Public SDK CI",
+          databaseId: 42,
+          status: polls === 0 ? "in_progress" : "completed",
+          conclusion: polls === 0 ? "" : "success",
+          url: pendingStatus.target_url,
+        }),
+        sleep: async () => {
+          polls += 1;
+        },
+      },
+    );
+    expect(accepted).toEqual(success);
+    expect(polls).toBe(2);
+  });
+
+  test("rejects a fast-only success instead of qualifying the release", async () => {
+    await expect(
+      waitForSdkQualification("BANG404/openagent-runtime", "b".repeat(40), dispatchedAt, {
+        loadStatuses: () => [{ ...pendingStatus, state: "success", description: "Fast passed" }],
+      }),
+    ).rejects.toThrow("unexpected success");
+  });
+
   test("names staged and public release runs independently", () => {
     expect(sdkReleaseWorkflowTitle("sdk-v0.2.1", "stage")).toBe("Stage SDK Release sdk-v0.2.1");
     expect(sdkReleaseWorkflowTitle("sdk-v0.2.1", "publish")).toBe("Publish SDK Release sdk-v0.2.1");

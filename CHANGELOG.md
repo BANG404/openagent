@@ -10,9 +10,12 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
-## [0.83.0-beta.1] - 2026-10-15
+## [0.83.0-beta.1] - 2026-10-16
 
 ### Features
+- **compatibility**: Connect Runtime policy admission
+- **release**: Reuse independently qualified component artifacts
+- **compatibility**: Add independently signed online policies
 - **runtime**: Upgrade Rig integration to 0.44
 - **plugins**: Decouple source subscriptions from host releases
 - **appearance**: Configure native and custom window backgrounds
@@ -36,6 +39,9 @@ All notable changes to this project will be documented in this file.
 - **runtime**: Pin expanded cache hit-rate coverage
 - **chat**: Add long conversation performance and cache simulations
 - Add real-model cache hit-rate command
+
+### Miscellaneous
+- **repo**: Standardize Runtime and official plugin repository names
 
 ## [0.82.0-beta.1] - 2026-10-14
 

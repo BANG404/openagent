@@ -284,12 +284,30 @@ function sdkCommitStatuses(repository, sdkSha) {
   );
 }
 
-async function waitForSdkQualification(repository, sdkSha, dispatchedAt) {
+function sdkQualificationRun(status) {
+  const match = /^https:\/\/github\.com\/([^/]+\/[^/]+)\/actions\/runs\/(\d+)\/?$/.exec(
+    status.target_url ?? "",
+  );
+  if (!match) throw new Error("Public SDK CI status is missing a valid workflow run URL");
+  return refreshWorkflowRun(match[1], {
+    workflow: "Public SDK CI",
+    databaseId: Number(match[2]),
+    url: status.target_url,
+  });
+}
+
+export async function waitForSdkQualification(
+  repository,
+  sdkSha,
+  dispatchedAt,
+  {
+    loadStatuses = sdkCommitStatuses,
+    readRun = sdkQualificationRun,
+    sleep = () => new Promise((resolve) => setTimeout(resolve, 30_000)),
+  } = {},
+) {
   for (let attempt = 0; attempt < 180; attempt += 1) {
-    const status = selectSdkQualificationStatus(
-      sdkCommitStatuses(repository, sdkSha),
-      dispatchedAt,
-    );
+    const status = selectSdkQualificationStatus(loadStatuses(repository, sdkSha), dispatchedAt);
     if (status?.state === "success") {
       if (status.description !== "Public SDK full validation passed") {
         throw new Error(
@@ -304,12 +322,18 @@ async function waitForSdkQualification(repository, sdkSha, dispatchedAt) {
         `Public SDK CI failed before tagging ${sdkSha}: ${status.target_url ?? "missing run URL"}`,
       );
     }
-    if (attempt === 0 || (attempt + 1) % 4 === 0) {
-      report(
-        `Waiting for Public SDK CI status for ${sdkSha}; current state is ${status?.state ?? "missing"}.`,
+    const qualificationRun = status ? readRun(status) : null;
+    if (qualificationRun?.status === "completed" && qualificationRun.conclusion !== "success") {
+      throw new Error(
+        `Public SDK CI failed before tagging ${sdkSha}: ${qualificationRun.url} (${qualificationRun.conclusion})`,
       );
     }
-    await new Promise((resolve) => setTimeout(resolve, 30_000));
+    if (attempt === 0 || (attempt + 1) % 4 === 0) {
+      report(
+        `Waiting for Public SDK CI status for ${sdkSha}; current state is ${status?.state ?? "missing"}${qualificationRun ? `; ${workflowRunProgress(qualificationRun)}` : ""}.`,
+      );
+    }
+    await sleep();
   }
   throw new Error(`Timed out waiting for complete public SDK qualification for ${sdkSha}`);
 }

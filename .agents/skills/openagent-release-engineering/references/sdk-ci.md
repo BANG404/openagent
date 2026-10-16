@@ -117,7 +117,7 @@ publishes those helper bytes beside the server artifact. The SDK Release workflo
 exact description `Public SDK full validation passed` before any build or
 publish job. The host release coordinator reports metadata-only progress while
 it waits across repositories, including workflow name, run URL, status, and the
-immutable SDK revision or tag; it never forwards private SDK command output into
+immutable SDK revision or tag. While the public qualification status is pending, the host also checks its linked public workflow run and immediately stops if that run fails, is cancelled, or times out, even when a reporter failure leaves the commit status pending. A successful workflow still requires the exact full-validation success status before release preparation. It never forwards private SDK command output into
 the public release log. GitHub's
 failed-job rerun therefore repeats only failed capabilities and the aggregate
 status. Dependency caches may hold Cargo registry/git data, Bun's public package
