@@ -14,7 +14,8 @@ on:
         type: string
 
 permissions:
-  contents: read
+  # GitHub hides draft releases from tokens without repository write access.
+  contents: write
 
 concurrency:
   group: windows-install-acceptance

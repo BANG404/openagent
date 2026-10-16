@@ -45,7 +45,8 @@ Run `bun scripts/submit-windows-acceptance.mjs --artifacts <directory>
 a uniquely named draft release, dispatches `windows-install-acceptance.yml`,
 waits for its exact run, and downloads both reports. The VM checks the supplied
 ZIP SHA-256 before extraction and verifies all candidate resources before
-executing installers. Credentials are scoped to the download step; application
+executing installers. The workflow token needs `contents: write` to read a draft
+release; it is exposed only to the download step. Application
 tests receive no production secrets. Successful runs remove their transfer
 draft unless `--keep-transfer` is set. Failed transfers remain for diagnosis.
 Never publish these drafts or use acceptance packages in production channels.
