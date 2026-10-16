@@ -56,10 +56,10 @@ Offline tests block non-loopback outbound traffic from shell, Runtime and bundle
 Windows Firewall rules and require zero resource-server requests. Normalize
 absolute executable paths to native Windows separators before Firewall
 rule creation; hosted runner temp paths can mix separators.
-Online tests
-first return HTTP 503, require the real failure state and UI Retry, then serve
-the same signed resource bytes. Both modes execute bundled tools, complete
-the welcome wizard, render light/dark and Chinese/English screenshots, submit
+Online tests first return HTTP 503, require the real failure state and UI Retry,
+then serve the same signed resource bytes. Both modes wait for Runtime's
+asynchronous embedding verification, execute bundled tools, complete the welcome
+wizard, render light/dark and Chinese/English screenshots, submit
 through the real composer to a deterministic loopback model service, verify
 streaming, restart without network resources, confirm history/settings restore,
 and uninstall while retaining data. Product setup uses the bundled shared SDK;

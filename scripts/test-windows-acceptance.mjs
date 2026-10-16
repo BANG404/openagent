@@ -348,9 +348,9 @@ fs.writeFileSync('acceptance-tool-success.txt', 'sandbox and bundled tools verif
       "First use must start without preseeded settings",
     );
     passed("fresh data reaches the actual packaged welcome wizard");
-    assert(
-      invoke("get_embedding_resource_status").state === "ready",
-      "Bundled embedding resource is not verified",
+    await until(
+      () => invoke("get_embedding_resource_status").state === "ready",
+      "installed Runtime verifies and initializes the embedding resource",
     );
     passed("the installed Runtime reports a verified embedding model");
     Object.assign(config, {
