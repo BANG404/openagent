@@ -18,7 +18,12 @@ pub(crate) fn initialize(
             window.on_window_event(move |event| {
                 if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                     api.prevent_close();
-                    let _ = close_window.hide();
+                    if !close_window
+                        .state::<crate::desktop_exit::DesktopWindowState>()
+                        .exit_in_progress()
+                    {
+                        let _ = close_window.hide();
+                    }
                 }
             });
         }

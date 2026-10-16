@@ -43,6 +43,8 @@ pub(crate) fn register(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<ta
         desktop_exit::restart_app,
         desktop_exit::begin_shell_install,
         desktop_exit::quit_app,
+        desktop_exit::desktop_exit_progress,
+        desktop_exit::desktop_exit_presented,
         desktop_windows::focus::is_desktop_window_active,
         desktop_windows::reveal_main_window,
         desktop_windows::reveal_onboarding_window,

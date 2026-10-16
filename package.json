@@ -125,7 +125,8 @@
     "build:bootstrap": "vite build --config bootstrap.vite.config.js",
     "test:blackbox:shell-resources": "bun scripts/test-shell-resources-blackbox.mjs",
     "test:blackbox:onboarding-welcome": "bun scripts/test-onboarding-welcome-blackbox.mjs",
-    "test:blackbox:shell-install": "bun scripts/test-shell-install-blackbox.mjs"
+    "test:blackbox:shell-install": "bun scripts/test-shell-install-blackbox.mjs",
+    "test:blackbox:desktop-exit": "bun scripts/test-desktop-exit-blackbox.mjs"
   },
   "license": "GPL-3.0-or-later",
   "overrides": {

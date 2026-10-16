@@ -15,6 +15,19 @@ shared authenticated Runtime operation. Runtime owns their allowlists and export
 the host must not leave frontend diagnostics in its local-only tracing subscriber.
 `desktop_exit.rs` owns shell-install preparation, exit phases, bounded
 child teardown, and parent-liveness monitors; quit and restart share that owner.
+During quit, restart, or shell-install preparation, keep a product window visible
+and publish native `desktop-exit-progress` events for Runtime, event connections,
+workspace children, background tools, and final cleanup. `desktop_exit_progress`
+returns the current snapshot so a mounting WebView cannot miss the initial event.
+The WebView acknowledges its first painted status with `desktop_exit_presented`;
+teardown waits at most 250ms, including when the WebView is unavailable.
+Progress counts completed teardown attempts, including bounded failures; it is
+not a time estimate or a guarantee that every child exited successfully. The
+shared layout renders localized progress and makes product content inert. Native
+close requests cannot hide or destroy it during teardown; a tray-only exit
+reveals the main window. Hide surfaces only at final process exit, retain the
+10-second quit watchdog, and keep shell-install failure/restart gates intact.
+Verify with `bun run test:blackbox:desktop-exit` against isolated native fixtures.
 `component_updates/` composes one update state with separate barrier, Runtime
 replacement, frontend activation, resource source, and version identity adapters.
 Keep rollback with its activation transaction and confirmation deadlines with

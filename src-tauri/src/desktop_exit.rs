@@ -8,7 +8,43 @@ use crate::workspace_process::{
     finish_child_workspace_window_shutdown, request_child_workspace_window_shutdown,
 };
 use std::sync::Arc;
-use tauri::{Manager, State};
+use tauri::{Emitter, Manager, State};
+
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct DesktopExitProgress {
+    action: &'static str,
+    stage: &'static str,
+    completed: u8,
+    total: u8,
+}
+
+#[tauri::command]
+pub(crate) fn desktop_exit_progress(
+    state: State<'_, DesktopWindowState>,
+) -> Option<DesktopExitProgress> {
+    state.exit_progress.lock().unwrap().clone()
+}
+
+#[tauri::command]
+pub(crate) fn desktop_exit_presented(
+    window: tauri::WebviewWindow,
+    state: State<'_, DesktopWindowState>,
+) {
+    if window.label() != "debug" && window.is_visible().unwrap_or(false) {
+        state.exit_presented.notify_one();
+    }
+}
+
+fn report_exit_progress(app: &tauri::AppHandle, stage: &'static str, completed: u8) {
+    let state = app.state::<DesktopWindowState>();
+    let mut current = state.exit_progress.lock().unwrap();
+    if let Some(progress) = current.as_mut() {
+        progress.stage = stage;
+        progress.completed = completed;
+        let _ = app.emit("desktop-exit-progress", progress.clone());
+    }
+}
 
 /// How far this process has advanced toward ending itself.
 ///
@@ -28,7 +64,7 @@ enum DesktopExitPhase {
 enum DesktopExitStep {
     /// Nothing was prepared, so run the bounded teardown now.
     Start,
-    /// A shell install already stopped the children and hid the windows, so
+    /// A shell install already stopped the children, so
     /// only the watchdog and the exit itself remain.
     Complete,
     /// An exit is already under way; a repeated request must not race it.
@@ -57,6 +93,8 @@ impl DesktopExitPhase {
 pub(crate) struct DesktopWindowState {
     pub(crate) startup_window_revealed: std::sync::atomic::AtomicBool,
     desktop_exit: std::sync::atomic::AtomicU8,
+    exit_progress: std::sync::Mutex<Option<DesktopExitProgress>>,
+    exit_presented: tokio::sync::Notify,
 }
 
 impl DesktopWindowState {
@@ -116,6 +154,10 @@ impl DesktopWindowState {
             DesktopExitPhase::ShellInstallPrepared | DesktopExitPhase::Exiting
         )
     }
+
+    pub(crate) fn exit_in_progress(&self) -> bool {
+        self.exit_progress.lock().unwrap().is_some()
+    }
 }
 
 const DESKTOP_QUIT_WATCHDOG_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
@@ -135,7 +177,7 @@ pub(crate) fn restart_app(app: tauri::AppHandle) {
 /// `install()`, so nothing after that call can run and the bounded teardown
 /// has to happen before it. Active Runtime work reports `false` and defers the
 /// update before teardown. A failure after teardown starts rejects installation
-/// and restarts the host to restore its Runtime and hidden windows.
+/// and restarts the host to restore its Runtime and windows.
 #[tauri::command]
 pub(crate) async fn begin_shell_install(
     app: tauri::AppHandle,
@@ -150,7 +192,7 @@ pub(crate) async fn begin_shell_install(
     if let Err(error) = request_child_workspace_window_shutdown() {
         tracing::warn!(%error, "failed to signal child workspace processes before the shell install");
     }
-    hide_desktop_surfaces(&app);
+    show_desktop_exit_progress(&app, "install");
     if let Err(error) = stop_desktop_children(&app).await {
         tracing::error!(
             target: "openagent::component_update",
@@ -159,7 +201,7 @@ pub(crate) async fn begin_shell_install(
             %error,
             "refusing the shell installer because desktop teardown did not finish"
         );
-        // Preparation hid the windows and may have stopped the Runtime. Restore
+        // Preparation may have stopped the Runtime. Restore
         // a usable desktop through a fresh process; never hand off to NSIS.
         request_desktop_exit(app, DesktopExitAction::Restart);
         return Err(error);
@@ -179,9 +221,8 @@ enum DesktopExitAction {
     Restart,
 }
 
-/// Hide every surface the user could still interact with while the process
-/// winds down. Shared by the ordinary exit path and by the shell install
-/// preparation, which hands the application to an installer.
+/// Hide native surfaces only after the bounded teardown has finished. Shell
+/// install preparation retains its progress surface until installer handoff.
 fn hide_desktop_surfaces(app: &tauri::AppHandle) {
     #[cfg(desktop)]
     {
@@ -200,6 +241,14 @@ fn hide_desktop_surfaces(app: &tauri::AppHandle) {
 /// this before an exit request runs it again.
 async fn stop_desktop_children(app: &tauri::AppHandle) -> Result<(), String> {
     let mut failures = Vec::new();
+    // Give the WebView a bounded chance to paint before fast teardown can
+    // remove it. A missing or broken frontend must never prevent exit.
+    let _ = tokio::time::timeout(
+        std::time::Duration::from_millis(250),
+        app.state::<DesktopWindowState>().exit_presented.notified(),
+    )
+    .await;
+    report_exit_progress(app, "runtime", 0);
     let supervisor = app.state::<Arc<RuntimeProcessSupervisor>>();
     match tokio::time::timeout(DESKTOP_RUNTIME_STOP_TIMEOUT, supervisor.stop()).await {
         Ok(Ok(())) => {}
@@ -210,6 +259,7 @@ async fn stop_desktop_children(app: &tauri::AppHandle) -> Result<(), String> {
             failures.push("timed out stopping supervised Runtime".to_string());
         }
     }
+    report_exit_progress(app, "connections", 1);
     let proxy = app.state::<RuntimeEventProxy>();
     if tokio::time::timeout(DESKTOP_EVENT_PROXY_STOP_TIMEOUT, proxy.stop())
         .await
@@ -217,6 +267,7 @@ async fn stop_desktop_children(app: &tauri::AppHandle) -> Result<(), String> {
     {
         failures.push("timed out stopping Runtime event proxy".to_string());
     }
+    report_exit_progress(app, "windows", 2);
     let child_cleanup = tauri::async_runtime::spawn_blocking(|| {
         finish_child_workspace_window_shutdown(DESKTOP_CHILD_PROCESS_GRACE_TIMEOUT)
     });
@@ -234,7 +285,9 @@ async fn stop_desktop_children(app: &tauri::AppHandle) -> Result<(), String> {
             failures.push("timed out stopping child workspace processes".to_string());
         }
     }
+    report_exit_progress(app, "tools", 3);
     stop_cua_driver_serve();
+    report_exit_progress(app, "finishing", 4);
     if failures.is_empty() {
         Ok(())
     } else {
@@ -252,6 +305,7 @@ async fn finish_desktop_exit(
             tracing::warn!(%error, "desktop child teardown did not finish during exit");
         }
     }
+    hide_desktop_surfaces(&app);
     match action {
         DesktopExitAction::Quit => {
             app.cleanup_before_exit();
@@ -299,17 +353,48 @@ fn request_desktop_exit(app: tauri::AppHandle, action: DesktopExitAction) {
         prepared = step == DesktopExitStep::Complete,
         "desktop exit requested"
     );
-    // A shell install already signalled the child windows and hid the
-    // surfaces; repeating either is harmless but would only delay the exit.
+    // A shell install already signalled and stopped the child windows.
     if step == DesktopExitStep::Start {
         if let Err(error) = request_child_workspace_window_shutdown() {
             tracing::warn!(%error, "failed to signal child workspace processes during quit");
         }
-        hide_desktop_surfaces(&app);
+        show_desktop_exit_progress(&app, action_name);
     }
 
     arm_desktop_exit_watchdog(&app, action);
     tauri::async_runtime::spawn(finish_desktop_exit(app, action, step));
+}
+
+/// Keep a product window visible until bounded teardown finishes, including
+/// tray-only quits. Native events remain available after the Runtime stops.
+fn show_desktop_exit_progress(app: &tauri::AppHandle, action: &'static str) {
+    *app.state::<DesktopWindowState>()
+        .exit_progress
+        .lock()
+        .unwrap() = Some(DesktopExitProgress {
+        action,
+        stage: "runtime",
+        completed: 0,
+        total: 4,
+    });
+    report_exit_progress(app, "runtime", 0);
+    #[cfg(desktop)]
+    {
+        if let Some(tray) = app.tray_by_id(DESKTOP_TRAY_ID) {
+            let _ = tray.set_visible(false);
+        }
+        let windows = app.webview_windows();
+        let visible = windows.values().find(|window| {
+            window.label() != "debug"
+                && window.is_visible().unwrap_or(false)
+                && !window.is_minimized().unwrap_or(false)
+        });
+        if let Some(window) = visible.or_else(|| windows.get("main")) {
+            let _ = window.unminimize();
+            let _ = window.show();
+            let _ = window.set_focus();
+        }
+    }
 }
 
 pub(crate) fn install_parent_shutdown_monitor(app: tauri::AppHandle) {

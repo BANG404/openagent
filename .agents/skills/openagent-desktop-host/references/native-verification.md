@@ -23,6 +23,16 @@ directories.
 
 ## Module-level acceptance
 
+`bun run test:blackbox:desktop-exit` starts its own isolated Windows Tauri
+fixtures against the product Vite frontend. Four light/dark and English/Chinese
+passes use shell-install preparation to retain the final status for inspection:
+assert the actual native stage sequence, stopped Runtime, inert content, blocked
+shortcuts, reveal from hidden windows, and resistance to native close requests.
+A fifth pass exercises ordinary quit and repeated requests, asserting the first
+localized status before the real host exits within its watchdog bound. Screenshots,
+JUnit and error logs stay in the printed temporary artifact directory. Prepare
+the matching Runtime, native helpers and model resources before running it.
+
 For every changed user-facing module or native interaction, run a committed
 `tauri-pilot` black-box scenario against the real debug Tauri window and assert
 the expected user-visible result. Select the scenario and command for the

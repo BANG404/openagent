@@ -130,7 +130,10 @@ test("the shell installer runs after the host has prepared the exit", () => {
   expect(begin).toBeGreaterThanOrEqual(0);
   const command = host.slice(begin, host.indexOf("\n}\n", begin) + 2);
   expect(command).toContain("stop_desktop_children(&app).await");
-  expect(command).toContain("hide_desktop_surfaces(&app)");
+  expect(command).toContain('show_desktop_exit_progress(&app, "install")');
+  expect(command.indexOf("show_desktop_exit_progress(")).toBeLessThan(
+    command.indexOf("stop_desktop_children(&app).await"),
+  );
   expect(command).toContain("if let Err(error) = stop_desktop_children(&app).await");
   expect(command).toContain("request_desktop_exit(app, DesktopExitAction::Restart)");
   expect(command).toContain("return Err(error)");

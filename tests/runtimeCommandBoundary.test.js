@@ -13,6 +13,8 @@ const nativeCommands = new Set([
   "end_component_update",
   "create_workspace_window",
   "cua_driver_endpoint",
+  "desktop_exit_progress",
+  "desktop_exit_presented",
   "get_embedding_resource_status",
   "get_component_versions",
   "get_onboarding_resource_status",

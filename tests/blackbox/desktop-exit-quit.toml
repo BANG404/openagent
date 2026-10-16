@@ -1,0 +1,25 @@
+[scenario]
+name = "ordinary quit paints progress before stopping the host"
+fail_fast = true
+global_timeout_ms = 15000
+
+[[step]]
+name = "quit from hidden windows reveals status and ignores repeated requests"
+action = "eval"
+script = '''(async () => {
+  const visible = new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => { observer.disconnect(); reject(new Error('quit progress did not mount')); }, 2000);
+    const observer = new MutationObserver(() => {
+      const overlay = document.querySelector('[data-desktop-exit-progress]');
+      if (!overlay) return;
+      observer.disconnect(); clearTimeout(timeout);
+      if (!overlay.textContent.includes(window.__exitExpectedTitle)) return reject(new Error(overlay.textContent));
+      if (!document.querySelector('.application-content')?.inert) return reject(new Error('quit did not block input'));
+      resolve(true);
+    });
+    observer.observe(document.body, {childList:true,subtree:true});
+  });
+  await window.__TAURI_INTERNALS__.invoke('quit_app');
+  await window.__TAURI_INTERNALS__.invoke('quit_app');
+  return await visible;
+})()'''

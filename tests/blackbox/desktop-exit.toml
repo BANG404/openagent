@@ -1,0 +1,46 @@
+[scenario]
+name = "native teardown keeps localized progress visible and blocks further input"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "observe native stages before preparing shell teardown"
+action = "eval"
+script = '''(async () => {
+  window.__exitStages = [];
+  await window.__TAURI_INTERNALS__.invoke('plugin:event|listen', {
+    event: 'desktop-exit-progress', target: {kind: 'Any'},
+    handler: window.__TAURI_INTERNALS__.transformCallback(event => window.__exitStages.push(event.payload))
+  });
+  const prepared = await window.__TAURI_INTERNALS__.invoke('begin_shell_install');
+  if (!prepared) throw new Error('idle fixture deferred teardown');
+  return true;
+})()'''
+
+[[step]]
+name = "progress survives the stopped Runtime and follows all native stages"
+action = "eval"
+script = '''(async () => {
+  const progress = await window.__TAURI_INTERNALS__.invoke('desktop_exit_progress');
+  if (progress.stage !== 'finishing' || progress.completed !== 4 || progress.total !== 4) throw new Error(JSON.stringify(progress));
+  const stages = [...new Set(window.__exitStages.map(item => item.stage))];
+  if (stages.join(',') !== 'runtime,connections,windows,tools,finishing') throw new Error(stages.join(','));
+  if ((await window.__TAURI_INTERNALS__.invoke('get_component_versions')).runtime !== null) throw new Error('Runtime remained running');
+  return true;
+})()'''
+
+[[step]]
+name = "visible status blocks application interaction"
+action = "eval"
+script = '''(async () => {
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const overlay = document.querySelector('[data-desktop-exit-progress]');
+  if (!(await window.__TAURI_INTERNALS__.invoke('plugin:window|is_visible', {label:'main'}))) throw new Error('hidden product window was not revealed');
+  if (!overlay || overlay.getBoundingClientRect().width < 300) throw new Error('progress is not visible');
+  if (!document.querySelector('.application-content')?.inert) throw new Error('application remains interactive');
+  if (!overlay.querySelector('h1')?.textContent.includes(window.__exitExpectedTitle)) throw new Error(overlay.textContent);
+  if (!overlay.textContent.includes(window.__exitExpectedStage)) throw new Error(overlay.textContent);
+  if (overlay.querySelector('progress')?.value !== 4) throw new Error('progress did not advance');
+  if (window.dispatchEvent(new KeyboardEvent('keydown', {key:'n',ctrlKey:true,cancelable:true}))) throw new Error('shortcut was not blocked');
+  return true;
+})()'''

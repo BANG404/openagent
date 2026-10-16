@@ -127,7 +127,15 @@ pub fn run() {
     let protocol_runtime_supervisor = runtime_supervisor.clone();
     let runtime_manager = runtime_resource_manager(data_dir);
     let startup_runtime_manager = runtime_manager.clone();
-    let builder = tauri::Builder::default().manage(desktop_data_dir);
+    let builder = tauri::Builder::default()
+        .manage(desktop_data_dir)
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                if window.state::<DesktopWindowState>().exit_in_progress() {
+                    api.prevent_close();
+                }
+            }
+        });
 
     let builder =
         desktop_plugins::register_base(builder, is_workspace_window, development_multi_instance);

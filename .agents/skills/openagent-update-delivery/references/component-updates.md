@@ -85,7 +85,8 @@ again before it is stopped — and then runs the same bounded child teardown the
 ordinary exit path uses. Successful preparation confirms the Runtime, event
 relay, and workspace children stopped before reporting `install_prepared`.
 A teardown error or timeout rejects the installer and restarts the prepared
-host to restore its stopped Runtime and hidden windows. An undrainable Runtime
+host to restore its stopped Runtime. The shared native exit progress stays visible
+through preparation and installer handoff. An undrainable Runtime
 defers the whole update before anything is torn down. This ordering exists because the shell installer,
 not the host, ends the process: on Windows the updater plugin launches NSIS and
 terminates the application inside `install()`, so no statement after that call
