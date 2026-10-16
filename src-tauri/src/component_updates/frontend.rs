@@ -265,6 +265,7 @@ pub(crate) async fn activate_frontend_resource(
 
 #[tauri::command]
 pub(crate) async fn confirm_frontend_activation(
+    app: tauri::AppHandle,
     manager: State<'_, FrontendResourceManager>,
     updates: State<'_, RuntimeUpdateState>,
     supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
@@ -302,11 +303,10 @@ pub(crate) async fn confirm_frontend_activation(
         error
     })?;
     if let Ok(Some(handoff)) = super::handoff::read(&home.0) {
-        let current =
-            semver::Version::parse(env!("CARGO_PKG_VERSION")).map_err(|error| error.to_string())?;
+        let current = &app.package_info().version;
         let planned =
             semver::Version::parse(&handoff.shell_version).map_err(|error| error.to_string())?;
-        if current >= planned {
+        if *current >= planned {
             super::handoff::clear(&home.0)?;
         }
     }

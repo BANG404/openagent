@@ -53,7 +53,7 @@ test("online and offline staging bind the same signed platform bytes and reject 
         "openagent-frontend-manifest.json",
         {
           schema_version: 2,
-          version: "1.0.0",
+          version: "0.9.0",
           compatibility: { shell: { min: 1, max: 1 }, runtime: { min: 2, max: 2 } },
           artifact: frontend,
         },
@@ -93,10 +93,13 @@ test("online and offline staging bind the same signed platform bytes and reject 
       helperDirectory,
       modelDirectory,
       version: "1.0.0",
+      shellVersion: "0.8.0",
       sdkSha: "2".repeat(40),
     });
     expect(manifest.sdk_sha).toBe("2".repeat(40));
     expect(manifest.runtime_version).toBe("0.1.0");
+    expect(manifest.frontend_version).toBe("0.9.0");
+    expect(manifest.shell_version).toBe("0.8.0");
     const bytes = await readFile(join(directory, "openagent-distribution.json"));
     await writeFile(join(directory, "openagent-distribution.json.sig"), fixture.sign(bytes));
     await stageDistribution({
@@ -108,6 +111,28 @@ test("online and offline staging bind the same signed platform bytes and reject 
     expect(await readFile(join(destination, runtime.file))).toEqual(runtimeBytes);
     expect(await readdir(destination)).not.toContain("codex-bwrap-linux-x64");
     expect(await readFile(join(destination, "openagent-distribution.json"))).toEqual(bytes);
+    const frontendManifestPath = join(frontendDirectory, "openagent-frontend-manifest.json");
+    const frontendManifest = JSON.parse(await readFile(frontendManifestPath, "utf8"));
+    for (const range of [{ min: 3, max: 3 }, { min: 2 }, { min: 4, max: 1 }]) {
+      await writeFile(
+        frontendManifestPath,
+        JSON.stringify({
+          ...frontendManifest,
+          compatibility: { ...frontendManifest.compatibility, runtime: range },
+        }),
+      );
+      await expect(
+        createDistribution({
+          directory,
+          runtimeDirectory,
+          frontendDirectory,
+          helperDirectory,
+          modelDirectory,
+          version: "1.0.0",
+          sdkSha: "2".repeat(40),
+        }),
+      ).rejects.toThrow("protocols");
+    }
     await writeFile(join(directory, runtime.file), "corrupt executable");
     await expect(
       stageDistribution({

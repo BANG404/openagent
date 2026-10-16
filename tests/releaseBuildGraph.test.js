@@ -15,7 +15,7 @@ function job(name) {
 }
 
 test("cold helper builds start from the frozen Runtime source before SDK qualification finishes", () => {
-  expect(job("distribution-helpers")).toContain("needs: [detect, sdk-plan]");
+  expect(job("distribution-helpers")).toContain("needs: [detect, sdk-plan, component-plan]");
   expect(job("distribution-helpers")).toContain("needs.sdk-plan.outputs.sdk_release_sha");
   expect(job("distribution-helpers")).not.toContain("needs.sdk-release");
   expect(job("sdk-release")).toContain("--plan-file sdk-release-plan.json");
@@ -23,7 +23,7 @@ test("cold helper builds start from the frozen Runtime source before SDK qualifi
 
 test("shell compilation starts independently and packaging consumes its exact output", () => {
   const compile = job("shell-build");
-  expect(compile).toContain("needs: [detect, frontend-build]");
+  expect(compile).toContain("needs: [detect, frontend-build, component-plan]");
   expect(compile).not.toContain("sdk-release");
   expect(compile).not.toContain("distribution-resources");
   expect(compile).not.toContain("repository: BANG404/openagent-runtime");
@@ -44,7 +44,7 @@ test("one qualified frontend feeds signing and platforms and gates immutable tag
   expect(frontend).toContain("actions/cache/restore@v4");
   expect(frontend).toContain("actions/cache/save@v4");
   expect(frontend).not.toContain("restore-keys: frontend");
-  expect(job("frontend-components")).toContain("needs: [detect, frontend-build]");
+  expect(job("frontend-components")).toContain("needs: [detect, frontend-build, component-plan]");
   expect(job("frontend-components")).not.toContain("bun run build");
   expect(job("tag")).toContain("needs.frontend-build.result == 'success'");
   expect(job("tag")).toContain("needs.qualify.result == 'success'");

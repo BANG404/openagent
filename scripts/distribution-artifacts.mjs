@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** Bind the complete initial resource set to one immutable product release.
- * @param {{directory: string; runtimeDirectory: string; frontendDirectory: string; modelDirectory: string; helperDirectory: string; version: string; sdkSha: string; targets?: string[]}} options
+ * @param {{directory: string; runtimeDirectory: string; frontendDirectory: string; modelDirectory: string; helperDirectory: string; version: string; sdkSha: string; shellVersion?: string; targets?: string[]}} options
  */
 export async function createDistribution(options) {
   const {
@@ -15,10 +15,12 @@ export async function createDistribution(options) {
     helperDirectory,
     version,
     sdkSha,
+    shellVersion = version,
     targets,
   } = options;
   if (
     !/^\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)\.\d+)?$/.test(version) ||
+    !/^\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)\.\d+)?$/.test(shellVersion) ||
     !/^[a-f0-9]{40}$/.test(sdkSha)
   )
     throw new Error("Invalid distribution identity");
@@ -40,8 +42,22 @@ export async function createDistribution(options) {
   const frontend = JSON.parse(
     await readFile(path.join(frontendDirectory, "openagent-frontend-manifest.json"), "utf8"),
   );
-  if (frontend.version !== version || runtime.schema_version !== 1 || frontend.schema_version !== 2)
+  if (runtime.schema_version !== 1 || frontend.schema_version !== 2)
     throw new Error("Distribution components do not match their release");
+  const frontendProtocol = frontend.compatibility?.runtime;
+  if (
+    [frontendProtocol, runtime.protocol].some(
+      (range) =>
+        !range ||
+        !Number.isSafeInteger(range.min) ||
+        !Number.isSafeInteger(range.max) ||
+        range.min < 1 ||
+        range.min > range.max,
+    ) ||
+    Math.max(frontendProtocol.min, runtime.protocol.min) >
+      Math.min(frontendProtocol.max, runtime.protocol.max)
+  )
+    throw new Error("Frontend and Runtime protocols are incompatible");
   const manifests = {};
   for (const [name, source] of [
     ["openagent-sdk-manifest.json", runtimeDirectory],
@@ -90,7 +106,9 @@ export async function createDistribution(options) {
     schema_version: 1,
     version,
     sdk_sha: sdkSha,
+    shell_version: shellVersion,
     runtime_version: runtime.version,
+    frontend_version: frontend.version,
     shell_protocol: frontend.compatibility.shell,
     runtime_protocol: runtime.protocol,
     manifests,
@@ -109,7 +127,11 @@ export async function createDistribution(options) {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2);
   const value = (name) => args[args.indexOf(name) + 1];
+  const plan = process.env.OPENAGENT_COMPONENT_PLAN
+    ? JSON.parse(await readFile(path.resolve(process.env.OPENAGENT_COMPONENT_PLAN), "utf8"))
+    : null;
   await createDistribution({
+    shellVersion: plan?.components.shell.identity.version,
     directory: value("--output"),
     runtimeDirectory: value("--runtime"),
     frontendDirectory: value("--frontend"),

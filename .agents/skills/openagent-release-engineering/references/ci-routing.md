@@ -23,8 +23,9 @@ three verification routes:
 - Administrator-authored PRs perform only a repository-permission check, then
   publish the successful aggregate without module checks or review. Ordinary
   pushes to `main` do not trigger CI.
-- Release workflow calls, nightly schedules, and manual dispatches force every
-  module through complete qualification: frontend production build and bundle
+- Nightly schedules and manual dispatches force every module through complete
+  qualification. Release calls use the same complete tier for components without
+  a matching [signed qualification receipt](component-reuse.md): frontend production build and bundle
   budgets, Windows/macOS native compilation, and embedding runtime tests.
   Full runs never consume prior fast coverage. Frontend
   production assets and bootstrap build in `build-frontend.yml` concurrently with
@@ -51,7 +52,7 @@ three verification routes:
   and cannot be reused from tree-only statuses; administrator bypass runs have
   no capability coverage to reuse.
 - The always-present aggregate proves that every selected check passed. Release
-  qualification selects every check and gates tagging and builds directly.
+  qualification and verified component receipts gate tagging and publication.
 - Creation of a Stable archive branch reports an all-zero GitHub `before` SHA;
   change detection falls back to the branch head's parent instead of treating
   the existing Beta snapshot as an entirely new repository.

@@ -42,6 +42,7 @@
     "createUpdaterArtifacts": true,
     "externalBin": [],
     "resources": {
+      "resources/release-identity/": "release-identity/",
       "resources/node-runtime/": "node-runtime/",
       "resources/terminal-tools/": "terminal-tools/"
     },

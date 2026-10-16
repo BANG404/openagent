@@ -49,11 +49,85 @@ impl Default for ProvisioningState {
 pub(crate) struct Distribution {
     schema_version: u32,
     version: String,
+    shell_version: Option<String>,
+    frontend_version: Option<String>,
+    runtime_version: Option<String>,
     manifests: BTreeMap<String, RuntimeResourceArtifact>,
     runtime: BTreeMap<String, RuntimeResourceArtifact>,
     frontend: RuntimeResourceArtifact,
     embedding: BTreeMap<String, RuntimeResourceArtifact>,
     helpers: BTreeMap<String, BTreeMap<String, RuntimeResourceArtifact>>,
+}
+
+/// A signed installation identity lets an unchanged shell serve a new product release.
+pub(crate) fn configure_packaged_release(
+    context: &mut tauri::Context<tauri::Wry>,
+) -> Result<(), String> {
+    let directory = packaged_identity_directory(context.package_info())?;
+    let manifest_path = directory.join("openagent-distribution.json");
+    if !manifest_path.exists() {
+        return Ok(());
+    }
+    let bytes = read_bounded(&manifest_path, 1024 * 1024)?;
+    let signature = read_bounded(
+        &directory.join("openagent-distribution.json.sig"),
+        16 * 1024,
+    )?;
+    let value: serde_json::Value =
+        serde_json::from_slice(&bytes).map_err(|error| error.to_string())?;
+    let version = value["version"]
+        .as_str()
+        .ok_or("Missing packaged release version")?;
+    let manifest = parse_distribution(&bytes, &signature, version)?;
+    context.package_info_mut().version =
+        packaged_release_version(&manifest, env!("CARGO_PKG_VERSION"))?;
+    Ok(())
+}
+
+fn packaged_identity_directory(package: &tauri::PackageInfo) -> Result<PathBuf, String> {
+    #[cfg(debug_assertions)]
+    if std::env::var("OPENAGENT_BOOTSTRAP_TEST").is_ok_and(|value| value == "1") {
+        if let Some(directory) = std::env::var_os("OPENAGENT_BOOTSTRAP_TEST_IDENTITY") {
+            return Ok(PathBuf::from(directory));
+        }
+    }
+    tauri::utils::platform::resource_dir(package, &tauri::Env::default())
+        .map(|directory| directory.join("release-identity"))
+        .map_err(|error| error.to_string())
+}
+
+fn packaged_release_version(
+    manifest: &Distribution,
+    compiled: &str,
+) -> Result<semver::Version, String> {
+    if manifest
+        .shell_version
+        .as_deref()
+        .unwrap_or(&manifest.version)
+        != compiled
+    {
+        return Err("Packaged distribution does not match the compiled shell".into());
+    }
+    let version = semver::Version::parse(&manifest.version).map_err(|error| error.to_string())?;
+    let shell = semver::Version::parse(compiled).map_err(|error| error.to_string())?;
+    if version < shell {
+        return Err("Packaged product version precedes its compiled shell".into());
+    }
+    Ok(version)
+}
+
+fn read_bounded(path: &Path, maximum: u64) -> Result<Vec<u8>, String> {
+    use std::io::Read;
+    let mut bytes = Vec::new();
+    std::fs::File::open(path)
+        .map_err(|error| error.to_string())?
+        .take(maximum + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|error| error.to_string())?;
+    if bytes.len() as u64 > maximum {
+        return Err("Distribution identity exceeds its size limit".into());
+    }
+    Ok(bytes)
 }
 
 fn parse_distribution(
@@ -259,7 +333,7 @@ fn source(app: &tauri::AppHandle, offline_directory: Option<PathBuf>) -> Result<
     }
     Ok(format!(
         "https://github.com/BANG404/openagent/releases/download/v{}/openagent-distribution.json",
-        env!("CARGO_PKG_VERSION")
+        app.package_info().version
     ))
 }
 
@@ -328,7 +402,7 @@ async fn stage_distribution(
             .await
             .map_err(|error| error.to_string())?;
     }
-    if expected_version == env!("CARGO_PKG_VERSION") {
+    if expected_version == app.package_info().version.to_string() {
         *state
             .embedding_seed
             .lock()
@@ -462,7 +536,7 @@ async fn provision_inner(
         app,
         home,
         &source(app, offline_directory)?,
-        env!("CARGO_PKG_VERSION"),
+        &app.package_info().version.to_string(),
     )
     .await?;
     update(app, "installing", None);
@@ -503,8 +577,26 @@ async fn installed_startup_resource(
     let Some(version) = frontend_manager.active_version() else {
         return Ok(None);
     };
+    let release = app.package_info().version.to_string();
+    let directory = packaged_identity_directory(app.package_info())?;
+    let distribution = if directory.join("openagent-distribution.json").exists() {
+        Some(parse_distribution(
+            &read_bounded(&directory.join("openagent-distribution.json"), 1024 * 1024)?,
+            &read_bounded(
+                &directory.join("openagent-distribution.json.sig"),
+                16 * 1024,
+            )?,
+            &release,
+        )?)
+    } else {
+        None
+    };
+    let expected_frontend = distribution
+        .as_ref()
+        .and_then(|manifest| manifest.frontend_version.as_deref())
+        .unwrap_or(&release);
     if semver::Version::parse(&version).map_err(|error| error.to_string())?
-        < semver::Version::parse(env!("CARGO_PKG_VERSION")).map_err(|error| error.to_string())?
+        < semver::Version::parse(expected_frontend).map_err(|error| error.to_string())?
     {
         return Ok(None);
     }
@@ -514,12 +606,35 @@ async fn installed_startup_resource(
         .await;
     match runtime {
         Ok(runtime) => {
+            if let (Some(resource), Some(expected)) = (
+                &runtime,
+                distribution
+                    .as_ref()
+                    .and_then(|manifest| manifest.runtime_version.as_ref()),
+            ) {
+                let current =
+                    semver::Version::parse(&resource.version).map_err(|error| error.to_string())?;
+                let expected =
+                    semver::Version::parse(expected).map_err(|error| error.to_string())?;
+                let older_release = resource
+                    .release_version
+                    .as_deref()
+                    .and_then(|version| semver::Version::parse(version).ok())
+                    .is_none_or(|version| version < app.package_info().version);
+                if current.cmp_precedence(&expected).is_lt()
+                    || (current.cmp_precedence(&expected).is_eq()
+                        && older_release
+                        && resource.version != expected.to_string())
+                {
+                    return Ok(None);
+                }
+            }
             // Runtime validates and installs this seed only if its durable local
             // model needs repair. Normal startup never recopies the distribution.
             let seed = home
                 .join("resources")
                 .join("distributions")
-                .join(env!("CARGO_PKG_VERSION"))
+                .join(app.package_info().version.to_string())
                 .join("models");
             if seed.is_dir() {
                 *app.state::<ProvisioningState>()
@@ -646,8 +761,7 @@ pub(crate) async fn prepare_release_resources(
     version: String,
 ) -> Result<PreparedReleaseResources, String> {
     let candidate = semver::Version::parse(&version).map_err(|error| error.to_string())?;
-    let current =
-        semver::Version::parse(env!("CARGO_PKG_VERSION")).map_err(|error| error.to_string())?;
+    let current = app.package_info().version.clone();
     if candidate <= current {
         return Err("Release resource preparation requires a newer shell".into());
     }
@@ -707,4 +821,45 @@ pub(crate) async fn retry_shell_resources(
     offline_directory: Option<PathBuf>,
 ) -> Result<(), String> {
     provision(app, offline_directory).await
+}
+
+#[cfg(test)]
+mod release_identity_tests {
+    use super::*;
+
+    fn distribution(product: &str, shell: Option<&str>) -> Distribution {
+        Distribution {
+            schema_version: 1,
+            version: product.into(),
+            shell_version: shell.map(str::to_string),
+            frontend_version: Some("1.0.0".into()),
+            runtime_version: Some("0.1.0".into()),
+            manifests: BTreeMap::new(),
+            runtime: BTreeMap::new(),
+            frontend: RuntimeResourceArtifact {
+                file: "frontend.tar.gz".into(),
+                size: 1,
+                sha256: "0".repeat(64),
+            },
+            embedding: BTreeMap::new(),
+            helpers: BTreeMap::new(),
+        }
+    }
+
+    #[test]
+    fn reused_shell_adopts_the_installed_product_version() {
+        let manifest = distribution("1.1.0", Some("1.0.0"));
+        assert_eq!(
+            packaged_release_version(&manifest, "1.0.0").unwrap(),
+            semver::Version::new(1, 1, 0)
+        );
+        assert!(packaged_release_version(&manifest, "0.9.0").is_err());
+        assert!(packaged_release_version(&distribution("0.9.0", Some("1.0.0")), "1.0.0").is_err());
+    }
+
+    #[test]
+    fn existing_distribution_identity_keeps_its_original_shell_binding() {
+        assert!(packaged_release_version(&distribution("1.0.0", None), "1.0.0").is_ok());
+        assert!(packaged_release_version(&distribution("1.1.0", None), "1.0.0").is_err());
+    }
 }

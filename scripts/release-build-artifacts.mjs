@@ -186,7 +186,16 @@ async function main() {
   const [command, ...args] = process.argv.slice(2);
   const option = (/** @type {string} */ name) =>
     args.includes(name) ? args[args.indexOf(name) + 1] : undefined;
-  const identity = buildSourceIdentity();
+  let identity = buildSourceIdentity();
+  if (process.env.OPENAGENT_COMPONENT_PLAN) {
+    const plan = JSON.parse(
+      await readFile(path.resolve(process.env.OPENAGENT_COMPONENT_PLAN), "utf8"),
+    );
+    const component = command?.startsWith("shell-") ? "shell" : "frontend";
+    if (plan.schema_version !== 1 || plan.source_sha !== identity.desktop_sha)
+      throw new Error("Component plan source mismatch");
+    identity = plan.components[component].identity;
+  }
   if (command === "key") {
     const bunVersion = execFileSync("bun", ["--version"], { encoding: "utf8" }).trim();
     const manifest = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));

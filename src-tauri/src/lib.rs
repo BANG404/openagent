@@ -156,6 +156,8 @@ pub fn run() {
     let builder = desktop_plugins::register_integrations(builder, development_multi_instance);
 
     let mut context = tauri::generate_context!();
+    desktop_bootstrap::provisioning::configure_packaged_release(&mut context)
+        .unwrap_or_else(|error| panic!("Invalid packaged release identity: {error}"));
     if development_multi_instance {
         let instance_name = std::env::var("OPENAGENT_DEV_INSTANCE").ok();
         context.config_mut().identifier = development_instance_identifier(instance_name.as_deref());

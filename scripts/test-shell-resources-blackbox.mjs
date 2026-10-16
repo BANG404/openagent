@@ -26,6 +26,7 @@ if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error("Inv
 const fixture = signingFixture();
 const keyFile = path.join(directory, "fixture.pub");
 await writeFile(keyFile, fixture.publicKey);
+/** @type {NodeJS.ProcessEnv} */
 const environment = {
   ...process.env,
   OPENAGENT_HOME: home,
@@ -595,6 +596,53 @@ try {
     throw new Error("Configured repeat launch did not reveal the main window");
   captureBlackboxScreenshot(pilot, path.join(directory, "ordinary-installed-startup.png"));
 
+  // A new installer may package the same compiled shell and frontend. Its signed
+  // installation metadata must advance updater identity without requiring a cache.
+  spawnSync("taskkill", ["/PID", String(desktop.pid), "/T", "/F"], {
+    windowsHide: true,
+    stdio: "ignore",
+  });
+  const identityDirectory = path.join(directory, "reused-shell-identity");
+  await mkdir(identityDirectory);
+  const reusedIdentity = Buffer.from(
+    JSON.stringify({
+      ...JSON.parse(manifestBytes.toString()),
+      version: "999.0.2-beta.1",
+      shell_version: version,
+      frontend_version: version,
+    }),
+  );
+  await writeFile(path.join(identityDirectory, "openagent-distribution.json"), reusedIdentity);
+  await writeFile(
+    path.join(identityDirectory, "openagent-distribution.json.sig"),
+    fixture.sign(reusedIdentity),
+  );
+  environment.OPENAGENT_BOOTSTRAP_TEST_IDENTITY = identityDirectory;
+  desktop = start(process.execPath, desktopArguments);
+  let reusedStarted = false;
+  const reusedDeadline = Date.now() + 120000;
+  while (Date.now() < reusedDeadline) {
+    try {
+      const url = pilot(["url"]);
+      assertBootstrapHidden(url);
+      if (url.includes("openagent-ui")) {
+        pilot(["run", path.join(root, "tests/blackbox/shell-installed-startup.toml")]);
+        pilot(["snapshot", "-i"]);
+        pilot(["eval", "window.__originalShellVersion = " + JSON.stringify(version)]);
+        pilot(["run", path.join(root, "tests/blackbox/shell-component-reuse.toml")]);
+        reusedStarted = true;
+        break;
+      }
+    } catch (error) {
+      if (String(error).includes("Configured startup revealed")) throw error;
+    }
+    if (desktop.exitCode !== null) throw new Error("Reused-shell startup exited");
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  if (!reusedStarted) throw new Error("Reused shell did not adopt signed product identity");
+  captureBlackboxScreenshot(pilot, path.join(directory, "reused-shell-product.png"));
+  delete environment.OPENAGENT_BOOTSTRAP_TEST_IDENTITY;
+
   // Missing installed bytes must recover through the signed cache on next launch.
   spawnSync("taskkill", ["/PID", String(desktop.pid), "/T", "/F"], {
     windowsHide: true,
@@ -673,7 +721,7 @@ try {
   if (!(await readFile(configFile, "utf8")).includes("onboarding_completed = true"))
     throw new Error("Resource recovery changed onboarding completion");
   console.log(
-    `Shell resource black-box passed: retry, four themes/locales, verified offline install, interrupted installer supersession, hidden continuation with helper repair, protocol upgrade without retry, direct repeat startup, hidden cached repair and invalid-cache recovery. Artifacts: ${directory}`,
+    `Shell resource black-box passed: retry, four themes/locales, verified offline install, interrupted installer supersession, hidden continuation with helper repair, protocol upgrade without retry, direct repeat startup, independent shell/product identities, hidden cached repair and invalid-cache recovery. Artifacts: ${directory}`,
   );
 } finally {
   await writeFile(path.join(directory, "desktop.log"), logs.join(""));
