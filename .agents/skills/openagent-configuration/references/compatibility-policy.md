@@ -8,6 +8,9 @@ running source Runtime version for online replacement. Public App never opens
 SQLite. Local configuration/protocol/storage checks remain mandatory after the
 policy allows an operation. A policy cannot add migration support, run code,
 delete data or bypass transition confirmation and backups.
+The initial persistence helper and supervised commands share the host's policy
+context setup, including actual shell identity and removal of inherited upgrade
+context. Resource preparation must not be required to supply these basic facts.
 
 ## Document and matching
 

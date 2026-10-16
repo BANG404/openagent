@@ -57,6 +57,7 @@ fn run_desktop_bootstrap_with_binary(
     home: &std::path::Path,
 ) -> anyhow::Result<DesktopBootstrapStatus> {
     let mut process = std::process::Command::new(binary);
+    crate::runtime_process::configure_runtime_policy_context(&mut process);
     process
         .arg("--desktop-bootstrap")
         .arg(command)

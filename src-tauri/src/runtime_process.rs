@@ -4,10 +4,14 @@ pub use openagent_app::runtime_process::{
     DESKTOP_RUNTIME_PROTOCOL_VERSION,
 };
 
-pub(crate) fn configure_runtime_command(command: &mut std::process::Command) -> Result<(), String> {
+pub(crate) fn configure_runtime_policy_context(command: &mut std::process::Command) {
     command.env("OPENAGENT_POLICY_SHELL_VERSION", env!("CARGO_PKG_VERSION"));
     command.env_remove("OPENAGENT_POLICY_PREVIOUS_RUNTIME");
     command.env("OPENAGENT_POLICY_OPERATION", "startup");
+}
+
+pub(crate) fn configure_runtime_command(command: &mut std::process::Command) -> Result<(), String> {
+    configure_runtime_policy_context(command);
     crate::node_runtime::configure(command)?;
     crate::terminal_tools::configure(command)
 }
