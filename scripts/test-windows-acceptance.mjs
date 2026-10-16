@@ -67,7 +67,10 @@ export async function testWindowsAcceptance({ directory, mode, reportDirectory }
       ],
       { env: { ...environment, ...extra }, encoding: "utf8", windowsHide: true, timeout: 300_000 },
     );
-    assert(result.status === 0, result.stderr || result.stdout || `Native ${action} failed`);
+    assert(
+      result.status === 0,
+      `${result.stdout ?? ""}${result.stderr ?? ""}` || `Native ${action} failed`,
+    );
   }
   /** @param {string[]} args @param {string} [window] */
   function pilot(args, window = "main") {

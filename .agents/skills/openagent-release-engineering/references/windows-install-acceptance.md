@@ -53,7 +53,10 @@ Never publish these drafts or use acceptance packages in production channels.
 
 Each mode installs into a new directory and starts with empty application data.
 Offline tests block non-loopback outbound traffic from shell, Runtime and bundled Node with task-scoped
-Windows Firewall rules and require zero resource-server requests. Online tests
+Windows Firewall rules and require zero resource-server requests. Normalize
+absolute executable paths to native Windows separators before Firewall
+rule creation; hosted runner temp paths can mix separators.
+Online tests
 first return HTTP 503, require the real failure state and UI Retry, then serve
 the same signed resource bytes. Both modes execute bundled tools, complete
 the welcome wizard, render light/dark and Chinese/English screenshots, submit
