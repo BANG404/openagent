@@ -1,5 +1,10 @@
 # Conversation components
 
+ConversationSurface and the right-sidebar surface share the desktop workspace
+card contract owned by the design system's [semantic themes](../../openagent-design-system/references/semantic-themes.md).
+Keep their outer shell stable across installed themes; verify both together
+with `bun run test:blackbox:semantic-themes`, including zero-radius control presets.
+
 Assistant reply timestamps share the footer metadata typography with first-token
 timing and cache usage: 11px, unit line height and muted foreground, vertically
 centered in the same wrapping row. Keep their style rule shared so timestamps

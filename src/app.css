@@ -124,6 +124,8 @@
     --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
     --ease-exit: cubic-bezier(0.7, 0, 0.84, 0);
     --workspace-card-gap: 8px;
+    --workspace-card-radius: 12px;
+    --workspace-canvas: var(--sidebar);
     /* Keep the desktop shell aligned with the native window's lower bound. */
     --desktop-app-min-width: 1040px;
     --settings-nav-width: 172px;
@@ -214,6 +216,7 @@
       color-scheme: dark;
       --background: #282c34;
       --card: #282c34;
+      --workspace-canvas: color-mix(in srgb, var(--sidebar) 96%, var(--foreground));
       --muted: #1c1c1c;
       --border: #454a55;
       --foreground: #e2e8f0;
@@ -249,6 +252,7 @@
     color-scheme: dark;
     --background: #282c34;
     --card: #282c34;
+    --workspace-canvas: color-mix(in srgb, var(--sidebar) 96%, var(--foreground));
     --muted: #1c1c1c;
     --border: #454a55;
     --foreground: #e2e8f0;
@@ -283,6 +287,7 @@
     color-scheme: light;
     --background: #f5f5f7;
     --card: #ffffff;
+    --workspace-canvas: var(--sidebar);
     --muted: #f0f0f5;
     --border: #d8d8df;
     --foreground: #1d1d1f;
@@ -318,6 +323,7 @@
     --background: transparent;
     --app-chrome-bg: transparent;
     --sidebar: transparent;
+    --workspace-canvas: var(--sidebar);
   }
 
   * {

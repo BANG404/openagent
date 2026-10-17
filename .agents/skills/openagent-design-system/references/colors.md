@@ -61,6 +61,10 @@ Do not make the title bar transparent over a different canvas or erase a
 package's sidebar color to hide that seam.
 The sidebar paints below its title-bar padding (`background-clip: content-box`),
 so translucent sidebar colors are composited once on both sides of that edge.
+The conversation workspace paints a separate canvas behind its cards so a
+package's identical background/card colors cannot erase their outer edges.
+The [semantic theme contract](semantic-themes.md) owns this surface derivation
+and the fixed desktop card geometry.
 Run `bun run test:blackbox:native-background` against an isolated
 `native-background` Tauri instance to exercise the Appearance switch off and
 back on, persistence after reopening Settings, shell geometry, and surfaced

@@ -9,6 +9,16 @@ names. Filled primary actions use primary-foreground, and themed surfaces use
 their matching foreground. Focus uses ring. Shape dimensions derive from radius;
 circles, pills, zero and native window geometry retain their own constraints.
 Native material, composer geometry and motion remain OpenAgent extensions.
+Desktop workspace cards retain their own 12px radius (`--workspace-card-radius`)
+and 8px gutters when a theme changes control radius, density or typography.
+The workspace canvas defaults to sidebar color. If a supplied palette makes
+sidebar and card identical, use its distinct background instead; if all supplied
+surfaces coincide, derive a subtle foreground tint. Preserve explicit
+`--workspace-canvas` values. Saved background overrides restore the canvas to
+their derived sidebar color. Paint it below the title-bar padding only, avoiding
+duplicate compositing of translucent chrome.
+The built-in opaque dark canvas uses the same subtle separation; the native
+canvas remains transparent.
 
 `themeTokens.ts` normalizes installed theme-v1 legacy names at the input
 boundary, with explicit semantic names winning. Existing packages remain
@@ -66,7 +76,11 @@ radius, font loading, menus and chart palettes, not just root variable strings.
 `plugins/<id>` into an explicit isolated `plugin-presentation` home and Pilot
 socket. It checks all ten packages in light/dark and English/Chinese, captures
 native screenshots, asserts that rendered title-bar and sidebar backgrounds and
-control foregrounds match, and restores settings/removes its packages on exit. On
+control foregrounds match, and checks visible conversation/right-sidebar cards,
+12px outer corners and unchanged shell geometry against the built-in baseline.
+Capture the unobscured shell for every selected theme, including the real right
+sidebar with process-free fixture content. It restores settings/removes its
+packages on exit. On
 Windows supply the verified main HWND as `BLACKBOX_NATIVE_WINDOW_ID`.
 Pass `--release` to install the public repository releases instead of local
 source directories and repeat the same actual selection/rendering assertions.

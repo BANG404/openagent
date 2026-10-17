@@ -477,7 +477,7 @@
     min-width: 0;
     min-height: 0;
     flex: 1;
-    margin: var(--desktop-titlebar-height) var(--workspace-card-gap) var(--workspace-card-gap);
+    margin: 0 var(--workspace-card-gap) var(--workspace-card-gap);
     overflow: hidden;
     background: transparent;
   }
@@ -491,7 +491,7 @@
     flex: 1;
     flex-direction: column;
     overflow: hidden;
-    border-radius: var(--radius);
+    border-radius: var(--workspace-card-radius);
   }
 
   .conversation-stage.conversation-collapsed {
@@ -499,7 +499,7 @@
   }
 
   .conversation-stage.sidebar-open {
-    border-radius: var(--radius) 0 0 var(--radius);
+    border-radius: var(--workspace-card-radius) 0 0 var(--workspace-card-radius);
   }
 
   .runtime-banner {

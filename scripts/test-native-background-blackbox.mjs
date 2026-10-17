@@ -51,7 +51,10 @@ async function openSettings() {
 }
 async function closeSettings() {
   pilot(["snapshot", "-i"]);
-  pilot(["press", "Escape"]);
+  pilot([
+    "click",
+    '[role=dialog] button[aria-label="Close"], [role=dialog] button[aria-label="关闭"]',
+  ]);
   await until("!document.querySelector('[data-appearance-native-background]')");
 }
 pilot(["ping"]);

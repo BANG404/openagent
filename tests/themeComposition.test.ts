@@ -154,3 +154,25 @@ test("semantic names win over theme-v1 aliases and derived surfaces never replac
   expect(accentForeground("#000000")).toBe("#FFFFFF");
   expect(accentForeground("#FFFF00")).toBe("#000000");
 });
+
+test("flat theme palettes retain a distinct workspace canvas without changing package colors", () => {
+  const light = resolveThemeTokens({
+    "--background": "white",
+    "--card": "white",
+    "--sidebar": "#fafafa",
+  });
+  expect(light["--workspace-canvas"]).toBe("var(--sidebar)");
+  const dark = resolveThemeTokens({
+    "--background": "#111111",
+    "--card": "#222222",
+    "--sidebar": "#222222",
+  });
+  expect(dark["--workspace-canvas"]).toBe("var(--background)");
+  expect(dark["--card"]).toBe("#222222");
+  expect(dark["--sidebar"]).toBe("#222222");
+  const flat = { "--background": "white", "--card": "white" };
+  expect(resolveThemeTokens(flat)["--workspace-canvas"]).toContain("color-mix");
+  expect(resolveThemeTokens({ ...flat, "--workspace-canvas": "pink" })["--workspace-canvas"]).toBe(
+    "pink",
+  );
+});

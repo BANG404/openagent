@@ -322,7 +322,7 @@
     max-width: 0;
   }
   .flow-panel.conversation-collapsed .flow-panel-surface {
-    border-radius: var(--radius);
+    border-radius: var(--workspace-card-radius);
   }
   .flow-panel.resizing {
     transition: none;
@@ -334,7 +334,7 @@
     flex: 1;
     flex-direction: column;
     overflow: hidden;
-    border-radius: 0 var(--radius) var(--radius) 0;
+    border-radius: 0 var(--workspace-card-radius) var(--workspace-card-radius) 0;
     background: var(--card);
   }
   .panel-cache-slot {
