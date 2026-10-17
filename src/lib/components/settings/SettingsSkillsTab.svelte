@@ -84,7 +84,6 @@
     </div>
   </div>
   <ScrollArea height="100%" class="settings-content-col" scrollHideDelay={350}>
-    <p class="detail-hint">{$t("integrationSkillsHint")}</p>
     {#if skill && !integrations.loading && !integrations.error}
       <section class="detail-section" data-skill-detail={skill.path}>
         <h4 class="detail-section-title">{skill.name}</h4>

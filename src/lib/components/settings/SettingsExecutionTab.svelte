@@ -77,7 +77,6 @@
           <label class="execution-value-row">
             <span class="settings-card-copy">
               <span class="label-text">{$t("agentMaxTurns")}</span>
-              <span class="detail-hint">{$t("agentMaxTurnsHint")}</span>
             </span>
             <input
               type="number"
