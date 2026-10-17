@@ -924,6 +924,11 @@ const en: Record<TranslationKeys, string> = {
   mcpToolCount: "tools",
   mcpResourceCount: "resources",
   mcpTools: "MCP Tools",
+  mcpToolMode: "Tool availability",
+  mcpToolModeRelay: "Routed",
+  mcpToolModeDirect: "Direct",
+  mcpToolModeHint:
+    "Routed: the agent loads tools on demand. Direct: tools are immediately available. Changes apply on the next turn after saving.",
   mcpToolsDescription:
     "All tools currently exposed by this server. Disabled tools are hidden from the Agent and cannot be called.",
   mcpToolEnabled: "Allow MCP tool",

@@ -133,6 +133,17 @@ product has no `render_web` tool, AGUI `Html(...)` renderer, browser sidebar, or
 HTML-preview setting; links are shared as `Url(...)` references and opened in
 the user's browser.
 
+Each user MCP server exposes a Tool availability selector in its Tools section.
+It saves `tool_mode = "relay"` (Routed, load on demand) or `"direct"` (available
+immediately) through the shared draft. An absent mode displays Routed without
+mutating the snapshot on open. The policy applies on the next Agent turn;
+transport, enablement and per-tool exclusions remain independent. Plugin-owned
+servers keep their package-level override in the plugin surface. Verify both
+choices, reopen persistence and absent-field defaults with
+`bun run test:blackbox:mcp-tool-mode` in an isolated `mcp-tool-mode` home with
+its explicit `TAURI_PILOT_SOCKET`, in all four theme/locale combinations. Supply
+the verified main HWND as `BLACKBOX_NATIVE_WINDOW_ID` for Windows captures.
+
 Each native MCP server entry stores a `disabled_tools` list alongside its
 connection settings. Settings probes the server and displays every currently
 advertised tool with an individual enable switch. Disabled names remain visible
@@ -159,7 +170,8 @@ category, a bounded summary, and discovery examples. After an MCP save or
 configuration reload, the Runtime probes configured servers in a background
 Flash task. An unchanged fingerprint reuses the cached category and summary;
 only a changed discovery set triggers reclassification. Ordinary live
-definitions remain deferred after connection. The next role-scoped Agent turn
+definitions in Routed mode remain deferred after connection. The next role-scoped
+Agent turn
 receives the built-ins and `load_tool`; a `load_tool` result adds matching MCP definitions
 to the shared ToolServer so the following provider request receives those tools
 directly. The cached catalog is runtime candidate metadata and settings metadata,
