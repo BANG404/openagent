@@ -224,9 +224,12 @@
   light/dark rendering remain directly testable without a native runtime.
 - Keep the development-only `cache-usage-preview` query available for the
   completed-turn footer. Its `-theme` and `-locale` parameters must keep an
-  independently aggregated cache-hit state for multiple completed Turns and a
-  hidden missing-usage state directly verifiable in light/dark themes and
-  Chinese/English copy.
+  separate latest-provider-request cache-hit state for each completed Turn,
+  including multiple tool rounds with different input, read and write counters.
+  Footer counters and rates use only that Turn's final usage record, never a sum
+  or average of requests; a final zero-cache or invalid record must not reuse an
+  earlier hit. Keep missing usage hidden and verify reload and branch isolation
+  in light/dark themes and Chinese/English with `test:blackbox:turn-footer`.
 - Keep the development-only `tool-diff-preview` query available with a large
   `edit_file` fixture. Its `-theme` and `-locale` parameters must keep bounded
   expansion, light/dark themes, and Chinese/English rendering directly

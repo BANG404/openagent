@@ -27,12 +27,32 @@ test("complete snapshots keep historical and multi-record turn footers independe
   expect(rows.map((row) => (row.usage?.kind === "available" ? row.usage.readRate : null))).toEqual([
     0.7,
     0.6,
-    0.8,
+    0.45,
     null,
   ]);
   expect(rows.map((row) => row.timing?.total)).toEqual(["1.0s", "2.0s", "4.0s", "5.0s"]);
   expect(rows.map((row) => row.timing?.firstToken)).toEqual(["200ms", "400ms", "300ms", "500ms"]);
   expect(summaries()).toEqual(rows);
+  expect(rows[2].usage).toEqual({
+    kind: "available",
+    inputTokens: 200,
+    cachedTokens: 90,
+    writtenTokens: 20,
+    readRate: 0.45,
+    writeRate: 0.1,
+  });
+  expect(rows[3].usage).toEqual({ kind: "no_activity" });
+});
+
+test("latest provider usage replaces earlier hits even when totals cannot reconcile", () => {
+  const fixture = turnFooterFixture();
+  const first = fixture.messages.find((message) => message.id === "first-answer")!;
+  const invalid = { ...fixture.usages.first.at(-1)!, total_tokens: 90 };
+  expect(cacheUsageForTurn([first], { first: [...fixture.usages.first, invalid] })).toEqual({
+    kind: "unavailable",
+    cachedTokens: 70,
+    writtenTokens: 0,
+  });
 });
 
 test("branch switching preserves ancestor usage and selects sibling records", () => {

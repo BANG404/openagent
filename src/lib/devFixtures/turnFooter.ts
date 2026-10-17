@@ -53,16 +53,22 @@ function checkpoint(
   };
 }
 
-function usage(checkpointId: string, createdAt: number, cached: number): ChatTaskUsage {
+function usage(
+  checkpointId: string,
+  createdAt: number,
+  cached: number,
+  input = 100,
+  written = 0,
+): ChatTaskUsage {
   return {
     checkpoint_id: checkpointId,
     created_at: createdAt,
     usage: {
-      input_tokens: 100,
+      input_tokens: input,
       output_tokens: 10,
-      total_tokens: 110,
+      total_tokens: input + 10,
       cached_input_tokens: cached,
-      cache_creation_input_tokens: 0,
+      cache_creation_input_tokens: written,
       tool_use_prompt_tokens: 0,
       reasoning_tokens: 0,
     },
@@ -138,10 +144,13 @@ export function turnFooterFixture(branch = false) {
   );
   const messages = computeActivePath(tree);
   const usages = [
+    usage("temporary-first", 10, 20),
     usage("temporary-first", 10, 70),
     usage("second", 20, 60),
     usage("alternate", 20, 20),
     usage("tool-request", 30, 80),
+    usage("tool-output", 33, 90, 200, 20),
+    usage("last", 40, 50),
     usage("last", 40, 0),
   ];
   return {
