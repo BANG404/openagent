@@ -1,0 +1,68 @@
+[scenario]
+name = "MCP routed and direct tool availability persists independently per server"
+fail_fast = true
+global_timeout_ms = 90000
+
+[[step]]
+name = "missing mode displays routed without rewriting the stored configuration"
+action = "eval"
+script = '''(async()=>{
+  const copy=window.__mcpModeCopy;
+  const control=document.querySelector('#mcp-tool-mode-mcp-mode-fixture');
+  if(control.getAttribute('aria-label')!==copy.label || control.textContent.trim()!==copy.relay) throw new Error('missing or untranslated routed default');
+  if(!control.closest('section').textContent.includes(copy.hint)) throw new Error('missing mode explanation');
+  const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
+  const config=await c.invokeProduct('get_settings',{});
+  if(config.mcp.servers.find(s=>s.id==='mcp-mode-fixture').tool_mode != null) throw new Error('opening settings rewrote the absent mode');
+  return true;
+})()'''
+
+[[step]]
+name = "select both modes through the shared control and reopen after each save"
+action = "eval"
+script = '''(()=>{
+  document.body.removeAttribute('data-mcp-mode-finished');
+  window.__mcpModeError=null;
+  (async()=>{
+    const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
+    const until=async predicate=>{
+      const end=Date.now()+15000;
+      while(Date.now()<end){if(await predicate())return;await new Promise(done=>setTimeout(done,100));}
+      throw new Error(`MCP mode check timed out at ${window.__mcpModeStage}`);
+    };
+    const pointer=(element,type)=>element.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,button:0,pointerType:'mouse',isPrimary:true}));
+    for(const mode of ['direct','relay']){
+      window.__mcpModeStage=`${mode}: select`;
+      const control=document.querySelector('#mcp-tool-mode-mcp-mode-fixture');
+      control.scrollIntoView({block:'center'});pointer(control,'pointerdown');pointer(control,'pointerup');
+      await until(()=>document.querySelector(`[role=option][data-value=${mode}]`));
+      const option=document.querySelector(`[role=option][data-value=${mode}]`);
+      pointer(option,'pointerdown');pointer(option,'pointerup');
+      window.__mcpModeStage=`${mode}: save`;
+      await until(async()=>{
+        const config=await c.invokeProduct('get_settings',{});
+        return config.mcp.servers.find(s=>s.id==='mcp-mode-fixture')?.tool_mode===mode;
+      });
+      const config=await c.invokeProduct('get_settings',{});
+      const server=config.mcp.servers.find(s=>s.id==='mcp-mode-fixture');
+      if(server.enabled || server.url!=='http://127.0.0.1:1/mcp' || JSON.stringify(server.disabled_tools)!=='["blocked"]' || config.mcp.servers.find(s=>s.id==='mcp-mode-other').tool_mode!=='direct') throw new Error('mode selection changed unrelated settings');
+      document.querySelector('.fullscreen-surface-close').click();
+      await until(()=>!document.querySelector('#mcp-tool-mode-mcp-mode-fixture'));
+      window.__mcpModeStage=`${mode}: reopen`;
+      window.dispatchEvent(new KeyboardEvent('keydown',{key:'6',code:'Digit6',ctrlKey:true,shiftKey:true,bubbles:true}));
+      await until(()=>document.querySelector('#mcp-tool-mode-mcp-mode-fixture')?.textContent.trim()===window.__mcpModeCopy[mode]);
+    }
+  })().catch(error=>{window.__mcpModeError=String(error)}).finally(()=>document.body.setAttribute('data-mcp-mode-finished','true'));
+  return true;
+})()'''
+
+[[step]]
+name = "wait for autosave and reopen checks"
+action = "wait"
+selector = "body[data-mcp-mode-finished=true]"
+timeout_ms = 70000
+
+[[step]]
+name = "both selections survived reopening"
+action = "eval"
+script = '''if(window.__mcpModeError) throw new Error(window.__mcpModeError); true'''

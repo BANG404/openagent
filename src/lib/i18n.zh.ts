@@ -882,6 +882,10 @@ export const zh = {
   mcpToolCount: "个工具",
   mcpResourceCount: "个资源",
   mcpTools: "MCP 工具",
+  mcpToolMode: "工具提供方式",
+  mcpToolModeRelay: "路由",
+  mcpToolModeDirect: "直连",
+  mcpToolModeHint: "路由：智能体按需加载工具；直连：工具立即可用。保存后在下一轮对话生效。",
   mcpToolsDescription:
     "展示服务器当前提供的全部工具。关闭后，该工具不会提供给 Agent，也不能被调用。",
   mcpToolEnabled: "允许使用 MCP 工具",

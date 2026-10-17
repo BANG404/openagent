@@ -355,6 +355,24 @@
         <section class="detail-section">
           <h4 class="detail-section-title">{$t("mcpTools")}</h4>
           <p class="detail-section-intro">{$t("mcpToolsDescription")}</p>
+          <div class="detail-grid mcp-detail-grid">
+            <div class="detail-label">
+              <span class="label-text">{$t("mcpToolMode")}</span>
+              <Select
+                id={`mcp-tool-mode-${server.id}`}
+                value={server.tool_mode ?? "relay"}
+                items={[
+                  { value: "relay", label: $t("mcpToolModeRelay") },
+                  { value: "direct", label: $t("mcpToolModeDirect") },
+                ]}
+                ariaLabel={$t("mcpToolMode")}
+                onValueChange={(mode) => {
+                  if (mode === "direct" || mode === "relay") server.tool_mode = mode;
+                }}
+              />
+              <p class="detail-hint">{$t("mcpToolModeHint")}</p>
+            </div>
+          </div>
           {#if discoveredTools.length > 0}
             <div class="application-settings-surface mcp-tool-list">
               {#each discoveredTools as tool (tool)}
