@@ -215,7 +215,7 @@
       color-scheme: dark;
       --background: #282c34;
       --card: #282c34;
-      --workspace-canvas: color-mix(in srgb, var(--sidebar) 96%, var(--foreground));
+      --workspace-canvas: var(--sidebar);
       --muted: #1c1c1c;
       --border: #454a55;
       --foreground: #e2e8f0;
@@ -251,7 +251,7 @@
     color-scheme: dark;
     --background: #282c34;
     --card: #282c34;
-    --workspace-canvas: color-mix(in srgb, var(--sidebar) 96%, var(--foreground));
+    --workspace-canvas: var(--sidebar);
     --muted: #1c1c1c;
     --border: #454a55;
     --foreground: #e2e8f0;
