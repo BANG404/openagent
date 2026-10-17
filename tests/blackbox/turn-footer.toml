@@ -4,6 +4,29 @@ fail_fast = true
 global_timeout_ms = 30000
 
 [[step]]
+name = "timestamps match neighboring footer metadata"
+action = "eval"
+script = '''(() => {
+  const footers = [...document.querySelectorAll('.msg-footer-row')];
+  if (footers.length === 0) throw new Error('missing assistant footers');
+  for (const footer of footers) {
+    const timestamp = footer.querySelector('.ts');
+    const metadata = footer.querySelector('.run-timing, .cache-usage');
+    if (!timestamp || !metadata) throw new Error('missing timestamp or neighboring metadata');
+    const actual = getComputedStyle(timestamp);
+    const expected = getComputedStyle(metadata);
+    for (const property of ['fontSize', 'lineHeight', 'fontFamily', 'fontWeight', 'color']) {
+      if (actual[property] !== expected[property]) throw new Error('timestamp ' + property + ' differs: ' + actual[property] + ' / ' + expected[property]);
+    }
+    if (actual.fontSize !== '11px') throw new Error('unexpected footer text size: ' + actual.fontSize);
+    const timeBounds = timestamp.getBoundingClientRect();
+    const metadataBounds = metadata.getBoundingClientRect();
+    if (Math.abs(timeBounds.y + timeBounds.height / 2 - metadataBounds.y - metadataBounds.height / 2) > 1) throw new Error('timestamp is not centered with neighboring metadata');
+  }
+  return 'footer typography and alignment verified';
+})()'''
+
+[[step]]
 name = "each completed turn owns its cache and timing"
 action = "eval"
 script = '''(() => {

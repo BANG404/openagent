@@ -437,9 +437,6 @@
     gap: 8px;
     margin: 6px 0 10px;
   }
-  .msg-footer-row .ts {
-    margin-top: 0;
-  }
 
   .msg-actions {
     display: flex;
@@ -448,7 +445,8 @@
     margin-inline-end: 12px;
   }
   .run-timing,
-  .cache-usage {
+  .cache-usage,
+  .ts {
     min-width: 0;
     color: var(--muted-foreground);
     font-size: 11px;
@@ -478,13 +476,5 @@
   .msg-action-btn:hover {
     background: var(--interactive-state-bg);
     color: var(--accent-foreground);
-  }
-
-  .ts {
-    font-size: 10px;
-    color: var(--muted-foreground);
-    margin-top: 4px;
-    display: block;
-    user-select: none;
   }
 </style>
