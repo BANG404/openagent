@@ -1,0 +1,49 @@
+[scenario]
+name = "Functional plugin names and descriptions"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "every official card shows reviewed localized metadata and its own source"
+action = "eval"
+script = '''(async () => {
+  const {setLocale} = await import('/src/lib/i18n.ts');
+  const entries = window.__reviewedPluginCatalog.plugins;
+  const original = window.__catalogLanguage;
+  const cards = [...document.querySelectorAll('.official-plugin-card')];
+  if (cards.length !== entries.length) throw new Error('incomplete reviewed catalog');
+  for (const language of [original, original === 'en' ? 'zh' : 'en', original]) {
+    setLocale(language);
+    await new Promise(resolve => setTimeout(resolve, 20));
+    for (const entry of entries) {
+      const card = document.querySelector(`.official-plugin-card[data-plugin-id="${entry.id}"]`);
+      const copy = entry.i18n.translations[language];
+      if (!cards.includes(card)) throw new Error(`locale change replaced ${entry.id}`);
+      if (card.querySelector('h5')?.textContent.trim() !== copy.display_name) throw new Error(`wrong name: ${entry.id}/${language}`);
+      if (card.querySelector('.official-plugin-description')?.textContent.trim() !== copy.description) throw new Error(`wrong description: ${entry.id}/${language}`);
+      if (card.querySelector('.official-plugin-meta a')?.getAttribute('href') !== (entry.homepage ?? entry.repository)) throw new Error(`wrong source: ${entry.id}`);
+    }
+  }
+  return `${entries.length} localized names, descriptions and sources passed in both language directions`;
+})()'''
+
+[[step]]
+name = "search by function distinguishes automation, collaboration, tools and themes"
+action = "eval"
+script = '''(async () => {
+  const language = window.__catalogLanguage;
+  const queries = language === 'zh'
+    ? [['目标推进','goal'],['任务编排','graph'],['多智能体群聊','chat-groups'],['智能体留言板','message-board'],['桌面操作','cua-driver'],['浏览器自动化','playwright'],['本地通道测试','fakechat'],['翠绿','openagent-theme-garden']]
+    : [['Goal Execution','goal'],['Task Orchestration','graph'],['Agent Group Chat','chat-groups'],['Agent Message Board','message-board'],['Desktop Control','cua-driver'],['Browser Automation','playwright'],['Local Channel Test','fakechat'],['emerald','openagent-theme-garden']];
+  const input = document.querySelector('.official-plugin-search input');
+  for (const [query,id] of queries) {
+    input.value=query; input.dispatchEvent(new Event('input',{bubbles:true}));
+    await new Promise(resolve => setTimeout(resolve, 20));
+    const found=[...document.querySelectorAll('.official-plugin-card')].map(card=>card.dataset.pluginId);
+    if (found.length!==1 || found[0]!==id) throw new Error(`${query}: found ${found.join(',')}`);
+  }
+  input.value=''; input.dispatchEvent(new Event('input',{bubbles:true}));
+  await new Promise(resolve=>setTimeout(resolve,20));
+  if (document.querySelectorAll('.official-plugin-card').length!==window.__reviewedPluginCatalog.plugins.length) throw new Error('clearing search did not restore catalog');
+  return 'functional search passed';
+})()'''

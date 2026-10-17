@@ -66,6 +66,24 @@ Localize presentation while keeping plugin/command/tool IDs, policy tags,
 routing, permissions, and state schemas stable. Model-facing Skills and tool
 instructions do not establish UI coverage or authorize translating user data.
 
+## Clear names and descriptions
+
+Name packages for their user-facing purpose. Keep recognizable service brands
+and add the function (for example, GitHub Repositories / GitHub 仓库协作).
+Use a short sentence describing concrete actions and their result; include a
+platform or authorization prerequisite when it determines whether the package
+is useful. Keep MCP transports, checkpoint storage, telemetry protocols and
+packaging details in setup or developer documentation.
+
+Distinguish continuous goal execution, dependency-based task orchestration,
+multi-agent group discussions and persistent collaboration messages. Theme names
+include their theme purpose; descriptions explain actual colors, typography and
+spacing from the declared tokens rather than listing recipe identifiers.
+Keep catalog metadata, package metadata and README summaries consistent in both
+platform languages, and align package-named command and sidebar labels. Rename
+presentation only: package IDs, source subscriptions and persisted data remain
+stable. Advance package patch versions for changed archived presentation bytes.
+
 ## Official release requirements
 
 Official plugins must support **every language the platform supports**,
