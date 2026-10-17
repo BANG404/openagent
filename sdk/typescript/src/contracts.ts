@@ -515,7 +515,7 @@ export interface DesktopProductCommandMap {
   uninstall_agent_plugin: { request: { id: string }; response: void };
   read_agent_plugin_asset: {
     request: { plugin_id: string; entry: string };
-    response: { content: string; mime: string };
+    response: { content: string; mime: string; encoding?: "base64" };
   };
   set_conversation_ui_props: {
     request: {

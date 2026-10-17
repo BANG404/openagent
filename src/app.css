@@ -1,5 +1,4 @@
 @import "tailwindcss" source("./");
-@import "./lib/theme-fonts.css";
 @source "../node_modules/svelte-streamdown/**/*";
 
 @custom-variant dark (&:is(.dark *));

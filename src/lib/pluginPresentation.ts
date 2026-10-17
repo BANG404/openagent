@@ -3,9 +3,9 @@ import { accentForeground, resolveThemeTokens } from "$lib/themeTokens";
 
 export const THEME_FONTS: Record<string, string> = {
   system: 'system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif',
-  sans: '"Inter Variable", "Inter", "Segoe UI", sans-serif',
+  sans: '"Inter", "Segoe UI", sans-serif',
   serif: 'Georgia, "Songti SC", "SimSun", serif',
-  mono: '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
+  mono: '"JetBrains Mono", "Cascadia Code", Consolas, monospace',
 };
 
 export function normalizeThemeOverrides(input?: Partial<ThemeOverrides>): ThemeOverrides {

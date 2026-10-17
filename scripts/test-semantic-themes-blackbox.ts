@@ -4,7 +4,6 @@ import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { captureBlackboxScreenshot } from "./blackbox-screenshot.mjs";
 import { themeCollection } from "./themes/collection";
-import fonts from "./themes/upstream/fonts.json";
 
 if (!process.env.TAURI_PILOT_SOCKET || !process.env.OPENAGENT_HOME?.includes("plugin-presentation"))
   throw new Error("Select an isolated plugin-presentation home and explicit Pilot socket");
@@ -13,6 +12,7 @@ const artifacts = resolve(process.env.BLACKBOX_ARTIFACT_DIR ?? ".cache/semantic-
 mkdirSync(artifacts, { recursive: true });
 const candidates = themeCollection.map(({ id }) => ({ id, output: join("plugins", id) }));
 const fromRelease = process.argv.includes("--release");
+const packageFaces = "[...document.fonts].filter(face=>!window.__themeBaselineFonts.has(face))";
 
 function pilot(args: string[]): string {
   if (["click", "fill"].includes(args[0])) pilot(["snapshot", "-i"]);
@@ -84,10 +84,7 @@ try {
     "document.querySelector('#semantic-theme-renderers svg .node rect') && document.querySelector('#semantic-theme-renderers [_echarts_instance_]')",
   );
   await operation(
-    `const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');window.__themeOriginal=await c.invokeProduct('get_settings',{});if((await c.listAgentPlugins()).some(p=>${JSON.stringify(candidates.map((item) => item.id))}.includes(p.id)))throw Error('Fixture theme already installed');`,
-  );
-  await operation(
-    `for(const family of ${JSON.stringify(fonts.map((font) => font.family.split(",")[0].replaceAll("'", "")))}){if(!(await document.fonts.load('14px "'+family+'"')).length)throw Error('Offline font missing: '+family)}`,
+    `const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');window.__themeOriginal=await c.invokeProduct('get_settings',{});window.__themeBaselineFonts=new Set(document.fonts);if((await c.listAgentPlugins()).some(p=>${JSON.stringify(candidates.map((item) => item.id))}.includes(p.id)))throw Error('Fixture theme already installed');`,
   );
   for (const candidate of candidates) {
     const manifest = JSON.parse(readFileSync(join(root, candidate.output, "plugin.json"), "utf8"));
@@ -122,6 +119,12 @@ try {
         await wait(
           `getComputedStyle(document.documentElement).getPropertyValue('--primary').trim()===${JSON.stringify(expected["--primary"])} && document.documentElement.style.getPropertyValue('--radius')===${JSON.stringify(manifest.extensions.openagent.theme.tokens["--radius"])}`,
         );
+        const families = manifest.extensions.openagent.theme.fonts.map(
+          (face: { family: string }) => face.family,
+        );
+        await wait(
+          `JSON.stringify(${packageFaces}.filter(face=>face.status==='loaded').map(face=>face.family.replaceAll('"','')).sort())===${JSON.stringify(JSON.stringify([...families].sort()))}`,
+        );
         await wait(
           `(()=>{const element=document.querySelector('#semantic-theme-renderers [_echarts_instance_]');const chart=window.__themeEcharts.getInstanceByDom(element);const probe=document.createElement('div');document.body.append(probe);const node=getComputedStyle(document.querySelector('#semantic-theme-renderers svg .node rect'));const palette=window.__themePalette();probe.style.color=palette.card;const fill=node.fill===getComputedStyle(probe).color;probe.style.color=palette.border;const border=node.stroke===getComputedStyle(probe).color;probe.remove();return chart && fill && border})()`,
         );
@@ -136,6 +139,7 @@ try {
         const composer=document.querySelector('.conversation-input-surface');if(getComputedStyle(composer).borderTopLeftRadius!==computed('border-top-left-radius','var(--radius)'))throw Error('Radius did not reach composer');
         const font=root.getPropertyValue('--font-sans').split(',')[0].trim().replaceAll("'",'');
         const loaded=await document.fonts.load('14px "'+font+'"');if(!loaded.length)throw Error('Offline font unavailable '+font);
+        for(const family of ${JSON.stringify(families)})if(!(await document.fonts.load('14px "'+family+'"')).length)throw Error('Package heading/body font unavailable '+family);
         const {readThemePalette}=await import('/src/lib/streamdown/themePalette.ts');const palette=readThemePalette();
         const chart=window.__themeEcharts.getInstanceByDom(document.querySelector('#semantic-theme-renderers [_echarts_instance_]'));
         if(JSON.stringify(chart.getOption().color)!==JSON.stringify([1,2,3,4,5].map(i=>palette['chart-'+i])))throw Error('Mounted chart palette stale');
@@ -155,7 +159,30 @@ try {
         `document.querySelector('[role=dialog] button[aria-label="Close"], [role=dialog] button[aria-label="关闭"]')?.click();`,
       );
       captureBlackboxScreenshot(pilot, join(artifacts, `renderers-${mode}-${language}.png`));
+      await operation(
+        `const {desktopOpenAgent:c,emit}=await import('/src/lib/openagent/tauriClient.ts');const config=await c.invokeProduct('get_settings',{});config.theme_plugin='';await c.invokeProduct('save_settings',{config});await emit('settings-changed');`,
+      );
+      await wait(`${packageFaces}.length===0`);
     }
+  const first = candidates[0];
+  const firstManifest = JSON.parse(readFileSync(join(root, first.output, "plugin.json"), "utf8"));
+  await operation(
+    `const {desktopOpenAgent:c,emit}=await import('/src/lib/openagent/tauriClient.ts');const config=await c.invokeProduct('get_settings',{});config.theme_plugin=${JSON.stringify(first.id)};await c.invokeProduct('save_settings',{config});await emit('settings-changed');`,
+  );
+  await wait(`${packageFaces}.length===${firstManifest.extensions.openagent.theme.fonts.length}`);
+  await operation(
+    `const {desktopOpenAgent:c,emit}=await import('/src/lib/openagent/tauriClient.ts');const config=await c.invokeProduct('get_settings',{});config.agent_plugins_enabled[${JSON.stringify(first.id)}]=false;await c.invokeProduct('save_settings',{config});await emit('settings-changed');let rejected=false;try{await c.readAgentPluginAsset(${JSON.stringify(first.id)},${JSON.stringify(firstManifest.extensions.openagent.theme.fonts[0].entry)})}catch{rejected=true}if(!rejected)throw Error('Disabled font asset was readable');`,
+  );
+  await wait(`${packageFaces}.length===0`);
+  await operation(
+    `const {desktopOpenAgent:c,emit}=await import('/src/lib/openagent/tauriClient.ts');const config=await c.invokeProduct('get_settings',{});config.agent_plugins_enabled[${JSON.stringify(first.id)}]=true;await c.invokeProduct('save_settings',{config});await emit('settings-changed');`,
+  );
+  await wait(`${packageFaces}.length===${firstManifest.extensions.openagent.theme.fonts.length}`);
+  await operation(
+    `const {desktopOpenAgent:c,emit}=await import('/src/lib/openagent/tauriClient.ts');await c.uninstallAgentPlugin(${JSON.stringify(first.id)});await emit('agent-plugins-changed');`,
+  );
+  installed.splice(installed.indexOf(first.id), 1);
+  await wait(`${packageFaces}.length===0`);
 } finally {
   await operation(
     `const {unmount}=await import('/node_modules/.vite/deps/svelte.js');for(const renderer of window.__themeRenderers??[])await unmount(renderer);document.querySelector('#semantic-theme-renderers')?.remove();const {desktopOpenAgent:c,emit}=await import('/src/lib/openagent/tauriClient.ts');document.querySelector('[role=dialog] button[aria-label="Close"], [role=dialog] button[aria-label="关闭"]')?.click();if(window.__themeOriginal)await c.invokeProduct('save_settings',{config:window.__themeOriginal});for(const id of ${JSON.stringify(installed)})await c.uninstallAgentPlugin(id);await emit('settings-changed');await emit('agent-plugins-changed');`,

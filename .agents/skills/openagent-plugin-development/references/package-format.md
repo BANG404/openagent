@@ -147,7 +147,33 @@ and projects these maps; clients apply them as document-root custom properties.
 Use the semantic `app.css` design variables for colors, matching foregrounds,
 surfaces, borders, radii, spacing, and motion. Existing theme-v1 legacy color
 names normalize at the frontend input boundary; explicit semantic names win.
-No executable stylesheet or remote asset is loaded. The design-system
+No executable stylesheet or remote asset is loaded.
+
+Themes may declare `fonts`, an array of at most 16 faces, and must require
+`theme-fonts-v1` in `compatibility.features` when it is nonempty. Each face has
+`family` (1–100 UTF-8 bytes, letters/numbers/spaces/underscore/hyphen),
+`entry` (contained package-relative WOFF2, WOFF, TTF or OTF file), optional
+`weight` (`normal`, `bold`, or one/two ascending integers in 1–1000) and
+`style` (`normal`, `italic`, `oblique`); both default to `normal`. For example:
+
+```json
+{ "fonts": [{ "family": "My Sans", "entry": "fonts/my-sans.woff2", "weight": "100 900" }] }
+```
+
+Reference that family in `--font-sans`, `--font-heading` or `--font-mono`.
+Files must match their extension signature, be regular files within the resolved
+package root, and fit 8 MiB per file / 32 MiB per theme. Missing, escaping,
+malformed, duplicate family/weight/style, or oversized declarations reject the
+package. Ship font licenses and provenance alongside the files. Older Runtimes
+reject the required feature explicitly; token-only themes remain valid.
+The shared `read_agent_plugin_asset` operation accepts only declared entries
+from installed, valid, enabled plugins. Font responses contain `content` as
+base64, `encoding: "base64"` and the matching `font/*` MIME; HTML responses
+retain ordinary text content. Clients register only the selected theme with
+FontFace, remove its faces on switch/disable/uninstall/refresh, and retire late
+async loads. Decode/read failures retain system fallbacks. No local filesystem
+path or remote font URL is passed to the WebView.
+The design-system
 [semantic theme contract](../../openagent-design-system/references/semantic-themes.md)
 owns shadcn/create recipes, offline fonts and the theme package generator.
 

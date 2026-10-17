@@ -4,7 +4,6 @@ import tailwindcss from "@tailwindcss/vite";
 import { readFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { themeFontResources } from "./scripts/theme-font-resources.mjs";
 
 import {
   FRONTEND_BUILD_DEFINE,
@@ -119,12 +118,7 @@ export function tauriRuntimeUpdateBarrier(root = repositoryRoot) {
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
-  plugins: [
-    tailwindcss(),
-    sveltekit(),
-    themeFontResources(),
-    ...(devPort !== 0 ? [tauriRuntimeUpdateBarrier()] : []),
-  ],
+  plugins: [tailwindcss(), sveltekit(), ...(devPort !== 0 ? [tauriRuntimeUpdateBarrier()] : [])],
 
   // Stamp the bundle with the frontend's own build identity so About reports
   // the frontend that is running rather than the shell version it shipped with.

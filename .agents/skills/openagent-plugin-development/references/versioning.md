@@ -24,12 +24,12 @@ them. Source manifests and installed archives must carry the same version.
 
 Read the existing contract and classify the effect before editing:
 
-| Change | Plugin protocol decision |
-| --- | --- |
-| Documentation clarification, internal refactor or contract-preserving fix | Keep the current protocol |
-| Optional capability that preserves old plugin behavior | Keep the protocol only when the plugin can reliably detect support and handle its absence; otherwise establish a new protocol requirement |
-| Removed fields, new required fields, changed types, defaults, lifecycle or externally visible semantics that break existing packages | Increment the SDK-owned plugin protocol and update affected packages in the same delivery |
-| Package data format changes | Use package-owned data versioning, migration and failure recovery independently of the plugin protocol |
+| Change                                                                                                                               | Plugin protocol decision                                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Documentation clarification, internal refactor or contract-preserving fix                                                            | Keep the current protocol                                                                                                                 |
+| Optional capability that preserves old plugin behavior                                                                               | Keep the protocol only when the plugin can reliably detect support and handle its absence; otherwise establish a new protocol requirement |
+| Removed fields, new required fields, changed types, defaults, lifecycle or externally visible semantics that break existing packages | Increment the SDK-owned plugin protocol and update affected packages in the same delivery                                                 |
+| Package data format changes                                                                                                          | Use package-owned data versioning, migration and failure recovery independently of the plugin protocol                                    |
 
 For a protocol transition, update the Runtime implementation and SDK-owned
 contract documentation first; update host contract references and Plugin Kit
@@ -46,7 +46,7 @@ A missing declaration means `{ "min": 1, "max": 1 }` permanently, even after a
 Runtime upgrade. Packaging preserves that absence rather than injecting fields.
 
 Optional required capabilities use `compatibility.features`: currently
-`configuration-v1`, `plugin-oauth-v1`, `theme-v1`, `integration-v1`,
+`configuration-v1`, `plugin-oauth-v1`, `theme-v1`, `theme-fonts-v1`, `integration-v1`,
 `conversation-observations-v1`, `context-sessions-v1` and `model-observations-v1` (the
 [presentation types](package-format.md#theme-and-integration-package-types)). Runtime admission, Plugin Kit and the
 host release validator accept these names and reject malformed or unknown

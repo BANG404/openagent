@@ -80,6 +80,7 @@ export function pluginProtocolRange(compatibility, id) {
             "configuration-v1",
             "plugin-oauth-v1",
             "theme-v1",
+            "theme-fonts-v1",
             "integration-v1",
             "conversation-observations-v1",
             "context-sessions-v1",

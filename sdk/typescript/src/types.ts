@@ -112,6 +112,12 @@ export interface AgentPluginTheme {
   tokens: Record<string, string>;
   light: Record<string, string>;
   dark: Record<string, string>;
+  fonts?: Array<{
+    family: string;
+    entry: string;
+    weight?: string;
+    style?: "normal" | "italic" | "oblique";
+  }>;
 }
 
 export interface AgentPluginSummary {

@@ -10,6 +10,10 @@ PageRuntime is the single owner of appearance tokens and native-canvas class
 selection. Its effective settings preview or saved config must drive both;
 background edits must not leave the root transparent over a custom/plugin color.
 Chat and composer continue to consume the existing shared surface tokens.
+PageRuntime also owns selected theme FontFace registration through the shared
+SDK asset reader. Cleanup retires pending loads on selection, lifecycle or
+summary refresh; font decoding must not block chat restore or remount surfaces.
+The plugin package contract owns declarations, limits and failure behavior.
 
 Plugin summaries carry optional `local_source` for the Settings source-refresh
 controls. Keep it out of conversation state; the plugin owner documents source

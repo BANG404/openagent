@@ -50,12 +50,15 @@ OpenAgent expresses the eight visual grammars as desktop control dimensions,
 typography and shape tokens. It keeps Svelte/Bits UI behavior and its icons;
 React library/template/icon-library selection is outside a CSS theme's scope.
 Menu colors select default/inverted with optional translucency. Body and heading
-fonts are independent. Latin WOFF2 resources are bundled for offline use under
-src/lib/assets/fonts/shadcn with package versions, hashes and individual licenses;
+fonts are independent. Each generated theme ships only its body/heading Latin
+WOFF2 faces, individual licenses and hashes under `fonts/`, requiring
+`theme-fonts-v1`. The plugin package contract owns descriptor and asset bounds.
 CJK text uses local font fallbacks. Never load fonts from a remote service.
-`theme-font-resources.mjs` emits every font license and its provenance under
-`licenses/theme-fonts/` in both production and shell bootstrap artifacts.
-When updating fonts, verify those emitted notices as well as source hashes.
+Generation inputs live in `scripts/themes/fonts/`; application frontend and
+shell bootstrap must not import or distribute that font library. Built-in font
+choices use installed/system font stacks. Verify package hashes and notices,
+body/heading deduplication, and absence of theme font assets in frontend artifacts. Math renderer fonts remain
+owned by the renderer and are excluded from package-face lifecycle assertions.
 
 Verify cross-axis composition and exact upstream palette values in
 `tests/themeComposition.test.ts`. Verify installed selection, switch/removal,

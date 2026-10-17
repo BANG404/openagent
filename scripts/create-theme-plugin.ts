@@ -3,6 +3,7 @@ import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { composeTheme, recipeFromPreset, themeOptions, type ThemeRecipe } from "./themes/compose";
 import upstream from "./themes/upstream/provenance.json";
+import { packageThemeFonts } from "./themes/package-fonts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -31,6 +32,7 @@ export function createThemePlugin(options: {
   const output = resolve(options.output);
   if (existsSync(output)) throw new Error(`Candidate already exists: ${output}`);
   const title = options.title ?? options.id.replace(/^openagent-theme-/, "");
+  mkdirSync(output, { recursive: true });
   const description = `${title}: ${recipe.style} / ${recipe.baseColor} / ${recipe.theme} / ${recipe.chartColor}`;
   const manifest = {
     $schema: "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
@@ -45,8 +47,11 @@ export function createThemePlugin(options: {
       openagent: {
         type: "theme",
         category: "design",
-        compatibility: { plugin_protocol: { min: 1, max: 1 }, features: ["theme-v1"] },
-        theme,
+        compatibility: {
+          plugin_protocol: { min: 1, max: 1 },
+          features: ["theme-v1", "theme-fonts-v1"],
+        },
+        theme: { ...theme, fonts: packageThemeFonts(output, recipe) },
         i18n: {
           supported_locales: ["en", "zh"],
           default_locale: "en",
@@ -61,7 +66,6 @@ export function createThemePlugin(options: {
       },
     },
   };
-  mkdirSync(output, { recursive: true });
   const json = (name: string, value: unknown) =>
     writeFileSync(join(output, name), JSON.stringify(value, null, 2) + "\n");
   json("plugin.json", manifest);
@@ -74,7 +78,7 @@ export function createThemePlugin(options: {
   copyFileSync(join(root, "scripts/themes/upstream/LICENSE.md"), join(output, "LICENSE"));
   writeFileSync(
     join(output, "README.md"),
-    `# ${title}\n\n${description}\n\nInstall this directory or its release archive in OpenAgent Plugins, then select ${title} in General → Appearance. Light/dark and system appearance are supported. User appearance overrides apply last.\n\nRequires the OpenAgent semantic theme implementation (0.84 or later). This is a Svelte/Bits UI adaptation of the upstream visual grammar; React component libraries and icon libraries are not switched by a theme. Fonts are bundled by OpenAgent and work offline; CJK glyphs use system fallbacks.\n\nrecipe.json records every independent mix option. provenance.json pins the MIT-licensed shadcn source. This package contains no scripts, remote fonts, or executable stylesheets.\n\nPublish plugin.json, recipe.json, provenance.json, LICENSE, and this README as a GitHub release archive; keep the manifest repository and version aligned with the release.\n`,
+    `# ${title}\n\n${description}\n\nInstall this directory or its release archive in OpenAgent Plugins, then select ${title} in General → Appearance. Light/dark and system appearance are supported. User appearance overrides apply last.\n\nRequires the OpenAgent theme-fonts-v1 capability. This is a Svelte/Bits UI adaptation of the upstream visual grammar; React component libraries and icon libraries are not switched by a theme. Fonts and their licenses are bundled in this plugin and work offline; CJK glyphs use system fallbacks.\n\nrecipe.json records every independent mix option. provenance.json pins the MIT-licensed shadcn source. This package contains no scripts, remote fonts, or executable stylesheets.\n\nPublish plugin.json, recipe.json, provenance.json, fonts/, LICENSE, and this README as a GitHub release archive; keep the manifest repository and version aligned with the release.\n`,
   );
   return { output, manifest, recipe };
 }

@@ -219,7 +219,7 @@ export class OpenAgentClient {
   readAgentPluginAsset(
     pluginId: string,
     entry: string,
-  ): Promise<{ content: string; mime: string }> {
+  ): Promise<{ content: string; mime: string; encoding?: "base64" }> {
     return this.invokeProduct("read_agent_plugin_asset", { plugin_id: pluginId, entry });
   }
 

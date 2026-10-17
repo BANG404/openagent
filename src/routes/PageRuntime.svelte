@@ -35,6 +35,7 @@
     usesNativeBackground,
   } from "$lib/pluginPresentation";
   import { appearancePreview } from "$lib/appearancePreview";
+  import { applyPluginThemeFonts } from "$lib/pluginThemeFonts";
   import { get } from "svelte/store";
   import { applyDocumentTheme, createNativeThemeSynchronizer, type AppTheme } from "$lib/appTheme";
   import { ComposerPreferences } from "$lib/composerPreferences.svelte";
@@ -460,6 +461,13 @@
     );
   });
   let config = $state<AppConfig | null>(null);
+  $effect(() =>
+    applyPluginThemeFonts(
+      agentPlugins,
+      $appearancePreview ?? config ?? pluginAppearanceConfig,
+      (pluginId, entry) => openAgent.readAgentPluginAsset(pluginId, entry),
+    ),
+  );
   const settingsRequests = new LatestRequest();
   let isMemorySyncing = $state(false);
   type SettingsSurfaceDestination = {

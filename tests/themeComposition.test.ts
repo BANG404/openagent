@@ -7,7 +7,7 @@ import { composeTheme, recipeFromPreset, themeOptions } from "../scripts/themes/
 import { encodePreset } from "../scripts/themes/upstream/preset";
 import { createThemePlugin } from "../scripts/create-theme-plugin";
 import upstream from "../scripts/themes/upstream/themes.json";
-import fontResources from "../src/lib/assets/fonts/shadcn/provenance.json";
+import fontResources from "../scripts/themes/fonts/provenance.json";
 import { accentForeground, resolveThemeTokens } from "../src/lib/themeTokens";
 
 test("all base/accent/chart pairs preserve the official light/dark palette values", () => {
@@ -119,6 +119,21 @@ test("generated packages retain recipe and upstream identity and never overwrite
     /^[0-9a-f]{40}$/,
   );
   expect(existsSync(join(output, "LICENSE"))).toBe(true);
+  expect(result.manifest.extensions.openagent.compatibility.features).toContain("theme-fonts-v1");
+  expect(result.manifest.extensions.openagent.theme.fonts).toHaveLength(1);
+  for (const font of result.manifest.extensions.openagent.theme.fonts) {
+    expect(readFileSync(join(output, font.entry)).subarray(0, 4).toString()).toBe("wOF2");
+    expect(existsSync(join(output, font.entry.replace(".woff2", ".LICENSE.txt")))).toBe(true);
+  }
+  const mixed = createThemePlugin({
+    id: "openagent-theme-heading",
+    output: join(directory, "heading"),
+    overrides: { font: "figtree", fontHeading: "lora" },
+  });
+  expect(mixed.manifest.extensions.openagent.theme.fonts.map((font) => font.family)).toEqual([
+    "Figtree Variable",
+    "Lora Variable",
+  ]);
   expect(() => createThemePlugin({ id: "openagent-theme-mix", output })).toThrow("already exists");
   expect(() => createThemePlugin({ id: "../escape", output: join(directory, "escape") })).toThrow();
 });
@@ -126,14 +141,10 @@ test("generated packages retain recipe and upstream identity and never overwrite
 test("every selectable font is bundled offline with matching digest and license", () => {
   expect(new Set(fontResources.map((font) => font.name))).toEqual(new Set(themeOptions.fonts));
   for (const font of fontResources) {
-    const data = readFileSync(
-      new URL(`../src/lib/assets/fonts/shadcn/${font.file}`, import.meta.url),
-    );
+    const data = readFileSync(new URL(`../scripts/themes/fonts/${font.file}`, import.meta.url));
     expect(createHash("sha256").update(data).digest("hex")).toBe(font.sha256);
     expect(
-      existsSync(
-        new URL(`../src/lib/assets/fonts/shadcn/${font.name}.LICENSE.txt`, import.meta.url),
-      ),
+      existsSync(new URL(`../scripts/themes/fonts/${font.name}.LICENSE.txt`, import.meta.url)),
     ).toBe(true);
   }
 });
