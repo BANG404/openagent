@@ -10,6 +10,15 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.84.0-beta.1] - 2026-10-17
+
+### Features
+- **release**: Add Windows installer acceptance workflow
+- **desktop**: Show progress during application teardown
+
+### Bug Fixes
+- **desktop**: Show startup window before restoring resources and history
+
 ## [0.83.0-beta.1] - 2026-10-16
 
 ### Features
