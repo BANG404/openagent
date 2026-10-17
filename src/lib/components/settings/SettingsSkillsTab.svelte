@@ -1,0 +1,145 @@
+<script lang="ts">
+  import { Tabs } from "bits-ui";
+  import { t } from "$lib/i18n";
+  import { useSettingsContext } from "$lib/settings/context";
+  import ScrollArea from "../ui/ScrollArea.svelte";
+  import SettingsActionButton from "../ui/SettingsActionButton.svelte";
+  import PluginSource from "./PluginSource.svelte";
+  const { integrations, plugins, openPlugin } = useSettingsContext();
+  const skill = $derived(integrations.selectedSkill);
+  const owner = $derived(
+    skill?.scope.startsWith("plugin:")
+      ? plugins.agentPlugins.find((plugin) => `plugin:${plugin.id}` === skill.scope)
+      : undefined,
+  );
+</script>
+
+<Tabs.Content value="skills" class="settings-tab-panel">
+  <div class="settings-list-col">
+    <div class="skill-search">
+      <input
+        class="detail-input"
+        aria-label={$t("integrationSkillSearch")}
+        placeholder={$t("integrationSkillSearch")}
+        bind:value={integrations.query}
+      />
+    </div>
+    <ScrollArea height="100%" class="provider-list-scroll" scrollHideDelay={350}>
+      <div class="provider-list" data-skills-list>
+        {#if integrations.loading}
+          <div class="skill-skeleton" aria-busy="true" aria-label={$t("loadingContent")}>
+            {#each [1, 2, 3, 4] as row (row)}<div></div>{/each}
+          </div>
+        {:else if integrations.error}
+          <p class="provider-status error" role="alert">{integrations.error}</p>
+        {:else}
+          {#each integrations.filteredSkills as item (item.path)}
+            <button
+              class="provider-item"
+              class:active={item.path === integrations.selectedPath}
+              data-skill-path={item.path}
+              onclick={() => (integrations.selectedPath = item.path)}
+            >
+              <span class="provider-item-info">
+                <strong class="provider-item-name">{item.name}</strong>
+                <span class="provider-item-url"
+                  >{item.scope.startsWith("plugin:")
+                    ? item.scope
+                    : $t(
+                        item.scope === "local"
+                          ? "integrationWorkspaceSkill"
+                          : "integrationGlobalSkill",
+                      )}</span
+                >
+              </span>
+            </button>
+          {:else}<p class="provider-list-empty">{$t("integrationSkillsEmpty")}</p>{/each}
+        {/if}
+      </div>
+    </ScrollArea>
+    <div class="list-footer">
+      <SettingsActionButton
+        label={$t("refresh")}
+        icon="refresh"
+        disabled={integrations.loading}
+        onclick={integrations.refreshSkills}
+      />
+    </div>
+  </div>
+  <ScrollArea height="100%" class="settings-content-col" scrollHideDelay={350}>
+    <p class="detail-hint">{$t("integrationSkillsHint")}</p>
+    {#if skill && !integrations.loading && !integrations.error}
+      <section class="detail-section" data-skill-detail={skill.path}>
+        <h4 class="detail-section-title">{skill.name}</h4>
+        <p class="skill-description">{skill.description}</p>
+        {#if owner}<PluginSource plugin={owner} onOpen={openPlugin} />
+        {:else}<p class="detail-hint">
+            {$t("integrationSkillSource")}: {skill.scope.startsWith("plugin:")
+              ? skill.scope
+              : $t(
+                  skill.scope === "local" ? "integrationWorkspaceSkill" : "integrationGlobalSkill",
+                )}
+          </p>{/if}
+        <p class="skill-path">{skill.path}</p>
+        <div data-open-skill-directory>
+          <SettingsActionButton
+            label={$t("integrationOpenDirectory")}
+            onclick={() => integrations.openDirectory(skill.path)}
+          />
+        </div>
+        {#if integrations.openError}<p class="provider-status error" role="alert">
+            {integrations.openError}
+          </p>{/if}
+      </section>
+      <section class="detail-section">
+        <h4 class="detail-section-title">SKILL.md</h4>
+        {#if integrations.contentLoading}<div
+            class="skill-skeleton"
+            aria-busy="true"
+            aria-label={$t("loadingContent")}
+          >
+            <div></div>
+            <div></div>
+            <div></div>
+          </div>
+        {:else if integrations.contentError}<p class="provider-status error" role="alert">
+            {integrations.contentError}
+          </p>
+        {:else}<pre class="skill-content" data-skill-content>{integrations.content}</pre>{/if}
+      </section>
+    {/if}
+  </ScrollArea>
+</Tabs.Content>
+
+<style>
+  .skill-search {
+    padding: 12px;
+  }
+  .skill-description {
+    font-size: 13px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .skill-path {
+    font-size: 12px;
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+  }
+  .skill-content {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: 12px;
+    line-height: 1.6;
+    user-select: text;
+  }
+  .skill-skeleton {
+    display: grid;
+    gap: 12px;
+    padding: 12px;
+  }
+  .skill-skeleton div {
+    height: 36px;
+    border-radius: 8px;
+    background: var(--control-surface);
+  }
+</style>

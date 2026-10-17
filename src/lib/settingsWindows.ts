@@ -9,6 +9,7 @@ export type SettingsNav =
   | "agents"
   | "memory"
   | "extensions"
+  | "skills"
   | "plugins"
   | "about";
 
@@ -19,7 +20,7 @@ export const settingsWindowSections: Record<SettingsWindowKind, SettingsNav[]> =
   general: ["general"],
   models: ["providers", "defaults"],
   agent: ["execution", "agents"],
-  integrations: ["channels", "extensions", "plugins"],
+  integrations: ["channels", "extensions", "skills", "plugins"],
   memory: ["memory"],
   about: ["about"],
 };

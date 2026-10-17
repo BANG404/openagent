@@ -52,6 +52,7 @@ export function createPluginSettings(
   const language = fromStore(locale);
   const setup = createPluginSetup();
   let agentPlugins = $state<AgentPluginSummary[]>([]);
+  let expandedPluginIds = $state<string[]>([]);
   let agentPluginMarketplaces = $state<AgentPluginMarketplaceSummary[]>([]);
   let officialPluginRegistry = $state<OfficialPluginRegistry | null>(null);
   let officialPluginRegistryLoading = $state(true);
@@ -574,6 +575,8 @@ export function createPluginSettings(
     if (
       options.visibleSections.has("plugins") ||
       options.visibleSections.has("channels") ||
+      options.visibleSections.has("extensions") ||
+      options.visibleSections.has("skills") ||
       options.visibleSections.has("general")
     )
       refreshAgentPlugins().catch(() => {});
@@ -586,6 +589,8 @@ export function createPluginSettings(
     const unlistenChanges =
       options.visibleSections.has("plugins") ||
       options.visibleSections.has("channels") ||
+      options.visibleSections.has("extensions") ||
+      options.visibleSections.has("skills") ||
       options.visibleSections.has("general")
         ? listen("agent-plugins-changed", () => {
             void refreshAgentPlugins(true);
@@ -617,6 +622,12 @@ export function createPluginSettings(
   });
 
   return {
+    get expandedPluginIds() {
+      return expandedPluginIds;
+    },
+    set expandedPluginIds(value: string[]) {
+      expandedPluginIds = value;
+    },
     setup,
     get agentPluginRemoveId() {
       return agentPluginRemoveId;

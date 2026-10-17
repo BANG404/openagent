@@ -17,8 +17,19 @@
   import ScrollArea from "../ui/ScrollArea.svelte";
   import { useSettingsContext } from "$lib/settings/context";
   import PluginSetup from "./PluginSetup.svelte";
-  const { plugins, options } = useSettingsContext();
+  const { plugins, options, integrations } = useSettingsContext();
   let panelElement = $state<HTMLElement | null>(null);
+  $effect(() => {
+    const id = plugins.expandedPluginIds.at(-1);
+    if (!id || plugins.pluginManagementView !== "installed") return;
+    const frame = requestAnimationFrame(() => {
+      const card = [
+        ...(panelElement?.querySelectorAll<HTMLElement>("[data-plugin-id]") ?? []),
+      ].find((item) => `plugin-${item.dataset.pluginId}` === id);
+      card?.scrollIntoView({ block: "nearest" });
+    });
+    return () => cancelAnimationFrame(frame);
+  });
 
   // Move focus before installation disables/replaces its button (or an
   // Available filter removes its card). Otherwise Dialog's focus scope
@@ -361,7 +372,11 @@
       {:else if plugins.agentPlugins.length === 0}
         <p class="detail-hint">{$t("pluginEmpty")}</p>
       {/if}
-      <Accordion.Root type="multiple" class="plugin-accordion">
+      <Accordion.Root
+        type="multiple"
+        class="plugin-accordion"
+        bind:value={plugins.expandedPluginIds}
+      >
         {#each plugins.agentPlugins as plugin (plugin.id)}
           <Accordion.Item
             value={`plugin-${plugin.id}`}
@@ -506,6 +521,38 @@
               {#each plugin.warnings as warning (warning)}
                 <p class="plugin-warning">{warning}</p>
               {/each}
+              {#if plugin.skills.length > 0}
+                <section class="plugin-component-details" data-plugin-skills={plugin.id}>
+                  <h4 class="label-text">{$t("skills")}</h4>
+                  {#each plugin.skills as skill (skill.name)}
+                    {@const metadata = integrations.skills.find(
+                      (item) => item.scope === `plugin:${plugin.id}` && item.name === skill.name,
+                    )}
+                    <div class="plugin-component-row">
+                      <strong>{skill.name}</strong>
+                      <p class="detail-hint">{skill.description}</p>
+                      {#if metadata}
+                        <p class="integration-path">{metadata.path}</p>
+                        <SettingsActionButton
+                          label={$t("integrationOpenDirectory")}
+                          onclick={() => integrations.openDirectory(metadata.path)}
+                        />
+                      {:else}<p class="detail-hint">{$t("integrationSkillUnavailable")}</p>{/if}
+                    </div>
+                  {/each}
+                  {#if integrations.openError}<p role="alert" class="provider-status error">
+                      {integrations.openError}
+                    </p>{/if}
+                </section>
+              {/if}
+              {#if plugin.mcp_servers.length > 0}
+                <section class="plugin-component-details" data-plugin-mcp-components={plugin.id}>
+                  <h4 class="label-text">{$t("pluginMcpServers")}</h4>
+                  {#each plugin.mcp_servers as server (server.name)}
+                    <p class="detail-hint">{server.name} · {server.transport}</p>
+                  {/each}
+                </section>
+              {/if}
               {#if plugin.error}
                 <p class="plugin-warning">{plugin.error}</p>
               {/if}

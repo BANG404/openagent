@@ -16,6 +16,7 @@
   import SettingsDefaultsTab from "./settings/SettingsDefaultsTab.svelte";
   import SettingsAgentsTab from "./settings/SettingsAgentsTab.svelte";
   import SettingsExtensionsTab from "./settings/SettingsExtensionsTab.svelte";
+  import SettingsSkillsTab from "./settings/SettingsSkillsTab.svelte";
   import SettingsAboutTab from "./settings/SettingsAboutTab.svelte";
   import SettingsDialogs from "./settings/SettingsDialogs.svelte";
   let {
@@ -55,6 +56,7 @@
         "agents",
         "memory",
         "extensions",
+        "skills",
         "plugins",
         "about",
       ],
@@ -115,6 +117,7 @@
     <SettingsDefaultsTab />
     <SettingsAgentsTab />
     <SettingsExtensionsTab />
+    <SettingsSkillsTab />
     <SettingsAboutTab />
   </Tabs.Root>
 </div>

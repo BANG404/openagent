@@ -11,7 +11,8 @@
   import { integrationPlugins } from "$lib/pluginPresentation";
   import { pluginText } from "$lib/pluginI18n";
   import { locale } from "$lib/i18n";
-  const { channels, draft, options, plugins } = useSettingsContext();
+  import PluginSource from "./PluginSource.svelte";
+  const { channels, draft, options, plugins, openPlugin } = useSettingsContext();
   const integrations = $derived(integrationPlugins(plugins.agentPlugins));
   const selectedIntegration = $derived(
     integrations.find((plugin) => channels.channelSettingsNav === `plugin:${plugin.id}`),
@@ -188,6 +189,7 @@
                 plugins.setAgentPluginEnabled(selectedIntegration.id, enabled)}
             />
           </div>
+          <PluginSource plugin={selectedIntegration} onOpen={openPlugin} />
           {#if selectedIntegration.error}
             <div class="provider-status error">{selectedIntegration.error}</div>
           {:else}

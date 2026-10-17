@@ -56,6 +56,35 @@ the subscription the verified release updater follows. That subscription is
 polled through a cached, quota-aware check, not one request per plugin per
 load; `openagent-contract.md` owns that lifecycle.
 
+### Integration inventory and provenance
+
+Integrations → MCP lists configured servers and installed packages' MCP
+contributions with separate identities. Package rows show the owning plugin and
+use its existing configuration/OAuth and lifecycle controls, never an editable
+copy of package endpoints. Channel and MCP detail source links open Installed
+plugins and expand the exact owner card, including disabled packages.
+
+Integrations → Skills browses the Runtime's `list_skills` inventory: global,
+current workspace, and enabled plugin skills. It shows name, description, scope,
+Runtime-resolved directory and read-only SKILL.md content, with search and
+refresh. Open local directory passes that exact directory through the existing
+SDK desktop path capability; failures remain visible and retryable. Never infer
+skill paths from manifest names. The selected plugin card also lists its skill
+metadata and resolves directory actions by plugin scope and skill name. Disabled
+or unavailable skills keep their metadata, without fabricating a directory.
+Keep the native separator when appending SKILL.md: Windows verbatim package
+paths (`\\?\...`) reject appended forward slashes.
+Loading reserves the list layout; discovery and content errors have distinct
+feedback. Workspace changes and unmount retire pending results. Content is
+plain text and does not load or execute package instructions in the WebView.
+
+Run `bun run test:blackbox:integration-inventory` against the isolated
+`integration-provenance` instance and explicit Pilot socket. It covers source
+navigation, same-named package MCP servers, plugin and workspace skill metadata,
+content, directory opening and failure, refresh, disablement and uninstall in
+light/dark and Chinese/English. Global skills use the same inventory projection;
+fixtures must never write to the user's global skill directory.
+
 ### Theme and integration package types
 
 `extensions.openagent.type` declares `agent` (the default), `theme`, or

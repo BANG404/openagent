@@ -10,6 +10,7 @@ import { CUA_DRIVER_ID } from "$lib/cuaDriver";
 import { startCuaDriverDaemon } from "$lib/openagent/cuaDriverHost";
 import { desktopOpenAgent } from "$lib/openagent/tauriClient";
 import { tr } from "$lib/i18n";
+import { createIntegrationSettings } from "./integrations.svelte";
 
 export function createSettingsController(options: SettingsOptions) {
   const draft = createSettingsDraft({
@@ -48,6 +49,23 @@ export function createSettingsController(options: SettingsOptions) {
   const memory = createMemorySettings(draft, options);
   const channels = createChannelSettings(draft, options);
   const plugins = createPluginSettings(draft, options);
-  return { draft, providers, mcp, general, memory, channels, plugins, options };
+  const integrations = createIntegrationSettings(options);
+  function openPlugin(id: string) {
+    plugins.pluginManagementView = "installed";
+    plugins.expandedPluginIds = [`plugin-${id}`];
+    general.selectedSettingsSection = "plugins";
+  }
+  return {
+    draft,
+    providers,
+    mcp,
+    general,
+    memory,
+    channels,
+    plugins,
+    integrations,
+    openPlugin,
+    options,
+  };
 }
 export type SettingsController = ReturnType<typeof createSettingsController>;
