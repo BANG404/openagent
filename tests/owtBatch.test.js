@@ -67,6 +67,7 @@ function register(repo, batchId, task) {
     taskId: task.taskId,
     branch: task.branch,
     worktreePath: task.worktree,
+    cleanup: "remove",
   });
 }
 
@@ -101,6 +102,86 @@ function runCoordinator(cwd, args) {
 }
 
 describe("OWT batch coordination", () => {
+  test("reuses a Codex branch and retains its worktree and later edits by default", async () => {
+    const { root, repo, base } = createRepository();
+    const task = createTask(repo, root, "conversation", "feature.txt");
+    task.branch = "codex/conversation";
+    git(task.worktree, ["branch", "-m", task.branch]);
+    createBatch(repo, { batchId: "batch-conversation", defaultBranch: "main", base });
+    await runCoordinator(repo, [
+      "register",
+      "--batch",
+      "batch-conversation",
+      "--task",
+      task.taskId,
+      "--branch",
+      task.branch,
+      "--worktree",
+      task.worktree,
+    ]);
+    expect(batchStatus(repo, { batchId: "batch-conversation" }).tasks[0].cleanup).toBe("retain");
+    sealBatch(repo, { batchId: "batch-conversation" });
+    const election = markTaskReady(task.worktree, {
+      batchId: "batch-conversation",
+      taskId: task.taskId,
+      verifiedHead: task.head,
+    });
+    const integrationHead = mergeTasks(election.integrationWorktree, election.branches);
+    finalizeBatch(election.integrationWorktree, {
+      batchId: "batch-conversation",
+      leaseId: election.leaseId,
+      verifiedHead: integrationHead,
+    });
+
+    // The next conversation turn can start before batch cleanup runs.
+    writeFileSync(join(task.worktree, "feature.txt"), "next turn\n");
+    git(task.worktree, ["add", "feature.txt"]);
+    writeFileSync(join(task.worktree, "feature.txt"), "next turn working edit\n");
+    writeFileSync(join(task.worktree, "next.txt"), "untracked conversation work\n");
+    const status = git(task.worktree, ["status", "--porcelain"]);
+    const cleaned = cleanupBatch(repo, {
+      batchId: "batch-conversation",
+      leaseId: election.leaseId,
+    });
+    expect(cleaned.retainedWorktrees).toEqual([task.worktree]);
+    expect(cleaned.removedWorktrees).toEqual([election.integrationWorktree]);
+    expect(cleaned.removedBranches).not.toContain(task.branch);
+    expect(git(task.worktree, ["branch", "--show-current"])).toBe(task.branch);
+    expect(git(task.worktree, ["status", "--porcelain"])).toBe(status);
+    expect(git(task.worktree, ["show", ":feature.txt"])).toBe("next turn");
+    expect(readFileSync(join(task.worktree, "feature.txt"), "utf8")).toBe(
+      "next turn working edit\n",
+    );
+    expect(readFileSync(join(task.worktree, "next.txt"), "utf8")).toBe(
+      "untracked conversation work\n",
+    );
+    expect(git(repo, ["branch", "--show-current"])).toBe("main");
+    expect(git(repo, ["rev-parse", "HEAD"])).toBe(integrationHead);
+    expect(readFileSync(join(repo, "feature.txt"), "utf8")).toBe("conversation\n");
+    expect(existsSync(election.integrationWorktree)).toBe(false);
+  }, 20_000);
+
+  test("rejects invalid cleanup ownership and default-branch tasks before registration", () => {
+    const { root, repo, base } = createRepository();
+    const task = createTask(repo, root, "invalid", "feature.txt");
+    const batchId = "batch-invalid";
+    createBatch(repo, { batchId, defaultBranch: "main", base });
+    const options = {
+      batchId,
+      taskId: task.taskId,
+      branch: task.branch,
+      worktreePath: task.worktree,
+    };
+    expect(() => registerTask(repo, { ...options, cleanup: "delete" })).toThrow(
+      "Task cleanup must be remove or retain",
+    );
+    expect(() => registerTask(repo, { ...options, branch: "main", worktreePath: repo })).toThrow(
+      "A batch task cannot use the default branch",
+    );
+    expect(batchStatus(repo, { batchId }).tasks).toEqual([]);
+    expect(existsSync(task.worktree)).toBe(true);
+  }, 20_000);
+
   test("marks integration leases stale only after the configured TTL", () => {
     const claimedAt = "2026-01-01T00:00:00.000Z";
     const state = {

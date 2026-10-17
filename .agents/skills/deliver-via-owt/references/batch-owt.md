@@ -15,14 +15,22 @@ bun .agents/skills/deliver-via-owt/scripts/coordinate-owt-batch.mjs create \
   --repo . --batch <batch-id> --default main --base HEAD
 ```
 
-Create every task branch and sibling worktree from that recorded HEAD by the
-normal OWT rules, then register its exact identity:
+Select each task worktree by [the OWT selection rules](owt.md#select-the-worktree-before-creating-one).
+Reuse eligible conversation worktrees rather than creating another checkout.
+For detached worktrees create a task branch in place; retain existing dedicated
+branch names. Register the exact branch, path, and cleanup ownership:
 
 ```bash
 bun .agents/skills/deliver-via-owt/scripts/coordinate-owt-batch.mjs register \
   --repo . --batch <batch-id> --task <task-id> \
-  --branch agent/<task-slug> --worktree <absolute-worktree-path>
+  --branch <task-branch> --worktree <absolute-worktree-path> --cleanup retain
 ```
+
+`--cleanup retain` is the default: the coordinator preserves the task directory
+and branch for Codex or the developer. Use `--cleanup remove` only when this
+batch created both the temporary worktree and task branch. Never request removal
+of a reused, permanent, or Codex-managed worktree. Records without explicit
+removal ownership are retained. Integration worktrees remain batch-owned.
 
 Register the entire expected task set before sealing it. Sealing is the barrier
 that prevents a temporarily empty pending set from triggering integration while
@@ -48,7 +56,7 @@ browser sessions separate while retaining the immutable batch identity.
 ## Finish a task
 
 Each task agent stages only its owned files, runs `bun run preflight --base
-<batch-base-sha>` (or relies on the automatic local-main baseline), commits,
+<batch-base-sha>` (or sets `PREFLIGHT_BASE` to that SHA), commits,
 requires a clean task worktree, and calls `ready` with the exact preflighted
 commit:
 
@@ -68,9 +76,9 @@ Interpret the JSON `action` before ending the agent turn:
   reason.
 
 The script rejects dirty task worktrees, stale preflight assertions, moved task
-branches, unregistered paths, branches outside `agent/`, and a sealed batch in
-which two tasks modify the same file. Overlapping tasks are reported with the
-file and task IDs; serialize them or split their ownership before retrying. The
+branches, unregistered paths, default-branch tasks, invalid cleanup values, and
+a sealed batch in which two tasks modify the same file. Overlapping tasks are
+reported with the file and task IDs; serialize them or split their ownership before retrying. The
 blocked file/task pairs remain in the batch status record for recovery and
 audit. It persists state under `<git-common-dir>/openagent-owt/batches/`; do not
 edit those records by hand.
@@ -140,16 +148,18 @@ clean for the final fast-forward. Do not stash, reset, or absorb unrelated
 changes to make finalization pass.
 
 After `integrated`, move to the default worktree and clean the exact registered,
-clean, fully merged task and integration worktrees:
+clean, fully merged batch-owned task and integration worktrees:
 
 ```bash
 bun .agents/skills/deliver-via-owt/scripts/coordinate-owt-batch.mjs cleanup \
   --repo . --batch <batch-id> --lease <lease-id>
 ```
 
-Cleanup retains the completed JSON record, removes no dirty or unmerged
-worktree, and deletes branches only after their fixed heads are ancestors of
-the current default HEAD. Inspect a batch without mutation at any time:
+Cleanup retains the completed JSON record, reports `retainedWorktrees`, and
+leaves their directories and branches untouched, including later conversation
+edits. It removes no dirty or unmerged batch-owned worktree and deletes owned
+branches only after their fixed heads are ancestors of the current default
+HEAD. Inspect a batch without mutation at any time:
 
 ```bash
 bun .agents/skills/deliver-via-owt/scripts/coordinate-owt-batch.mjs status \

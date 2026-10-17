@@ -28,6 +28,7 @@ const WAIT_BUFFER = new Int32Array(new SharedArrayBuffer(4));
  *   taskId: string;
  *   branch: string;
  *   worktreePath: string;
+ *   cleanup?: "remove" | "retain";
  *   state: "running" | "ready";
  *   registeredHeadSha: string;
  *   registeredAt: string;
@@ -62,6 +63,7 @@ const WAIT_BUFFER = new Int32Array(new SharedArrayBuffer(4));
  *   cleanedAt?: string;
  *   removedWorktrees?: string[];
  *   removedBranches?: string[];
+ *   retainedWorktrees?: string[];
  * }} BatchState
  */
 
@@ -156,9 +158,6 @@ function requireIdentifier(value, label) {
 
 /** @param {string} repo @param {string} branch */
 function requireBranchName(repo, branch) {
-  if (!branch.startsWith("agent/")) {
-    throw new Error(`OWT branches must use the agent/ prefix: ${branch}`);
-  }
   git(repo, ["check-ref-format", "--branch", branch]);
 }
 
@@ -469,17 +468,24 @@ export function createBatch(repo, options) {
 
 /**
  * @param {string} repo
- * @param {{ batchId: string; taskId: string; branch: string; worktreePath: string }} options
+ * @param {{ batchId: string; taskId: string; branch: string; worktreePath: string; cleanup?: string }} options
  */
 export function registerTask(repo, options) {
   const root = repositoryRoot(repo);
   requireIdentifier(options.taskId, "Task id");
   requireBranchName(root, options.branch);
+  const cleanup = options.cleanup ?? "retain";
+  if (cleanup !== "remove" && cleanup !== "retain") {
+    throw new Error("Task cleanup must be remove or retain.");
+  }
   const paths = batchPaths(root, options.batchId);
   return withLock(paths.lock, () => {
     const state = readBatch(root, options.batchId);
     if (state.state !== "collecting" || state.sealed) {
       throw new Error(`OWT batch ${options.batchId} no longer accepts tasks.`);
+    }
+    if (options.branch === state.defaultBranch) {
+      throw new Error("A batch task cannot use the default branch.");
     }
     if (state.tasks.some((task) => task.taskId === options.taskId)) {
       throw new Error(`Task id is already registered: ${options.taskId}`);
@@ -500,6 +506,7 @@ export function registerTask(repo, options) {
       taskId: options.taskId,
       branch: options.branch,
       worktreePath,
+      cleanup,
       state: "running",
       registeredHeadSha: headSha,
       registeredAt: new Date().toISOString(),
@@ -940,18 +947,25 @@ export function cleanupBatch(repo, options) {
           branch: task.branch,
           worktreePath: task.worktreePath,
           headSha: task.headSha,
+          cleanup: task.cleanup,
         })),
         {
           branch: state.integration.branch,
           worktreePath: state.integration.worktreePath,
           headSha: state.finalHead,
+          cleanup: "remove",
         },
       ];
       const removedWorktrees = [];
       const removedBranches = [];
+      const retainedWorktrees = [];
       for (const target of targets) {
         if (!isAncestor(root, target.headSha, defaultHead)) {
           throw new Error(`Refusing to remove unmerged branch ${target.branch}.`);
+        }
+        if (target.cleanup !== "remove") {
+          retainedWorktrees.push(target.worktreePath);
+          continue;
         }
         const record = listWorktrees(root).find(
           (candidate) => comparablePath(candidate.path) === comparablePath(target.worktreePath),
@@ -970,12 +984,14 @@ export function cleanupBatch(repo, options) {
       state.cleanedAt = new Date().toISOString();
       state.removedWorktrees = removedWorktrees;
       state.removedBranches = removedBranches;
+      state.retainedWorktrees = retainedWorktrees;
       saveBatch(paths.state, state);
       return {
         action: "cleaned",
         batchId: state.batchId,
         removedWorktrees,
         removedBranches,
+        retainedWorktrees,
         statePath: paths.state,
       };
     }),
@@ -1027,6 +1043,7 @@ function main() {
       taskId: requireOption(options, "task"),
       branch: requireOption(options, "branch"),
       worktreePath: requireOption(options, "worktree"),
+      cleanup: options.cleanup,
     });
   } else if (command === "seal") {
     result = sealBatch(repo, { batchId });

@@ -9,8 +9,10 @@ user request and must inspect the combined result after every child exits.
 ## Launch independent tasks
 
 Pass one complete, bounded prompt per repeated `--task`; no mode prefix is
-required. Every child uses OWT automatically: create an isolated worktree,
-run preflight, commit, integrate into local `main`, and clean up. The launcher
+required. Every child uses OWT automatically: select an isolated worktree under
+[the OWT rules](owt.md), run preflight, commit, integrate into local `main`, and
+clean up only task-owned temporary resources. Children start in the default
+directory, so each creates its own worktree. The launcher
 requires its repository directory to remain on `main` before starting children:
 
 ```bash

@@ -2,38 +2,69 @@
 
 OWT is the only repository delivery workflow, including single-agent tasks.
 No prompt prefix selects a mode. Keep the default worktree on local `main`
-for developer debugging; implement and validate in isolated sibling worktrees.
+for developer debugging; implement and validate in an isolated task worktree.
+Reuse the conversation's worktree when it meets the selection rules below.
 Never switch the default worktree to a task or integration branch.
 
 The delivery skill is `deliver-via-owt`: its directory, discovery metadata,
 invocation prompts, and helper commands use that name. Completion means verified
-local integration and cleanup. Publishing and PR checks are separate from local
-OWT completion; use `wait-for-pr-ci` when the user's task explicitly includes
-waiting for actual GitHub PR checks.
+local integration and ownership-aware cleanup. Publishing and PR checks are
+separate from local OWT completion; use `wait-for-pr-ci` when the user's task
+explicitly includes waiting for actual GitHub PR checks.
 
-Resolve the repository root from the current checkout, for example with
-`git rev-parse --show-toplevel`. Choose temporary sibling worktrees relative to
-that root or use an explicitly supplied worktree location; never hard-code a
-drive, username, or projects directory. Worktree placement is temporary and does
-not select the final artifact's location. Keep the project's relative artifact
+## Select the worktree before creating one
+
+Resolve the current checkout with `git rev-parse --show-toplevel`, then inspect
+`git worktree list --porcelain` to locate the default directory on local `main`.
+The current checkout is not necessarily the default directory. Record both
+absolute paths, the committed local `main` SHA, task branch, and cleanup owner.
+Do not infer ownership from the directory name or location. If the default
+directory cannot be identified on `main`, preserve the checkouts and resolve
+that ownership before delivery; never switch an unrelated checkout to `main`.
+
+- In an existing isolated conversation worktree (including Codex-managed or
+  permanent worktrees), reuse it for this task when it belongs to this repository
+  and has no unrelated commits, staged edits, working edits, or untracked files.
+  Inspect status and the complete diff from local `main`; imported local changes
+  are not automatically task-owned. Preserve another task's worktree.
+- For a new task, require `HEAD` to equal the recorded local `main` SHA. A clean
+  worktree on an older ancestor may fast-forward to that SHA before editing.
+  Never reset or rebase a checkout to make it eligible. A resumed task may keep
+  its identified task changes and original recorded base; inspect them first.
+- Keep an existing dedicated task branch, including a `codex/` branch. For a
+  detached checkout, create a unique `agent/<task-slug>` branch at its current
+  `HEAD` in the same directory; do not create a second worktree. Never use `main`
+  as a task branch.
+- When starting in the default directory, or when the current checkout is
+  ineligible, create a unique `agent/<task-slug>` branch and new sibling worktree
+  from the recorded committed local `main` SHA. Leave the original checkout and
+  its changes intact, and report the selected task path.
+
+Only temporary worktrees and branches created by this task are eligible for
+OWT removal. Reused directories and existing branches remain with their manager
+or developer, even after integration. Leave Codex-managed directories to Codex;
+do not remove them with Git or switch them to another task during cleanup.
+
+Choose new sibling paths relative to the resolved default directory, or use an
+explicitly supplied location; never hard-code a drive or username. Worktree
+placement does not select the final artifact's location. Keep relative artifact
 layout through implementation and handoff; plugin destinations are owned by
 [local plugin development](../../openagent-plugin-development/references/local-development.md#resolve-source-locations-from-the-project).
 
 ## Isolated task worktree, then fast-forward
 
 1. Keep the public host's default worktree on its local default branch
-   (`main` in OpenAgent); do not switch it. Record that branch and its
-   exact starting `HEAD`, which is the authoritative OWT base even when it
+   (`main` in OpenAgent); do not switch it. Select the task worktree above.
+   Its recorded local default SHA is the authoritative OWT base even when it
    differs from the remote default. Fetch the upstream for awareness, but
    never merge, rebase, reset, or otherwise reconcile remote history as part
    of OWT. SDK changes follow their repository-owned commit and push rules.
-2. Choose a unique `agent/<task-slug>` branch and non-existing sibling
-   worktree path. Create both from the recorded local default `HEAD`, not
-   from the remote default and not from the default worktree's index or
-   working tree. Never relocate, reset, clean, or reuse an unrelated
-   worktree. From the task worktree, run `bun run prepare:worktree:dev`
-   before validation. This initializes pinned submodules, installs frozen
-   Bun dependencies, and uses the checked-in public client. This light
+2. Prepare the selected task worktree with `bun run prepare:worktree:dev`
+   before validation unless that checkout has already completed the same
+   preparation for its current pinned inputs. A Codex local environment setup
+   script may run this command; do not repeat completed preparation just because
+   another conversation starts. This initializes pinned submodules, installs
+   frozen Bun dependencies, and uses the checked-in public client. This light
    preparation does not compile Rust. Add `--native` only when a desktop run
    or native scenario actually needs development sandbox and Runtime sidecars.
    Private development Cargo builds share dependency output across associated
@@ -55,10 +86,10 @@ layout through implementation and handoff; plugin destinations are owned by
    The Runtime verification command and cache ownership live in
    [local development commands](../../openagent-release-engineering/references/local-commands.md).
 5. Inspect status and the complete diff, stage only explicit intended paths,
-   then run `bun run preflight`. Stage new files first so the whitespace
-   guard can inspect them. OWT branches automatically compare against the
-   local default branch; pass `--base <recorded-base-sha>` when a coordinator
-   records an immutable batch baseline.
+   then run `bun run preflight --base <recorded-base-sha>`. Stage new files first
+   so the whitespace guard can inspect them. Always pass the recorded base
+   (or set `PREFLIGHT_BASE`), including on reused `codex/` branches, so branch
+   naming and unpublished local commits cannot expand or shrink verification.
 6. Inspect the staged diff and create focused Conventional Commits. Never
    amend, squash, or rewrite user-owned commits unless explicitly requested.
 7. Require a clean task worktree, then return to the default worktree and
@@ -80,10 +111,17 @@ layout through implementation and handoff; plugin destinations are owned by
    the default worktree on `main` and preserves the committed task for recovery;
    report it as pending integration, not delivered.
 8. Confirm the intended commits and paths are now on the local default
-   branch. Remove only the clean registered task worktree and its fully
-   merged local task branch. Report the default branch, commit and
-   integration hashes, verification, cleanup, preserved pre-existing
-   changes, and that nothing was pushed.
+   branch. Remove only clean, registered, task-created temporary worktrees
+   and fully merged task-created branches. Retain reused worktrees and their
+   checked-out branches; a task-created branch in a retained worktree stays
+   attached. Report the default branch, commit and integration hashes,
+   verification, removed and retained resources with their cleanup owner,
+   preserved pre-existing changes, and actual push status. Publishing follows
+   the user's authorization separately from local OWT completion.
+
+Codex Handoff may move a task branch into the default checkout. It does not
+replace the verified fast-forward above: keep the default directory on `main`
+and integrate from the task checkout instead.
 
 ### Recovery and cleanup
 
@@ -106,13 +144,9 @@ do not require that revision. A temporary link to an already initialized SDK
 or `node_modules` may be used for narrow implementation checks only when its
 scope is explicit; remove every link before staging and re-check status.
 
-If the default branch advances after the task commit, merge the current default
-branch into the task branch, rerun `bun run preflight` (or pass the recorded
-batch base explicitly), and retry the
-fast-forward. Do not rebase or cherry-pick the task commit to hide the
-concurrent advance.
-
-Before removing an OWT worktree, verify both its branch and cleanliness:
+Before removing a task-created temporary OWT worktree, verify its recorded
+cleanup ownership, branch, integration, and cleanliness. Never run this removal
+procedure on a reused or Codex-managed worktree:
 
 ```bash
 git -C <task-worktree> status --short --branch

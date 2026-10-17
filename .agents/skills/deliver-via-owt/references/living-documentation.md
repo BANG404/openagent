@@ -54,16 +54,13 @@ private SDK gitlink.
 - `AGENTS.md` and skills contain durable guidance rather than task history.
 - Skill metadata still describes the situations that should trigger it.
 - Public documentation contains no private SDK implementation detail.
-- OWT reached its terminal state: verified commits from an isolated worktree
-  are fast-forwarded into local `main`; task worktrees and fully merged
-  branches are cleaned up, and nothing was pushed. The default directory stays
-  on `main` for developer debugging. Private SDK delivery follows its owner.
-- OWT bases each task on committed local default `HEAD`, preserves unrelated
-  staged and working changes, and merges later committed default-branch
-  descendants into the task branch. Rerun preflight after each integration and
-  retry the fast-forward. The recorded local base remains authoritative
-  regardless of remote divergence; never reconcile remote history or absorb
-  unrelated working changes. Preserve ambiguous conflicts for direction.
+- OWT reached its terminal state under [the delivery contract](owt.md): verified
+  commits are fast-forwarded into local `main`, task-created temporary resources
+  are cleaned up, and reused worktrees stay with their manager. Report actual
+  push status separately. The default directory stays on `main` for developer
+  debugging. Private SDK delivery follows its owner.
+- The delivery contract's recorded local base, explicit preflight baseline,
+  preservation rules, and concurrent-integration checks were respected.
 - A batch coordinates the same OWT workflow using an explicit manifest for
   membership and one elected integrator for combined verification. It retains
   its completion record after safe cleanup. A blocked handoff remains pending
