@@ -38,6 +38,7 @@ for (const id of ids) {
       extensions: {
         openagent: {
           type: "integration",
+          category: "communication",
           compatibility: { plugin_protocol: { min: 1, max: 1 }, features: ["integration-v1"] },
           i18n: {
             supported_locales: ["en", "zh"],

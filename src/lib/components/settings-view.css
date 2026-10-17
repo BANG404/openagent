@@ -730,12 +730,15 @@
   grid-template-columns: 256px minmax(0, 1fr);
   gap: 0;
   width: 100%;
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
   background: transparent;
 }
 
 .channel-settings-list {
   min-width: 0;
+  min-height: 0;
   padding: 6px;
   background: transparent;
 }
@@ -858,10 +861,11 @@
 @media (max-width: 640px) {
   .channel-settings-layout {
     grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
     gap: 18px;
   }
   .channel-settings-list {
-    overflow-x: auto;
+    height: 88px;
     padding: 6px;
   }
   .channel-settings-list-items {

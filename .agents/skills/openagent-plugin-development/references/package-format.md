@@ -194,8 +194,11 @@ Appearance persistence and normalization belong to configuration's
 [save/reload contract](../../openagent-configuration/references/save-and-reload.md).
 
 An integration declares `type: "integration"` and lists `integration-v1` in
-`compatibility.features`. Installed integrations appear under Integrations →
-Channels, including disabled packages so users can enable them there. Selecting
+`compatibility.features`. Messaging integrations additionally declare
+`category: "communication"`; only these packages appear under Integrations →
+Channels, including disabled packages so users can enable them there.
+Development integrations such as Langfuse remain configurable in Installed plugins.
+Do not infer channel membership from names, keywords, commands, or MCP tools. Selecting
 an entry uses the package's localized name and description, ordinary lifecycle
 switch, and existing configuration/OAuth setup surface. Configuration secrets
 remain SDK-owned. Built-in channel adapters retain their ordinary rows; package
@@ -207,7 +210,15 @@ loading path; the presentation type does not create a channel transport.
 Plugin Kit mirrors these declarations in its validator, presentation JSON
 schema and `theme`/`integration` starter templates. Its messaging importer
 marks channel packages as integrations. Deterministic integration fixtures
-qualify this presentation contract without requiring a platform account.
+qualify this presentation contract without requiring a platform account. The
+channel list and detail each own a bounded shared ScrollArea; overflowing lists
+must keep their final entries reachable without scrolling the whole settings body.
+
+Run `bun run test:blackbox:channel-settings` against an isolated `channel-settings`
+debug instance and explicit Pilot socket. It retains iMessage/Langfuse manifest
+classification in process-free fixtures and verifies disabled channel discovery,
+localized names, long-list scrolling, narrow layout, Installed access, and
+selection recovery after uninstall in both themes and locales.
 
 Qualify with `test:blackbox:plugin-presentation`: install deterministic theme
 and integration fixtures, inspect colors and geometry in light/dark and both

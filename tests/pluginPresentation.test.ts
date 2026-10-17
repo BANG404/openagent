@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import {
-  integrationPlugins,
+  channelPlugins,
   pluginThemeTokens,
   applyPluginThemeTokens,
   appearanceTokens,
@@ -134,12 +134,20 @@ test("native background yields to opaque mode, plugin canvases and palette overr
   ).toBe(true);
 });
 
-test("integrations remain discoverable when disabled and exclude ordinary packages", () => {
-  const integration = plugin("integration-probe", "integration");
-  integration.enabled = false;
-  expect(integrationPlugins([plugin("theme"), plugin("agent", "agent"), integration])).toEqual([
-    integration,
-  ]);
+test("channels include disabled communication integrations and exclude unrelated packages", () => {
+  const channel = { ...plugin("imessage", "integration"), category: "communication" as const };
+  channel.enabled = false;
+  const observability = { ...plugin("langfuse", "integration"), category: "development" as const };
+  const communicationAgent = { ...plugin("agent", "agent"), category: "communication" as const };
+  expect(
+    channelPlugins([
+      plugin("theme"),
+      communicationAgent,
+      observability,
+      plugin("unclassified", "integration"),
+      channel,
+    ]),
+  ).toEqual([channel]);
 });
 
 test("theme removal restores previous inline values and priorities", () => {

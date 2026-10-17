@@ -8,12 +8,12 @@
   import ScrollArea from "../ui/ScrollArea.svelte";
   import { useSettingsContext } from "$lib/settings/context";
   import PluginSetup from "./PluginSetup.svelte";
-  import { integrationPlugins } from "$lib/pluginPresentation";
+  import { channelPlugins } from "$lib/pluginPresentation";
   import { pluginText } from "$lib/pluginI18n";
   import { locale } from "$lib/i18n";
   import PluginSource from "./PluginSource.svelte";
   const { channels, draft, options, plugins, openPlugin } = useSettingsContext();
-  const integrations = $derived(integrationPlugins(plugins.agentPlugins));
+  const integrations = $derived(channelPlugins(plugins.agentPlugins));
   const selectedIntegration = $derived(
     integrations.find((plugin) => channels.channelSettingsNav === `plugin:${plugin.id}`),
   );
@@ -30,130 +30,135 @@
 <Tabs.Content value="channels" class="settings-tab-panel">
   <div class="channel-settings-layout">
     <nav class="channel-settings-list" aria-label={$t("channels")}>
-      <div class="channel-settings-list-items">
-        <button
-          type="button"
-          class:active={channels.channelSettingsNav === "feishu"}
-          class="channel-settings-item"
-          onclick={() => (channels.channelSettingsNav = "feishu")}
-        >
-          <span class="channel-settings-icon feishu" aria-hidden="true">
-            <img src="/assets/channels/feishu.jpeg" alt="" />
-          </span>
-          <span class="channel-settings-item-copy"
-            ><strong>{$t("feishuChannel")}</strong><span>{$t("feishuChannelSubtitle")}</span></span
-          >
-        </button>
-        <button
-          type="button"
-          class:active={channels.channelSettingsNav === "telegram"}
-          class="channel-settings-item"
-          onclick={() => (channels.channelSettingsNav = "telegram")}
-        >
-          <span class="channel-settings-icon telegram" aria-hidden="true">
-            <img src="/assets/channels/telegram.png" alt="" />
-          </span>
-          <span class="channel-settings-item-copy"
-            ><strong>{$t("telegramChannel")}</strong><span>{$t("telegramChannelSubtitle")}</span
-            ></span
-          >
-        </button>
-        <button
-          type="button"
-          class:active={channels.channelSettingsNav === "qq"}
-          class="channel-settings-item"
-          onclick={() => (channels.channelSettingsNav = "qq")}
-        >
-          <span class="channel-settings-icon qq" aria-hidden="true">
-            <img src="/assets/channels/qq.svg" alt="" />
-          </span>
-          <span class="channel-settings-item-copy"
-            ><strong>{$t("qqChannel")}</strong><span>{$t("qqChannelSubtitle")}</span></span
-          >
-        </button>
-        <button
-          type="button"
-          class:active={channels.channelSettingsNav === "wechat"}
-          class="channel-settings-item"
-          onclick={() => (channels.channelSettingsNav = "wechat")}
-        >
-          <span class="channel-settings-icon wechat" aria-hidden="true">
-            <img src="/assets/channels/wechat.png" alt="" />
-          </span>
-          <span class="channel-settings-item-copy"
-            ><strong>{$t("wechatChannel")}</strong><span>{$t("wechatChannelSubtitle")}</span></span
-          >
-        </button>
-        <button
-          type="button"
-          class:active={channels.channelSettingsNav === "discord"}
-          class="channel-settings-item"
-          onclick={() => (channels.channelSettingsNav = "discord")}
-        >
-          <span class="channel-settings-icon discord" aria-hidden="true">
-            <img src="/assets/channels/discord.svg" alt="" />
-          </span>
-          <span class="channel-settings-item-copy"
-            ><strong>{$t("discordChannel")}</strong><span>{$t("discordChannelSubtitle")}</span
-            ></span
-          >
-        </button>
-        <button
-          type="button"
-          class:active={channels.channelSettingsNav === "slack"}
-          class="channel-settings-item"
-          onclick={() => (channels.channelSettingsNav = "slack")}
-        >
-          <span class="channel-settings-icon slack" aria-hidden="true">
-            <img src="/assets/channels/slack.svg" alt="" />
-          </span>
-          <span class="channel-settings-item-copy"
-            ><strong>{$t("slackChannel")}</strong><span>{$t("slackChannelSubtitle")}</span></span
-          >
-        </button>
-        <button
-          type="button"
-          class:active={channels.channelSettingsNav === "gateway"}
-          class="channel-settings-item"
-          onclick={() => (channels.channelSettingsNav = "gateway")}
-        >
-          <span class="channel-settings-icon gateway" aria-hidden="true">
-            <span class="channel-settings-gateway-glyph"></span>
-          </span>
-          <span class="channel-settings-item-copy"
-            ><strong>{$t("remoteGateway")}</strong><span>{$t("remoteGatewaySubtitle")}</span></span
-          >
-        </button>
-        {#if plugins.agentPluginsLoading && !integrations.length}
-          <div class="channel-settings-item" aria-busy="true" aria-label={$t("pluginLoading")}>
-            <span class="channel-settings-icon integration-skeleton" aria-hidden="true"></span>
-            <span class="channel-settings-item-copy" aria-hidden="true">
-              <span class="integration-skeleton integration-skeleton-title"></span>
-              <span class="integration-skeleton integration-skeleton-description"></span>
-            </span>
-          </div>
-        {/if}
-        {#each integrations as plugin (plugin.id)}
+      <ScrollArea height="100%" horizontal scrollHideDelay={350}>
+        <div class="channel-settings-list-items">
           <button
             type="button"
+            class:active={channels.channelSettingsNav === "feishu"}
             class="channel-settings-item"
-            class:active={channels.channelSettingsNav === `plugin:${plugin.id}`}
-            data-integration-plugin={plugin.id}
-            onclick={() => (channels.channelSettingsNav = `plugin:${plugin.id}`)}
+            onclick={() => (channels.channelSettingsNav = "feishu")}
           >
-            <span class="channel-settings-icon" aria-hidden="true">↗</span>
-            <span class="channel-settings-item-copy">
-              <strong>{pluginText(plugin.i18n, $locale, "display_name", plugin.name)}</strong>
-              <span
-                >{pluginText(plugin.i18n, $locale, "description", plugin.description ?? "")}</span
-              >
+            <span class="channel-settings-icon feishu" aria-hidden="true">
+              <img src="/assets/channels/feishu.jpeg" alt="" />
             </span>
+            <span class="channel-settings-item-copy"
+              ><strong>{$t("feishuChannel")}</strong><span>{$t("feishuChannelSubtitle")}</span
+              ></span
+            >
           </button>
-        {/each}
-        {#if plugins.agentPluginStatus}
-          <div class="provider-status error" role="status">{plugins.agentPluginStatus}</div>
-        {/if}
-      </div>
+          <button
+            type="button"
+            class:active={channels.channelSettingsNav === "telegram"}
+            class="channel-settings-item"
+            onclick={() => (channels.channelSettingsNav = "telegram")}
+          >
+            <span class="channel-settings-icon telegram" aria-hidden="true">
+              <img src="/assets/channels/telegram.png" alt="" />
+            </span>
+            <span class="channel-settings-item-copy"
+              ><strong>{$t("telegramChannel")}</strong><span>{$t("telegramChannelSubtitle")}</span
+              ></span
+            >
+          </button>
+          <button
+            type="button"
+            class:active={channels.channelSettingsNav === "qq"}
+            class="channel-settings-item"
+            onclick={() => (channels.channelSettingsNav = "qq")}
+          >
+            <span class="channel-settings-icon qq" aria-hidden="true">
+              <img src="/assets/channels/qq.svg" alt="" />
+            </span>
+            <span class="channel-settings-item-copy"
+              ><strong>{$t("qqChannel")}</strong><span>{$t("qqChannelSubtitle")}</span></span
+            >
+          </button>
+          <button
+            type="button"
+            class:active={channels.channelSettingsNav === "wechat"}
+            class="channel-settings-item"
+            onclick={() => (channels.channelSettingsNav = "wechat")}
+          >
+            <span class="channel-settings-icon wechat" aria-hidden="true">
+              <img src="/assets/channels/wechat.png" alt="" />
+            </span>
+            <span class="channel-settings-item-copy"
+              ><strong>{$t("wechatChannel")}</strong><span>{$t("wechatChannelSubtitle")}</span
+              ></span
+            >
+          </button>
+          <button
+            type="button"
+            class:active={channels.channelSettingsNav === "discord"}
+            class="channel-settings-item"
+            onclick={() => (channels.channelSettingsNav = "discord")}
+          >
+            <span class="channel-settings-icon discord" aria-hidden="true">
+              <img src="/assets/channels/discord.svg" alt="" />
+            </span>
+            <span class="channel-settings-item-copy"
+              ><strong>{$t("discordChannel")}</strong><span>{$t("discordChannelSubtitle")}</span
+              ></span
+            >
+          </button>
+          <button
+            type="button"
+            class:active={channels.channelSettingsNav === "slack"}
+            class="channel-settings-item"
+            onclick={() => (channels.channelSettingsNav = "slack")}
+          >
+            <span class="channel-settings-icon slack" aria-hidden="true">
+              <img src="/assets/channels/slack.svg" alt="" />
+            </span>
+            <span class="channel-settings-item-copy"
+              ><strong>{$t("slackChannel")}</strong><span>{$t("slackChannelSubtitle")}</span></span
+            >
+          </button>
+          <button
+            type="button"
+            class:active={channels.channelSettingsNav === "gateway"}
+            class="channel-settings-item"
+            onclick={() => (channels.channelSettingsNav = "gateway")}
+          >
+            <span class="channel-settings-icon gateway" aria-hidden="true">
+              <span class="channel-settings-gateway-glyph"></span>
+            </span>
+            <span class="channel-settings-item-copy"
+              ><strong>{$t("remoteGateway")}</strong><span>{$t("remoteGatewaySubtitle")}</span
+              ></span
+            >
+          </button>
+          {#if plugins.agentPluginsLoading && !integrations.length}
+            <div class="channel-settings-item" aria-busy="true" aria-label={$t("pluginLoading")}>
+              <span class="channel-settings-icon integration-skeleton" aria-hidden="true"></span>
+              <span class="channel-settings-item-copy" aria-hidden="true">
+                <span class="integration-skeleton integration-skeleton-title"></span>
+                <span class="integration-skeleton integration-skeleton-description"></span>
+              </span>
+            </div>
+          {/if}
+          {#each integrations as plugin (plugin.id)}
+            <button
+              type="button"
+              class="channel-settings-item"
+              class:active={channels.channelSettingsNav === `plugin:${plugin.id}`}
+              data-integration-plugin={plugin.id}
+              onclick={() => (channels.channelSettingsNav = `plugin:${plugin.id}`)}
+            >
+              <span class="channel-settings-icon" aria-hidden="true">↗</span>
+              <span class="channel-settings-item-copy">
+                <strong>{pluginText(plugin.i18n, $locale, "display_name", plugin.name)}</strong>
+                <span
+                  >{pluginText(plugin.i18n, $locale, "description", plugin.description ?? "")}</span
+                >
+              </span>
+            </button>
+          {/each}
+          {#if plugins.agentPluginStatus}
+            <div class="provider-status error" role="status">{plugins.agentPluginStatus}</div>
+          {/if}
+        </div>
+      </ScrollArea>
     </nav>
     <ScrollArea
       height="100%"

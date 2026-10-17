@@ -43,9 +43,9 @@ export function usesNativeBackground(
   return overrides?.opaque_background !== true && !tokens["--background"] && !tokens["--bg"];
 }
 
-export function integrationPlugins(plugins: AgentPluginSummary[]): AgentPluginSummary[] {
+export function channelPlugins(plugins: AgentPluginSummary[]): AgentPluginSummary[] {
   return plugins
-    .filter((plugin) => plugin.plugin_type === "integration")
+    .filter((plugin) => plugin.plugin_type === "integration" && plugin.category === "communication")
     .sort((a, b) => a.id.localeCompare(b.id));
 }
 

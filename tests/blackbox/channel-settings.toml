@@ -1,0 +1,35 @@
+[scenario]
+name = "channel classification and bounded navigation"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "only communication integrations appear with localized names"
+action = "eval"
+script = '''(() => {
+  const rows = document.querySelectorAll('[data-integration-plugin]');
+  const imessage = document.querySelector('[data-integration-plugin="imessage"]');
+  if (rows.length !== 15 || !imessage || imessage.querySelector('strong').textContent !== window.__channelName)
+    throw new Error('Communication integrations or localized iMessage entry missing');
+  if (document.querySelector('[data-integration-plugin="langfuse"]'))
+    throw new Error('Observability integration appeared as a channel');
+  return true;
+})()'''
+
+[[step]]
+name = "overflow scrolls inside the shared list viewport"
+action = "eval"
+script = '''(() => {
+  const viewport = document.querySelector('.channel-settings-list .ui-scroll-area-viewport');
+  const detail = document.querySelector('.channel-settings-detail');
+  if (!viewport || viewport.scrollHeight <= viewport.clientHeight || viewport.clientHeight <= 0)
+    throw new Error('Channel list has no bounded scroll viewport');
+  const before = detail.getBoundingClientRect().top;
+  viewport.scrollTop = viewport.scrollHeight;
+  const last = document.querySelector('[data-integration-plugin="imessage"]').getBoundingClientRect();
+  const bounds = viewport.getBoundingClientRect();
+  if (viewport.scrollTop <= 0 || last.top < bounds.top || last.bottom > bounds.bottom + 1 ||
+      detail.getBoundingClientRect().top !== before || bounds.bottom > innerHeight)
+    throw new Error('Final channel is unreachable or list scrolling moves the detail');
+  return true;
+})()'''
