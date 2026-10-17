@@ -1,0 +1,31 @@
+[scenario]
+name = "native background preserves continuous desktop chrome"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "title bar and sidebar share the canvas without moving content"
+action = "eval"
+script = '''(() => {
+  const sidebar = document.querySelector('.sidebar');
+  const title = document.querySelector('.title-bar');
+  const stage = document.querySelector('#conversation-stage');
+  if (!sidebar || !title || !stage) throw new Error('Desktop shell is missing');
+  const bodyStyle = getComputedStyle(document.body);
+  const sidebarStyle = getComputedStyle(sidebar);
+  const titleStyle = getComputedStyle(title);
+  if (sidebarStyle.backgroundColor !== bodyStyle.backgroundColor ||
+      titleStyle.backgroundColor !== 'rgba(0, 0, 0, 0)')
+    throw new Error('Title bar and sidebar do not form one continuous canvas');
+  if (getComputedStyle(stage).backgroundColor === 'rgba(0, 0, 0, 0)')
+    throw new Error('Conversation content lost its surface');
+  const bounds = element => {
+    const {x,y,width,height} = element.getBoundingClientRect();
+    return {x,y,width,height};
+  };
+  const geometry = JSON.stringify([bounds(sidebar), bounds(title), bounds(stage)]);
+  if (window.__nativeBackgroundGeometry && window.__nativeBackgroundGeometry !== geometry)
+    throw new Error('Native background toggle moved desktop shell content');
+  window.__nativeBackgroundGeometry = geometry;
+  return true;
+})()'''

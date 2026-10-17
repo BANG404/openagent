@@ -62,6 +62,7 @@
     "test:blackbox:turn-footer": "bun scripts/test-turn-footer-blackbox.mjs",
     "test:blackbox:remote-page": "bun scripts/test-remote-page-blackbox.mjs",
     "test:blackbox:plugin-presentation": "bun scripts/test-plugin-presentation-blackbox.mjs",
+    "test:blackbox:native-background": "bun scripts/test-native-background-blackbox.mjs",
     "test:blackbox:integration-inventory": "bun scripts/test-integration-inventory-blackbox.mjs",
     "test:blackbox:plugins": "bun scripts/test-plugin-blackbox.mjs",
     "test:blackbox:chat-groups-sidebar": "bun scripts/test-chat-groups-sidebar-blackbox.mjs",
