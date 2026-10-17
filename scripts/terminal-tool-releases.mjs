@@ -40,19 +40,6 @@ export const TERMINAL_TOOLS = {
       "aarch64-apple-darwin": "e30beff26779c9bf60bb541e1d79046250cb74378f2757f8eb250afddb19e114",
     },
   },
-  sd: {
-    repository: "chmln/sd",
-    tag: "v1.1.0",
-    prefix: "sd-v1.1.0",
-    licenses: ["LICENSE"],
-    hashes: {
-      "x86_64-pc-windows-msvc": "59837c2e7c911099aca1cc46b663bcdc5a949fd3e9fbbaf34fc73e5d5d71007c",
-      "x86_64-unknown-linux-musl":
-        "02f00f4777d43e8e95b7b8d49e1a0d6e502fed4b8e79c1c8b8063857a30caa2e",
-      "x86_64-apple-darwin": "1fca1e9c91813a8aac6821063c923107ba0f66a83309e095edcd3b202f67f97e",
-      "aarch64-apple-darwin": "4bd3c09226376ca0a1d69589c91e86276fae36c5fbaaee669afce583f6682030",
-    },
-  },
 };
 
 const hostTargets = {

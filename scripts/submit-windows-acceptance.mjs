@@ -9,7 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { digest, verifyCandidate } from "./windows-acceptance-artifacts.mjs";
 
-/** Upload exact local bytes privately as a draft, dispatch both VM jobs and collect reports.
+/** Upload exact local bytes privately as a draft, dispatch all VM jobs and collect reports.
  * @param {{directory: string; reports: string; keepTransfer?: boolean}} options
  */
 export async function submitWindowsAcceptance({ directory, reports, keepTransfer = false }) {
@@ -109,7 +109,7 @@ export async function submitWindowsAcceptance({ directory, reports, keepTransfer
     await mkdir(reports, { recursive: true });
     run("gh", ["run", "download", String(runId), "--repo", repository, "--dir", reports]);
     assert(watch.status === 0, `Acceptance failed; reports: ${reports}; transfer: ${tag}`);
-    for (const mode of ["online", "offline"]) {
+    for (const mode of ["online", "offline", "full-no-webview"]) {
       const report = JSON.parse(
         await readFile(
           path.join(reports, `windows-acceptance-${mode}`, `${mode}-report.json`),
@@ -122,7 +122,7 @@ export async function submitWindowsAcceptance({ directory, reports, keepTransfer
       );
     }
     success = true;
-    console.log(`Both installed-package tests passed. Reports: ${reports}`);
+    console.log(`All three installed-package tests passed. Reports: ${reports}`);
   } finally {
     if (success && !keepTransfer)
       run("gh", ["release", "delete", tag, "--repo", repository, "--yes"]);

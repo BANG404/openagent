@@ -39,6 +39,22 @@ function jobCondition(source, needs) {
 }
 
 describe("release workflow publication gates", () => {
+  test("Windows stages all full variants before binding the candidate", async () => {
+    const source = await releaseJobSource("build", "distribution-helpers");
+    const noWebview = source.indexOf("- name: Bundle Windows full installer without WebView2");
+    expect(noWebview).toBeGreaterThan(source.indexOf("- name: Stage full first-install candidate"));
+    expect(noWebview).toBeLessThan(
+      source.indexOf("- name: Bind native candidate to release source"),
+    );
+    const variant = source.slice(
+      noWebview,
+      source.indexOf("- name: Bind native candidate to release source"),
+    );
+    expect(variant.match(/if: matrix.runtime_target == 'windows-x64'/g)).toHaveLength(2);
+    expect(variant).toContain("--config src-tauri/tauri.full.conf.json");
+    expect(variant).toContain("--config src-tauri/tauri.full-no-webview.conf.json");
+    expect(variant).toContain("--variant full-no-webview");
+  });
   test.each([
     { frontend: "true", runtime: "false", native_shell: "false" },
     { frontend: "false", runtime: "true", native_shell: "false" },

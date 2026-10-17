@@ -19,6 +19,7 @@ const changelog = `# Changelog
 const nativeAssets = [
   "openagent_1.2.3_x64-setup.exe",
   "openagent_1.2.3_x64-full-setup.exe",
+  "openagent_1.2.3_x64-full-no-webview-setup.exe",
   "openagent_1.2.3_aarch64.dmg",
   "openagent_1.2.3_aarch64-full.dmg",
   "openagent_1.2.3_x64.dmg",
@@ -61,9 +62,11 @@ describe("release notes", () => {
     expect(notes).toContain("/compare/v1.2.2...v1.2.3");
     expect(notes).toContain("### Features");
     expect(notes).toContain("| Windows | x64 | Standard installer | [Download](");
+    expect(notes).toContain("| Windows | x64 | Full installer without WebView2 | [Download](");
+    expect(notes).toContain("reuses installed WebView2 or downloads it if missing");
     expect(notes).toContain("| macOS | Apple Silicon | Full DMG | [Download](");
     expect(notes).toContain("| Linux | x64 | DEB | [Download](");
-    expect(notes.match(/\| \[Download\]\(/g)).toHaveLength(10);
+    expect(notes.match(/\| \[Download\]\(/g)).toHaveLength(11);
     expect(notes).not.toContain("latest.json)");
     expect(notes).not.toContain("setup.exe.sig)");
     expect(notes).not.toContain("openagent-server-windows-x64.exe)");
@@ -81,7 +84,7 @@ describe("release notes", () => {
       ],
       repository: "BANG404/openagent",
     });
-    expect(notes.match(/\| \[Download\]\(/g)).toHaveLength(10);
+    expect(notes.match(/\| \[Download\]\(/g)).toHaveLength(11);
     expect(notes).toContain("OpenAgent_1.2.3_x64-setup.exe)");
     expect(notes).not.toContain("openagent_1.2.2_x64-setup.exe)");
     expect(notes).not.toContain("other_1.2.3_x64-setup.exe)");
@@ -119,7 +122,7 @@ describe("release notes", () => {
     });
 
     expect(notes).toContain(`Updated components: ${updated}.`);
-    expect(notes.match(/\| \[Download\]\(/g)).toHaveLength(10);
+    expect(notes.match(/\| \[Download\]\(/g)).toHaveLength(11);
     expect(notes).toContain("/v1.2.3-beta.1/openagent_1.2.3_x64-setup.exe)");
   });
 

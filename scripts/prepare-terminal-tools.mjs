@@ -38,7 +38,11 @@ export function extractTerminalTool(archive, destination, release) {
 export async function preparedTerminalToolsMatch(destination, target) {
   try {
     const record = JSON.parse(await readFile(path.join(destination, "provenance.json"), "utf8"));
-    if (record.target !== target) return false;
+    if (
+      record.target !== target ||
+      Object.keys(record.tools).sort().join() !== Object.keys(TERMINAL_TOOLS).sort().join()
+    )
+      return false;
     for (const name of Object.keys(TERMINAL_TOOLS)) {
       const release = terminalToolRelease(name, target);
       const installed = record.tools[name];

@@ -6,7 +6,7 @@ use std::sync::OnceLock;
 use tauri::Manager;
 
 static DIRECTORY: OnceLock<PathBuf> = OnceLock::new();
-const TOOLS: [&str; 4] = ["rg", "fd", "bat", "sd"];
+const TOOLS: [&str; 3] = ["rg", "fd", "bat"];
 
 fn executable_name(name: &str) -> String {
     if cfg!(windows) {
@@ -101,7 +101,7 @@ mod tests {
     }
 
     #[test]
-    fn bundled_tools_search_read_and_replace_without_system_installations() {
+    fn bundled_tools_search_and_read_without_system_installations() {
         let directory = Path::new(env!("CARGO_MANIFEST_DIR")).join("resources/terminal-tools");
         let workspace = tempfile::tempdir().unwrap();
         let sample = workspace.path().join("sample.txt");
@@ -124,7 +124,7 @@ mod tests {
         configure_with_directory(&mut command, &directory)
             .expect("prepare terminal tools before native tests");
         let output = command
-            .arg("rg --color never before sample.txt; fd --color never sample; bat --color never --paging never --style plain sample.txt; sd before after sample.txt; rg --color never after sample.txt")
+            .arg("rg --color never before sample.txt; fd --color never sample; bat --color never --paging never --style plain sample.txt")
             .current_dir(workspace.path())
             .output()
             .unwrap();
@@ -141,7 +141,6 @@ mod tests {
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("sample.txt"), "{stdout}");
         assert_eq!(stdout.matches("before").count(), 2, "{stdout}");
-        assert!(stdout.contains("after"), "{stdout}");
-        assert_eq!(std::fs::read_to_string(sample).unwrap(), "after\n");
+        assert_eq!(std::fs::read_to_string(sample).unwrap(), "before\n");
     }
 }

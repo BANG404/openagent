@@ -1,7 +1,7 @@
 # Local Windows installer acceptance
 
 The manual acceptance path executes locally built bytes in separate, fresh
-`windows-2025` jobs for online and offline installation. It never publishes a
+`windows-2025` jobs for online, offline and full-without-WebView2 installation. It never publishes a
 release, advances update channels, or requires production signing credentials.
 
 ## Build identity and isolation
@@ -12,7 +12,7 @@ Run `bun scripts/build-windows-acceptance.mjs --output <empty-directory>`.
 The script mutates only ignored build resources and uses its own Cargo target.
 Keep the directory for submission and diagnostics until the tests finish.
 
-Both NSIS installers use one Release shell with the explicit
+All three NSIS installers use one Release shell with the explicit
 `.cargo/acceptance.toml` configuration, preserving Release optimization,
 bootstrap, resource activation and Runtime supervision. Only
 `tauri-plugin-pilot` gets debug assertions to enable automation.
@@ -35,7 +35,11 @@ The private key exists only in the build process and is not exported.
 build configuration, installers, and all file digests. The complete package bundles
 Runtime, frontend, model, helpers, Node, terminal tools and offline WebView2;
 the online package bundles only shell identity, Node and terminal tools, then
-downloads its signed distribution. The CLI is transferred beside the installers
+downloads its signed distribution. The `full-no-webview` package carries the same
+application resources as offline, but reuses the machine's WebView2 or downloads
+it when missing. Its test runs on a machine with WebView2 already installed and
+blocks application Internet access, requiring zero resource downloads.
+The CLI is transferred beside the installers
 as a test driver, not installed as an application resource.
 
 ## Submit and inspect
@@ -43,7 +47,7 @@ as a test driver, not installed as an application resource.
 Run `bun scripts/submit-windows-acceptance.mjs --artifacts <directory>
 --reports <new-report-directory>`. It verifies the candidate, uploads a ZIP to
 a uniquely named draft release, dispatches `windows-install-acceptance.yml`,
-waits for its exact run, and downloads both reports. The VM checks the supplied
+waits for its exact run, and downloads all three reports. The VM checks the supplied
 ZIP SHA-256 before extraction and verifies all candidate resources before
 executing installers. The workflow token needs `contents: write` to read a draft
 release; it is exposed only to the download step. Application
@@ -57,7 +61,7 @@ Windows Firewall rules and require zero resource-server requests. Normalize
 absolute executable paths to native Windows separators before Firewall
 rule creation; hosted runner temp paths can mix separators.
 Online tests first return HTTP 503, require the real failure state and UI Retry,
-then serve the same signed resource bytes. Both modes wait for Runtime's
+then serve the same signed resource bytes. All modes wait for Runtime's
 asynchronous embedding verification, execute bundled tools, complete the welcome
 wizard, render light/dark and Chinese/English screenshots, submit
 through the real composer to a deterministic loopback model service, verify

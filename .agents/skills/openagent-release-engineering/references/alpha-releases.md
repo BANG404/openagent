@@ -53,8 +53,12 @@ Verify all signatures, digests, sizes, component identities and helpers before
 staging `bootstrap-release/`.
 
 Build lightweight NSIS plus its updater signature, then bundle the full offline
-NSIS from the same shell executable. Both include portable Node and terminal
-tools; full adds signed Runtime, frontend, model, helpers and offline WebView2.
+NSIS and a `-full-no-webview-setup.exe` variant from the same shell executable.
+All include portable Node and terminal tools; both full variants add signed
+Runtime, frontend, model and helpers. Only the original full package embeds
+offline WebView2; the smaller variant reuses installed WebView2 and downloads
+it when missing. Smoke-test startup and restart of both complete variants in
+separate installation/data fixtures before publication.
 Sign the Alpha candidate manifest binding every output. Publication reverifies
 that manifest and every downloaded byte.
 
@@ -78,7 +82,7 @@ gh workflow run prepare-release.yml --ref main -f release_type=alpha
 ```
 
 The run uploads `windows-alpha-candidate`. Publish the versioned prerelease with
-a direct full-installer link, then refresh only `alpha`, `frontend-alpha` and
+direct links to both complete installers, then refresh only `alpha`, `frontend-alpha` and
 `runtime-alpha`. Rolling payload/manifest replacement is not atomic; signature
 and digest checks reject incomplete snapshots and preserve active resources.
 Never promote Alpha directly or update another channel.
