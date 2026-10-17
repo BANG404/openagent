@@ -15,7 +15,7 @@ test("derives shared interaction states from the current text color in app.css",
 
   expect(appCss).toContain("--interactive-state-opacity: 8%;");
   expect(appCss).toMatch(
-    /--interactive-state-bg: color-mix\(\s*in srgb,\s*var\(--text\) var\(--interactive-state-opacity\),\s*transparent\s*\);/s,
+    /--interactive-state-bg: color-mix\(\s*in srgb,\s*var\(--foreground\) var\(--interactive-state-opacity\),\s*transparent\s*\);/s,
   );
   expect(appCss).not.toContain("--interactive-state-bg: #f4f4f5;");
   expect(appCss).not.toContain("--interactive-state-bg: #27272a;");
@@ -138,7 +138,7 @@ test("reuses the shared Select for application-owned choice fields", async () =>
 
   expect(sources[0]).toContain('"ask-user-select ask-user-select-error"');
   expect(sources[0]).toMatch(
-    /\.ui-select-trigger\.ask-user-select\)[\s\S]*?background: var\(--bg\);[\s\S]*?box-shadow: none;/,
+    /\.ui-select-trigger\.ask-user-select\)[\s\S]*?background: var\(--background\);[\s\S]*?box-shadow: none;/,
   );
 });
 

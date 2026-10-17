@@ -58,7 +58,7 @@
     padding: 8px 12px;
     cursor: pointer;
     text-align: left;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
   }
   .banner-header:hover {

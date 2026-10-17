@@ -143,8 +143,8 @@
     min-height: 100px;
     max-height: 191px;
     overflow: hidden;
-    background: var(--surface);
-    color: var(--text);
+    background: var(--card);
+    color: var(--card-foreground);
   }
 
   .quick-drag-region {
@@ -171,7 +171,7 @@
     justify-content: center;
     border: 0;
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     cursor: pointer;
     outline: none;
   }
@@ -179,7 +179,7 @@
   .pick-workspace:hover:not(:disabled),
   .pick-workspace:focus-visible {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   .pick-workspace:focus-visible {
@@ -232,7 +232,7 @@
   }
 
   .composer-slot :global(.input::placeholder) {
-    color: color-mix(in srgb, var(--text-muted) 75%, transparent);
+    color: color-mix(in srgb, var(--muted-foreground) 75%, transparent);
   }
 
   .composer-slot :global(.attachment-list) {
@@ -270,7 +270,7 @@
     min-width: 0;
     grid-template-columns: minmax(0, 1fr);
     align-items: center;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
 
   .quick-select > svg {
@@ -308,7 +308,7 @@
     padding: 4px 8px;
     background: transparent;
     box-shadow: none;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
   }
 
@@ -320,11 +320,11 @@
   .quick-select :global(.quick-select-trigger:focus-visible),
   .quick-select :global(.quick-select-trigger[data-state="open"]) {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   :global(.quick-select-content) {
-    background: var(--surface);
+    background: var(--card);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
     max-height: min(286px, var(--bits-select-content-available-height, 286px));
@@ -343,7 +343,7 @@
     width: 30px;
     height: 30px;
     flex: 0 0 30px;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
   }
 
   .pick-workspace:disabled {

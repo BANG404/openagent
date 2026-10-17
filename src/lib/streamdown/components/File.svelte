@@ -158,10 +158,10 @@
     gap: 4px;
     padding: 1px 7px 1px 6px;
     margin: 0 2px;
-    border-radius: 5px;
+    border-radius: calc(var(--radius) * 0.416667);
     border: 1px solid var(--border);
-    background: var(--surface2);
-    color: var(--text);
+    background: var(--muted);
+    color: var(--foreground);
     font-size: 0.92em;
     line-height: 1.3;
     cursor: pointer;
@@ -180,21 +180,21 @@
     cursor: not-allowed;
   }
   .file-ref svg {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     flex-shrink: 0;
     transform: translateY(1px);
   }
   .name {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
     font-size: 0.94em;
   }
   .lines {
-    color: var(--text-muted);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--muted-foreground);
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
     font-size: 0.88em;
   }
   .dir {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 0.8em;
     margin-left: 2px;
   }
@@ -210,9 +210,9 @@
     max-height: 320px;
     overflow: hidden;
     border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface);
-    color: var(--text);
+    border-radius: calc(var(--radius) * 0.666667);
+    background: var(--card);
+    color: var(--card-foreground);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
     text-align: left;
   }
@@ -221,15 +221,15 @@
   .preview-status {
     display: block;
     padding: 7px 10px;
-    color: var(--text-muted);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--muted-foreground);
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
     font-size: 11px;
   }
 
   .preview-heading {
     overflow: hidden;
     border-bottom: 1px solid var(--border);
-    background: var(--surface2);
+    background: var(--muted);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -238,14 +238,14 @@
     display: block;
     overflow: auto;
     padding: 5px 0;
-    background: var(--bg);
+    background: var(--background);
   }
 
   .preview-row {
     display: grid;
     grid-template-columns: 46px minmax(0, 1fr);
     min-width: max-content;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
     font-size: 11px;
     line-height: 1.55;
   }
@@ -253,7 +253,7 @@
   .preview-line {
     padding: 0 8px;
     border-right: 1px solid var(--border);
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     text-align: right;
     user-select: none;
   }
@@ -264,6 +264,6 @@
   }
 
   .preview-error {
-    color: var(--danger, #dc2626);
+    color: var(--destructive, #dc2626);
   }
 </style>

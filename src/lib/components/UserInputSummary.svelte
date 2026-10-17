@@ -69,16 +69,16 @@
     margin: 8px 0;
     padding: 8px 10px;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
     background: transparent;
-    color: var(--text);
+    color: var(--foreground);
     font-size: 13px;
     box-shadow: none;
   }
 
   .user-input-summary.cancelled {
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
 
   .summary-head {
@@ -99,8 +99,8 @@
     flex-shrink: 0;
     padding: 2px 7px;
     border-radius: 999px;
-    background: var(--surface2);
-    color: var(--text-muted);
+    background: var(--muted);
+    color: var(--muted-foreground);
     border: 0;
     font-size: 11px;
     line-height: 1.3;
@@ -108,7 +108,7 @@
 
   .summary-desc {
     margin: 0;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
     line-height: 1.5;
     white-space: pre-wrap;
@@ -128,13 +128,13 @@
   }
 
   .summary-label {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
     overflow-wrap: anywhere;
   }
 
   .summary-value {
-    color: var(--text);
+    color: var(--foreground);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }

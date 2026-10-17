@@ -41,7 +41,7 @@
     margin: 0;
     padding: 0 32px;
     transform: translateY(-100%);
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     text-align: center;
     pointer-events: none;
   }

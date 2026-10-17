@@ -181,9 +181,9 @@
     box-sizing: border-box;
     background: var(--mica-surface);
     border: 1px solid var(--mica-border);
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     padding: 6px 12px;
-    color: var(--text);
+    color: var(--popover-foreground);
     font-size: 13px;
     font-family: inherit;
     text-align: left;
@@ -225,7 +225,7 @@
     cursor: not-allowed;
   }
   :global(.ui-select-value.placeholder) {
-    color: var(--text-muted, #888);
+    color: var(--muted-foreground, #888);
   }
   :global(.ui-select-value) {
     display: flex;
@@ -245,7 +245,7 @@
     width: 22px;
     height: 22px;
     flex: 0 0 22px;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     background: #fff;
     color: #475569;
     box-shadow: 0 0 0 1px rgb(15 23 42 / 8%);
@@ -263,7 +263,7 @@
     width: 14px;
     height: 14px;
     flex-shrink: 0;
-    color: var(--text-muted, #888);
+    color: var(--muted-foreground, #888);
     transition: transform var(--motion-fast) var(--ease-standard);
   }
   :global(.ui-select-trigger[data-state="open"] .ui-select-caret) {
@@ -307,11 +307,11 @@
     gap: 2px;
   }
   :global(.ui-select-item-description) {
-    color: var(--text-muted, #888);
+    color: color-mix(in srgb, var(--menu-foreground) 65%, transparent);
     font-size: var(--menu-item-description-size);
     line-height: var(--menu-item-description-line-height);
   }
   :global(.ui-select-item[data-selected] .ui-select-item-description) {
-    color: var(--text-muted, #888);
+    color: color-mix(in srgb, var(--menu-accent-foreground) 75%, transparent);
   }
 </style>

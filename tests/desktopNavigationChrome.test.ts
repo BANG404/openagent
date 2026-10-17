@@ -133,7 +133,7 @@ describe("desktop navigation chrome", () => {
     expect(appCss).toContain("--column-resize-hit-width: 8px");
     expect(appCss).toContain("--column-resize-indicator-width: 2px");
     expect(appCss).toContain("--column-resize-indicator-opacity: 0.7");
-    expect(sidebar).toMatch(/\.sidebar\s*{[^}]*background: transparent;/s);
+    expect(sidebar).toMatch(/\.sidebar\s*{[^}]*background: var\(--sidebar\);/s);
     expect(sidebar).toContain("padding-top: var(--desktop-titlebar-height)");
     expect(sidebar).toContain('{#if platform !== "macos"}');
     const menuBar = await readFile(new URL("ApplicationMenuBar.svelte", componentsUrl), "utf8");
@@ -164,7 +164,7 @@ describe("desktop navigation chrome", () => {
     );
     expect(conversationWorkspace).toContain("background: transparent");
     expect(conversationWorkspace).not.toContain("box-shadow");
-    expect(conversationStage).toContain("border-radius: 12px");
+    expect(conversationStage).toContain("border-radius: var(--radius)");
     expect(conversationSurface).toContain('class="conversation-stage bg-conversation-surface"');
     expect(conversationSurface).not.toContain(".conversation-stage::before");
     expect(conversationStage).not.toContain("box-shadow");
@@ -174,7 +174,7 @@ describe("desktop navigation chrome", () => {
     expect(titleBar).not.toContain("workspace.git_branch");
     expect(titleBar).not.toContain("backdrop-filter");
     expect(workspaceSwitcher).toMatch(
-      /\.composer-workspace-btn\)\s*{[^}]*padding: 5px 8px;[^}]*color: var\(--text-muted\);/s,
+      /\.composer-workspace-btn\)\s*{[^}]*padding: 5px 8px;[^}]*color: var\(--muted-foreground\);/s,
     );
     expect(workspaceSwitcher).toContain("interactive-control workspace-btn");
   });
@@ -185,18 +185,18 @@ describe("desktop navigation chrome", () => {
     const flowPanel = await readFile(new URL("CheckpointFlowStatus.svelte", componentsUrl), "utf8");
     const nativeMaterialTokens = appCss.match(/html\.native-window-material\s*{([^}]*)}/s)?.[1];
 
-    expect(nativeMaterialTokens).toContain("--bg: transparent");
+    expect(nativeMaterialTokens).toContain("--background: transparent");
     expect(nativeMaterialTokens).toContain("--app-chrome-bg: transparent");
-    expect(nativeMaterialTokens).toContain("--sidebar-bg: transparent");
+    expect(nativeMaterialTokens).toContain("--sidebar: transparent");
     expect(appCss).toMatch(
-      /html\.macos-window,\s*html\.macos-window body\s*{[^}]*border-radius: var\(--app-radius\);[^}]*overflow: hidden;/s,
+      /html\.macos-window,\s*html\.macos-window body\s*{[^}]*border-radius: var\(--radius\);[^}]*overflow: hidden;/s,
     );
     expect(appCss).toMatch(
-      /html\.macos-window body\s*{[^}]*clip-path: inset\(0 round var\(--app-radius\)\);/s,
+      /html\.macos-window body\s*{[^}]*clip-path: inset\(0 round var\(--radius\)\);/s,
     );
     expect(route).toContain('document.documentElement.classList.add("macos-window")');
     expect(appCss).toMatch(
-      /html\.native-window-material \.flow-panel-surface\s*{[^}]*background: var\(--surface\);[^}]*backdrop-filter: none;/s,
+      /html\.native-window-material \.flow-panel-surface\s*{[^}]*background: var\(--card\);[^}]*backdrop-filter: none;/s,
     );
     expect(flowPanel).not.toContain("backdrop-filter");
     expect(route).toMatch(/\.app\s*{[^}]*background: transparent;/s);
@@ -206,9 +206,7 @@ describe("desktop navigation chrome", () => {
 
     expect(settings).toMatch(/\.settings-panel\s*{[^}]*background: transparent;/s);
     const fullscreenSurface = await readFile(fullscreenSurfaceUrl, "utf8");
-    expect(fullscreenSurface).toMatch(
-      /\.fullscreen-surface\)\s*{[^}]*background: var\(--surface\);/s,
-    );
+    expect(fullscreenSurface).toMatch(/\.fullscreen-surface\)\s*{[^}]*background: var\(--card\);/s);
     expect(fullscreenSurface).toContain("backdrop-filter: blur(2px)");
     expect(onboarding).toContain('class="application-settings-surface step-content"');
     expect(onboarding).toMatch(/\.step-content\s*{[^}]*background: var\(--mica-surface\);/s);
@@ -325,7 +323,7 @@ describe("desktop navigation chrome", () => {
     const fullscreenSurface = await readFile(fullscreenSurfaceUrl, "utf8");
 
     expect(fullscreenSurface).toMatch(
-      /\.fullscreen-surface-backdrop\)\s*{[^}]*z-index: 80;[^}]*background: color-mix\(in srgb, var\(--bg\) 42%, transparent\);/s,
+      /\.fullscreen-surface-backdrop\)\s*{[^}]*z-index: 80;[^}]*background: color-mix\(in srgb, var\(--background\) 42%, transparent\);/s,
     );
     expect(fullscreenSurface).toMatch(/\.fullscreen-surface\)\s*{[^}]*z-index: 81;/s);
     expect(dialogs).toMatch(/\.dialog-overlay\)\s*{[^}]*z-index: 100;/s);
@@ -674,7 +672,7 @@ describe("desktop navigation chrome", () => {
     expect(collapsedPanelShell).not.toContain("display: none;");
     expect(panelShell).toContain("margin-left: var(--flow-panel-gap)");
     expect(panel).toMatch(
-      /\.flow-panel-surface\s*{[^}]*border-radius: 0 12px 12px 0;[^}]*background: var\(--surface\);/s,
+      /\.flow-panel-surface\s*{[^}]*border-radius: 0 var\(--radius\) var\(--radius\) 0;[^}]*background: var\(--card\);/s,
     );
     expect(panelShell).not.toContain("border:");
     expect(panelShell).not.toContain("box-shadow:");

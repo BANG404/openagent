@@ -35,10 +35,10 @@
     overflow-y: auto;
     resize: none;
     scrollbar-gutter: stable;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     padding: 8px 12px;
     background: var(--mica-surface);
-    color: var(--text);
+    color: var(--popover-foreground);
     font-family: inherit;
     font-size: 13px;
     line-height: 1.5;

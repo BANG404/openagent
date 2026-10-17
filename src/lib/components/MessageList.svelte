@@ -516,9 +516,9 @@
     margin: 0 0 18px;
     padding: 7px 9px;
     border: 1px dashed color-mix(in srgb, var(--warning, #d99000) 55%, var(--border));
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     background: color-mix(in srgb, var(--warning, #d99000) 8%, transparent);
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 10px;
     line-height: 1.35;
   }
@@ -526,10 +526,10 @@
   .checkpoint-load-error {
     margin: 0 0 18px;
     padding: 10px 12px;
-    border: 1px solid color-mix(in srgb, var(--danger, #c33) 55%, var(--border));
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--danger, #c33) 8%, transparent);
-    color: var(--text);
+    border: 1px solid color-mix(in srgb, var(--destructive, #c33) 55%, var(--border));
+    border-radius: calc(var(--radius) * 0.666667);
+    background: color-mix(in srgb, var(--destructive, #c33) 8%, transparent);
+    color: var(--foreground);
     font-size: 13px;
     line-height: 1.45;
   }
@@ -545,9 +545,9 @@
     margin-left: auto;
     padding: 4px 7px;
     border: 0;
-    border-radius: 4px;
+    border-radius: calc(var(--radius) * 0.333333);
     background: var(--component-neutral-bg);
-    color: var(--text);
+    color: var(--foreground);
     font: inherit;
     cursor: pointer;
   }
@@ -598,7 +598,7 @@
     border: 0;
     border-radius: 999px;
     background: transparent;
-    color: var(--text);
+    color: var(--foreground);
     cursor: pointer;
     transition: transform var(--motion-fast) var(--ease-standard);
   }
@@ -619,7 +619,7 @@
     height: 1px;
     margin-right: 0;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--text-muted) 64%, transparent);
+    background: color-mix(in srgb, var(--muted-foreground) 64%, transparent);
     transition:
       width var(--motion-fast) var(--ease-standard),
       background var(--motion-fast) var(--ease-standard),
@@ -629,7 +629,7 @@
   .user-message-index button:hover .index-mark,
   .user-message-index button:focus-visible .index-mark {
     width: 28px;
-    background: var(--text-muted);
+    background: var(--muted-foreground);
     transform: scaleY(1.6);
   }
 
@@ -648,7 +648,7 @@
     align-items: center;
     gap: 6px;
     padding: 5px 10px;
-    color: var(--text);
+    color: var(--foreground);
     font: inherit;
     font-size: 12px;
     line-height: 18px;

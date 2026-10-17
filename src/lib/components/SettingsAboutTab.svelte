@@ -42,7 +42,7 @@
 
   .about-app-name {
     margin: 0;
-    color: var(--text);
+    color: var(--foreground);
     font-weight: 600;
   }
 
@@ -56,7 +56,7 @@
     gap: 12px;
     padding: 48px 24px;
     text-align: center;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
 
   .about-contact {
@@ -81,6 +81,6 @@
   .about-logo-img {
     width: 64px;
     height: 64px;
-    border-radius: 14px;
+    border-radius: calc(var(--radius) * 1.166667);
   }
 </style>

@@ -758,15 +758,15 @@
     place-items: center;
     padding: 0;
     border: 0;
-    border-radius: 6px;
-    color: var(--text-muted);
+    border-radius: calc(var(--radius) * 0.5);
+    color: var(--muted-foreground);
     background: transparent;
     cursor: help;
   }
 
   .context-usage-trigger:hover,
   .context-usage-trigger:focus-visible {
-    color: var(--text);
+    color: var(--accent-foreground);
     background: var(--interactive-state-bg);
     outline: none;
   }
@@ -818,7 +818,7 @@
     border: none;
     border-radius: 0;
     padding: var(--composer-input-padding);
-    color: var(--text);
+    color: var(--foreground);
     font-family: inherit;
     font-size: var(--app-font-size, 14px);
     resize: none;
@@ -833,13 +833,13 @@
   .input-editor {
     position: relative;
     z-index: 1;
-    caret-color: var(--text);
+    caret-color: var(--foreground);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }
 
   .input-editor.input-editor-empty::before {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     content: attr(data-placeholder);
     pointer-events: none;
   }
@@ -888,7 +888,7 @@
     border: 0;
     border-radius: 50%;
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     padding: 0;
   }
 
@@ -903,7 +903,7 @@
     border: 0;
     border-radius: var(--composer-control-radius);
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     padding: 0;
     cursor: pointer;
   }
@@ -912,7 +912,7 @@
   .format-toggle-active,
   .format-btn:hover:not(:disabled) {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   .format-toggle:focus-visible,
@@ -935,7 +935,7 @@
 
   .attach-btn:hover:not(:disabled) {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   :global(.composer-model-trigger) {
@@ -950,14 +950,14 @@
     box-shadow: none;
     padding: 5px 8px;
     font-size: 12px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   :global(.composer-model-trigger:hover:not(:disabled)) {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   :global(.composer-model-trigger:focus-visible) {
@@ -968,7 +968,7 @@
   :global(.composer-model-trigger[data-state="open"]) {
     box-shadow: none;
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   :global(.composer-approval-trigger) {
@@ -996,7 +996,7 @@
     width: var(--composer-control-size);
     height: var(--composer-control-size);
     background: var(--primary);
-    color: white;
+    color: var(--primary-foreground);
     border: none;
     border-radius: var(--composer-control-radius);
     padding: 0;
@@ -1030,8 +1030,8 @@
     bottom: var(--composer-send-inset);
     width: var(--composer-control-size);
     height: var(--composer-control-size);
-    background: var(--surface2);
-    color: var(--text-muted);
+    background: var(--muted);
+    color: var(--muted-foreground);
     border: 0;
     border-radius: var(--composer-control-radius);
     padding: 0;
@@ -1053,7 +1053,7 @@
 
   .stop-btn:hover {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   .stop-btn:active {

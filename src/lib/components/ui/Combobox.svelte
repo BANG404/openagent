@@ -104,9 +104,9 @@
     box-sizing: border-box;
     background: var(--mica-surface);
     border: 1px solid var(--mica-border);
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     padding: 6px 36px 6px 12px;
-    color: var(--text);
+    color: var(--popover-foreground);
     font-size: 13px;
     font-family: inherit;
     outline: none;
@@ -116,7 +116,7 @@
     transition: box-shadow var(--motion-panel) var(--ease-standard);
   }
   :global(.ui-combobox-input::placeholder) {
-    color: var(--text-muted, #888);
+    color: var(--muted-foreground, #888);
   }
   :global(.ui-combobox-input:focus),
   :global(.ui-combobox-input[data-state="open"]) {
@@ -134,8 +134,8 @@
     justify-content: center;
     background: transparent;
     border: none;
-    border-radius: 6px;
-    color: var(--text-muted, #888);
+    border-radius: calc(var(--radius) * 0.5);
+    color: var(--muted-foreground, #888);
     cursor: pointer;
     transition:
       background var(--motion-fast) var(--ease-standard),
@@ -164,7 +164,7 @@
     padding: var(--menu-item-padding-block) var(--menu-item-padding-inline);
     font-size: var(--menu-item-font-size);
     line-height: var(--menu-item-line-height);
-    color: var(--text-muted, #888);
+    color: var(--muted-foreground, #888);
     text-align: center;
   }
   :global(.ui-combobox-item) {

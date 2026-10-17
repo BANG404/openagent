@@ -139,9 +139,9 @@
     gap: 8px;
     padding: 8px;
     border: 0;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     background: transparent;
-    color: var(--text);
+    color: var(--foreground);
     text-align: left;
     cursor: pointer;
   }
@@ -156,7 +156,7 @@
   :global(.file-panel .file-row:active:not(:disabled)) {
     background: color-mix(
       in srgb,
-      var(--text) calc(var(--interactive-state-opacity) * 2),
+      var(--foreground) calc(var(--interactive-state-opacity) * 2),
       transparent
     );
   }
@@ -179,7 +179,7 @@
       monospace;
   }
   .file-copy small {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 10px;
     line-height: 1.3;
     font-weight: 400;
@@ -196,7 +196,7 @@
   .file-icon,
   .file-chevron,
   .change-kind {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
   .file-chevron {
     transition: transform var(--motion-panel) var(--ease-standard);
@@ -215,7 +215,7 @@
     flex-wrap: wrap;
     gap: 4px 8px;
     padding: 0 8px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 10px;
   }
   @container (max-width: 220px) {

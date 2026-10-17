@@ -32,22 +32,22 @@
     padding: 10px 14px 12px;
     border: 1px solid var(--border);
     border-left: 3px solid var(--accent);
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     background: color-mix(in srgb, var(--bg-conversation-component) 88%, var(--accent));
-    color: var(--text);
+    color: var(--foreground);
   }
   .plugin-message-header {
     display: flex;
     align-items: center;
     gap: 6px;
     margin-bottom: 7px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
     letter-spacing: 0;
     text-transform: uppercase;
   }
   .plugin-message-header strong {
-    color: var(--text);
+    color: var(--foreground);
     font-weight: 650;
     text-transform: none;
   }

@@ -75,26 +75,26 @@
     display: grid;
     place-items: center;
     overflow: hidden;
-    border-radius: 6px;
-    background: var(--surface);
+    border-radius: calc(var(--radius) * 0.5);
+    background: var(--card);
   }
   img {
     display: block;
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
-    border-radius: 6px;
-    background: var(--surface);
+    border-radius: calc(var(--radius) * 0.5);
+    background: var(--card);
   }
   .image-skeleton {
     width: 100%;
     height: 100%;
-    border-radius: 6px;
-    background: var(--surface);
+    border-radius: calc(var(--radius) * 0.5);
+    background: var(--card);
   }
   span {
     display: block;
     padding: 12px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
 </style>

@@ -51,7 +51,7 @@
     gap: 10px;
     width: 100%;
     margin: 22px 0;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
   }
   .divider-line {
@@ -76,7 +76,7 @@
     white-space: nowrap;
   }
   .message-divider.danger {
-    color: var(--danger, #dc2626);
+    color: var(--destructive, #dc2626);
   }
   .message-divider.danger .divider-content {
     align-items: flex-start;
@@ -108,12 +108,12 @@
     text-decoration: underline;
   }
   .detail-toggle:focus-visible {
-    border-radius: 3px;
+    border-radius: calc(var(--radius) * 0.25);
     box-shadow: var(--focus-ring);
     outline: none;
   }
   .message-divider.danger .divider-line {
-    background: color-mix(in srgb, var(--danger, #dc2626) 35%, transparent);
+    background: color-mix(in srgb, var(--destructive, #dc2626) 35%, transparent);
   }
   .message-record {
     content-visibility: auto;

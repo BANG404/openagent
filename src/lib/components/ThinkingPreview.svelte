@@ -122,7 +122,7 @@
     padding: 16px 32px;
   }
   button {
-    color: var(--text);
-    background: var(--surface);
+    color: var(--card-foreground);
+    background: var(--card);
   }
 </style>

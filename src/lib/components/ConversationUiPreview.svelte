@@ -147,7 +147,7 @@
     max-width: 880px;
     padding: 32px;
     margin: 0 auto;
-    color: var(--text);
+    color: var(--foreground);
   }
   .controls {
     display: flex;
@@ -157,9 +157,9 @@
   button {
     font: inherit;
     border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--text);
-    border-radius: var(--app-radius);
+    background: var(--card);
+    color: var(--card-foreground);
+    border-radius: var(--radius);
     padding: 8px 12px;
   }
 </style>

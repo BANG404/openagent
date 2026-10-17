@@ -42,12 +42,12 @@
     min-height: 34px;
     padding: 8px 10px;
     border-top: 1px solid var(--border);
-    background: color-mix(in srgb, var(--primary) 4%, var(--surface));
+    background: color-mix(in srgb, var(--primary) 4%, var(--card));
   }
 
   .tool-approval-label {
     font-size: 11px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
 
   .tool-approval-actions {
@@ -58,7 +58,7 @@
 
   button {
     padding: 5px 10px;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     font: inherit;
     font-size: 11px;
     cursor: pointer;
@@ -70,13 +70,13 @@
   }
 
   .tool-approval-deny {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     border: 1px solid var(--border);
     background: transparent;
   }
 
   .tool-approval-approve {
-    color: white;
+    color: var(--primary-foreground);
     border: 1px solid transparent;
     background: var(--primary);
   }

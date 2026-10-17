@@ -73,14 +73,24 @@ resolved light/dark map. For example:
     "openagent": {
       "type": "theme",
       "compatibility": {
-        "plugin_protocol": {"min": 1, "max": 1},
+        "plugin_protocol": { "min": 1, "max": 1 },
         "features": ["theme-v1"]
       },
       "theme": {
         "version": 1,
-        "tokens": {"--app-radius": "20px", "--plugin-card-radius": "18px"},
-        "light": {"--primary": "#663399", "--bg": "#fffaf5", "--surface": "#fffaf5"},
-        "dark": {"--primary": "#cc99ff", "--bg": "#211b29", "--surface": "#211b29"}
+        "tokens": { "--radius": "20px", "--plugin-card-radius": "18px" },
+        "light": {
+          "--primary": "#663399",
+          "--primary-foreground": "#ffffff",
+          "--background": "#fffaf5",
+          "--card": "#fffaf5"
+        },
+        "dark": {
+          "--primary": "#cc99ff",
+          "--primary-foreground": "#211b29",
+          "--background": "#211b29",
+          "--card": "#211b29"
+        }
       }
     }
   }
@@ -94,15 +104,19 @@ bytes, and cannot contain control characters, declaration separators, braces,
 markup, escapes, comments, `url(`, `expression(`, or `!important`. A theme must
 provide its configuration; other types cannot declare a theme. The SDK validates
 and projects these maps; clients apply them as document-root custom properties.
-Use the existing `app.css` design variables for colors, surfaces, borders,
-radii, spacing, and motion. No executable stylesheet or remote asset is loaded.
+Use the semantic `app.css` design variables for colors, matching foregrounds,
+surfaces, borders, radii, spacing, and motion. Existing theme-v1 legacy color
+names normalize at the frontend input boundary; explicit semantic names win.
+No executable stylesheet or remote asset is loaded. The design-system
+[semantic theme contract](../../openagent-design-system/references/semantic-themes.md)
+owns shadcn/create recipes, offline fonts and the theme package generator.
 
 Settings → General → Appearance selects one installed theme or OpenAgent default.
 Selection enables that package; other enabled themes do not affect presentation.
 The selected, enabled, valid theme overlays the application's existing design,
 with common tokens followed by the resolved light/dark map. Saved user overrides
-apply last. Declare `--bg` to paint the window canvas as well as any desired
-`--surface` content color. Explicit canvas colors take precedence over native
+apply last. Declare `--background` to paint the window canvas as well as any desired
+`--card` content color. Explicit canvas colors take precedence over native
 background transparency; user background overrides still win over package colors.
 Disablement, uninstall, refresh and update rebuild the overlay;
 absent tokens restore their original inline value or the ordinary stylesheet.
@@ -499,5 +513,5 @@ metadata and continue loading the package, so plugin protocol 1 is unchanged.
 Declare it inside the OpenAgent extension, for example:
 
 ```json
-{"extensions":{"openagent":{"category":"development"}}}
+{ "extensions": { "openagent": { "category": "development" } } }
 ```

@@ -1,10 +1,11 @@
 import type { AgentPluginSummary, AppConfig, ThemeColors, ThemeOverrides } from "$lib/types";
+import { accentForeground, resolveThemeTokens } from "$lib/themeTokens";
 
 export const THEME_FONTS: Record<string, string> = {
   system: 'system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif',
-  sans: '"Inter", "Segoe UI", sans-serif',
+  sans: '"Inter Variable", "Inter", "Segoe UI", sans-serif',
   serif: 'Georgia, "Songti SC", "SimSun", serif',
-  mono: '"JetBrains Mono", "Cascadia Code", Consolas, monospace',
+  mono: '"JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code", Consolas, monospace',
 };
 
 export function normalizeThemeOverrides(input?: Partial<ThemeOverrides>): ThemeOverrides {
@@ -39,7 +40,7 @@ export function usesNativeBackground(
   overrides: ThemeOverrides | undefined,
   tokens: Record<string, string>,
 ): boolean {
-  return overrides?.opaque_background !== true && !tokens["--bg"];
+  return overrides?.opaque_background !== true && !tokens["--background"] && !tokens["--bg"];
 }
 
 export function integrationPlugins(plugins: AgentPluginSummary[]): AgentPluginSummary[] {
@@ -76,36 +77,41 @@ export function appearanceTokens(
   config: Pick<AppConfig, "theme_plugin" | "theme_overrides" | "agent_plugins_enabled"> | null,
   dark = false,
 ): Record<string, string> {
-  const tokens = pluginThemeTokens(
-    plugins,
-    config?.agent_plugins_enabled,
-    dark,
-    config?.theme_plugin,
+  const tokens = resolveThemeTokens(
+    pluginThemeTokens(plugins, config?.agent_plugins_enabled, dark, config?.theme_plugin),
   );
   const overrides = normalizeThemeOverrides(config?.theme_overrides);
   const colors = dark ? overrides.dark : overrides.light;
   if (colors.accent) {
     tokens["--primary"] = colors.accent;
-    tokens["--primary-hover"] = `color-mix(in srgb, ${colors.accent} 85%, var(--text))`;
+    tokens["--primary-foreground"] = accentForeground(colors.accent);
+    tokens["--primary-hover"] = `color-mix(in srgb, ${colors.accent} 85%, var(--foreground))`;
   }
   if (colors.background) {
     for (const key of [
-      "--bg",
-      "--surface",
+      "--background",
+      "--card",
+      "--popover",
       "--app-chrome-bg",
       "--mica-surface",
       "--floating-surface",
       "--control-surface",
     ])
       tokens[key] = colors.background;
-    for (const key of ["--surface2", "--sidebar-bg", "--component-neutral-bg"])
-      tokens[key] = `color-mix(in srgb, ${colors.background} 96%, var(--text))`;
+    for (const key of ["--muted", "--sidebar", "--component-neutral-bg"])
+      tokens[key] = `color-mix(in srgb, ${colors.background} 96%, var(--foreground))`;
   }
   if (colors.foreground) {
-    tokens["--text"] = colors.foreground;
-    tokens["--text-muted"] = `color-mix(in srgb, ${colors.foreground} 60%, var(--surface))`;
+    tokens["--foreground"] = colors.foreground;
+    tokens["--card-foreground"] = colors.foreground;
+    tokens["--popover-foreground"] = colors.foreground;
+    tokens["--sidebar-foreground"] = colors.foreground;
+    tokens["--muted-foreground"] = `color-mix(in srgb, ${colors.foreground} 60%, var(--card))`;
   }
-  if (overrides.font_family) tokens["--app-font-family"] = THEME_FONTS[overrides.font_family];
+  if (overrides.font_family) {
+    tokens["--font-sans"] = THEME_FONTS[overrides.font_family];
+    tokens["--app-font-family"] = THEME_FONTS[overrides.font_family];
+  }
   if (overrides.ui_font_size) tokens["--app-font-size"] = `${overrides.ui_font_size}px`;
   if (overrides.code_font_size) tokens["--code-font-size"] = `${overrides.code_font_size}px`;
   return tokens;

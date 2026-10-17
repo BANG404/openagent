@@ -9,6 +9,7 @@
   } from "echarts/components";
   import type { ComposeOption, ECharts } from "echarts/core";
   import type { Value } from "../parser";
+  import { observeThemePalette, readThemePalette } from "../themePalette";
 
   type ChartType = "bar" | "line" | "pie";
   type ChartOption = ComposeOption<
@@ -35,6 +36,8 @@
   let echartsModule: typeof import("../echartsRuntime") | null = null;
   let chartIsDark: boolean | null = null;
   let resizeObs: ResizeObserver | null = null;
+  let themeRevision = $state(0);
+  let stopThemeObserver: (() => void) | undefined;
 
   const type = $derived<ChartType>(args.type === "line" || args.type === "pie" ? args.type : "bar");
   const title = $derived(typeof args.title === "string" ? args.title : "");
@@ -45,10 +48,23 @@
     typeof args.height === "number" ? args.height : type === "pie" ? 320 : 300,
   );
 
+  function currentPalette(dark: boolean) {
+    const fallback = dark
+      ? { foreground: "#e2e8f0", "muted-foreground": "#8892a4", border: "#2d3148", card: "#1a1d27" }
+      : {
+          foreground: "#1d1d1f",
+          "muted-foreground": "#6e6e73",
+          border: "#d8d8df",
+          card: "#ffffff",
+        };
+    return { ...fallback, ...readThemePalette() };
+  }
+
   function buildOption(dark: boolean) {
-    const textColor = dark ? "#e2e8f0" : "#1d1d1f";
-    const axisColor = dark ? "#8892a4" : "#6e6e73";
-    const gridColor = dark ? "#2d3148" : "#d8d8df";
+    const palette: Record<string, string> = currentPalette(dark);
+    const textColor = palette.foreground;
+    const axisColor = palette["muted-foreground"];
+    const gridColor = palette.border;
 
     // Vertical layout: [title] [legend] [chart body]
     // title sits at top:8; legend sits below it; chart grid sits below legend.
@@ -68,6 +84,8 @@
       : undefined;
 
     const base: ChartOption = {
+      color: Array.from({ length: 5 }, (_, i) => palette[`chart-${i + 1}`]).filter(Boolean),
+      backgroundColor: "transparent",
       title: titleOpt,
       tooltip: { trigger: type === "pie" ? "item" : "axis", confine: true },
       legend: {
@@ -78,7 +96,7 @@
         icon: "roundRect",
       },
       grid: { left: 12, right: 16, top: bodyTop, bottom: 30, containLabel: true },
-      textStyle: { color: textColor },
+      textStyle: { color: textColor, fontFamily: palette.font },
     };
 
     if (type === "pie") {
@@ -99,7 +117,7 @@
             data: pieData,
             label: { color: textColor, formatter: "{b}\n{d}%" },
             labelLine: { length: 10, length2: 8 },
-            itemStyle: { borderColor: dark ? "#1a1d27" : "#fff", borderWidth: 2 },
+            itemStyle: { borderColor: palette.card, borderWidth: 2 },
           },
         ],
       };
@@ -139,6 +157,7 @@
   }
 
   onMount(async () => {
+    stopThemeObserver = observeThemePalette(() => themeRevision++);
     if (!container) return;
     echartsModule = await import("../echartsRuntime");
     chart = echartsModule.initializeChart(container, isDark ? "dark" : undefined, {
@@ -151,6 +170,7 @@
   });
 
   $effect(() => {
+    void themeRevision;
     const dark = isDark;
     const option = buildOption(dark);
     if (!chart || !container || !echartsModule) return;
@@ -165,6 +185,7 @@
   });
 
   onDestroy(() => {
+    stopThemeObserver?.();
     resizeObs?.disconnect();
     chart?.dispose();
     chart = null;
@@ -181,9 +202,9 @@
   .chart-card {
     margin: 12px 0;
     padding: 8px;
-    border-radius: 10px;
+    border-radius: calc(var(--radius) * 0.833333);
     border: 1px solid var(--border);
-    background: var(--surface);
+    background: var(--card);
   }
   .chart-canvas {
     width: 100%;

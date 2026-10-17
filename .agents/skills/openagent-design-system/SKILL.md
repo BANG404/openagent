@@ -7,5 +7,5 @@ metadata:
 
 # OpenAgent design system
 
-Read the matching visual, component, responsive, motion, or DESIGN.md reference.
-Reuse shared Bits UI components and tokens; verify light/dark and Chinese/English.
+Read matching references and [semantic themes](references/semantic-themes.md).
+Reuse Bits UI and shared tokens. Verify light/dark and Chinese/English.

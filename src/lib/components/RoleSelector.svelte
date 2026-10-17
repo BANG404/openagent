@@ -136,9 +136,9 @@
     box-sizing: border-box;
     padding: 6px 8px;
     border: 0;
-    border-radius: 7px;
+    border-radius: calc(var(--radius) * 0.583333);
     background: transparent;
-    color: var(--text);
+    color: var(--foreground);
     font: inherit;
     cursor: pointer;
     outline: none;
@@ -151,12 +151,12 @@
     justify-content: center;
     gap: 0;
     padding: 0;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
   :global(.role-selector-trigger.compact:hover),
   :global(.role-selector-trigger.compact:focus-visible),
   :global(.role-selector-trigger.compact[data-state="open"]) {
-    color: var(--text);
+    color: var(--foreground);
   }
   :global(.role-selector-trigger.header) {
     width: auto;
@@ -192,7 +192,7 @@
   }
   .role-selector-label {
     flex: none;
-    color: var(--text);
+    color: var(--foreground);
   }
   .role-selector-name {
     min-width: 0;
@@ -205,7 +205,7 @@
     width: 13px;
     height: 13px;
     flex: 0 0 13px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
   .role-selector-caret path {
     fill: none;
@@ -234,7 +234,7 @@
     width: min(max(var(--bits-select-anchor-width), 240px), calc(100vw - 24px));
   }
   .role-selector-search-wrap svg {
-    stroke: var(--text-muted);
+    stroke: var(--muted-foreground);
     stroke-width: 1.5;
     stroke-linecap: round;
   }
@@ -258,7 +258,7 @@
   .role-selector-item-description {
     display: block;
     overflow: hidden;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: var(--menu-item-description-size);
     line-height: var(--menu-item-description-line-height);
     text-overflow: ellipsis;

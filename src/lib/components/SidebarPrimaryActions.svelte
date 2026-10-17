@@ -145,7 +145,7 @@
     border-radius: var(--list-item-compact-radius);
     padding: 4px var(--list-item-compact-padding-inline);
     background: transparent;
-    color: var(--text);
+    color: var(--foreground);
     font: inherit;
     font-size: var(--list-item-compact-font-size);
     line-height: var(--list-item-compact-line-height);
@@ -170,7 +170,7 @@
   }
 
   .sidebar-primary-action:active {
-    background: color-mix(in srgb, var(--surface2) 78%, var(--text) 6%);
+    background: color-mix(in srgb, var(--muted) 78%, var(--foreground) 6%);
   }
 
   .sidebar-primary-action > svg,
@@ -187,14 +187,14 @@
     border: 0;
     outline: 0;
     background: transparent;
-    color: var(--text);
+    color: var(--foreground);
     font: inherit;
     font-size: var(--list-item-compact-font-size);
     line-height: var(--list-item-compact-line-height);
   }
 
   .sidebar-search-row input::placeholder {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
 
   .clear-search {
@@ -205,15 +205,15 @@
     flex: 0 0 22px;
     padding: 0;
     border: 0;
-    border-radius: 5px;
+    border-radius: calc(var(--radius) * 0.416667);
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     cursor: pointer;
   }
 
   .clear-search:hover {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   .clear-search svg {

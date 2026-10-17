@@ -100,7 +100,7 @@
   .image-storage-preview {
     min-height: 1600px;
     padding: 32px;
-    color: var(--text);
+    color: var(--foreground);
     background: var(--conversation-surface);
   }
   output {

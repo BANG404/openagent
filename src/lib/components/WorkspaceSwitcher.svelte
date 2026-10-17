@@ -187,7 +187,7 @@
     border: none;
     cursor: pointer;
     padding: 4px 8px;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     color: inherit;
     transition: background var(--motion-fast) var(--ease-standard);
   }
@@ -196,8 +196,8 @@
     height: var(--composer-selector-height);
     max-width: 190px;
     padding: 5px 8px;
-    border-radius: 6px;
-    color: var(--text-muted);
+    border-radius: calc(var(--radius) * 0.5);
+    color: var(--muted-foreground);
   }
 
   .workspace-folder-icon {
@@ -214,7 +214,7 @@
     width: 12px;
     height: 12px;
     flex: 0 0 12px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     transition: transform var(--motion-fast) var(--ease-standard);
   }
 
@@ -232,7 +232,7 @@
   .folder-name {
     font-size: 13px;
     font-weight: 600;
-    color: var(--text);
+    color: var(--foreground);
     letter-spacing: -0.2px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -250,7 +250,7 @@
   .wsl-badge {
     flex-shrink: 0;
     border: 1px solid color-mix(in srgb, var(--primary) 45%, transparent);
-    border-radius: 4px;
+    border-radius: calc(var(--radius) * 0.333333);
     padding: 1px 4px;
     background: color-mix(in srgb, var(--primary) 10%, transparent);
     color: var(--primary);
@@ -283,7 +283,7 @@
     width: 12px;
     height: 12px;
     margin-left: auto;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
 
   :global(.ws-submenu-chevron path) {

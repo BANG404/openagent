@@ -532,7 +532,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 4px 0 6px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.01em;
@@ -561,7 +561,7 @@
 
   .section-toggle:focus-visible,
   .section-action:focus-visible {
-    border-radius: 5px;
+    border-radius: calc(var(--radius) * 0.416667);
     box-shadow: var(--focus-ring);
   }
 
@@ -589,12 +589,12 @@
     width: 24px;
     height: 24px;
     justify-content: center;
-    border-radius: 5px;
+    border-radius: calc(var(--radius) * 0.416667);
   }
 
   .section-action:hover {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   .section-action svg {
@@ -610,8 +610,8 @@
     gap: 4px;
     box-sizing: border-box;
     padding: 0 6px;
-    border-radius: 6px;
-    background: var(--surface2);
+    border-radius: calc(var(--radius) * 0.5);
+    background: var(--muted);
   }
 
   .project-search:focus-within {
@@ -631,7 +631,7 @@
     border: 0;
     outline: 0;
     background: transparent;
-    color: var(--text);
+    color: var(--foreground);
     font: inherit;
     font-size: 11px;
   }
@@ -646,7 +646,7 @@
     box-sizing: border-box;
     padding: var(--menu-item-padding-block) var(--menu-item-padding-inline);
     border-radius: var(--menu-item-radius);
-    color: var(--text);
+    color: var(--foreground);
     font-size: var(--menu-item-font-size);
     line-height: var(--menu-item-line-height);
     outline: none;
@@ -669,7 +669,7 @@
     display: flex;
     align-items: center;
     border: 0;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font: inherit;
     text-align: left;
   }
@@ -701,7 +701,7 @@
     padding: 4px 62px 4px var(--list-item-compact-padding-inline);
     border-radius: var(--list-item-compact-radius);
     background: transparent;
-    color: var(--text);
+    color: var(--foreground);
     cursor: pointer;
   }
 
@@ -743,9 +743,9 @@
     place-items: center;
     padding: 0;
     border: 0;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     cursor: pointer;
     outline: none;
   }
@@ -754,7 +754,7 @@
   :global(.project-row-action:focus-visible),
   :global(.project-row-action[data-state="open"]) {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   :global(.project-row-action:focus-visible) {
@@ -811,7 +811,7 @@
   }
 
   :global(.project-menu-item.danger) {
-    color: var(--danger);
+    color: var(--destructive);
   }
 
   .project-row span {
@@ -838,7 +838,7 @@
   .workspace-conversation-row:focus-visible,
   .workspace-conversation-row.active {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   .workspace-conversation-row:focus-visible {
@@ -851,7 +851,7 @@
 
   .recent-empty {
     padding: 5px 10px 7px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
     line-height: 18px;
   }

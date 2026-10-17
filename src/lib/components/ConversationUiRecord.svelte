@@ -233,17 +233,17 @@
   .conversation-ui {
     min-width: 0;
     padding: 14px 18px;
-    border-radius: var(--app-radius);
+    border-radius: var(--radius);
     background: var(--component-neutral-bg);
-    color: var(--text);
+    color: var(--foreground);
   }
   header,
   small {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
   }
   .conversation-ui.danger {
-    color: var(--danger);
+    color: var(--destructive);
   }
   header {
     margin-bottom: 8px;
@@ -263,7 +263,7 @@
   }
   .ui-skeleton {
     height: 160px;
-    border-radius: var(--app-radius);
-    background: var(--surface);
+    border-radius: var(--radius);
+    background: var(--card);
   }
 </style>

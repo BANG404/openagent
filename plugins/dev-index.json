@@ -93,5 +93,55 @@
     "path": "terraform",
     "repository": "https://github.com/BANG404/openagent-terraform.git",
     "branch": "main"
+  },
+  "openagent-theme-nova": {
+    "path": "openagent-theme-nova",
+    "repository": "https://github.com/BANG404/openagent-theme-nova.git",
+    "branch": "main"
+  },
+  "openagent-theme-vega": {
+    "path": "openagent-theme-vega",
+    "repository": "https://github.com/BANG404/openagent-theme-vega.git",
+    "branch": "main"
+  },
+  "openagent-theme-maia": {
+    "path": "openagent-theme-maia",
+    "repository": "https://github.com/BANG404/openagent-theme-maia.git",
+    "branch": "main"
+  },
+  "openagent-theme-lyra": {
+    "path": "openagent-theme-lyra",
+    "repository": "https://github.com/BANG404/openagent-theme-lyra.git",
+    "branch": "main"
+  },
+  "openagent-theme-mira": {
+    "path": "openagent-theme-mira",
+    "repository": "https://github.com/BANG404/openagent-theme-mira.git",
+    "branch": "main"
+  },
+  "openagent-theme-luma": {
+    "path": "openagent-theme-luma",
+    "repository": "https://github.com/BANG404/openagent-theme-luma.git",
+    "branch": "main"
+  },
+  "openagent-theme-sera": {
+    "path": "openagent-theme-sera",
+    "repository": "https://github.com/BANG404/openagent-theme-sera.git",
+    "branch": "main"
+  },
+  "openagent-theme-rhea": {
+    "path": "openagent-theme-rhea",
+    "repository": "https://github.com/BANG404/openagent-theme-rhea.git",
+    "branch": "main"
+  },
+  "openagent-theme-garden": {
+    "path": "openagent-theme-garden",
+    "repository": "https://github.com/BANG404/openagent-theme-garden.git",
+    "branch": "main"
+  },
+  "openagent-theme-rose-ink": {
+    "path": "openagent-theme-rose-ink",
+    "repository": "https://github.com/BANG404/openagent-theme-rose-ink.git",
+    "branch": "main"
   }
 }

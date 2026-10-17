@@ -212,7 +212,7 @@
 <style>
   .assistant-msg {
     width: 100%;
-    color: var(--text);
+    color: var(--foreground);
     font-size: 14px;
     line-height: 1.47;
     letter-spacing: -0.374px;
@@ -223,8 +223,8 @@
     margin-top: 6px;
     padding: 3px 6px;
     border: 1px solid var(--border);
-    border-radius: 5px;
-    color: var(--text-muted);
+    border-radius: calc(var(--radius) * 0.416667);
+    color: var(--muted-foreground);
     font-family: var(--font-mono, ui-monospace, monospace);
     font-size: 11px;
     line-height: 1;
@@ -250,7 +250,7 @@
     margin: 0 0 4px;
     border-left: 2px solid var(--border);
     padding: 4px 0 4px 10px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 13px;
     letter-spacing: 0;
   }
@@ -276,7 +276,7 @@
     text-align: left;
   }
   .thinking-summary:focus-visible {
-    border-radius: 3px;
+    border-radius: calc(var(--radius) * 0.25);
     box-shadow: var(--focus-ring);
   }
   .thinking-marker {

@@ -122,7 +122,7 @@
     transform: translate(-50%, -50%);
     background: var(--control-surface);
     border: 0;
-    border-radius: 14px;
+    border-radius: calc(var(--radius) * 1.166667);
     padding: 24px;
     width: 480px;
     max-width: 95vw;
@@ -152,10 +152,10 @@
     min-width: 0;
     height: 36px;
     border: 0;
-    border-radius: 7px;
+    border-radius: calc(var(--radius) * 0.583333);
     outline: none;
-    background: var(--bg);
-    color: var(--text);
+    background: var(--background);
+    color: var(--foreground);
     font: inherit;
     font-size: 13px;
     font-weight: 400;
@@ -186,16 +186,16 @@
     flex-shrink: 0;
   }
   :global(.wsl-status) {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
   }
   :global(.wsl-error) {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    border-radius: 7px;
+    border-radius: calc(var(--radius) * 0.583333);
     padding: 9px 11px;
-    background: color-mix(in srgb, #b42318 10%, var(--surface));
+    background: color-mix(in srgb, #b42318 10%, var(--card));
     color: #b42318;
     font-size: 12px;
     line-height: 1.45;
@@ -203,7 +203,7 @@
   }
   :global(.workspace-choice-description) {
     margin: -8px 0 14px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 13px;
     line-height: 1.55;
   }
@@ -211,7 +211,7 @@
     font-size: 17px;
     font-weight: 600;
     margin: 0 0 20px;
-    color: var(--text);
+    color: var(--foreground);
     letter-spacing: -0.2px;
   }
   :global(.dialog-actions) {
@@ -224,17 +224,17 @@
     padding: 6px 0;
     border: 0;
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 13px;
     cursor: pointer;
     transition: color var(--motion-fast) var(--ease-standard);
   }
   :global(.dialog-action-quiet:hover) {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
   :global(.dialog-action-quiet:focus-visible) {
-    border-radius: 3px;
+    border-radius: calc(var(--radius) * 0.25);
     box-shadow: var(--focus-ring);
     outline: none;
   }
@@ -242,16 +242,16 @@
     padding: 6px 0;
     border: 0;
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 13px;
     cursor: pointer;
   }
   .wsl-dialog-cancel:hover {
     background: transparent;
-    color: var(--text);
+    color: var(--foreground);
   }
   .wsl-dialog-cancel:focus-visible {
-    border-radius: 3px;
+    border-radius: calc(var(--radius) * 0.25);
     box-shadow: var(--focus-ring);
     outline: none;
   }

@@ -377,7 +377,7 @@
     gap: 7px;
     min-height: 28px;
     margin: 2px 0 8px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 13px;
     line-height: 1.4;
   }
@@ -396,7 +396,7 @@
     border: 1px solid var(--border);
     border-radius: 999px;
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font: inherit;
     cursor: pointer;
   }
@@ -450,7 +450,7 @@
   .run-timing,
   .cache-usage {
     min-width: 0;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
     line-height: 1;
     user-select: none;
@@ -462,12 +462,12 @@
     align-items: center;
     gap: 4px;
     padding: 3px 6px;
-    border-radius: 5px;
+    border-radius: calc(var(--radius) * 0.416667);
     font-size: 11px;
     white-space: nowrap;
     background: transparent;
     border: 1px solid var(--border);
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
   .msg-action-btn {
     cursor: pointer;
@@ -477,12 +477,12 @@
   }
   .msg-action-btn:hover {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   .ts {
     font-size: 10px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     margin-top: 4px;
     display: block;
     user-select: none;

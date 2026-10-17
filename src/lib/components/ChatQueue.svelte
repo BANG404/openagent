@@ -82,8 +82,8 @@
     margin: 0 0 8px;
     overflow: hidden;
     border: 0;
-    border-radius: 12px;
-    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    border-radius: var(--radius);
+    background: color-mix(in srgb, var(--card) 92%, transparent);
     box-shadow: var(--control-shadow);
   }
 
@@ -98,7 +98,7 @@
     min-height: 32px;
     padding: 0 10px 0 12px;
     border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
   }
 
@@ -120,7 +120,7 @@
   .remove-btn {
     border: 0;
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     cursor: pointer;
   }
   .clear-btn {
@@ -132,7 +132,7 @@
   .remove-btn:hover,
   .remove-btn:focus-visible {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
   .clear-btn:focus-visible,
   .remove-btn:focus-visible {
@@ -152,7 +152,7 @@
     min-width: 0;
     gap: 8px;
     padding: 5px 6px;
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
     font-size: 12px;
   }
   .queue-item:hover {
@@ -161,7 +161,7 @@
   .queue-index {
     width: 15px;
     flex: none;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     text-align: center;
     font-variant-numeric: tabular-nums;
   }
@@ -169,14 +169,14 @@
     min-width: 0;
     flex: 1;
     overflow: hidden;
-    color: var(--text);
+    color: var(--foreground);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .attachment-count,
   .context-count {
     flex: none;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
     white-space: nowrap;
   }
@@ -187,7 +187,7 @@
     width: 22px;
     height: 22px;
     flex: none;
-    border-radius: 5px;
+    border-radius: calc(var(--radius) * 0.416667);
   }
   .remove-btn svg {
     width: 13px;

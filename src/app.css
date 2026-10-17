@@ -1,7 +1,50 @@
 @import "tailwindcss" source("./");
+@import "./lib/theme-fonts.css";
 @source "../node_modules/svelte-streamdown/**/*";
 
+@custom-variant dark (&:is(.dark *));
+
 @theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
   --color-conversation-surface: var(--conversation-surface);
   --color-conversation-component: var(--component-neutral-bg);
 }
@@ -10,11 +53,53 @@
   /* Light mode default */
   :root {
     color-scheme: light;
-    --bg: #f5f5f7;
-    --app-font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    /* Standard semantic contract; native materials and geometry extend it. */
+    --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    --font-mono: "Cascadia Code", Consolas, monospace;
+    --font-heading: var(--font-sans);
+    --card-foreground: var(--foreground);
+    --popover: var(--floating-surface);
+    --popover-foreground: var(--foreground);
+    --primary-foreground: #ffffff;
+    --secondary: var(--muted);
+    --secondary-foreground: var(--foreground);
+    --accent: var(--interactive-state-bg);
+    --accent-foreground: var(--foreground);
+    --destructive-foreground: #ffffff;
+    --input: var(--border);
+    --ring: var(--primary);
+    --sidebar-foreground: var(--foreground);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: var(--accent);
+    --sidebar-accent-foreground: var(--accent-foreground);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--ring);
+    --chart-1: var(--primary);
+    --chart-2: #22c55e;
+    --chart-3: #eab308;
+    --chart-4: #a855f7;
+    --chart-5: #f97316;
+    --menu-surface: var(--mica-surface);
+    --menu-foreground: var(--popover-foreground);
+    --menu-accent: var(--accent);
+    --menu-accent-foreground: var(--accent-foreground);
+    /* Read aliases for installed theme-v1 packages and external embeds. */
+    --bg: var(--background);
+    --text: var(--foreground);
+    --text-muted: var(--muted-foreground);
+    --surface: var(--card);
+    --surface2: var(--muted);
+    --danger: var(--destructive);
+    --sidebar-bg: var(--sidebar);
+    --app-radius: var(--radius);
+    --background: #f5f5f7;
+    --app-font-family: var(--font-sans);
     --app-font-size: 14px;
     --code-font-size: 13px;
-    --app-radius: 12px;
+    --control-height: 30px;
+    --control-padding-inline: 12px;
+    --radius: 12px;
     /* Composer geometry shared by the mounted composer and its loading skeleton. */
     --composer-input-padding: 12px 54px 4px 18px;
     --composer-input-min-height: 58px;
@@ -22,12 +107,12 @@
     --composer-toolbar-min-height: 38px;
     --composer-control-size: 30px;
     --composer-selector-height: calc(12px * 1.6 + 10px);
-    --composer-control-radius: 8px;
+    --composer-control-radius: calc(var(--radius) * 0.666667);
     --composer-send-inset: 9px;
-    --conversation-surface: var(--surface);
+    --conversation-surface: var(--card);
     --component-neutral-bg: #f4f4f5;
     --user-message-bg: var(--component-neutral-bg);
-    --app-chrome-bg: var(--bg);
+    --app-chrome-bg: var(--background);
     --desktop-titlebar-height: 35px;
     --motion-fast: 120ms;
     --motion-panel: 180ms;
@@ -49,7 +134,7 @@
     --plugin-grid-gap: 10px;
     --plugin-store-gap: 14px;
     --plugin-card-padding: 14px;
-    --plugin-card-radius: 12px;
+    --plugin-card-radius: var(--radius);
     --plugin-card-min-height: 234px;
     --plugin-header-gap: 28px;
     --plugin-header-height: 36px;
@@ -61,16 +146,16 @@
     --column-resize-hit-width: 8px;
     --column-resize-indicator-width: 2px;
     --column-resize-indicator-opacity: 0.7;
-    --sidebar-bg: #e8e8ed;
-    --surface: #ffffff;
-    --surface2: #f0f0f5;
+    --sidebar: #e8e8ed;
+    --card: #ffffff;
+    --muted: #f0f0f5;
     --border: #d8d8df;
-    --text: #1d1d1f;
-    --text-muted: #6e6e73;
+    --foreground: #1d1d1f;
+    --muted-foreground: #6e6e73;
     --primary: #0066cc;
-    --primary-hover: #0051a2;
+    --primary-hover: color-mix(in srgb, var(--primary) 85%, var(--foreground));
     --selection-bg: color-mix(in srgb, var(--primary) 25%, transparent);
-    --danger: #b42318;
+    --destructive: #b42318;
     --shadow: rgba(0, 0, 0, 0.12);
     --tooltip-bg: #1d1d1f;
     --tooltip-text: #ffffff;
@@ -92,22 +177,22 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 1px 2px rgba(31, 35, 48, 0.05),
       0 4px 12px rgba(31, 35, 48, 0.06);
     --raised-shadow: 0 12px 36px rgba(0, 0, 0, 0.16);
-    --focus-ring: 0 0 0 1px var(--primary);
+    --focus-ring: 0 0 0 1px var(--ring);
     --interactive-state-opacity: 8%;
     --interactive-state-bg: color-mix(
       in srgb,
-      var(--text) var(--interactive-state-opacity),
+      var(--foreground) var(--interactive-state-opacity),
       transparent
     );
     --item-selected-bg: var(--interactive-state-bg);
     --item-selected-hover-bg: var(--interactive-state-bg);
-    --menu-content-radius: 8px;
+    --menu-content-radius: calc(var(--radius) * 0.666667);
     --menu-content-padding: 6px;
     --menu-item-min-height: 28px;
     --menu-item-padding-block: 4px;
     --menu-item-padding-inline: 14px;
     --menu-item-gap: 8px;
-    --menu-item-radius: 5px;
+    --menu-item-radius: calc(var(--radius) * 0.416667);
     --menu-item-font-size: 12px;
     --menu-item-line-height: 20px;
     --menu-item-description-size: 11px;
@@ -117,7 +202,7 @@
     --list-item-compact-height: 30px;
     --list-item-compact-padding-inline: 10px;
     --list-item-compact-content-gap: 8px;
-    --list-item-compact-radius: 7px;
+    --list-item-compact-radius: calc(var(--radius) * 0.583333);
     --list-item-compact-font-size: 13px;
     --list-item-compact-line-height: 18px;
     --menu-separator-margin: 7px 0;
@@ -127,16 +212,16 @@
   @media (prefers-color-scheme: dark) {
     :root {
       color-scheme: dark;
-      --bg: #282c34;
-      --sidebar-bg: #282c34;
-      --surface: #282c34;
-      --surface2: #1c1c1c;
+      --background: #282c34;
+      --sidebar: #282c34;
+      --card: #282c34;
+      --muted: #1c1c1c;
       --border: #454a55;
-      --text: #e2e8f0;
-      --text-muted: #8892a4;
+      --foreground: #e2e8f0;
+      --muted-foreground: #8892a4;
       --primary: #2997ff;
-      --primary-hover: #1f87ef;
-      --danger: #ff6961;
+      --primary-hover: color-mix(in srgb, var(--primary) 85%, var(--foreground));
+      --destructive: #ff6961;
       --shadow: rgba(0, 0, 0, 0.35);
       --control-surface: rgba(24, 24, 24, 0.88);
       --control-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.28);
@@ -155,7 +240,7 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.22),
         0 4px 12px rgba(0, 0, 0, 0.24);
       --raised-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
-      --focus-ring: 0 0 0 1px var(--primary);
+      --focus-ring: 0 0 0 1px var(--ring);
       --component-neutral-bg: #27272a;
     }
   }
@@ -163,16 +248,16 @@
   /* Forced dark override */
   html.dark {
     color-scheme: dark;
-    --bg: #282c34;
-    --sidebar-bg: #282c34;
-    --surface: #282c34;
-    --surface2: #1c1c1c;
+    --background: #282c34;
+    --sidebar: #282c34;
+    --card: #282c34;
+    --muted: #1c1c1c;
     --border: #454a55;
-    --text: #e2e8f0;
-    --text-muted: #8892a4;
+    --foreground: #e2e8f0;
+    --muted-foreground: #8892a4;
     --primary: #2997ff;
-    --primary-hover: #1f87ef;
-    --danger: #ff6961;
+    --primary-hover: color-mix(in srgb, var(--primary) 85%, var(--foreground));
+    --destructive: #ff6961;
     --shadow: rgba(0, 0, 0, 0.35);
     --control-surface: rgba(24, 24, 24, 0.88);
     --control-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.28);
@@ -191,23 +276,23 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.22),
       0 4px 12px rgba(0, 0, 0, 0.24);
     --raised-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
-    --focus-ring: 0 0 0 1px var(--primary);
+    --focus-ring: 0 0 0 1px var(--ring);
     --component-neutral-bg: #27272a;
   }
 
   /* Forced light override */
   html.light {
     color-scheme: light;
-    --bg: #f5f5f7;
-    --sidebar-bg: #e8e8ed;
-    --surface: #ffffff;
-    --surface2: #f0f0f5;
+    --background: #f5f5f7;
+    --sidebar: #e8e8ed;
+    --card: #ffffff;
+    --muted: #f0f0f5;
     --border: #d8d8df;
-    --text: #1d1d1f;
-    --text-muted: #6e6e73;
+    --foreground: #1d1d1f;
+    --muted-foreground: #6e6e73;
     --primary: #0066cc;
-    --primary-hover: #0051a2;
-    --danger: #b42318;
+    --primary-hover: color-mix(in srgb, var(--primary) 85%, var(--foreground));
+    --destructive: #b42318;
     --shadow: rgba(0, 0, 0, 0.12);
     --control-surface: rgba(255, 255, 255, 0.82);
     --control-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.06);
@@ -226,16 +311,16 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 1px 2px rgba(31, 35, 48, 0.05),
       0 4px 12px rgba(31, 35, 48, 0.06);
     --raised-shadow: 0 12px 36px rgba(0, 0, 0, 0.16);
-    --focus-ring: 0 0 0 1px var(--primary);
-    --conversation-surface: var(--surface);
+    --focus-ring: 0 0 0 1px var(--ring);
+    --conversation-surface: var(--card);
     --component-neutral-bg: #f4f4f5;
   }
 
   /* Let Rust-owned Mica, Acrylic, Blur, or Vibrancy provide the native canvas. */
   html.native-window-material {
-    --bg: transparent;
+    --background: transparent;
     --app-chrome-bg: transparent;
-    --sidebar-bg: transparent;
+    --sidebar: transparent;
   }
 
   * {
@@ -251,8 +336,8 @@
     padding: 0;
     overflow: hidden;
     overscroll-behavior: none;
-    background: var(--bg);
-    color: var(--text);
+    background: var(--background);
+    color: var(--foreground);
     font-family: var(--app-font-family);
     font-size: var(--app-font-size);
     line-height: 1.6;
@@ -268,16 +353,16 @@
      outline so transparent title chrome and content share one Apple-style edge. */
   html.macos-window,
   html.macos-window body {
-    border-radius: var(--app-radius);
+    border-radius: var(--radius);
     overflow: hidden;
   }
 
   html.macos-window body {
-    clip-path: inset(0 round var(--app-radius));
+    clip-path: inset(0 round var(--radius));
   }
 
   html.native-window-material .flow-panel-surface {
-    background: var(--surface);
+    background: var(--card);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
@@ -297,7 +382,7 @@
 
   ::-webkit-scrollbar-thumb {
     background: transparent;
-    border-radius: 3px;
+    border-radius: calc(var(--radius) * 0.25);
   }
 
   ::selection {
@@ -309,7 +394,7 @@
   }
 
   [data-scrollbar-active="true"]::-webkit-scrollbar-thumb:hover {
-    background: var(--text-muted);
+    background: var(--muted-foreground);
   }
 
   /* Shared geometry for raised input surfaces and higher-opacity floating panels. */
@@ -317,7 +402,7 @@
   .floating-application-surface,
   .conversation-input-surface {
     border: 1px solid var(--mica-border);
-    border-radius: var(--app-radius);
+    border-radius: var(--radius);
     -webkit-backdrop-filter: blur(24px) saturate(1.28);
     backdrop-filter: blur(24px) saturate(1.28);
     box-shadow: var(--mica-shadow);
@@ -335,7 +420,8 @@
 
   .desktop-menu-panel,
   .floating-application-surface {
-    background: var(--floating-surface);
+    background: var(--menu-surface);
+    color: var(--menu-foreground);
     transform-origin: var(--bits-floating-transform-origin, top center);
     transition:
       opacity var(--motion-panel) var(--ease-enter),
@@ -463,7 +549,7 @@
     border-radius: var(--menu-item-radius);
     font-size: var(--menu-item-font-size);
     line-height: var(--menu-item-line-height);
-    color: var(--text);
+    color: var(--foreground);
     cursor: pointer;
     transition: background var(--motion-fast) var(--ease-standard);
     outline: none;
@@ -485,7 +571,7 @@
 
   .ctx-menu-item[data-selected] {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   .ctx-menu-item-danger {
@@ -507,7 +593,7 @@
   .tt-content {
     background: var(--tooltip-bg);
     color: var(--tooltip-text);
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     padding: 5px 9px;
     font-size: 12px;
     line-height: 1.3;
@@ -540,7 +626,7 @@
 .application-settings-surface {
   overflow: hidden;
   border: 1px solid var(--mica-border);
-  border-radius: 10px;
+  border-radius: calc(var(--radius) * 0.833333);
   background: var(--mica-surface);
   -webkit-backdrop-filter: blur(24px) saturate(1.28);
   backdrop-filter: blur(24px) saturate(1.28);
@@ -553,7 +639,7 @@
   margin: 8px 0 12px;
   overflow: hidden;
   border: none !important;
-  border-radius: 8px;
+  border-radius: calc(var(--radius) * 0.666667);
   background: var(--user-message-bg);
 }
 
@@ -561,7 +647,7 @@
   min-height: 34px;
   border-bottom: 1px solid var(--border);
   background: var(--user-message-bg) !important;
-  color: var(--text-muted) !important;
+  color: var(--muted-foreground) !important;
 }
 
 .assistant-msg [data-streamdown-code] > .chat-code-header:has(.chat-code-language:empty) {
@@ -590,7 +676,7 @@
 }
 
 .assistant-msg [data-streamdown-code] button {
-  color: var(--text-muted) !important;
+  color: var(--muted-foreground) !important;
 }
 
 .assistant-msg [data-streamdown-code] button[title="Download code"] {
@@ -599,7 +685,7 @@
 
 .assistant-msg [data-streamdown-code] button:hover {
   background: var(--interactive-state-bg) !important;
-  color: var(--text) !important;
+  color: var(--accent-foreground) !important;
 }
 
 /* Shiki owns token colors; app.css owns the shared block surface and line rhythm. */
@@ -615,7 +701,7 @@
   padding: 0;
   border: none;
   background: none;
-  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-family: var(--font-mono, "JetBrains Mono", "Fira Code", monospace);
   font-size: var(--code-font-size);
   line-height: 1.6;
   letter-spacing: 0;
@@ -633,7 +719,7 @@
   position: absolute;
   left: 0;
   width: 32px;
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   content: counter(chat-code-line);
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -646,10 +732,10 @@
   height: 36px;
   padding: 0 11px;
   border: 1px solid var(--mica-divider);
-  border-radius: 8px;
+  border-radius: calc(var(--radius) * 0.666667);
   outline: none;
   background: var(--mica-surface);
-  color: var(--text);
+  color: var(--popover-foreground);
   font: inherit;
   font-size: 13px;
   -webkit-backdrop-filter: blur(24px) saturate(1.28);
@@ -761,8 +847,8 @@
 .application-menu-trigger:hover:not(:disabled),
 .application-menu-trigger:focus-visible,
 .application-menu-trigger[data-state="open"] {
-  background: var(--interactive-state-bg);
-  color: var(--text);
+  background: var(--accent);
+  color: var(--accent-foreground);
 }
 
 .interactive-control:focus-visible,
@@ -794,7 +880,7 @@
   border: 0;
   border-radius: var(--menu-item-radius);
   background: transparent;
-  color: var(--text);
+  color: var(--menu-foreground);
   font: inherit;
   font-size: var(--menu-item-font-size);
   line-height: var(--menu-item-line-height);
@@ -818,8 +904,8 @@
 .application-menu-item:hover:not([data-disabled]),
 .application-menu-item[data-highlighted]:not([data-disabled]),
 .application-menu-item[data-state="open"]:not([data-disabled]) {
-  background: var(--interactive-state-bg);
-  color: var(--text);
+  background: var(--menu-accent);
+  color: var(--menu-accent-foreground);
 }
 
 .desktop-menu-item[data-disabled],
@@ -846,7 +932,7 @@
   top: calc(50% - 2px);
   width: 14px;
   height: 14px;
-  color: var(--text-muted);
+  color: color-mix(in srgb, var(--menu-foreground) 65%, transparent);
   transform: translateY(-50%);
   pointer-events: none;
 }
@@ -856,9 +942,9 @@
   box-sizing: border-box;
   padding: 7px 10px 7px 30px;
   border: 0;
-  border-radius: 6px;
+  border-radius: calc(var(--radius) * 0.5);
   background: transparent;
-  color: var(--text);
+  color: var(--menu-foreground);
   font: inherit;
   font-size: var(--menu-item-font-size);
   line-height: var(--menu-item-line-height);
@@ -871,13 +957,13 @@
 }
 
 .desktop-menu-search-input::placeholder {
-  color: var(--text-muted);
+  color: color-mix(in srgb, var(--menu-foreground) 65%, transparent);
 }
 
 .desktop-menu-empty {
   min-height: var(--menu-item-min-height);
   padding: var(--menu-item-padding-block) var(--menu-item-padding-inline);
-  color: var(--text-muted);
+  color: color-mix(in srgb, var(--menu-foreground) 65%, transparent);
   font-size: var(--menu-item-font-size);
   line-height: var(--menu-item-line-height);
   text-align: center;
@@ -937,7 +1023,7 @@
 
 .composer-md .composer-marker {
   padding-right: 0.35em;
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   user-select: none;
 }
 
@@ -972,18 +1058,18 @@
 .composer-md .composer-block-quote {
   padding-left: 10px;
   border-left: 2px solid var(--mica-divider);
-  color: var(--text-muted);
+  color: var(--muted-foreground);
 }
 
 .composer-md .composer-block-codeBlock {
-  background: var(--surface2);
-  font-family: "JetBrains Mono", "Fira Code", monospace;
+  background: var(--muted);
+  font-family: var(--font-mono, "JetBrains Mono", "Fira Code", monospace);
   font-size: 0.9em;
 }
 
 .composer-md .composer-chip {
   padding: 0 3px;
-  border-radius: 3px;
+  border-radius: calc(var(--radius) * 0.25);
   background: color-mix(in srgb, var(--primary) 12%, transparent);
   color: var(--primary);
   box-decoration-break: clone;
@@ -998,8 +1084,19 @@
 
 .composer-md code {
   padding: 0.1em 0.32em;
-  border-radius: 4px;
-  background: var(--surface2);
-  font-family: "JetBrains Mono", "Fira Code", monospace;
+  border-radius: calc(var(--radius) * 0.333333);
+  background: var(--muted);
+  font-family: var(--font-mono, "JetBrains Mono", "Fira Code", monospace);
   font-size: 0.9em;
+}
+
+/* Body and heading typography are independently composable. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.composer-block-heading {
+  font-family: var(--font-heading);
 }

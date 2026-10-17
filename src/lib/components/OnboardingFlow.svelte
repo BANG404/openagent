@@ -997,7 +997,7 @@
     display: grid;
     gap: 6px;
     padding: 12px 14px;
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
     font-size: 12px;
   }
   .preparation-card p {
@@ -1026,7 +1026,7 @@
     flex-direction: column;
     overflow: hidden;
     background: var(--app-chrome-bg);
-    color: var(--text);
+    color: var(--foreground);
   }
   .onboarding-drag-region {
     position: absolute;
@@ -1061,7 +1061,7 @@
     display: block;
     width: 30px;
     height: 30px;
-    border-radius: 9px;
+    border-radius: calc(var(--radius) * 0.75);
     object-fit: cover;
   }
   .onboarding-brand div {
@@ -1074,7 +1074,7 @@
     letter-spacing: -0.02em;
   }
   .onboarding-brand span:not(.brand-mark) {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 10px;
   }
   .onboarding-progress {
@@ -1089,7 +1089,7 @@
   }
   .progress-heading p {
     margin: 0;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
     letter-spacing: 0.02em;
   }
@@ -1136,19 +1136,19 @@
     border: 1px solid var(--mica-divider);
     border-radius: 50%;
     background: var(--mica-surface);
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     cursor: pointer;
     font: inherit;
     font-size: 11px;
   }
   .onboarding-nav-item:hover:not(:disabled) {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
   .onboarding-step.active .onboarding-nav-item {
     background: var(--primary);
     border-color: var(--primary);
-    color: #fff;
+    color: var(--primary-foreground);
     font-weight: 600;
   }
   .onboarding-nav-item:disabled {
@@ -1169,18 +1169,18 @@
     font-weight: 600;
   }
   .onboarding-step:not(.active) .onboarding-step-copy strong {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-weight: 400;
   }
   .onboarding-step-copy small {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 10px;
     line-height: 1.45;
   }
   .nav-note {
     max-width: 210px;
     margin: 32px 0 0;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
     line-height: 1.5;
   }
@@ -1193,7 +1193,7 @@
     box-sizing: border-box;
     margin-block: 8px;
     overflow: hidden;
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
     background: var(--mica-surface);
   }
   :global(.step-scroll) {
@@ -1247,14 +1247,14 @@
   .lead {
     max-width: 520px;
     margin: 0 0 12px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 14px;
     line-height: 1.6;
   }
   .setup-description {
     max-width: 520px;
     margin: 0 0 22px;
-    color: var(--text);
+    color: var(--foreground);
     font-size: 13px;
     line-height: 1.6;
   }
@@ -1284,14 +1284,14 @@
   }
   .welcome-feature p {
     margin: 0;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
     line-height: 1.45;
   }
   .workspace-card,
   .summary {
     padding: 14px;
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
     background: var(--mica-surface);
   }
   .workspace-card {
@@ -1312,7 +1312,7 @@
   }
   .workspace-card span,
   .summary span {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
   }
   .workspace-card strong {
@@ -1323,7 +1323,7 @@
   }
   .workspace-card p {
     margin: 1px 0 0;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
     line-height: 1.5;
   }
@@ -1346,13 +1346,13 @@
   }
   .form-grid label > span,
   .api-mode-field > span {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
     font-weight: 600;
   }
   .request-url-preview {
     overflow-wrap: anywhere;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
     line-height: 1.45;
   }
@@ -1370,13 +1370,13 @@
   }
   .provider-tabs button.active {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
   .provider-tabs span {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--text-muted);
+    background: var(--muted-foreground);
   }
   .provider-tabs span.online {
     background: #22a06b;
@@ -1385,9 +1385,9 @@
     min-height: 34px;
     padding: 0 14px;
     border: 1px solid var(--mica-divider);
-    border-radius: 7px;
+    border-radius: calc(var(--radius) * 0.583333);
     background: var(--mica-surface);
-    color: var(--text);
+    color: var(--popover-foreground);
     cursor: pointer;
     font: inherit;
     font-size: 12px;
@@ -1412,10 +1412,10 @@
   }
   .chatgpt-model-catalog-hint {
     margin: 0;
-    border-radius: 9px;
+    border-radius: calc(var(--radius) * 0.75);
     padding: 10px 12px;
-    background: var(--surface2);
-    color: var(--text-muted);
+    background: var(--muted);
+    color: var(--muted-foreground);
     font-size: 12px;
     line-height: 1.5;
   }
@@ -1424,7 +1424,7 @@
   }
   .connection-row p {
     margin: 0;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
   }
   .success {
@@ -1449,7 +1449,7 @@
     gap: 6px;
     margin-block: 10px;
     padding: 10px 14px;
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
     background: var(--mica-surface);
   }
   .embedding-heading,
@@ -1462,7 +1462,7 @@
   .embedding-heading span,
   .embedding-detail p {
     margin: 0;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
   }
   .embedding-heading strong {
@@ -1472,7 +1472,7 @@
     height: 6px;
     overflow: hidden;
     border-radius: 999px;
-    background: var(--surface2);
+    background: var(--muted);
   }
   .embedding-meter span {
     display: block;

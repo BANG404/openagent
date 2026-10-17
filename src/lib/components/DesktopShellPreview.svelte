@@ -384,7 +384,7 @@
     height: 100vh;
     min-width: var(--desktop-app-min-width);
     overflow: hidden;
-    background: var(--bg);
+    background: var(--background);
   }
 
   .desktop-shell-main {
@@ -403,8 +403,8 @@
     margin: var(--desktop-titlebar-height) var(--workspace-card-gap) var(--workspace-card-gap);
     padding: 32px;
     overflow: hidden;
-    border-radius: 12px;
-    background: var(--surface);
+    border-radius: var(--radius);
+    background: var(--card);
   }
 
   .new-conversation-heading {
@@ -420,13 +420,13 @@
   }
 
   .new-conversation-heading h1 {
-    color: var(--text);
+    color: var(--foreground);
     font-size: 24px;
   }
 
   .new-conversation-heading p {
     margin-top: 8px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 13px;
   }
 
@@ -450,11 +450,11 @@
     align-self: flex-start;
     width: min(760px, 100%);
     margin-top: 72px;
-    color: var(--text);
+    color: var(--foreground);
   }
 
   .existing-conversation p {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
   }
 </style>

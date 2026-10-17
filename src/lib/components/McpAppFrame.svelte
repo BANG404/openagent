@@ -968,8 +968,8 @@ ${scriptClose}`;
     margin: 6px 0;
     overflow: hidden;
     border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--surface);
+    border-radius: calc(var(--radius) * 0.5);
+    background: var(--card);
   }
   .mcp-app-frame.closed {
     display: none;
@@ -1013,8 +1013,8 @@ ${scriptClose}`;
     max-height: min(720px, 90vh);
     overflow: auto;
     border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--surface);
+    border-radius: calc(var(--radius) * 0.5);
+    background: var(--card);
     box-shadow: 0 18px 48px rgb(0 0 0 / 28%);
   }
   .mcp-app-modal-header {

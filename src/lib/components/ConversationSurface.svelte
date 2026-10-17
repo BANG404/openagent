@@ -491,7 +491,7 @@
     flex: 1;
     flex-direction: column;
     overflow: hidden;
-    border-radius: 12px;
+    border-radius: var(--radius);
   }
 
   .conversation-stage.conversation-collapsed {
@@ -499,7 +499,7 @@
   }
 
   .conversation-stage.sidebar-open {
-    border-radius: 12px 0 0 12px;
+    border-radius: var(--radius) 0 0 var(--radius);
   }
 
   .runtime-banner {
@@ -554,7 +554,7 @@
     border: 1px solid var(--border);
     border-radius: 50%;
     background: var(--mica-surface);
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     box-shadow: var(--shadow-elevation-2, 0 2px 10px rgba(0, 0, 0, 0.12));
     cursor: pointer;
     pointer-events: auto;
@@ -568,7 +568,7 @@
   .scroll-to-bottom:hover,
   .scroll-to-bottom:focus-visible {
     background: var(--component-neutral-bg);
-    color: var(--text);
+    color: var(--foreground);
     outline: none;
   }
 
@@ -632,7 +632,7 @@
     overflow-x: auto;
     margin: 10px 0 16px;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
   }
 
   :global([data-streamdown-table] table) {
@@ -650,7 +650,7 @@
     text-align: left;
     font-size: 11px;
     font-weight: 600;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     letter-spacing: 0.04em;
     text-transform: uppercase;
     border-bottom: 1px solid var(--border);
@@ -660,7 +660,7 @@
   :global([data-streamdown-td]) {
     padding: 7px 12px;
     font-size: 13px;
-    color: var(--text);
+    color: var(--foreground);
     border-bottom: 1px solid var(--border);
     vertical-align: top;
     min-width: 0;
@@ -686,7 +686,7 @@
   :global(.assistant-msg h1, .assistant-msg h2, .assistant-msg h3) {
     margin: 20px 0 6px;
     font-weight: 600;
-    color: var(--text);
+    color: var(--foreground);
   }
 
   :global(.assistant-msg h1) {
@@ -725,23 +725,23 @@
     margin: 8px 0 10px;
     padding: 4px 14px;
     border-left: 3px solid var(--border);
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
 
   :global(.assistant-msg [data-streamdown-codespan]) {
-    background: var(--surface2);
+    background: var(--muted);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--text);
+    border-radius: calc(var(--radius) * 0.333333);
+    color: var(--foreground);
     padding: 1px 5px;
     font-size: 13px;
-    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-family: var(--font-mono, "JetBrains Mono", "Fira Code", monospace);
     letter-spacing: 0;
   }
 
   :global(.assistant-msg pre) {
     background: var(--component-neutral-bg);
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
     padding: 14px 16px;
     margin: 8px 0 12px;
     overflow-x: auto;
@@ -752,7 +752,7 @@
     border: none;
     padding: 0;
     font-size: 13px;
-    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-family: var(--font-mono, "JetBrains Mono", "Fira Code", monospace);
     letter-spacing: 0;
     line-height: 1.6;
   }
@@ -761,7 +761,7 @@
 
   /* Replace hardcoded Tailwind bg-white / border-gray-200 with theme vars */
   :global([data-streamdown-mermaid] > div) {
-    background: var(--surface) !important;
+    background: var(--card) !important;
     border-color: var(--border) !important;
     overflow: hidden !important;
   }
@@ -796,13 +796,13 @@
   }
 
   :global([data-streamdown-mermaid] [data-mermaid-svg] .grid .tick text) {
-    fill: var(--text-muted) !important;
+    fill: var(--muted-foreground) !important;
     font-size: 11px !important;
     font-weight: 500 !important;
   }
 
   :global([data-streamdown-mermaid] [data-mermaid-svg] .sectionTitle) {
-    fill: var(--text-muted) !important;
+    fill: var(--muted-foreground) !important;
     font-size: 13px !important;
     font-weight: 600 !important;
   }
@@ -810,7 +810,7 @@
   :global([data-streamdown-mermaid] [data-mermaid-svg] .taskText),
   :global([data-streamdown-mermaid] [data-mermaid-svg] .taskTextOutsideLeft),
   :global([data-streamdown-mermaid] [data-mermaid-svg] .taskTextOutsideRight) {
-    fill: var(--text) !important;
+    fill: var(--foreground) !important;
     font-size: 12px !important;
     font-weight: 500 !important;
   }
@@ -827,15 +827,15 @@
 
   :global([data-streamdown-mermaid] button) {
     background: transparent !important;
-    color: var(--text-muted) !important;
-    border-radius: 6px !important;
+    color: var(--muted-foreground) !important;
+    border-radius: calc(var(--radius) * 0.5) !important;
     transition:
       background var(--motion-fast) var(--ease-standard),
       color var(--motion-fast) var(--ease-standard) !important;
   }
   :global([data-streamdown-mermaid] button:hover) {
     background: var(--interactive-state-bg) !important;
-    color: var(--text) !important;
+    color: var(--accent-foreground) !important;
   }
   :global([data-streamdown-mermaid] button:active) {
     transform: scale(0.95) !important;
@@ -864,7 +864,7 @@
     line-height: var(--menu-item-line-height) !important;
     text-align: left !important;
     justify-content: flex-start !important;
-    color: var(--text) !important;
+    color: var(--foreground) !important;
     border-radius: var(--menu-item-radius) !important;
   }
   :global([data-streamdown-mermaid] .download-menu button + button) {
@@ -872,6 +872,6 @@
   }
   :global([data-streamdown-mermaid] .download-menu button:hover) {
     background: var(--interactive-state-bg) !important;
-    color: var(--text) !important;
+    color: var(--accent-foreground) !important;
   }
 </style>

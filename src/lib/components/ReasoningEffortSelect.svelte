@@ -67,14 +67,14 @@
     box-shadow: none;
     background: transparent;
     padding: 5px 8px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
   }
 
   :global(.reasoning-effort-trigger:hover:not(:disabled)),
   :global(.reasoning-effort-trigger[data-state="open"]) {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
     box-shadow: none;
   }
 

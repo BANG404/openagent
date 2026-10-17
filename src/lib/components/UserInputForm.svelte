@@ -86,7 +86,7 @@
   }
 
   const inputBase =
-    "w-full box-border py-1.5 px-[9px] rounded-md bg-[var(--bg)] text-[var(--text)] text-[13px] [font-family:inherit] outline-none transition-colors duration-[var(--motion-fast)]";
+    "w-full box-border py-1.5 px-[9px] rounded-md bg-[var(--background)] text-[var(--foreground)] text-[13px] [font-family:inherit] outline-none transition-colors duration-[var(--motion-fast)]";
   function inputCls(field: AskUserField): string {
     return fieldHasError(field)
       ? `${inputBase} border border-[#ef4444]`
@@ -99,16 +99,16 @@
   role="dialog"
   aria-label={request.title ?? $t("askUserDefaultTitle")}
 >
-  <div class="flex items-center gap-2 font-semibold text-[var(--text)] text-[13px]">
+  <div class="flex items-center gap-2 font-semibold text-[var(--foreground)] text-[13px]">
     <span>{request.title ?? $t("askUserDefaultTitle")}</span>
     <span
-      class="ml-auto shrink-0 rounded-full bg-[var(--surface2)] px-[7px] py-0.5 text-[11px] font-normal leading-[1.3] text-[var(--text-muted)]"
+      class="ml-auto shrink-0 rounded-full bg-[var(--muted)] px-[7px] py-0.5 text-[11px] font-normal leading-[1.3] text-[var(--muted-foreground)]"
       >{$t("toolStatusWaiting")}</span
     >
   </div>
 
   {#if request.description}
-    <p class="m-0 text-[var(--text-muted)] text-[12px] leading-[1.5] whitespace-pre-wrap">
+    <p class="m-0 text-[var(--muted-foreground)] text-[12px] leading-[1.5] whitespace-pre-wrap">
       {request.description}
     </p>
   {/if}
@@ -118,7 +118,7 @@
       <div class="flex flex-col gap-1">
         {#if field.type === "checkbox"}
           <label
-            class="flex items-center gap-2 text-[13px] text-[var(--text)] cursor-pointer select-none"
+            class="flex items-center gap-2 text-[13px] text-[var(--foreground)] cursor-pointer select-none"
           >
             <input
               type="checkbox"
@@ -129,16 +129,16 @@
             <span>{field.label}</span>
           </label>
         {:else if field.type === "confirm"}
-          <span class="text-[13px] text-[var(--text)]">{field.label}</span>
+          <span class="text-[13px] text-[var(--foreground)]">{field.label}</span>
         {:else if field.type === "checkbox_group"}
-          <span class="text-[12px] text-[var(--text-muted)] font-medium">
+          <span class="text-[12px] text-[var(--muted-foreground)] font-medium">
             {field.label}
             {#if isRequired(field)}<span class="text-[#ef4444] ml-0.5">*</span>{/if}
           </span>
           <div class="flex flex-col gap-1 mt-0.5">
             {#each field.options as option (option)}
               <label
-                class="flex items-center gap-2 text-[13px] text-[var(--text)] cursor-pointer select-none"
+                class="flex items-center gap-2 text-[13px] text-[var(--foreground)] cursor-pointer select-none"
               >
                 <input
                   type="checkbox"
@@ -152,7 +152,7 @@
           </div>
         {:else}
           <label
-            class="text-[12px] text-[var(--text-muted)] font-medium"
+            class="text-[12px] text-[var(--muted-foreground)] font-medium"
             for={`f-${request.request_id}-${field.name}`}
           >
             {field.label}
@@ -208,14 +208,14 @@
   <div class="flex justify-end gap-2 mt-0.5">
     <button
       type="button"
-      class="px-[14px] py-1.5 rounded-md text-[13px] cursor-pointer transition-colors duration-[var(--motion-fast)] bg-transparent text-[var(--text-muted)] border border-[var(--border)] hover:bg-[var(--surface2)]"
+      class="px-[14px] py-1.5 rounded-md text-[13px] cursor-pointer transition-colors duration-[var(--motion-fast)] bg-transparent text-[var(--muted-foreground)] border border-[var(--border)] hover:bg-[var(--muted)]"
       onclick={cancel}
     >
       {request.cancel_label ?? $t("askUserCancel")}
     </button>
     <button
       type="button"
-      class="px-[14px] py-1.5 rounded-md text-[13px] font-medium cursor-pointer transition-colors duration-[var(--motion-fast)] bg-[var(--primary)] text-white border border-transparent hover:bg-[var(--primary-hover)]"
+      class="px-[14px] py-1.5 rounded-md text-[13px] font-medium cursor-pointer transition-colors duration-[var(--motion-fast)] bg-[var(--primary)] text-[var(--primary-foreground)] border border-transparent hover:bg-[var(--primary-hover)]"
       onclick={submit}
     >
       {request.submit_label ?? $t("askUserSubmit")}
@@ -227,8 +227,8 @@
   :global(.ui-select-trigger.ask-user-select) {
     padding: 6px 9px;
     border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--bg);
+    border-radius: calc(var(--radius) * 0.5);
+    background: var(--background);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
     box-shadow: none;
@@ -236,7 +236,7 @@
   }
   :global(.ui-select-trigger.ask-user-select:hover:not(:disabled)),
   :global(.ui-select-trigger.ask-user-select[data-state="open"]) {
-    background: var(--bg);
+    background: var(--background);
   }
   :global(.ui-select-trigger.ask-user-select:focus),
   :global(.ui-select-trigger.ask-user-select:focus-visible),

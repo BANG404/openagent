@@ -109,7 +109,7 @@
     min-height: 0;
     flex: 1;
     overflow-x: hidden;
-    background: var(--component-neutral-bg, color-mix(in srgb, var(--surface) 88%, var(--bg)));
+    background: var(--component-neutral-bg, color-mix(in srgb, var(--card) 88%, var(--background)));
     color-scheme: light dark;
   }
   .diff-viewport.scrollable {
@@ -132,7 +132,7 @@
     min-width: 0;
     min-height: 20px;
     align-items: start;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font:
       400 var(--code-font-size, 12px)/1.6 "JetBrains Mono",
       monospace;
@@ -146,7 +146,7 @@
     width: 44px;
     padding: 0 8px;
     border-right: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
-    color: color-mix(in srgb, var(--text-muted) 65%, transparent);
+    color: color-mix(in srgb, var(--muted-foreground) 65%, transparent);
     text-align: right;
     user-select: none;
   }
@@ -161,7 +161,7 @@
   }
   .diff-row.content-mode {
     grid-template-columns: 44px minmax(0, 1fr);
-    color: var(--text);
+    color: var(--foreground);
   }
   .diff-row code {
     min-width: 0;
@@ -180,7 +180,7 @@
   .diff-row.full-file {
     grid-template-columns: var(--full-file-gutter-width) 18px minmax(0, 1fr);
     font-size: 11px;
-    color: var(--text);
+    color: var(--foreground);
   }
   .diff-row.full-file .line-number {
     width: var(--full-file-gutter-width);
@@ -205,7 +205,7 @@
   }
   .diff-row.add {
     background: color-mix(in srgb, #18794e 24%, transparent);
-    color: var(--text);
+    color: var(--foreground);
   }
   .diff-token {
     color: var(--shiki-light, inherit);
@@ -221,13 +221,13 @@
   }
   .diff-row.remove {
     background: color-mix(in srgb, #b42318 24%, transparent);
-    color: var(--text);
+    color: var(--foreground);
   }
   .diff-row.add .line-marker {
-    color: color-mix(in srgb, #18794e 82%, var(--text));
+    color: color-mix(in srgb, #18794e 82%, var(--foreground));
   }
   .diff-row.remove .line-marker {
-    color: color-mix(in srgb, #b42318 82%, var(--text));
+    color: color-mix(in srgb, #b42318 82%, var(--foreground));
   }
   .diff-empty {
     display: grid;
@@ -237,7 +237,7 @@
     gap: 9px;
     padding: 24px;
     box-sizing: border-box;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
     text-align: center;
   }

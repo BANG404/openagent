@@ -174,8 +174,8 @@
     height: 100vh;
     display: grid;
     place-items: center;
-    background: var(--bg);
-    color: var(--text-muted);
+    background: var(--background);
+    color: var(--muted-foreground);
     font-size: 12px;
   }
 
@@ -186,7 +186,7 @@
     z-index: 2;
     max-width: min(520px, calc(100vw - 36px));
     margin: 0;
-    color: var(--danger);
+    color: var(--destructive);
     font-size: 12px;
   }
 </style>

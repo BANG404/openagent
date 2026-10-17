@@ -4545,7 +4545,7 @@
     place-items: center;
     box-sizing: border-box;
     padding: 48px;
-    background: var(--bg);
+    background: var(--background);
   }
 
   .onboarding-loading :global(.skeleton) {

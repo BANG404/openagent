@@ -215,23 +215,23 @@
     min-height: 0;
     flex: 1;
     flex-direction: column;
-    background: var(--surface);
+    background: var(--card);
   }
   iframe {
     width: 100%;
     min-height: 0;
     flex: 1;
     border: 0;
-    background: var(--surface);
+    background: var(--card);
   }
   .plugin-state {
     margin: auto;
     padding: 18px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
     text-align: center;
   }
   .plugin-error {
-    color: var(--danger, #b42318);
+    color: var(--destructive, #b42318);
   }
 </style>

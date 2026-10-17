@@ -145,9 +145,9 @@
     margin: 10px 0;
     overflow: hidden;
     border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--surface);
-    box-shadow: 0 1px 2px color-mix(in srgb, var(--text) 5%, transparent);
+    border-radius: var(--radius);
+    background: var(--card);
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--foreground) 5%, transparent);
   }
 
   .media-stage {
@@ -209,7 +209,7 @@
     justify-content: center;
     gap: 9px;
     padding: 20px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 13px;
     text-align: center;
   }
@@ -224,15 +224,15 @@
     position: absolute;
     inset: 0;
     min-height: 0;
-    background: color-mix(in srgb, var(--surface) 82%, transparent);
+    background: color-mix(in srgb, var(--card) 82%, transparent);
     backdrop-filter: blur(3px);
   }
 
   .spinner {
     width: 16px;
     height: 16px;
-    border: 2px solid color-mix(in srgb, var(--text-muted) 28%, transparent);
-    border-top-color: var(--text-muted);
+    border: 2px solid color-mix(in srgb, var(--muted-foreground) 28%, transparent);
+    border-top-color: var(--muted-foreground);
     border-radius: 999px;
     animation: spin 0.8s linear infinite;
   }
@@ -240,7 +240,7 @@
   figcaption {
     padding: 8px 11px 9px;
     border-top: 1px solid var(--border);
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
     line-height: 1.45;
   }

@@ -75,11 +75,14 @@ test("user overrides win and light/dark palettes stay independent after package 
   expect(appearanceTokens([theme], config)["--primary"]).toBe("#ABCDEF");
   expect(appearanceTokens([theme], config)["--app-radius"]).toBe("20px");
   expect(appearanceTokens([theme], config, true)["--primary"]).toBe("#cc99ff");
-  expect(appearanceTokens([theme], config, true)["--text"]).toBe("#EEEEEE");
+  expect(appearanceTokens([theme], config, true)["--foreground"]).toBe("#EEEEEE");
   expect(appearanceTokens([], config)["--app-radius"]).toBeUndefined();
   expect(appearanceTokens([], config)["--primary"]).toBe("#ABCDEF");
   expect(appearanceTokens([], config)["--app-font-size"]).toBe("18px");
   expect(appearanceTokens([], config)["--code-font-size"]).toBe("16px");
+  expect(appearanceTokens([theme], config)["--font-sans"]).toBe(
+    appearanceTokens([theme], config)["--app-font-family"],
+  );
   expect(appearanceTokens([theme], { theme_plugin: "a" })["--primary"]).toBe("#663399");
 });
 

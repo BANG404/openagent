@@ -322,7 +322,7 @@
     max-width: 0;
   }
   .flow-panel.conversation-collapsed .flow-panel-surface {
-    border-radius: 12px;
+    border-radius: var(--radius);
   }
   .flow-panel.resizing {
     transition: none;
@@ -334,8 +334,8 @@
     flex: 1;
     flex-direction: column;
     overflow: hidden;
-    border-radius: 0 12px 12px 0;
-    background: var(--surface);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    background: var(--card);
   }
   .panel-cache-slot {
     display: flex;
@@ -392,23 +392,23 @@
     gap: 6px;
     padding: 0 10px;
     border: 0;
-    border-radius: 6px 6px 0 0;
+    border-radius: calc(var(--radius) * 0.5) calc(var(--radius) * 0.5) 0 0;
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     cursor: pointer;
     font-size: 11px;
   }
   .panel-navigation button:hover,
   .panel-navigation button:focus-visible {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
     outline: none;
   }
   .panel-navigation button:focus-visible {
     box-shadow: inset var(--focus-ring);
   }
   .panel-navigation button.active {
-    color: var(--text);
+    color: var(--foreground);
   }
   .panel-navigation button.active::after {
     position: absolute;
@@ -424,9 +424,9 @@
     place-items: center;
     padding: 0 4px;
     box-sizing: border-box;
-    border-radius: 9px;
-    background: var(--surface2);
-    color: var(--text-muted);
+    border-radius: calc(var(--radius) * 0.75);
+    background: var(--muted);
+    color: var(--muted-foreground);
     font:
       500 9px/1 "JetBrains Mono",
       monospace;
@@ -448,12 +448,12 @@
   .flow-heading strong {
     font-size: 12px;
     font-weight: 600;
-    color: var(--text);
+    color: var(--foreground);
   }
   .flow-heading span {
     overflow: hidden;
     font-size: 11px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -462,7 +462,7 @@
     font:
       500 11px/1.4 "JetBrains Mono",
       monospace;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
   .item-status {
     display: inline-flex;
@@ -476,8 +476,8 @@
     font-size: 10px;
     line-height: 1;
     text-align: center;
-    color: var(--text-muted);
-    background: var(--surface2);
+    color: var(--muted-foreground);
+    background: var(--muted);
   }
   .item-status.in_progress {
     color: var(--primary);
@@ -510,8 +510,8 @@
   .flow-item {
     min-width: 0;
     border: 1px solid var(--border);
-    border-radius: 9px;
-    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    border-radius: calc(var(--radius) * 0.75);
+    background: color-mix(in srgb, var(--card) 88%, transparent);
   }
   .flow-item {
     display: flex;
@@ -526,7 +526,7 @@
     height: 7px;
     flex: 0 0 7px;
     border-radius: 50%;
-    background: var(--text-muted);
+    background: var(--muted-foreground);
   }
   .completed .status-dot {
     background: #18794e;
@@ -550,14 +550,14 @@
     font-size: 11px;
     font-weight: 500;
     line-height: 1.35;
-    color: var(--text);
+    color: var(--foreground);
     overflow-wrap: anywhere;
   }
   .item-copy small {
     display: -webkit-box;
     overflow: hidden;
     font-size: 10px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     overflow-wrap: anywhere;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
@@ -571,7 +571,7 @@
     margin: 0;
     font-size: 11px;
     line-height: 1.5;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
   .flow-empty {
     margin: auto;

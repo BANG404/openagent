@@ -54,8 +54,8 @@
 <style>
   .json-container {
     border: 1px solid var(--border);
-    border-radius: 5px;
-    background: var(--bg);
+    border-radius: calc(var(--radius) * 0.416667);
+    background: var(--background);
   }
   .json-child + .json-child {
     margin-top: 5px;
@@ -73,7 +73,7 @@
   }
   summary::before {
     width: 10px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     content: "›";
     font-size: 15px;
     line-height: 1;
@@ -94,7 +94,7 @@
   }
   summary span {
     overflow: hidden;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font:
       10px ui-monospace,
       SFMono-Regular,
@@ -115,12 +115,12 @@
     align-items: start;
     padding: 7px 8px;
     border: 1px solid var(--border);
-    border-radius: 5px;
-    background: var(--bg);
+    border-radius: calc(var(--radius) * 0.416667);
+    background: var(--background);
   }
   .json-primitive span {
     min-width: 0;
-    color: var(--text);
+    color: var(--foreground);
     font:
       11px/1.5 ui-monospace,
       SFMono-Regular,
@@ -130,7 +130,7 @@
     white-space: pre-wrap;
   }
   .json-null span {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-style: italic;
   }
 </style>

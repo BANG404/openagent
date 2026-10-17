@@ -92,8 +92,8 @@
     height: 420px;
     padding: 12px;
     box-sizing: border-box;
-    background: var(--surface);
-    color: var(--text);
+    background: var(--card);
+    color: var(--card-foreground);
   }
   .fixture-controls {
     display: flex;
@@ -108,6 +108,6 @@
   output {
     margin-top: 12px;
     font-size: 11px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
 </style>

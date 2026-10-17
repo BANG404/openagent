@@ -77,7 +77,7 @@
     min-height: 36px;
     padding: 2px;
     border: 1px solid var(--mica-divider);
-    border-radius: 7px;
+    border-radius: calc(var(--radius) * 0.583333);
     background: var(--interactive-state-bg);
   }
 
@@ -92,8 +92,8 @@
     bottom: 2px;
     left: 2px;
     width: calc((100% - 4px - (var(--segment-count) - 1) * 2px) / var(--segment-count));
-    border-radius: 5px;
-    background: var(--surface);
+    border-radius: calc(var(--radius) * 0.416667);
+    background: var(--card);
     transform: translateX(calc(var(--active-index) * (100% + 2px)));
     transition:
       transform var(--motion-panel) var(--ease-enter),
@@ -106,9 +106,9 @@
     min-height: 30px;
     padding: 5px 10px;
     border: 0;
-    border-radius: 5px;
+    border-radius: calc(var(--radius) * 0.416667);
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font: inherit;
     font-size: 12px;
     cursor: pointer;
@@ -119,12 +119,12 @@
 
   button:hover {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   button.active {
     background: transparent;
-    color: var(--text);
+    color: var(--foreground);
     font-weight: 600;
   }
 

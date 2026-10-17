@@ -92,9 +92,9 @@
     gap: 4px;
     padding: 1px 7px 1px 6px;
     margin: 0 2px;
-    border-radius: 5px;
+    border-radius: calc(var(--radius) * 0.416667);
     border: 1px solid var(--border);
-    background: var(--surface2);
+    background: var(--muted);
     color: var(--primary);
     font-size: 0.92em;
     line-height: 1.3;
@@ -113,7 +113,7 @@
     width: 12px;
     height: 12px;
     flex: 0 0 12px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     transform: translateY(1px);
   }
   .site-icon svg,
@@ -127,7 +127,7 @@
     transition: opacity var(--motion-fast) var(--ease-standard);
   }
   .site-icon img {
-    border-radius: 2px;
+    border-radius: calc(var(--radius) * 0.166667);
     object-fit: contain;
     opacity: 0;
     transition: opacity var(--motion-fast) var(--ease-standard);
@@ -142,7 +142,7 @@
     font-size: 0.95em;
   }
   .host {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 0.82em;
     margin-left: 2px;
   }

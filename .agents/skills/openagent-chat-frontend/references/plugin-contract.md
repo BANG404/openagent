@@ -1,5 +1,11 @@
 # Shared Runtime Types
 
+Chat styles consume the design system's semantic CSS tokens and matching
+foreground pairs. Shared primary actions never fix their foreground to white.
+Theme changes must repaint mounted charts and diagrams as well as DOM surfaces;
+they do not change transcripts, streaming ownership or component identity.
+The design-system semantic-themes reference owns token naming and composition.
+
 PageRuntime is the single owner of appearance tokens and native-canvas class
 selection. Its effective settings preview or saved config must drive both;
 background edits must not leave the root transparent over a custom/plugin color.

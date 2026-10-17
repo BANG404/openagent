@@ -40,9 +40,9 @@
     display: inline-block;
     padding: 1px 6px;
     border: 1px dashed var(--border);
-    border-radius: 4px;
-    background: var(--surface2);
-    color: var(--text-muted);
+    border-radius: calc(var(--radius) * 0.333333);
+    background: var(--muted);
+    color: var(--muted-foreground);
     font-size: 12px;
   }
 </style>

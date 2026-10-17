@@ -160,7 +160,7 @@
     height: 100%;
     min-height: 32px;
     border-radius: 0;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -172,7 +172,7 @@
 
   .win-btn:hover {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   .win-close:hover {

@@ -245,7 +245,7 @@
 
   .debug-checkpoint {
     margin-right: auto;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 10px;
   }
 
@@ -280,14 +280,14 @@
     max-width: 100%;
     box-sizing: border-box;
     border: 0;
-    border-radius: var(--app-radius);
+    border-radius: var(--radius);
     padding: 9px 14px;
     margin: 0;
     font-family: inherit;
     font-size: 14px;
     white-space: pre-wrap;
     word-break: break-word;
-    color: var(--text);
+    color: var(--foreground);
     line-height: 1.47;
     letter-spacing: -0.374px;
     text-align: left;
@@ -307,8 +307,8 @@
     box-sizing: border-box;
     padding: 9px 14px;
     border: 0;
-    border-radius: var(--app-radius);
-    color: var(--text);
+    border-radius: var(--radius);
+    color: var(--foreground);
     font-size: 14px;
     line-height: 1.47;
     letter-spacing: -0.374px;
@@ -328,9 +328,9 @@
     height: 24px;
     align-items: center;
     justify-content: center;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     background: var(--control-surface);
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     box-shadow: var(--control-shadow);
     opacity: 0;
     pointer-events: none;
@@ -342,7 +342,7 @@
   }
   .user-content:hover .user-edit-hint,
   .user-content:focus-visible .user-edit-hint {
-    color: var(--text);
+    color: var(--foreground);
     opacity: 1;
     transform: translate(0, -50%);
   }
@@ -375,16 +375,16 @@
     margin-top: 4px;
     padding: 2px 6px;
     border: 0;
-    border-radius: 4px;
+    border-radius: calc(var(--radius) * 0.333333);
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font: inherit;
     font-size: 11px;
     cursor: pointer;
   }
   .user-collapse-btn:hover {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
   .user-content-edit:not(:read-only):focus {
     box-shadow: var(--focus-ring);
@@ -418,23 +418,23 @@
   .edit-cancel-btn,
   .edit-confirm-btn {
     padding: 4px 12px;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     font-size: 12px;
     cursor: pointer;
     border: 0;
-    background: var(--surface2);
-    color: var(--text-muted);
+    background: var(--muted);
+    color: var(--muted-foreground);
     transition:
       background var(--motion-fast) var(--ease-standard),
       color var(--motion-fast) var(--ease-standard);
   }
   .edit-confirm-btn {
     background: var(--primary);
-    color: white;
+    color: var(--primary-foreground);
   }
   .edit-cancel-btn:hover {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
   .edit-confirm-btn:hover:not(:disabled) {
     background: var(--primary-hover);
@@ -459,20 +459,20 @@
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
     user-select: none;
   }
   .branch-nav-btn {
     width: 18px;
     height: 18px;
-    border-radius: 4px;
+    border-radius: calc(var(--radius) * 0.333333);
     display: flex;
     align-items: center;
     justify-content: center;
     background: transparent;
     border: 1px solid var(--border);
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     cursor: pointer;
     font-size: 13px;
     line-height: 1;
@@ -483,7 +483,7 @@
   }
   .branch-nav-btn:hover:not(:disabled) {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
   .branch-nav-btn:disabled {
     opacity: 0.35;
@@ -496,7 +496,7 @@
   }
   .ts {
     font-size: 10px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     margin-top: 4px;
     display: block;
     user-select: none;

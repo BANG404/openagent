@@ -127,7 +127,7 @@
     position: fixed;
     inset: 0;
     z-index: 80;
-    background: color-mix(in srgb, var(--bg) 42%, transparent);
+    background: color-mix(in srgb, var(--background) 42%, transparent);
     backdrop-filter: blur(2px);
   }
 
@@ -150,9 +150,9 @@
     overflow: hidden;
     resize: both;
     border: 1px solid var(--mica-divider);
-    border-radius: 12px;
-    background: var(--surface);
-    color: var(--text);
+    border-radius: var(--radius);
+    background: var(--card);
+    color: var(--card-foreground);
     box-shadow: var(--raised-shadow);
     outline: none;
     transition:
@@ -178,7 +178,7 @@
     max-height: none;
     transform: none;
     resize: none;
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
   }
 
   :global(.fullscreen-surface-chrome) {
@@ -238,9 +238,9 @@
     flex: none;
     place-items: center;
     border: 0;
-    border-radius: 7px;
+    border-radius: calc(var(--radius) * 0.583333);
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     cursor: pointer;
     outline: none;
   }
@@ -248,7 +248,7 @@
   :global(.fullscreen-surface-expand:hover),
   :global(.fullscreen-surface-expand:focus-visible) {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   :global(.fullscreen-surface-expand:focus-visible) {
@@ -277,9 +277,9 @@
     display: grid;
     place-items: center;
     border: 0;
-    border-radius: 7px;
+    border-radius: calc(var(--radius) * 0.583333);
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     cursor: pointer;
     outline: none;
   }
@@ -287,7 +287,7 @@
   :global(.fullscreen-surface-close:hover),
   :global(.fullscreen-surface-close:focus-visible) {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   :global(.fullscreen-surface-close:focus-visible) {

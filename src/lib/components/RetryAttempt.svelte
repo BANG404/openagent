@@ -123,7 +123,7 @@
   }
 
   .attempt-content {
-    color: var(--text);
+    color: var(--foreground);
   }
 
   .thinking-block {
@@ -150,13 +150,13 @@
     margin: 0 0 8px;
     padding: 6px 8px;
     border: 0;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     background: var(--user-message-bg);
     box-shadow: var(--control-shadow);
   }
 
   .retry-error {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
 
   .retry-divider {
@@ -164,7 +164,7 @@
     align-items: center;
     gap: 10px;
     margin: 22px 0 8px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
   }
 

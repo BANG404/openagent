@@ -443,9 +443,9 @@
     padding: 3px var(--list-item-compact-padding-inline) 3px
       calc(var(--list-item-compact-padding-inline) + 16px + var(--list-item-compact-content-gap));
     border: 0;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font: inherit;
     font-size: 11px;
     cursor: pointer;
@@ -454,7 +454,7 @@
   .show-more-conversations:hover:not(:disabled),
   .show-more-conversations:focus-visible {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
     outline: none;
   }
 
@@ -468,7 +468,7 @@
     gap: 8px;
     padding: 42px 18px;
     text-align: center;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
     line-height: 1.5;
   }
@@ -482,7 +482,7 @@
   .project-empty-conversations {
     padding: 3px var(--list-item-compact-padding-inline) 5px
       calc(var(--list-item-compact-padding-inline) + 16px + var(--list-item-compact-content-gap));
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
     line-height: 18px;
   }
@@ -492,7 +492,7 @@
     place-items: center;
     width: 34px;
     height: 34px;
-    border-radius: 10px;
+    border-radius: calc(var(--radius) * 0.833333);
     color: var(--primary);
     background: color-mix(in srgb, var(--primary) 10%, transparent);
   }
@@ -502,7 +502,7 @@
     height: 19px;
   }
   .empty-conversations strong {
-    color: var(--text);
+    color: var(--foreground);
     font-size: 13px;
     font-weight: 600;
   }
@@ -512,7 +512,7 @@
     justify-content: center;
     gap: 8px;
     padding: 28px 14px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
     text-align: center;
   }
@@ -536,8 +536,8 @@
   .conversation-page-spinner {
     width: 13px;
     height: 13px;
-    border: 1.5px solid color-mix(in srgb, var(--text-muted) 28%, transparent);
-    border-top-color: var(--text-muted);
+    border: 1.5px solid color-mix(in srgb, var(--muted-foreground) 28%, transparent);
+    border-top-color: var(--muted-foreground);
     border-radius: 50%;
     animation: conversation-page-spin 0.7s linear infinite;
   }
@@ -552,7 +552,7 @@
     width: 14px;
     height: 14px;
     flex: 0 0 14px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
   .conv-item {
     position: relative;
@@ -567,7 +567,7 @@
     padding: 4px var(--list-item-compact-padding-inline);
     cursor: pointer;
     text-align: left;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font: inherit;
     font-size: var(--list-item-compact-font-size);
     line-height: var(--list-item-compact-line-height);
@@ -579,22 +579,22 @@
 
   .conv-item:hover:not(.active) {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   .conv-item.active {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
     font-weight: 500;
   }
 
   .conv-delete {
     display: none;
     font-size: 14px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     cursor: pointer;
     padding: 1px 4px;
-    border-radius: 4px;
+    border-radius: calc(var(--radius) * 0.333333);
     flex-shrink: 0;
     line-height: 1;
     transition: background var(--motion-fast) var(--ease-standard);
@@ -607,7 +607,7 @@
 
   .conv-delete:hover {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   .conv-streaming-dot {
@@ -669,7 +669,7 @@
   .sub-conv-branch:last-child::before {
     height: calc(var(--conversation-row-height) / 2);
     border-bottom: 1px solid var(--border);
-    border-bottom-left-radius: 5px;
+    border-bottom-left-radius: calc(var(--radius) * 0.416667);
   }
 
   .sub-conv-branch > .sub-conv-group {
@@ -689,7 +689,7 @@
     padding: 4px 8px;
     cursor: pointer;
     text-align: left;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font: inherit;
     font-size: var(--list-item-compact-font-size);
     line-height: var(--list-item-compact-line-height);
@@ -701,12 +701,12 @@
 
   .sub-conv-item:hover:not(.active) {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   .sub-conv-item.active {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
     font-weight: 500;
   }
 

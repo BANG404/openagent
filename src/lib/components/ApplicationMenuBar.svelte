@@ -566,9 +566,9 @@
     height: 28px;
     padding: 0 9px;
     border: 0;
-    border-radius: 4px;
+    border-radius: calc(var(--radius) * 0.333333);
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font: inherit;
     font-size: 12px;
     line-height: 28px;
@@ -596,7 +596,7 @@
 
   :global(.application-menu-shortcut) {
     flex: 0 0 auto;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
     font-variant-numeric: tabular-nums;
   }
@@ -604,7 +604,7 @@
   :global(.application-submenu-trigger svg) {
     width: 12px;
     height: 12px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
 
   :global(.application-submenu-trigger path) {
@@ -634,7 +634,7 @@
     flex: 0 0 auto;
     padding: 1px 4px;
     border: 1px solid color-mix(in srgb, var(--primary) 42%, transparent);
-    border-radius: 4px;
+    border-radius: calc(var(--radius) * 0.333333);
     color: var(--primary);
     font-size: 9px;
     font-weight: 700;

@@ -48,7 +48,7 @@
     height: 100dvh;
     display: flex;
     flex-direction: column;
-    color: var(--text);
+    color: var(--foreground);
   }
   header {
     height: var(--desktop-titlebar-height);
@@ -76,15 +76,15 @@
     display: grid;
     place-items: center;
     padding: 24px;
-    border-radius: 12px;
-    background: var(--surface);
+    border-radius: var(--radius);
+    background: var(--card);
   }
   .startup-composer {
     width: min(100%, 760px);
   }
   p {
     text-align: center;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 13px;
     margin: 0 0 20px;
   }

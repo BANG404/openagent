@@ -516,9 +516,9 @@
     min-height: 0;
     margin: 0 auto;
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: calc(var(--radius) * 0.833333);
     overflow: hidden;
-    background: var(--surface);
+    background: var(--card);
     box-shadow: 0 4px 18px var(--shadow);
   }
   .database-view.detail-open {
@@ -564,15 +564,15 @@
     letter-spacing: 0.12em;
   }
   .muted {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
   }
   button {
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     padding: 7px 10px;
-    background: var(--surface);
-    color: var(--text);
+    background: var(--card);
+    color: var(--card-foreground);
     cursor: pointer;
     font: inherit;
     font-size: 12px;
@@ -589,7 +589,7 @@
     overflow: hidden;
     padding: 9px 12px;
     border-bottom: 1px solid var(--border);
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font:
       10px ui-monospace,
       SFMono-Regular,
@@ -623,7 +623,7 @@
   }
   .table-list span {
     margin-top: 4px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 10px;
   }
   .data-heading {
@@ -643,11 +643,11 @@
     box-sizing: border-box;
     width: min(32vw, 360px);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     padding: 7px 9px;
     outline: none;
-    background: var(--bg);
-    color: var(--text);
+    background: var(--background);
+    color: var(--foreground);
     font: inherit;
     font-size: 12px;
   }
@@ -662,14 +662,14 @@
   summary {
     padding: 9px 16px;
     cursor: pointer;
-    color: var(--text);
+    color: var(--foreground);
     font-size: 12px;
     font-weight: 600;
     list-style: none;
   }
   summary span {
     margin-left: auto;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-weight: 400;
   }
   summary::-webkit-details-marker {
@@ -688,8 +688,8 @@
     gap: 5px;
     padding: 8px 9px;
     border: 1px solid var(--border);
-    border-radius: 5px;
-    background: var(--bg);
+    border-radius: calc(var(--radius) * 0.416667);
+    background: var(--background);
   }
   .schema-grid article > div {
     display: flex;
@@ -709,7 +709,7 @@
   }
   .schema-grid article > span {
     overflow: hidden;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font:
       10px ui-monospace,
       SFMono-Regular,
@@ -720,9 +720,9 @@
   }
   .badge {
     padding: 2px 4px;
-    border-radius: 3px;
-    background: var(--surface2);
-    color: var(--text-muted);
+    border-radius: calc(var(--radius) * 0.25);
+    background: var(--muted);
+    color: var(--muted-foreground);
     font-size: 8px;
     font-weight: 700;
     white-space: nowrap;
@@ -731,14 +731,14 @@
     flex: none;
     padding: 8px 16px;
     border-bottom: 1px solid var(--border);
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
   }
   .table-scroll {
     flex: 1;
     min-height: 0;
     overflow: auto;
-    background: var(--bg);
+    background: var(--background);
   }
   table {
     width: max-content;
@@ -767,8 +767,8 @@
     top: 0;
     z-index: 1;
     padding: 0;
-    background: var(--surface2);
-    color: var(--text-muted);
+    background: var(--muted);
+    color: var(--muted-foreground);
     font-weight: 700;
   }
   th button {
@@ -788,13 +788,13 @@
   th button:hover:not(:disabled),
   th button.active-sort {
     background: var(--item-selected-hover-bg);
-    color: var(--text);
+    color: var(--foreground);
   }
   td {
     cursor: pointer;
   }
   td.null-value {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-style: italic;
   }
   tbody tr:hover td,
@@ -806,7 +806,7 @@
   }
   .empty-cell {
     padding: 28px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     text-align: center;
   }
   .pagination {
@@ -818,9 +818,9 @@
   .error {
     margin: 10px 16px;
     padding: 9px;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     color: #b42318;
-    background: color-mix(in srgb, #b42318 12%, var(--surface));
+    background: color-mix(in srgb, #b42318 12%, var(--card));
     font-size: 12px;
   }
   .empty {
@@ -833,7 +833,7 @@
     overflow: hidden;
     flex-direction: column;
     border-left: 1px solid var(--border);
-    background: var(--bg);
+    background: var(--background);
   }
   .cell-preview {
     flex: 1;
@@ -849,8 +849,8 @@
     overflow: auto;
     padding: 9px;
     border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--surface);
+    border-radius: calc(var(--radius) * 0.5);
+    background: var(--card);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     font:
@@ -868,7 +868,7 @@
     margin: -12px -12px 10px;
     padding: 12px;
     border-bottom: 1px solid var(--border);
-    background: var(--bg);
+    background: var(--background);
   }
   .checkpoint-preview-heading > div,
   .message-meta {
@@ -881,7 +881,7 @@
     font-size: 12px;
   }
   .checkpoint-preview-heading span {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
   }
   .checkpoint-preview-heading input {
@@ -896,8 +896,8 @@
     max-width: 100%;
     overflow: hidden;
     border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--surface);
+    border-radius: calc(var(--radius) * 0.5);
+    background: var(--card);
     box-sizing: border-box;
   }
   .checkpoint-message summary {
@@ -917,7 +917,7 @@
     display: none;
   }
   .message-index {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font:
       10px ui-monospace,
       SFMono-Regular,
@@ -926,7 +926,7 @@
   }
   .role-badge {
     padding: 2px 5px;
-    border-radius: 3px;
+    border-radius: calc(var(--radius) * 0.25);
     background: var(--item-selected-bg);
     color: var(--primary);
     font:
@@ -949,7 +949,7 @@
     min-width: 0;
     max-width: 100%;
     overflow: hidden;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font:
       11px/1.4 ui-monospace,
       SFMono-Regular,
@@ -966,7 +966,7 @@
   .message-meta {
     justify-content: flex-start;
     flex-wrap: wrap;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 10px;
   }
   .checkpoint-message-body pre {
@@ -977,7 +977,7 @@
   }
   .checkpoint-raw summary {
     cursor: pointer;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
   }
   .checkpoint-raw :global(.json-container) {
@@ -988,14 +988,14 @@
     gap: 8px;
     padding: 10px;
     border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--surface);
+    border-radius: calc(var(--radius) * 0.5);
+    background: var(--card);
   }
   .timestamp-preview strong {
     font-size: 13px;
   }
   .timestamp-preview span {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font:
       11px ui-monospace,
       SFMono-Regular,

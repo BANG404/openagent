@@ -279,7 +279,7 @@
     position: fixed;
     z-index: 2147483646;
     inset: 0;
-    background: var(--surface);
+    background: var(--card);
   }
 
   :global(.agent-book-dialog) {
@@ -292,8 +292,8 @@
     box-sizing: border-box;
     border: 0;
     outline: none;
-    background: var(--surface);
-    color: var(--text);
+    background: var(--card);
+    color: var(--card-foreground);
   }
 
   .agent-book-toolbar {
@@ -340,7 +340,7 @@
   }
 
   .agent-book-heading :global([data-dialog-description]) {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
   }
 
@@ -361,16 +361,16 @@
     justify-content: center;
     padding: 0;
     border: 0;
-    border-radius: 7px;
+    border-radius: calc(var(--radius) * 0.583333);
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     cursor: pointer;
   }
 
   :global(.book-close:hover),
   :global(.book-close:focus-visible) {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   :global(.book-close:focus-visible) {
@@ -397,7 +397,7 @@
     padding: 0;
     overflow: hidden;
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: calc(var(--radius) * 0.833333);
     overscroll-behavior: contain;
   }
 
@@ -534,8 +534,8 @@
     padding: 0;
     border: 1px solid var(--border);
     border-radius: 999px;
-    background: color-mix(in srgb, var(--surface2) 72%, transparent);
-    color: var(--text-muted);
+    background: color-mix(in srgb, var(--muted) 72%, transparent);
+    color: var(--muted-foreground);
     cursor: pointer;
     transform: translateY(-50%);
   }
@@ -551,7 +551,7 @@
   .page-turn:hover:not(:disabled),
   .page-turn:focus-visible {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   .page-turn:focus-visible {
@@ -579,7 +579,7 @@
     z-index: 2;
     bottom: 18px;
     left: 50%;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
     font-variant-numeric: tabular-nums;
     transform: translateX(-50%);

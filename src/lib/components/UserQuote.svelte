@@ -55,9 +55,9 @@
     align-items: flex-start;
     gap: 8px;
     padding: 8px 10px;
-    border-radius: 9px;
+    border-radius: calc(var(--radius) * 0.75);
     background: color-mix(in srgb, var(--control-surface) 76%, transparent);
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
     line-height: 1.42;
     text-align: left;
@@ -66,7 +66,7 @@
   .user-quote-composer {
     width: 100%;
     max-width: none;
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
     background: color-mix(in srgb, var(--mica-divider) 48%, transparent);
   }
 
@@ -94,16 +94,16 @@
     margin: -3px -4px 0 0;
     padding: 0;
     border: 0;
-    border-radius: 5px;
+    border-radius: calc(var(--radius) * 0.416667);
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     cursor: pointer;
   }
 
   .quote-remove:hover,
   .quote-remove:focus-visible {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
     outline: none;
   }
 

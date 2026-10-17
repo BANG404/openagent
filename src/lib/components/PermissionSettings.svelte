@@ -409,7 +409,7 @@
 
 <style>
   .permission-settings {
-    color: var(--text);
+    color: var(--foreground);
   }
 
   .permission-control {
@@ -433,7 +433,7 @@
   }
 
   .permission-description {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
     line-height: 1.45;
   }
@@ -451,7 +451,7 @@
   .custom-rules {
     margin: 0 12px 12px;
     overflow: hidden;
-    border-radius: 9px;
+    border-radius: calc(var(--radius) * 0.75);
     border: 1px solid var(--mica-divider);
     background: transparent;
   }
@@ -479,7 +479,7 @@
   .custom-rules-heading p,
   .empty-rules {
     margin-top: 3px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
     line-height: 1.45;
   }
@@ -488,8 +488,8 @@
     min-width: 22px;
     padding: 2px 7px;
     border-radius: 999px;
-    background: var(--surface);
-    color: var(--text-muted);
+    background: var(--card);
+    color: var(--muted-foreground);
     font-size: 11px;
     text-align: center;
   }
@@ -520,17 +520,17 @@
   .path-kind {
     flex: 0 0 auto;
     padding: 3px 7px;
-    border-radius: 5px;
-    background: var(--surface);
-    color: var(--text-muted);
+    border-radius: calc(var(--radius) * 0.416667);
+    background: var(--card);
+    color: var(--muted-foreground);
     font-size: 10px;
     line-height: 16px;
   }
 
   .path-value {
     overflow: hidden;
-    color: var(--text);
-    font-family: "SFMono-Regular", Consolas, monospace;
+    color: var(--foreground);
+    font-family: var(--font-mono, "SFMono-Regular", Consolas, monospace);
     font-size: 11px;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -541,11 +541,11 @@
     width: 100%;
     min-width: 0;
     border: 0;
-    border-radius: 6px;
-    background: var(--surface);
-    color: var(--text);
+    border-radius: calc(var(--radius) * 0.5);
+    background: var(--card);
+    color: var(--card-foreground);
     font: inherit;
-    font-family: "SFMono-Regular", Consolas, monospace;
+    font-family: var(--font-mono, "SFMono-Regular", Consolas, monospace);
     font-size: 11px;
     outline: none;
     padding: 6px 8px;
@@ -559,7 +559,7 @@
 
   .rule-path input:invalid,
   .new-rule-path:invalid {
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 60%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--destructive) 60%, transparent);
   }
 
   .remove-rule {
@@ -569,15 +569,15 @@
     align-items: center;
     justify-content: center;
     border: 0;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     cursor: pointer;
   }
 
   .remove-rule:hover {
-    background: color-mix(in srgb, var(--danger) 10%, transparent);
-    color: var(--danger);
+    background: color-mix(in srgb, var(--destructive) 10%, transparent);
+    color: var(--destructive);
   }
 
   .remove-rule:focus-visible,
@@ -613,10 +613,10 @@
   .add-rule {
     min-height: 32px;
     border: 0;
-    border-radius: 7px;
+    border-radius: calc(var(--radius) * 0.583333);
     padding: 6px 11px;
     background: var(--primary);
-    color: white;
+    color: var(--primary-foreground);
     font: inherit;
     font-size: 11px;
     cursor: pointer;
@@ -634,16 +634,16 @@
     gap: 9px;
     margin: 0 12px 12px;
     padding: 11px 12px;
-    border-radius: 8px;
-    background: color-mix(in srgb, #c57a00 10%, var(--surface2));
-    color: var(--text-muted);
+    border-radius: calc(var(--radius) * 0.666667);
+    background: color-mix(in srgb, #c57a00 10%, var(--muted));
+    color: var(--muted-foreground);
     font-size: 11px;
     line-height: 1.5;
   }
 
   .permission-warning.disabled {
     margin-top: 12px;
-    background: color-mix(in srgb, var(--danger) 10%, var(--surface2));
+    background: color-mix(in srgb, var(--destructive) 10%, var(--muted));
   }
 
   .permission-warning svg {
@@ -658,7 +658,7 @@
   }
 
   .permission-warning.disabled svg {
-    stroke: var(--danger);
+    stroke: var(--destructive);
   }
 
   @media (max-width: 640px) {

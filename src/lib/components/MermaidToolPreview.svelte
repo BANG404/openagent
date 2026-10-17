@@ -72,7 +72,7 @@
 
   .title {
     margin: 0 0 8px;
-    color: var(--text);
+    color: var(--foreground);
     font-size: 13px;
     font-weight: 500;
     text-align: center;
@@ -81,16 +81,16 @@
   .empty {
     margin: 0;
     padding: 12px 0;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 13px;
   }
 
   .error {
     margin-top: 8px;
     padding: 10px 12px;
-    border-radius: 8px;
-    background: color-mix(in srgb, #b42318 6%, var(--surface));
-    color: var(--text);
+    border-radius: calc(var(--radius) * 0.666667);
+    background: color-mix(in srgb, #b42318 6%, var(--card));
+    color: var(--foreground);
   }
 
   .error strong {

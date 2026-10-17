@@ -845,8 +845,8 @@
     height: 100vh;
     overflow: hidden;
     padding: 18px;
-    background: var(--bg);
-    color: var(--text);
+    background: var(--background);
+    color: var(--foreground);
   }
   h1,
   h2,
@@ -865,7 +865,7 @@
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
   p {
     font-size: 12px;
@@ -908,17 +908,17 @@
   }
   .muted,
   time {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
   .loading {
     color: var(--primary);
   }
   button {
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     padding: 7px 10px;
-    background: var(--surface);
-    color: var(--text);
+    background: var(--card);
+    color: var(--card-foreground);
     cursor: pointer;
     font: inherit;
     font-size: 12px;
@@ -938,8 +938,8 @@
     padding: 3px;
     width: fit-content;
     border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface);
+    border-radius: calc(var(--radius) * 0.666667);
+    background: var(--card);
   }
   .view-tabs button {
     border-color: transparent;
@@ -958,9 +958,9 @@
     min-height: 0;
     margin: 0 auto;
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: calc(var(--radius) * 0.833333);
     overflow: hidden;
-    background: var(--surface);
+    background: var(--card);
     box-shadow: 0 4px 18px var(--shadow);
   }
   .trace-list,
@@ -990,7 +990,7 @@
   .panel-heading > span,
   .trace-stats span,
   summary > span:last-child {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
   }
   .conversation-list {
@@ -1020,7 +1020,7 @@
   .conversation-list span {
     margin-top: 4px;
     font-size: 10px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
   .trajectory-heading {
     align-items: flex-start;
@@ -1049,7 +1049,7 @@
   .skeleton-line {
     height: 12px;
     margin: 8px 0;
-    border-radius: 4px;
+    border-radius: calc(var(--radius) * 0.333333);
     background: var(--border);
   }
   .skeleton-title {
@@ -1066,9 +1066,9 @@
     width: 9px;
     height: 9px;
     margin-top: 13px;
-    border: 2px solid var(--surface);
+    border: 2px solid var(--card);
     border-radius: 50%;
-    background: var(--text-muted);
+    background: var(--muted-foreground);
     box-shadow: 0 0 0 1px var(--border);
     z-index: 1;
   }
@@ -1084,8 +1084,8 @@
     margin-bottom: 10px;
     padding: 10px 11px;
     border: 1px solid var(--border);
-    border-radius: 7px;
-    background: var(--bg);
+    border-radius: calc(var(--radius) * 0.583333);
+    background: var(--background);
     transition:
       border-color var(--motion-fast) var(--ease-standard),
       background var(--motion-fast) var(--ease-standard);
@@ -1120,9 +1120,9 @@
   }
   .kind-badge {
     padding: 2px 5px;
-    border-radius: 4px;
-    background: var(--surface2);
-    color: var(--text-muted);
+    border-radius: calc(var(--radius) * 0.333333);
+    background: var(--muted);
+    color: var(--muted-foreground);
     font-size: 9px;
     font-weight: 800;
     letter-spacing: 0.06em;
@@ -1168,7 +1168,7 @@
     margin-top: 8px;
     padding-top: 7px;
     border-top: 1px solid var(--border);
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font:
       10px ui-monospace,
       SFMono-Regular,
@@ -1184,8 +1184,8 @@
   }
   .tool-definition {
     border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--bg);
+    border-radius: calc(var(--radius) * 0.5);
+    background: var(--background);
   }
   .tool-definition summary {
     display: grid;
@@ -1208,7 +1208,7 @@
     overflow-wrap: anywhere;
   }
   .tool-definition summary span {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
     line-height: 1.45;
   }
@@ -1220,7 +1220,7 @@
   .detail-panel {
     display: flex;
     flex-direction: column;
-    background: var(--surface);
+    background: var(--card);
   }
   .event-details {
     display: grid;
@@ -1229,7 +1229,7 @@
     overflow: auto;
   }
   .detail-row {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
   }
   .detail-row time {
@@ -1251,8 +1251,8 @@
     gap: 8px;
     padding: 7px 8px;
     border: 1px solid var(--border);
-    border-radius: 5px;
-    background: var(--bg);
+    border-radius: calc(var(--radius) * 0.416667);
+    background: var(--background);
     font:
       11px/1.45 ui-monospace,
       SFMono-Regular,
@@ -1274,9 +1274,9 @@
     overflow: auto;
     padding: 9px;
     border: 1px solid var(--border);
-    border-radius: 5px;
-    background: var(--bg);
-    color: var(--text);
+    border-radius: calc(var(--radius) * 0.416667);
+    background: var(--background);
+    color: var(--foreground);
     font:
       11px/1.5 ui-monospace,
       SFMono-Regular,
@@ -1301,7 +1301,7 @@
   summary::before {
     content: "›";
     margin-right: 7px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     transition: transform var(--motion-fast) var(--ease-standard);
   }
   details[open] summary::before {
@@ -1315,9 +1315,9 @@
     margin: 0 auto;
     padding: 28px;
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: calc(var(--radius) * 0.833333);
     overflow: hidden;
-    background: var(--surface);
+    background: var(--card);
     box-shadow: 0 4px 18px var(--shadow);
   }
   .utility-heading {
@@ -1342,8 +1342,8 @@
     gap: 14px;
     padding: 16px;
     border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg);
+    border-radius: calc(var(--radius) * 0.666667);
+    background: var(--background);
   }
   .preview-grid article {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -1351,7 +1351,7 @@
   }
   .preview-grid h3,
   .diagnostic-grid h3 {
-    color: var(--text);
+    color: var(--foreground);
     font-size: 13px;
     text-transform: none;
     letter-spacing: 0;
@@ -1359,7 +1359,7 @@
   .preview-grid p,
   .diagnostic-grid p {
     margin-top: 5px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
   .preview-grid button,
   .diagnostic-grid button {
@@ -1370,7 +1370,7 @@
     justify-items: center;
     gap: 6px;
     min-width: 88px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
     cursor: pointer;
   }
@@ -1387,9 +1387,9 @@
     max-width: 1680px;
     margin: 0 auto 12px;
     padding: 10px;
-    border-radius: 7px;
+    border-radius: calc(var(--radius) * 0.583333);
     color: #b42318;
-    background: color-mix(in srgb, #b42318 12%, var(--surface));
+    background: color-mix(in srgb, #b42318 12%, var(--card));
   }
   @media (max-width: 1050px) {
     .inspector {

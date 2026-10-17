@@ -63,12 +63,12 @@
   }
   .block {
     display: block;
-    border-radius: 5px;
+    border-radius: calc(var(--radius) * 0.416667);
     background: linear-gradient(
       100deg,
-      color-mix(in srgb, var(--text) 7%, transparent) 20%,
-      color-mix(in srgb, var(--text) 13%, transparent) 38%,
-      color-mix(in srgb, var(--text) 7%, transparent) 56%
+      color-mix(in srgb, var(--foreground) 7%, transparent) 20%,
+      color-mix(in srgb, var(--foreground) 13%, transparent) 38%,
+      color-mix(in srgb, var(--foreground) 7%, transparent) 56%
     );
     background-size: 240% 100%;
     animation: shimmer 1.35s ease-in-out infinite;
@@ -90,7 +90,7 @@
     width: 160px;
     height: var(--plugin-header-height);
     margin-left: auto;
-    border-radius: 7px;
+    border-radius: calc(var(--radius) * 0.583333);
   }
   .plugin-skeleton-store {
     display: grid;
@@ -117,7 +117,7 @@
   .filter {
     width: 210px;
     height: var(--plugin-header-height);
-    border-radius: 7px;
+    border-radius: calc(var(--radius) * 0.583333);
   }
   .plugin-skeleton-grid {
     display: grid;

@@ -356,10 +356,10 @@
     box-sizing: border-box;
     overflow: hidden;
     border: 1px solid var(--mica-border);
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
     background: var(--floating-surface);
     box-shadow: var(--raised-shadow);
-    color: var(--text);
+    color: var(--popover-foreground);
     backdrop-filter: saturate(150%) blur(24px);
     outline: none;
   }
@@ -404,7 +404,7 @@
 
   .role-editor-header :global(p) {
     margin: 3px 0 0;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
   }
 
@@ -414,16 +414,16 @@
     display: grid;
     place-items: center;
     border: 0;
-    border-radius: 7px;
+    border-radius: calc(var(--radius) * 0.583333);
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     cursor: pointer;
   }
 
   :global(.role-editor-dialog .icon-button:hover),
   :global(.role-editor-dialog .icon-button:focus-visible) {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   :global(.role-editor-dialog .icon-button svg) {
@@ -483,7 +483,7 @@
   label > span {
     display: block;
     margin-bottom: 7px;
-    color: var(--text);
+    color: var(--foreground);
     font-size: 12px;
     font-weight: 600;
   }
@@ -493,9 +493,9 @@
     width: 100%;
     box-sizing: border-box;
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     background: var(--control-surface);
-    color: var(--text);
+    color: var(--foreground);
     font: inherit;
     font-size: 13px;
     outline: none;
@@ -524,7 +524,7 @@
   .resource-heading p {
     display: block;
     margin: 6px 0 0;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
     line-height: 1.45;
   }
@@ -577,7 +577,7 @@
 
   .resource-browser {
     flex: 1;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     background: var(--control-surface);
     border: 1px solid var(--mica-divider);
     overflow: hidden;
@@ -662,7 +662,7 @@
   .resource-row small,
   .resource-empty,
   .resource-loading {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
   }
 
@@ -694,7 +694,7 @@
     min-height: 32px;
     padding: 0 14px;
     border: 0;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     font: inherit;
     font-size: 12px;
     cursor: pointer;
@@ -706,11 +706,11 @@
   }
 
   :global(.role-editor-dialog .quiet-button) {
-    color: var(--text);
+    color: var(--foreground);
   }
 
   .danger-button {
-    color: var(--danger);
+    color: var(--destructive);
   }
 
   :global(.role-editor-dialog .quiet-button:hover),
@@ -720,7 +720,7 @@
 
   .primary-button {
     background: var(--primary);
-    color: white;
+    color: var(--primary-foreground);
   }
 
   button:disabled {

@@ -92,7 +92,7 @@
     border-left: 0;
     outline: none;
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-family: inherit;
     font-size: 13px;
     line-height: 1.35;
@@ -101,7 +101,7 @@
   }
 
   .process-record-summary:focus-visible {
-    border-radius: 4px;
+    border-radius: calc(var(--radius) * 0.333333);
     box-shadow: var(--focus-ring);
   }
 

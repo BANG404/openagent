@@ -82,8 +82,8 @@
   .media-source-preview {
     min-height: 100vh;
     padding: 56px clamp(24px, 6vw, 84px);
-    background: var(--bg);
-    color: var(--text);
+    background: var(--background);
+    color: var(--foreground);
   }
 
   header {
@@ -99,7 +99,7 @@
 
   header p {
     margin: 0;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 14px;
     line-height: 1.55;
   }

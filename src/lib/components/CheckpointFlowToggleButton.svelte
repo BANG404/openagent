@@ -39,9 +39,9 @@
     place-items: center;
     padding: 0;
     border: 0;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     cursor: pointer;
     transition:
       background var(--motion-fast) var(--ease-standard),
@@ -52,7 +52,7 @@
   .checkpoint-flow-toggle:hover,
   .checkpoint-flow-toggle:focus-visible {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
     outline: none;
   }
 

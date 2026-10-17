@@ -60,9 +60,9 @@
     place-items: center;
     padding: 0;
     border: 0;
-    border-radius: 7px;
+    border-radius: calc(var(--radius) * 0.583333);
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     cursor: pointer;
     transition:
       background var(--motion-fast) var(--ease-standard),
@@ -73,7 +73,7 @@
   button:hover:not(:disabled),
   button:focus-visible {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
     outline: none;
   }
 
@@ -86,7 +86,7 @@
   }
 
   button:disabled {
-    color: color-mix(in srgb, var(--text-muted) 62%, transparent);
+    color: color-mix(in srgb, var(--muted-foreground) 62%, transparent);
     cursor: default;
   }
 

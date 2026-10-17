@@ -128,6 +128,16 @@ describe("tracked plugin development index", () => {
       "playwright",
       "serena",
       "terraform",
+      "openagent-theme-nova",
+      "openagent-theme-vega",
+      "openagent-theme-maia",
+      "openagent-theme-lyra",
+      "openagent-theme-mira",
+      "openagent-theme-luma",
+      "openagent-theme-sera",
+      "openagent-theme-rhea",
+      "openagent-theme-garden",
+      "openagent-theme-rose-ink",
     ]);
     expect(result.stdout).not.toContain("absent.env");
     const path = spawnSync(process.execPath, [cli, "--path", "message-board"], {

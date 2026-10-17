@@ -142,7 +142,7 @@
 <style>
   :global(.problem-report-dialog) {
     width: 540px;
-    background: var(--surface);
+    background: var(--card);
   }
   form {
     display: flex;
@@ -161,13 +161,13 @@
     min-height: 120px;
     max-height: 35vh;
     padding: 12px;
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
     font: inherit;
   }
   .report-copy {
     font-size: 13px;
     line-height: 1.6;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     margin: 0;
   }
   .report-trace-row {
@@ -177,7 +177,7 @@
     gap: 16px;
   }
   .report-error {
-    color: var(--danger);
+    color: var(--destructive);
     font-size: 13px;
     margin: 0;
   }

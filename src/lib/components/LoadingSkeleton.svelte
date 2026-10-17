@@ -142,12 +142,12 @@
 
   .block {
     display: block;
-    border-radius: 5px;
+    border-radius: calc(var(--radius) * 0.416667);
     background: linear-gradient(
       100deg,
-      color-mix(in srgb, var(--text) 7%, transparent) 20%,
-      color-mix(in srgb, var(--text) 13%, transparent) 38%,
-      color-mix(in srgb, var(--text) 7%, transparent) 56%
+      color-mix(in srgb, var(--foreground) 7%, transparent) 20%,
+      color-mix(in srgb, var(--foreground) 13%, transparent) 38%,
+      color-mix(in srgb, var(--foreground) 7%, transparent) 56%
     );
     background-size: 240% 100%;
     animation: shimmer 1.35s ease-in-out infinite;
@@ -176,7 +176,7 @@
     width: 28px;
     height: 28px;
     flex: none;
-    border-radius: 7px;
+    border-radius: calc(var(--radius) * 0.583333);
   }
 
   .list-copy {
@@ -214,7 +214,7 @@
 
   .sidebar-row.active,
   .draft-row.active {
-    background: color-mix(in srgb, var(--surface) 58%, transparent);
+    background: color-mix(in srgb, var(--card) 58%, transparent);
   }
 
   .sidebar-row .line {
@@ -236,7 +236,7 @@
     align-items: center;
     min-height: 32px;
     padding: 0 8px;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
   }
 
   .draft-row .line {
@@ -254,11 +254,11 @@
     display: grid;
     gap: 7px;
     padding: 9px 10px;
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
   }
 
   .detail-row.active {
-    background: var(--surface);
+    background: var(--card);
   }
 
   .detail-row .line {
@@ -274,7 +274,7 @@
     display: grid;
     align-content: start;
     overflow: hidden;
-    background: var(--bg);
+    background: var(--background);
   }
 
   .schema-skeleton {
@@ -282,7 +282,7 @@
     gap: 10px;
     padding: 11px 16px 12px;
     border-bottom: 1px solid var(--border);
-    background: var(--surface);
+    background: var(--card);
   }
 
   .schema-title {
@@ -299,7 +299,7 @@
   .schema-card {
     height: 42px;
     border: 1px solid var(--border);
-    background-color: var(--bg);
+    background-color: var(--background);
   }
 
   .result-skeleton {
@@ -323,7 +323,7 @@
   }
 
   .table-head {
-    background: var(--surface2);
+    background: var(--muted);
   }
 
   .table-head .block,
@@ -356,7 +356,7 @@
     width: min(58%, 450px);
     margin-left: auto;
     padding: 11px 14px;
-    border-radius: var(--app-radius);
+    border-radius: var(--radius);
     background: var(--user-message-bg);
     -webkit-backdrop-filter: blur(12px) saturate(1.05);
     backdrop-filter: blur(12px) saturate(1.05);
@@ -462,7 +462,7 @@
     box-sizing: border-box;
     overflow: hidden;
     border: 1px solid var(--composer-border);
-    border-radius: var(--app-radius);
+    border-radius: var(--radius);
     background: var(--mica-surface);
     -webkit-backdrop-filter: blur(24px) saturate(1.28);
     backdrop-filter: blur(24px) saturate(1.28);
@@ -505,13 +505,13 @@
   .composer-model {
     width: 92px;
     height: var(--composer-selector-height);
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
   }
 
   .composer-option,
   .composer-workspace {
     height: var(--composer-selector-height);
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
   }
 
   .composer-option {

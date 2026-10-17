@@ -221,7 +221,7 @@
   .skeleton-control {
     display: block;
     background: var(--mica-divider);
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
   }
   .skeleton-label {
     width: 35%;

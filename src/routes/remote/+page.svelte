@@ -989,8 +989,8 @@
     place-items: center;
     overflow: hidden;
     padding: 40px 20px;
-    background: var(--bg);
-    color: var(--text-muted);
+    background: var(--background);
+    color: var(--muted-foreground);
   }
   .center-state {
     align-content: center;
@@ -1001,7 +1001,7 @@
     width: 68px;
     height: 68px;
     padding: 5px;
-    border-radius: var(--app-radius);
+    border-radius: var(--radius);
     background: rgba(255, 255, 255, 0.9);
     box-shadow: var(--control-shadow);
     object-fit: contain;
@@ -1036,21 +1036,21 @@
     z-index: 1;
     width: min(100%, 440px);
     padding: 34px;
-    border-radius: var(--app-radius);
+    border-radius: var(--radius);
     background: var(--control-surface);
     box-shadow: var(--raised-shadow);
     backdrop-filter: blur(20px) saturate(1.12);
   }
   .gate-card h1 {
     margin: 0;
-    color: var(--text);
+    color: var(--foreground);
     font-size: 24px;
     font-weight: 600;
     letter-spacing: -0.02em;
   }
   .gate-subtitle {
     margin: 3px 0 28px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 13px;
   }
   .brand-lockup {
@@ -1063,7 +1063,7 @@
     width: 44px;
     height: 44px;
     padding: 3px;
-    border-radius: 12px;
+    border-radius: var(--radius);
     background: rgba(255, 255, 255, 0.9);
     box-shadow: var(--control-shadow);
     object-fit: contain;
@@ -1080,7 +1080,7 @@
   .gate-card > label {
     display: grid;
     gap: 8px;
-    color: var(--text);
+    color: var(--foreground);
     font-size: 13px;
     font-weight: 600;
   }
@@ -1094,7 +1094,7 @@
     outline: 0;
     background: var(--control-surface);
     box-shadow: var(--control-shadow);
-    color: var(--text);
+    color: var(--foreground);
     font:
       600 20px/1.4 "SFMono-Regular",
       Consolas,
@@ -1108,7 +1108,7 @@
   }
   .field-hint {
     margin: 8px 4px 0;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
     line-height: 1.5;
   }
@@ -1124,7 +1124,7 @@
     border: 0;
     border-radius: 9999px;
     background: var(--primary);
-    color: white;
+    color: var(--primary-foreground);
     font: inherit;
     font-weight: 600;
     cursor: pointer;
@@ -1157,7 +1157,7 @@
   .error-note,
   .composer-error {
     margin-bottom: 0;
-    color: var(--danger, #dc2626);
+    color: var(--destructive, #dc2626);
     font-size: 12px;
   }
 
@@ -1166,8 +1166,8 @@
     display: flex;
     height: 100dvh;
     overflow: hidden;
-    background: var(--bg);
-    color: var(--text);
+    background: var(--background);
+    color: var(--foreground);
   }
   .sidebar {
     position: relative;
@@ -1177,7 +1177,7 @@
     flex-direction: column;
     overflow: visible;
     border-right: 1px solid var(--border);
-    background: var(--sidebar-bg);
+    background: var(--sidebar);
     transition: width var(--motion-layout) var(--ease-enter);
     user-select: none;
   }
@@ -1209,7 +1209,7 @@
   .remote-security {
     margin-top: auto;
     padding: 10px 12px 14px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 10px;
     line-height: 1.45;
   }
@@ -1230,7 +1230,12 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 16px;
-    background: linear-gradient(to bottom, var(--bg) 0%, var(--bg) 55%, transparent 100%);
+    background: linear-gradient(
+      to bottom,
+      var(--background) 0%,
+      var(--background) 55%,
+      transparent 100%
+    );
     user-select: none;
   }
   .main.sidebar-collapsed .title-bar {
@@ -1279,9 +1284,9 @@
     place-items: center;
     padding: 0;
     border: 0;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     cursor: pointer;
     transition:
       background var(--motion-fast) var(--ease-standard),
@@ -1290,7 +1295,7 @@
   .title-new-conversation:hover,
   .title-new-conversation:focus-visible {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
     outline: none;
   }
   .title-new-conversation:focus-visible {
@@ -1319,11 +1324,11 @@
     min-height: 100%;
     place-content: center;
     gap: 6px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     text-align: center;
   }
   .empty-chat strong {
-    color: var(--text);
+    color: var(--foreground);
     font-size: 18px;
     font-weight: 600;
   }
@@ -1361,19 +1366,19 @@
   }
   .composer-notice {
     margin: 7px 0 0;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
     text-align: center;
   }
   .inline-interrupt-hint {
     margin: 0;
     padding: 10px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     text-align: center;
   }
   .approval-card {
     overflow: hidden;
-    border-radius: var(--app-radius);
+    border-radius: var(--radius);
     background: var(--control-surface);
     box-shadow: var(--control-shadow);
   }
@@ -1389,7 +1394,7 @@
     margin: 8px 0 0;
     overflow: auto;
     white-space: pre-wrap;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
   }
   @keyframes spin {

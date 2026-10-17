@@ -94,6 +94,16 @@ describe("official plugin registry", () => {
       "playwright",
       "serena",
       "terraform",
+      "openagent-theme-nova",
+      "openagent-theme-vega",
+      "openagent-theme-maia",
+      "openagent-theme-lyra",
+      "openagent-theme-mira",
+      "openagent-theme-luma",
+      "openagent-theme-sera",
+      "openagent-theme-rhea",
+      "openagent-theme-garden",
+      "openagent-theme-rose-ink",
     ]);
     expect(findOfficialPlugin(registry, "goal")?.sourceUrl).toBe(
       "https://github.com/BANG404/openagent-goal",
@@ -113,6 +123,27 @@ describe("official plugin registry", () => {
     expect(findOfficialPlugin(registry, "langfuse")?.sha256).toBeUndefined();
     expect(findOfficialPlugin(registry, "discord")).toBeUndefined();
     expect(findOfficialPlugin(registry, "telegram")).toBeUndefined();
+  });
+
+  test("theme packages are discoverable in the design category in both locales", () => {
+    const registry = parseOfficialPluginRegistry(bundledRegistry);
+    for (const locale of ["en", "zh"]) {
+      const themes = projectOfficialPluginCatalog(registry, {
+        installed: new Map(),
+        locale,
+        category: "design",
+      });
+      expect(themes).toHaveLength(10);
+      expect(themes.every((plugin) => plugin.id.startsWith("openagent-theme-"))).toBe(true);
+      expect(
+        projectOfficialPluginCatalog(registry, {
+          installed: new Map(),
+          locale,
+          category: "design",
+          query: "emerald",
+        }).map((plugin) => plugin.id),
+      ).toEqual(["openagent-theme-garden"]);
+    }
   });
 
   test("distinguishes the development assistant and message board in localized search", () => {

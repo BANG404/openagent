@@ -104,6 +104,7 @@ try {
   }
   for (const theme of ["light", "dark"]) {
     for (const language of ["en", "zh"]) {
+      console.log(`Verifying legacy theme ${theme}/${language}`);
       await operation(`const {desktopOpenAgent:c,emit}=await import('/src/lib/openagent/tauriClient.ts');
         const config=await c.invokeProduct('get_settings',{});
         config.theme=${JSON.stringify(theme)}; config.language=${JSON.stringify(language)};
@@ -206,7 +207,7 @@ try {
       pilot(["fill", "#appearance-ui_font_size", "16"]);
       pilot(["fill", "#appearance-code_font_size", "15"]);
       await waitExpression(
-        `document.documentElement.style.getPropertyValue('--primary')==='${accent}' && document.documentElement.style.getPropertyValue('--surface')==='${background}' && getComputedStyle(document.body).fontSize==='16px' && getComputedStyle(document.body).fontFamily.includes('JetBrains') && document.documentElement.style.getPropertyValue('--code-font-size')==='15px'`,
+        `document.documentElement.style.getPropertyValue('--primary')==='${accent}' && document.documentElement.style.getPropertyValue('--card')==='${background}' && getComputedStyle(document.body).fontSize==='16px' && getComputedStyle(document.body).fontFamily.includes('JetBrains') && document.documentElement.style.getPropertyValue('--code-font-size')==='15px'`,
       );
       await operation(`const {mount,unmount,tick}=await import('/node_modules/.vite/deps/svelte.js');
         const {default:FileDiff}=await import('/src/lib/components/FileDiffView.svelte');
@@ -220,6 +221,7 @@ try {
           if(config.theme_plugin==='${themeId}' && o?.['${theme}']?.accent==='${accent}' && o?.['${theme}']?.background==='${background}' && o?.['${theme}']?.foreground==='${foreground}' && o?.font_family==='mono' && o?.ui_font_size===16 && o?.code_font_size===15)return true;
           await new Promise(r=>setTimeout(r,100));} throw new Error('Appearance overrides did not persist');`);
       captureBlackboxScreenshot(pilot, join(artifacts, `${theme}-${language}-appearance.png`));
+      await open("general");
       evaluate(
         `document.querySelector('[data-appearance-theme]').closest('.ui-scroll-area-viewport').scrollTop=0; true`,
       );

@@ -117,7 +117,7 @@
     gap: 2px;
   }
   .toast-title {
-    color: var(--text);
+    color: var(--foreground);
     font-size: 13px;
     font-weight: 600;
     letter-spacing: -0.224px;
@@ -126,7 +126,7 @@
   .toast-desc {
     flex: 1;
     min-width: 0;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 13px;
     font-weight: 400;
     letter-spacing: -0.224px;
@@ -158,7 +158,7 @@
     text-decoration: underline;
   }
   .toast-link:focus-visible {
-    border-radius: 3px;
+    border-radius: calc(var(--radius) * 0.25);
     outline: 2px solid color-mix(in srgb, var(--primary) 45%, transparent);
     outline-offset: 2px;
   }
@@ -176,7 +176,7 @@
     font-weight: 400;
     letter-spacing: -0.224px;
     padding: 6px 10px;
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
     cursor: pointer;
     transition: background var(--motion-fast) var(--ease-standard);
     font-family: inherit;
@@ -190,13 +190,13 @@
   .toast-dismiss {
     background: transparent;
     border: none;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     width: 28px;
     height: 28px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
     cursor: pointer;
     transition:
       background var(--motion-fast) var(--ease-standard),
@@ -206,7 +206,7 @@
   }
   .toast-dismiss:hover {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
   .toast-dismiss:active {
     transform: scale(0.95);

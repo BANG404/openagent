@@ -203,12 +203,12 @@
 
   .block {
     display: block;
-    border-radius: 5px;
+    border-radius: calc(var(--radius) * 0.416667);
     background: linear-gradient(
       100deg,
-      color-mix(in srgb, var(--text) 7%, transparent) 20%,
-      color-mix(in srgb, var(--text) 13%, transparent) 38%,
-      color-mix(in srgb, var(--text) 7%, transparent) 56%
+      color-mix(in srgb, var(--foreground) 7%, transparent) 20%,
+      color-mix(in srgb, var(--foreground) 13%, transparent) 38%,
+      color-mix(in srgb, var(--foreground) 7%, transparent) 56%
     );
     background-size: 240% 100%;
     animation: shimmer 1.35s ease-in-out infinite;
@@ -235,13 +235,13 @@
   .collection-search {
     height: 34px;
     flex: 1;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
   }
 
   .collection-filter {
     width: 50px;
     height: 34px;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
   }
 
   .collection-list {
@@ -257,7 +257,7 @@
     align-items: center;
     gap: 10px;
     padding: 6px 10px;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     box-sizing: border-box;
   }
 
@@ -265,7 +265,7 @@
     width: 32px;
     height: 32px;
     flex: 0 0 32px;
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
   }
 
   .collection-copy,
@@ -291,7 +291,7 @@
   .collection-action {
     height: 30px;
     margin: auto 8px 10px;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
   }
 
   .detail-skeleton,
@@ -404,7 +404,7 @@
 
   .content-card {
     overflow: hidden;
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
   }
 
   .content-row {
@@ -433,7 +433,7 @@
   .row-control {
     width: 100%;
     height: var(--settings-control-height);
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
   }
 
   .content-skeleton {
@@ -472,7 +472,7 @@
     width: min(248px, 34%);
     height: 34px;
     flex: 0 0 auto;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
   }
 
   .about-skeleton {
@@ -487,7 +487,7 @@
     width: 64px;
     height: 64px;
     margin-bottom: 6px;
-    border-radius: 14px;
+    border-radius: calc(var(--radius) * 1.166667);
   }
 
   .about-title {
@@ -516,7 +516,7 @@
     width: 86px;
     height: 30px;
     margin-top: 4px;
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
   }
 
   .sr-only {

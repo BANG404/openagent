@@ -14,7 +14,7 @@ describe("quick chat appearance", () => {
     expect(quickChat).toMatch(
       /\.quick-drag-region\s*{[^}]*inset: 0 16px auto;[^}]*height: 12px;[^}]*cursor: grab;/s,
     );
-    expect(quickChat).toMatch(/\.quick-chat\s*{[^}]*background: var\(--surface\);/s);
+    expect(quickChat).toMatch(/\.quick-chat\s*{[^}]*background: var\(--card\);/s);
     expect(quickChat).toMatch(
       /\.composer-slot :global\(\.composer\)\s*{[^}]*border: 0;[^}]*background: transparent;[^}]*box-shadow: none;/s,
     );

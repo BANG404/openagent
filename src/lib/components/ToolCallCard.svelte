@@ -467,11 +467,11 @@
     height: 280px;
     margin: 6px 0;
     border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--surface);
+    border-radius: calc(var(--radius) * 0.5);
+    background: var(--card);
     display: grid;
     place-items: center;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
   .tool-call-card {
     margin: 0;
@@ -495,7 +495,7 @@
     min-height: 30px;
     padding: 4px 2px;
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     width: 100%;
     border: none;
     cursor: pointer;
@@ -518,18 +518,18 @@
   }
 
   .tool-name {
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--font-mono, "JetBrains Mono", monospace);
     font-size: 12px;
     font-weight: 600;
-    color: var(--text);
+    color: var(--foreground);
     flex-shrink: 0;
     white-space: nowrap;
   }
 
   .tool-arg-hint {
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--font-mono, "JetBrains Mono", monospace);
     font-size: 11px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -539,8 +539,8 @@
 
   .tool-result-pill {
     font-size: 10px;
-    color: var(--text-muted);
-    font-family: "JetBrains Mono", monospace;
+    color: var(--muted-foreground);
+    font-family: var(--font-mono, "JetBrains Mono", monospace);
     white-space: nowrap;
     flex-shrink: 0;
   }
@@ -561,7 +561,7 @@
   }
 
   .tool-failed {
-    color: var(--danger, #dc2626);
+    color: var(--destructive, #dc2626);
   }
 
   .tool-running {
@@ -570,18 +570,18 @@
   }
 
   .tool-pending {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
 
   .tool-unanswered,
   .tool-cancelled {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
 
   .tool-chevron {
     margin-left: auto;
     flex-shrink: 0;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     transition: transform var(--motion-fast) var(--ease-standard);
     padding-left: 4px;
     width: 14px;
@@ -606,7 +606,7 @@
     border: none;
     border-left: 1px solid var(--border);
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -621,7 +621,7 @@
 
   .tool-detail {
     border-top: 1px solid var(--border);
-    background: var(--bg);
+    background: var(--background);
   }
 
   .path-chip {
@@ -632,10 +632,10 @@
     margin: 8px;
     padding: 5px 8px;
     border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--surface);
-    color: var(--text);
-    font-family: "JetBrains Mono", monospace;
+    border-radius: calc(var(--radius) * 0.5);
+    background: var(--card);
+    color: var(--card-foreground);
+    font-family: var(--font-mono, "JetBrains Mono", monospace);
     font-size: 11px;
     cursor: pointer;
     min-width: 0;
@@ -649,7 +649,7 @@
   .path-chip svg {
     width: 13px;
     height: 13px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     flex-shrink: 0;
   }
 
@@ -661,7 +661,7 @@
 
   .detail-section-label {
     padding: 8px 10px 0;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 10px;
     font-weight: 600;
     line-height: 1.4;
@@ -677,8 +677,8 @@
     margin: 0;
     padding: 7px 10px;
     overflow: auto;
-    background: color-mix(in srgb, var(--surface) 88%, var(--bg));
-    color: var(--text);
+    background: color-mix(in srgb, var(--card) 88%, var(--background));
+    color: var(--foreground);
     font:
       400 11px/1.55 "JetBrains Mono",
       monospace;
@@ -688,11 +688,11 @@
 
   .command-block {
     margin: 0 8px 8px;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
   }
 
   .command-block span {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     user-select: none;
   }
 
@@ -705,16 +705,16 @@
     display: flex;
     gap: 8px;
     padding: 0 10px 8px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
   }
 
   .patch-summary .additions {
-    color: color-mix(in srgb, #18794e 85%, var(--text));
+    color: color-mix(in srgb, #18794e 85%, var(--foreground));
   }
 
   .patch-summary .removals {
-    color: color-mix(in srgb, #b42318 82%, var(--text));
+    color: color-mix(in srgb, #b42318 82%, var(--foreground));
   }
 
   .tool-diff-host {
@@ -731,11 +731,11 @@
 
   .meta-row span {
     border: 1px solid var(--border);
-    border-radius: 4px;
+    border-radius: calc(var(--radius) * 0.333333);
     padding: 2px 6px;
-    color: var(--text-muted);
-    background: var(--surface);
-    font-family: "JetBrains Mono", monospace;
+    color: var(--muted-foreground);
+    background: var(--card);
+    font-family: var(--font-mono, "JetBrains Mono", monospace);
     font-size: 10px;
     max-width: 100%;
     overflow: hidden;
@@ -748,19 +748,19 @@
   .tool-result {
     margin: 0;
     padding: 6px 10px;
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--font-mono, "JetBrains Mono", monospace);
     font-size: 11px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     white-space: pre-wrap;
     word-break: break-word;
     max-height: 220px;
     overflow-y: auto;
     border-top: 1px solid var(--border);
-    background: var(--bg);
+    background: var(--background);
   }
 
   .tool-result {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
 
   .result-output {
@@ -772,7 +772,7 @@
     gap: 8px;
     padding: 8px;
     border-top: 1px solid var(--border);
-    background: var(--bg);
+    background: var(--background);
   }
 
   @keyframes pulse {

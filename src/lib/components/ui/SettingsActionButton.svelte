@@ -70,15 +70,15 @@
     align-self: flex-start;
     width: fit-content;
     max-width: 100%;
-    min-height: 30px;
+    min-height: var(--control-height);
     align-items: center;
     justify-content: center;
     gap: 7px;
-    padding: 0 12px;
+    padding: 0 var(--control-padding-inline);
     border: 1px solid var(--mica-divider);
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
     background: var(--control-surface);
-    color: var(--text);
+    color: var(--foreground);
     font: inherit;
     font-size: 12px;
     font-weight: 400;
@@ -105,10 +105,15 @@
 
   .settings-action.primary {
     border-color: transparent;
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
     background: var(--primary);
-    color: white;
+    color: var(--primary-foreground);
     box-shadow: none;
+  }
+
+  .settings-action.secondary {
+    background: var(--secondary);
+    color: var(--secondary-foreground);
   }
 
   .settings-action.full-width {
@@ -126,14 +131,15 @@
   }
 
   .settings-action.danger {
-    border-color: color-mix(in srgb, var(--danger) 18%, transparent);
-    background: color-mix(in srgb, var(--danger) 11%, transparent);
-    color: var(--danger);
+    border-color: color-mix(in srgb, var(--destructive) 18%, transparent);
+    background: color-mix(in srgb, var(--destructive) 11%, transparent);
+    color: var(--destructive);
     box-shadow: none;
   }
 
   .settings-action.secondary:hover:not(:disabled) {
     background: var(--interactive-state-bg);
+    color: var(--accent-foreground);
   }
 
   .settings-action.primary:hover:not(:disabled) {
@@ -145,7 +151,7 @@
   }
 
   .settings-action.danger:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--danger) 17%, transparent);
+    background: color-mix(in srgb, var(--destructive) 17%, transparent);
   }
 
   .settings-action:focus-visible {

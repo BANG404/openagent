@@ -72,9 +72,9 @@
     min-height: 32px;
     padding: 6px 8px;
     border: 0;
-    border-radius: 7px;
+    border-radius: calc(var(--radius) * 0.583333);
     background: transparent;
-    color: var(--text);
+    color: var(--foreground);
     font: inherit;
     font-size: 13px;
     line-height: 20px;
@@ -97,7 +97,7 @@
   }
 
   button > span:first-child {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 14px;
   }
 
@@ -119,8 +119,8 @@
 
   .loading button > span {
     color: transparent;
-    border-radius: 5px;
-    background: color-mix(in srgb, var(--text) 7%, transparent);
+    border-radius: calc(var(--radius) * 0.416667);
+    background: color-mix(in srgb, var(--foreground) 7%, transparent);
   }
 
   .loading button > span:last-child {

@@ -47,9 +47,9 @@
     width: min(100%, 360px);
     padding: 24px;
     border: 1px solid var(--mica-divider);
-    border-radius: 18px;
-    background: var(--surface);
-    color: var(--text);
+    border-radius: calc(var(--radius) * 1.5);
+    background: var(--card);
+    color: var(--card-foreground);
   }
 
   h1 {
@@ -60,7 +60,7 @@
 
   p {
     margin: 10px 0 16px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 13px;
   }
 
@@ -70,13 +70,13 @@
     height: 4px;
     overflow: hidden;
     border: 0;
-    border-radius: 2px;
-    background: var(--surface2);
+    border-radius: calc(var(--radius) * 0.166667);
+    background: var(--muted);
     accent-color: var(--primary);
   }
 
   progress::-webkit-progress-bar {
-    background: var(--surface2);
+    background: var(--muted);
   }
 
   progress::-webkit-progress-value {
@@ -86,7 +86,7 @@
   .desktop-exit-caption {
     display: block;
     margin-top: 12px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
   }
 </style>

@@ -579,7 +579,7 @@
   }
 
   .panel-header small {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 10px;
     line-height: 1.3;
   }
@@ -598,9 +598,9 @@
     place-items: center;
     padding: 0;
     border: 0;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     cursor: pointer;
   }
 
@@ -614,7 +614,7 @@
   .kill-button:hover,
   .kill-button:focus-visible {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   button:focus-visible,
@@ -634,13 +634,13 @@
   .terminal-input button:active:not(:disabled) {
     background: color-mix(
       in srgb,
-      var(--text) calc(var(--interactive-state-opacity) * 2),
+      var(--foreground) calc(var(--interactive-state-opacity) * 2),
       transparent
     );
   }
 
   .confirm-kill:active:not(:disabled) {
-    background: color-mix(in srgb, var(--danger) 20%, transparent);
+    background: color-mix(in srgb, var(--destructive) 20%, transparent);
   }
 
   button:disabled {
@@ -664,7 +664,7 @@
     justify-content: center;
     flex-direction: column;
     padding: 32px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     text-align: center;
   }
 
@@ -676,7 +676,7 @@
   }
 
   .empty-state strong {
-    color: var(--text);
+    color: var(--foreground);
     font-size: 13px;
     font-weight: 600;
   }
@@ -721,9 +721,9 @@
     gap: 8px;
     padding: 7px 8px;
     border: 0;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     background: transparent;
-    color: var(--text);
+    color: var(--foreground);
     text-align: left;
     cursor: pointer;
   }
@@ -742,7 +742,7 @@
     width: 16px;
     height: 16px;
     flex: 0 0 16px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     transition: transform var(--motion-panel) var(--ease-standard);
   }
 
@@ -754,7 +754,7 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--text-muted);
+    background: var(--muted-foreground);
     opacity: 0.55;
   }
 
@@ -775,7 +775,7 @@
 
   .session-copy strong {
     overflow: hidden;
-    font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+    font-family: var(--font-mono, ui-monospace, "SFMono-Regular", Consolas, monospace);
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0;
@@ -786,7 +786,7 @@
   .session-copy small,
   .session-meta small {
     overflow: hidden;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 10px;
     line-height: 1.3;
     text-overflow: ellipsis;
@@ -800,7 +800,7 @@
   }
 
   .session-meta span {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
 
   .session-meta span.running {
@@ -836,15 +836,15 @@
   .terminal-toolbar > span {
     flex: 1;
     overflow: hidden;
-    color: var(--text-muted);
-    font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+    color: var(--muted-foreground);
+    font-family: var(--font-mono, ui-monospace, "SFMono-Regular", Consolas, monospace);
     font-size: 10px;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .kill-button {
-    color: var(--danger);
+    color: var(--destructive);
   }
 
   .cancel-kill,
@@ -852,19 +852,19 @@
     min-height: 28px;
     padding: 0 9px;
     border: 0;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     font-size: 11px;
     cursor: pointer;
   }
 
   .cancel-kill {
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
 
   .confirm-kill {
-    background: color-mix(in srgb, var(--danger) 12%, transparent);
-    color: var(--danger);
+    background: color-mix(in srgb, var(--destructive) 12%, transparent);
+    color: var(--destructive);
   }
 
   .terminal-output {
@@ -872,8 +872,8 @@
     margin: 0;
     padding: 12px;
     background: var(--component-neutral-bg);
-    color: var(--text);
-    font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+    color: var(--foreground);
+    font-family: var(--font-mono, ui-monospace, "SFMono-Regular", Consolas, monospace);
     font-size: 11px;
     letter-spacing: 0;
     line-height: 1.55;
@@ -900,17 +900,17 @@
 
   .truncated-notice {
     background: color-mix(in srgb, var(--primary) 8%, transparent);
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
 
   .panel-error {
-    background: color-mix(in srgb, var(--danger) 8%, transparent);
-    color: var(--danger);
+    background: color-mix(in srgb, var(--destructive) 8%, transparent);
+    color: var(--destructive);
     overflow-wrap: anywhere;
   }
 
   .list-error {
-    border-top: 1px solid color-mix(in srgb, var(--danger) 18%, transparent);
+    border-top: 1px solid color-mix(in srgb, var(--destructive) 18%, transparent);
   }
 
   .terminal-input {
@@ -925,11 +925,11 @@
     flex: 1;
     padding: 0 10px;
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     box-sizing: border-box;
     background: var(--component-neutral-bg);
-    color: var(--text);
-    font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+    color: var(--foreground);
+    font-family: var(--font-mono, ui-monospace, "SFMono-Regular", Consolas, monospace);
     font-size: 11px;
     letter-spacing: 0;
     outline: none;
@@ -937,7 +937,7 @@
 
   .terminal-input button {
     background: var(--primary);
-    color: white;
+    color: var(--primary-foreground);
   }
 
   @media (prefers-reduced-motion: reduce) {

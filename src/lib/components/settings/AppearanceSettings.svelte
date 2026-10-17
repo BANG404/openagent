@@ -63,8 +63,8 @@
       const style = getComputedStyle(root);
       defaults = {
         accent: style.getPropertyValue("--primary").trim(),
-        background: style.getPropertyValue("--surface").trim(),
-        foreground: style.getPropertyValue("--text").trim(),
+        background: style.getPropertyValue("--card").trim(),
+        foreground: style.getPropertyValue("--foreground").trim(),
         ui: style.getPropertyValue("--app-font-size").trim().replace("px", ""),
         code: style.getPropertyValue("--code-font-size").trim().replace("px", ""),
       };
@@ -259,7 +259,7 @@
   }
   .appearance-advanced summary {
     margin-inline: 16px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: var(--settings-body-size);
     line-height: var(--settings-body-leading);
     cursor: pointer;
@@ -267,7 +267,7 @@
   }
   .appearance-advanced summary:focus-visible {
     outline: none;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     box-shadow: var(--focus-ring);
   }
   .appearance-actions {
@@ -278,7 +278,7 @@
   .theme-skeleton {
     width: 100%;
     height: var(--settings-control-height);
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
     background: var(--component-neutral-bg);
   }
   @media (max-width: 640px) {

@@ -331,9 +331,9 @@
     min-width: 0;
     overflow: hidden;
     border: 0;
-    border-radius: 11px;
+    border-radius: calc(var(--radius) * 0.916667);
     background: var(--component-neutral-bg);
-    color: var(--text);
+    color: var(--foreground);
     box-shadow: var(--control-shadow);
   }
 
@@ -364,7 +364,7 @@
     margin: 0;
     overflow: hidden;
     padding: 7px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     background: var(--component-neutral-bg);
     font:
       7px/1.35 ui-monospace,
@@ -388,7 +388,7 @@
     width: 38px;
     height: 48px;
     border: 1px solid color-mix(in srgb, var(--primary) 42%, var(--border));
-    border-radius: 5px;
+    border-radius: calc(var(--radius) * 0.416667);
     background: var(--component-neutral-bg);
     box-shadow: 0 5px 14px var(--shadow);
   }
@@ -422,7 +422,7 @@
   }
 
   .attachment-meta small {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 9px;
   }
 
@@ -433,7 +433,7 @@
     max-width: min(220px, 100%);
     height: 38px;
     border-color: var(--border);
-    border-radius: 11px;
+    border-radius: calc(var(--radius) * 0.916667);
     background: var(--component-neutral-bg);
     box-shadow: none;
     transition:
@@ -480,7 +480,7 @@
     width: 112px;
     height: 112px;
     flex: 0 0 112px;
-    border-radius: var(--app-radius);
+    border-radius: var(--radius);
     background: var(--component-neutral-bg);
     box-shadow: none;
   }
@@ -525,7 +525,7 @@
 
   .composer-card .thumbnail pre {
     padding: 12px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     background: transparent;
     font-size: 7px;
   }
@@ -535,7 +535,7 @@
   }
 
   .composer-card .thumbnail strong {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 11px;
     font-weight: 500;
     letter-spacing: 0;
@@ -563,7 +563,7 @@
     height: 24px;
     border-radius: 50%;
     background: transparent;
-    color: var(--text);
+    color: var(--foreground);
     box-shadow: 0 1px 4px color-mix(in srgb, var(--shadow) 72%, transparent);
     transform: none;
     opacity: 0;
@@ -587,7 +587,7 @@
     width: min(180px, 100%);
     height: 28px;
     flex: 0 0 auto;
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
     box-shadow: none;
   }
 
@@ -617,7 +617,7 @@
   .strip .file-fold {
     width: 15px;
     height: 18px;
-    border-radius: 2px;
+    border-radius: calc(var(--radius) * 0.166667);
   }
 
   .strip .file-fold::after {
@@ -668,7 +668,7 @@
     height: 28px;
     margin: 5px;
     border: 0;
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
     border-bottom: 0;
     background: var(--component-neutral-bg);
   }
@@ -683,7 +683,7 @@
   }
 
   .message-capsule .thumbnail strong {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 8px;
     font-weight: 500;
     letter-spacing: -0.1px;
@@ -727,9 +727,9 @@
     align-items: center;
     justify-content: center;
     border: 0;
-    border-radius: 7px;
+    border-radius: calc(var(--radius) * 0.583333);
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     transform: translateY(-50%);
     transition:
       background var(--motion-fast) var(--ease-standard),
@@ -748,7 +748,7 @@
   }
 
   .remove-button:hover {
-    color: var(--text);
+    color: var(--accent-foreground);
     background: var(--interactive-state-bg);
   }
 
@@ -760,7 +760,7 @@
     position: fixed;
     inset: 0;
     z-index: 2147483646;
-    background: var(--surface);
+    background: var(--card);
   }
 
   :global(.attachment-dialog) {
@@ -773,8 +773,8 @@
     box-sizing: border-box;
     border: 0;
     outline: none;
-    background: var(--surface);
-    color: var(--text);
+    background: var(--card);
+    color: var(--card-foreground);
   }
 
   :global(.attachment-dialog-toolbar) {
@@ -830,15 +830,15 @@
     align-items: center;
     justify-content: center;
     border: 1px solid var(--border);
-    border-radius: 7px;
-    background: color-mix(in srgb, var(--surface) 90%, transparent);
-    color: var(--text-muted);
+    border-radius: calc(var(--radius) * 0.583333);
+    background: color-mix(in srgb, var(--card) 90%, transparent);
+    color: var(--muted-foreground);
     box-shadow: var(--control-shadow);
   }
 
   :global(.attachment-dialog-controls button:hover:not(:disabled)) {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
   }
 
   :global(.attachment-dialog-controls button:focus-visible) {
@@ -858,9 +858,9 @@
     overflow: auto;
     overscroll-behavior: contain;
     border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--bg);
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--surface) 35%, transparent);
+    border-radius: calc(var(--radius) * 0.833333);
+    background: var(--background);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--card) 35%, transparent);
   }
 
   :global(.attachment-dialog-body.zoomable) {
@@ -894,11 +894,11 @@
     margin: auto;
     overflow: auto;
     padding: 22px;
-    color: var(--text);
-    background: var(--surface);
-    border-radius: 9px;
+    color: var(--card-foreground);
+    background: var(--card);
+    border-radius: calc(var(--radius) * 0.75);
     box-shadow: var(--control-shadow);
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
     font-size: 12px;
     line-height: 1.65;
     white-space: pre-wrap;
@@ -911,7 +911,7 @@
     place-content: center;
     place-items: center;
     gap: 12px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
 
   :global(.unavailable-preview .file-fold) {
@@ -935,9 +935,9 @@
   :global(.unavailable-preview button) {
     padding: 7px 12px;
     border: 0;
-    border-radius: 7px;
-    background: var(--surface);
-    color: var(--text);
+    border-radius: calc(var(--radius) * 0.583333);
+    background: var(--card);
+    color: var(--card-foreground);
     font-size: 12px;
     box-shadow: var(--control-shadow);
   }
@@ -948,7 +948,7 @@
 
   :global(.unavailable-preview small) {
     max-width: 420px;
-    color: var(--danger, #c33);
+    color: var(--destructive, #c33);
     font-size: 11px;
     text-align: center;
   }

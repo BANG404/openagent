@@ -183,7 +183,7 @@
     padding: 4px 2px;
     border: none;
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     cursor: pointer;
     text-align: left;
   }
@@ -220,8 +220,8 @@
     min-width: 0;
     flex: 1;
     overflow: hidden;
-    color: var(--text-muted);
-    font-family: "JetBrains Mono", monospace;
+    color: var(--muted-foreground);
+    font-family: var(--font-mono, "JetBrains Mono", monospace);
     font-size: 11px;
     line-height: 1.45;
     text-overflow: ellipsis;
@@ -254,19 +254,19 @@
     display: none;
   }
   .status.failed {
-    color: var(--danger, #dc2626);
+    color: var(--destructive, #dc2626);
   }
   .status.running {
     color: var(--primary);
     animation: pulse 1.8s ease-in-out infinite;
   }
   .status.pending {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
 
   .status.unanswered,
   .status.cancelled {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
 
   .tool-call-group-items {

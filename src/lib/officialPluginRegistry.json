@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-10T08:10:27.074Z",
+  "generated_at": "2026-10-17T08:56:48.946Z",
   "plugins": [
     {
       "id": "chat-groups",
@@ -856,6 +856,236 @@
             "commands.setup.description": "查看连接要求",
             "configuration.token.label": "访问令牌",
             "configuration.token.description": "此插件的密钥私有保存；密码框留空表示保留已保存的密钥。"
+          }
+        }
+      }
+    },
+    {
+      "id": "openagent-theme-nova",
+      "category": "design",
+      "display_name": "Nova",
+      "description": "Nova: nova / neutral / neutral / neutral",
+      "repository": "https://github.com/BANG404/openagent-theme-nova",
+      "homepage": "https://ui.shadcn.com/create",
+      "source_url": "https://github.com/BANG404/openagent-theme-nova",
+      "i18n": {
+        "supported_locales": ["en", "zh"],
+        "default_locale": "en",
+        "translations": {
+          "en": {
+            "display_name": "Nova",
+            "description": "Nova: nova / neutral / neutral / neutral"
+          },
+          "zh": {
+            "display_name": "Nova",
+            "description": "Nova 主题：nova / neutral / neutral / neutral"
+          }
+        }
+      }
+    },
+    {
+      "id": "openagent-theme-vega",
+      "category": "design",
+      "display_name": "Vega",
+      "description": "Vega: vega / neutral / neutral / neutral",
+      "repository": "https://github.com/BANG404/openagent-theme-vega",
+      "homepage": "https://ui.shadcn.com/create",
+      "source_url": "https://github.com/BANG404/openagent-theme-vega",
+      "i18n": {
+        "supported_locales": ["en", "zh"],
+        "default_locale": "en",
+        "translations": {
+          "en": {
+            "display_name": "Vega",
+            "description": "Vega: vega / neutral / neutral / neutral"
+          },
+          "zh": {
+            "display_name": "Vega",
+            "description": "Vega 主题：vega / neutral / neutral / neutral"
+          }
+        }
+      }
+    },
+    {
+      "id": "openagent-theme-maia",
+      "category": "design",
+      "display_name": "Maia",
+      "description": "Maia: maia / neutral / neutral / neutral",
+      "repository": "https://github.com/BANG404/openagent-theme-maia",
+      "homepage": "https://ui.shadcn.com/create",
+      "source_url": "https://github.com/BANG404/openagent-theme-maia",
+      "i18n": {
+        "supported_locales": ["en", "zh"],
+        "default_locale": "en",
+        "translations": {
+          "en": {
+            "display_name": "Maia",
+            "description": "Maia: maia / neutral / neutral / neutral"
+          },
+          "zh": {
+            "display_name": "Maia",
+            "description": "Maia 主题：maia / neutral / neutral / neutral"
+          }
+        }
+      }
+    },
+    {
+      "id": "openagent-theme-lyra",
+      "category": "design",
+      "display_name": "Lyra",
+      "description": "Lyra: lyra / neutral / neutral / neutral",
+      "repository": "https://github.com/BANG404/openagent-theme-lyra",
+      "homepage": "https://ui.shadcn.com/create",
+      "source_url": "https://github.com/BANG404/openagent-theme-lyra",
+      "i18n": {
+        "supported_locales": ["en", "zh"],
+        "default_locale": "en",
+        "translations": {
+          "en": {
+            "display_name": "Lyra",
+            "description": "Lyra: lyra / neutral / neutral / neutral"
+          },
+          "zh": {
+            "display_name": "Lyra",
+            "description": "Lyra 主题：lyra / neutral / neutral / neutral"
+          }
+        }
+      }
+    },
+    {
+      "id": "openagent-theme-mira",
+      "category": "design",
+      "display_name": "Mira",
+      "description": "Mira: mira / neutral / neutral / neutral",
+      "repository": "https://github.com/BANG404/openagent-theme-mira",
+      "homepage": "https://ui.shadcn.com/create",
+      "source_url": "https://github.com/BANG404/openagent-theme-mira",
+      "i18n": {
+        "supported_locales": ["en", "zh"],
+        "default_locale": "en",
+        "translations": {
+          "en": {
+            "display_name": "Mira",
+            "description": "Mira: mira / neutral / neutral / neutral"
+          },
+          "zh": {
+            "display_name": "Mira",
+            "description": "Mira 主题：mira / neutral / neutral / neutral"
+          }
+        }
+      }
+    },
+    {
+      "id": "openagent-theme-luma",
+      "category": "design",
+      "display_name": "Luma",
+      "description": "Luma: luma / neutral / neutral / neutral",
+      "repository": "https://github.com/BANG404/openagent-theme-luma",
+      "homepage": "https://ui.shadcn.com/create",
+      "source_url": "https://github.com/BANG404/openagent-theme-luma",
+      "i18n": {
+        "supported_locales": ["en", "zh"],
+        "default_locale": "en",
+        "translations": {
+          "en": {
+            "display_name": "Luma",
+            "description": "Luma: luma / neutral / neutral / neutral"
+          },
+          "zh": {
+            "display_name": "Luma",
+            "description": "Luma 主题：luma / neutral / neutral / neutral"
+          }
+        }
+      }
+    },
+    {
+      "id": "openagent-theme-sera",
+      "category": "design",
+      "display_name": "Sera",
+      "description": "Sera: sera / taupe / taupe / taupe",
+      "repository": "https://github.com/BANG404/openagent-theme-sera",
+      "homepage": "https://ui.shadcn.com/create",
+      "source_url": "https://github.com/BANG404/openagent-theme-sera",
+      "i18n": {
+        "supported_locales": ["en", "zh"],
+        "default_locale": "en",
+        "translations": {
+          "en": {
+            "display_name": "Sera",
+            "description": "Sera: sera / taupe / taupe / taupe"
+          },
+          "zh": {
+            "display_name": "Sera",
+            "description": "Sera 主题：sera / taupe / taupe / taupe"
+          }
+        }
+      }
+    },
+    {
+      "id": "openagent-theme-rhea",
+      "category": "design",
+      "display_name": "Rhea",
+      "description": "Rhea: rhea / neutral / neutral / neutral",
+      "repository": "https://github.com/BANG404/openagent-theme-rhea",
+      "homepage": "https://ui.shadcn.com/create",
+      "source_url": "https://github.com/BANG404/openagent-theme-rhea",
+      "i18n": {
+        "supported_locales": ["en", "zh"],
+        "default_locale": "en",
+        "translations": {
+          "en": {
+            "display_name": "Rhea",
+            "description": "Rhea: rhea / neutral / neutral / neutral"
+          },
+          "zh": {
+            "display_name": "Rhea",
+            "description": "Rhea 主题：rhea / neutral / neutral / neutral"
+          }
+        }
+      }
+    },
+    {
+      "id": "openagent-theme-garden",
+      "category": "design",
+      "display_name": "Garden",
+      "description": "Garden: maia / olive / emerald / violet",
+      "repository": "https://github.com/BANG404/openagent-theme-garden",
+      "homepage": "https://ui.shadcn.com/create",
+      "source_url": "https://github.com/BANG404/openagent-theme-garden",
+      "i18n": {
+        "supported_locales": ["en", "zh"],
+        "default_locale": "en",
+        "translations": {
+          "en": {
+            "display_name": "Garden",
+            "description": "Garden: maia / olive / emerald / violet"
+          },
+          "zh": {
+            "display_name": "Garden",
+            "description": "Garden 主题：maia / olive / emerald / violet"
+          }
+        }
+      }
+    },
+    {
+      "id": "openagent-theme-rose-ink",
+      "category": "design",
+      "display_name": "Rose Ink",
+      "description": "Rose Ink: sera / taupe / rose / cyan",
+      "repository": "https://github.com/BANG404/openagent-theme-rose-ink",
+      "homepage": "https://ui.shadcn.com/create",
+      "source_url": "https://github.com/BANG404/openagent-theme-rose-ink",
+      "i18n": {
+        "supported_locales": ["en", "zh"],
+        "default_locale": "en",
+        "translations": {
+          "en": {
+            "display_name": "Rose Ink",
+            "description": "Rose Ink: sera / taupe / rose / cyan"
+          },
+          "zh": {
+            "display_name": "Rose Ink",
+            "description": "Rose Ink 主题：sera / taupe / rose / cyan"
           }
         }
       }

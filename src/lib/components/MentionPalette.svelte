@@ -124,7 +124,7 @@
     padding: 12px 10px;
     font-size: 14px;
     line-height: 1.43;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     text-align: center;
   }
 
@@ -134,7 +134,7 @@
     justify-content: center;
     gap: 8px;
     padding: 12px 10px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 14px;
     line-height: 1.43;
   }
@@ -158,7 +158,7 @@
     font-size: var(--menu-item-font-size);
     font-weight: 400;
     line-height: var(--menu-item-line-height);
-    color: var(--text);
+    color: var(--foreground);
     white-space: nowrap;
     flex-shrink: 0;
   }
@@ -166,7 +166,7 @@
   :global(.palette-detail) {
     font-size: var(--menu-item-description-size);
     line-height: var(--menu-item-description-line-height);
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -176,7 +176,7 @@
   :global(.palette-hint) {
     font-size: var(--menu-item-description-size);
     line-height: var(--menu-item-description-line-height);
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     white-space: nowrap;
     flex-shrink: 0;
     margin-left: auto;

@@ -1588,7 +1588,7 @@
   .attachment-composer-preview-stage {
     min-height: 100vh;
     box-sizing: border-box;
-    background: var(--bg);
+    background: var(--background);
   }
   .approval-queue-preview-stage {
     display: grid;
@@ -1611,7 +1611,7 @@
     display: grid;
     place-items: start center;
     padding: 48px 24px;
-    background: var(--surface);
+    background: var(--card);
   }
   .input-surfaces-preview-stage {
     display: grid;
@@ -1637,7 +1637,7 @@
     min-width: 0;
     padding: 28px;
     border: 1px solid var(--mica-border);
-    border-radius: var(--app-radius);
+    border-radius: var(--radius);
     background: var(--mica-surface);
     box-shadow: var(--mica-shadow);
     backdrop-filter: blur(24px) saturate(1.2);
@@ -1662,7 +1662,7 @@
     padding: 6px 10px;
     border-radius: 999px;
     background: var(--control-surface);
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
     box-shadow: var(--raised-shadow);
   }
@@ -1740,14 +1740,14 @@
     min-height: 30px;
     padding: 0 14px;
     border: 1px solid var(--border);
-    border-radius: 7px;
-    background: var(--surface);
-    color: var(--text);
+    border-radius: calc(var(--radius) * 0.583333);
+    background: var(--card);
+    color: var(--card-foreground);
     transform: translateX(-50%);
     cursor: pointer;
   }
   .mermaid-finalization-control:disabled {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     cursor: default;
   }
   .permission-settings-preview-stage {
@@ -1766,14 +1766,14 @@
     margin: 0;
   }
   .permission-settings-preview-card h1 {
-    color: var(--text);
+    color: var(--foreground);
     font-size: 20px;
     font-weight: 650;
     letter-spacing: -0.4px;
   }
   .permission-settings-preview-card p {
     margin-top: 6px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
     line-height: 1.5;
   }
@@ -1806,7 +1806,7 @@
     box-sizing: border-box;
     overflow: hidden;
     padding: 56px 8px 8px;
-    background: var(--bg);
+    background: var(--background);
   }
   .checkpoint-flow-preview-chat {
     position: relative;
@@ -1815,8 +1815,8 @@
     flex: 1;
     flex-direction: column;
     overflow: hidden;
-    border-radius: 12px;
-    background: var(--surface);
+    border-radius: var(--radius);
+    background: var(--card);
   }
   .checkpoint-flow-preview-titlebar {
     position: absolute;
@@ -1829,7 +1829,7 @@
     box-sizing: border-box;
     border-bottom: 1px solid var(--border);
     background: var(--app-chrome-bg);
-    color: var(--text);
+    color: var(--foreground);
     font-size: 13px;
     font-weight: 600;
   }
@@ -1843,15 +1843,16 @@
     gap: 22px;
     overflow: auto;
     padding: 48px clamp(24px, 8vw, 110px) 150px;
-    color: var(--text);
+    color: var(--foreground);
     font-size: 14px;
   }
   .checkpoint-flow-preview-user {
     align-self: flex-end;
     max-width: 70%;
     padding: 10px 13px;
-    border-radius: 14px 14px 4px 14px;
-    background: var(--surface2);
+    border-radius: calc(var(--radius) * 1.166667) calc(var(--radius) * 1.166667)
+      calc(var(--radius) * 0.333333) calc(var(--radius) * 1.166667);
+    background: var(--muted);
   }
   .checkpoint-flow-preview-assistant {
     max-width: 72%;
@@ -1883,17 +1884,17 @@
     gap: 18px;
     padding: 24px;
     box-sizing: border-box;
-    border-radius: 14px;
-    background: var(--surface);
+    border-radius: calc(var(--radius) * 1.166667);
+    background: var(--card);
     box-shadow: var(--raised-shadow);
   }
   .reasoning-effort-preview-model {
-    color: var(--text);
+    color: var(--foreground);
     font-size: 14px;
     font-weight: 600;
   }
   .reasoning-effort-preview-card code {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
   }
   @media (max-width: 760px) {

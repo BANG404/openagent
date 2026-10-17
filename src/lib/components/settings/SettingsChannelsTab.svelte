@@ -117,7 +117,7 @@
           onclick={() => (channels.channelSettingsNav = "gateway")}
         >
           <span class="channel-settings-icon gateway" aria-hidden="true">
-            <img src="/assets/channels/gateway.svg" alt="" />
+            <span class="channel-settings-gateway-glyph"></span>
           </span>
           <span class="channel-settings-item-copy"
             ><strong>{$t("remoteGateway")}</strong><span>{$t("remoteGatewaySubtitle")}</span></span

@@ -1,0 +1,11 @@
+{
+  "repository": "https://github.com/shadcn-ui/ui",
+  "revision": "d2fba50ee5b9113008b5bb908563527b7efd2f27",
+  "license": "MIT",
+  "sources": [
+    "apps/v4/registry/themes.ts",
+    "apps/v4/lib/font-definitions.ts",
+    "packages/shadcn/src/preset/defaults.ts",
+    "packages/registry/src/preset/preset.ts"
+  ]
+}

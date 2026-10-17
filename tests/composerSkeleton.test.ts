@@ -60,7 +60,7 @@ describe("composer loading skeleton", () => {
     const skeleton = await read(COMPOSER_SKELETON);
 
     expect(skeleton).toMatch(/\.composer-copy \{[^}]*border: 1px solid var\(--composer-border\);/s);
-    expect(skeleton).toMatch(/\.composer-copy \{[^}]*border-radius: var\(--app-radius\);/s);
+    expect(skeleton).toMatch(/\.composer-copy \{[^}]*border-radius: var\(--radius\);/s);
     expect(skeleton).toMatch(/\.composer-copy \{[^}]*box-shadow: var\(--composer-shadow\);/s);
     expect(skeleton).not.toMatch(/\.composer-copy \{[^}]*min-height:/s);
   });

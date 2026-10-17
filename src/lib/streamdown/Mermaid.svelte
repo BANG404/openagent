@@ -7,6 +7,7 @@
   import type { MermaidConfig } from "mermaid";
   import { loadMermaid, mermaidToolFailure, renderMermaidSvg } from "./mermaidRenderer";
   import { useMermaidPanzoom } from "./useMermaidPanzoom.svelte";
+  import { observeThemePalette } from "./themePalette";
 
   const streamdown = useStreamdown();
 
@@ -22,6 +23,9 @@
   let mermaidNode: HTMLElement | null = $state(null);
   let renderError = $state("");
   let renderGeneration = 0;
+  let themeRevision = $state(0);
+
+  onMount(() => observeThemePalette(() => themeRevision++));
 
   onMount(async () => {
     await loadMermaid();
@@ -158,6 +162,7 @@
   }
 
   $effect(() => {
+    void themeRevision;
     const config = streamdown.mermaidConfig as MermaidConfig | undefined;
     if (!mermaidReady || !mermaidNode) return;
     // Streaming Markdown updates the token for every chunk. Debouncing avoids
@@ -230,8 +235,7 @@
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       ctx.fillStyle =
-        getComputedStyle(document.documentElement).getPropertyValue("--surface").trim() ||
-        "#ffffff";
+        getComputedStyle(document.documentElement).getPropertyValue("--card").trim() || "#ffffff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL("image/png");
@@ -363,7 +367,7 @@
     margin: 0;
     padding: 16px;
     box-sizing: border-box;
-    background: var(--surface);
+    background: var(--card);
   }
 
   :global([data-streamdown-mermaid][data-expanded="true"] > div) {
@@ -447,13 +451,13 @@
     justify-content: center;
     gap: 6px;
     padding: 16px;
-    color: var(--text);
+    color: var(--foreground);
     font: 13px/1.45 var(--font-mono, ui-monospace, monospace);
     overflow: auto;
   }
 
   .mermaid-render-error strong {
-    color: var(--danger);
+    color: var(--destructive);
     font-family: inherit;
   }
 </style>

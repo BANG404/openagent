@@ -278,10 +278,10 @@
   }
   button {
     font: inherit;
-    color: var(--text);
-    background: var(--surface);
+    color: var(--card-foreground);
+    background: var(--card);
     border: 1px solid var(--border);
     padding: 8px 16px;
-    border-radius: var(--app-radius);
+    border-radius: var(--radius);
   }
 </style>

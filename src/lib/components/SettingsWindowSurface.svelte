@@ -172,7 +172,7 @@
     display: flex;
     overflow: hidden;
     background: transparent;
-    color: var(--text);
+    color: var(--foreground);
   }
 
   .settings-window-loading {
@@ -187,7 +187,7 @@
     bottom: 18px;
     left: 24px;
     margin: 0;
-    color: var(--danger);
+    color: var(--destructive);
     font-size: 12px;
     text-align: center;
   }

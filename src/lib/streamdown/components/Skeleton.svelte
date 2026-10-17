@@ -15,15 +15,15 @@
     align-items: center;
     gap: 4px;
     padding: 2px 8px;
-    border-radius: 6px;
-    background: var(--surface2);
+    border-radius: calc(var(--radius) * 0.5);
+    background: var(--muted);
     border: 1px solid var(--border);
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     font-size: 12px;
     vertical-align: baseline;
   }
   .lbl {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
     font-size: 11px;
   }
   .dot {

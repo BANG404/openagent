@@ -51,9 +51,9 @@
     place-items: center;
     padding: 0;
     border: 0;
-    border-radius: 6px;
+    border-radius: calc(var(--radius) * 0.5);
     background: transparent;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     cursor: pointer;
     transition:
       background var(--motion-fast) var(--ease-standard),
@@ -65,7 +65,7 @@
   .terminal-toggle:focus-visible,
   .terminal-toggle.active {
     background: var(--interactive-state-bg);
-    color: var(--text);
+    color: var(--accent-foreground);
     outline: none;
   }
 
@@ -93,10 +93,10 @@
     min-width: 13px;
     height: 13px;
     padding: 0 3px;
-    border-radius: 7px;
+    border-radius: calc(var(--radius) * 0.583333);
     box-sizing: border-box;
     background: var(--primary);
-    color: white;
+    color: var(--primary-foreground);
     font-size: 9px;
     font-weight: 600;
     line-height: 13px;
