@@ -5,8 +5,8 @@
     {
       "id": "chat-groups",
       "category": "communication",
-      "display_name": "Chat Groups",
-      "description": "Mention-aware group conversations for OpenAgent.",
+      "display_name": "Agent Group Chat",
+      "description": "Bring agents with different roles into a group discussion; mention a member to invite a reply.",
       "repository": "https://github.com/BANG404/openagent-chat-groups",
       "homepage": "https://github.com/BANG404/openagent-chat-groups",
       "source_url": "https://github.com/BANG404/openagent-chat-groups",
@@ -15,9 +15,9 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "Chat Groups",
-            "sidebar.groups.title": "Chat Groups",
-            "description": "Mention-aware group conversations for OpenAgent.",
+            "display_name": "Agent Group Chat",
+            "sidebar.groups.title": "Agent Group Chat",
+            "description": "Bring agents with different roles into a group discussion; mention a member to invite a reply.",
             "notice.conversationWorkspace": "Conversation is outside the current workspace",
             "notice.titleEmpty": "title is empty",
             "notice.contentEmpty": "content is empty",
@@ -42,9 +42,9 @@
             "notice.stopFailed": "Could not stop {count} group member conversations; retry Stop"
           },
           "zh": {
-            "display_name": "聊天群组",
-            "sidebar.groups.title": "聊天群组",
-            "description": "支持提及成员的 OpenAgent 群组会话。",
+            "display_name": "多智能体群聊",
+            "sidebar.groups.title": "多智能体群聊",
+            "description": "让不同角色的智能体在群聊中讨论，通过 @成员 邀请指定成员回复。",
             "notice.conversationWorkspace": "该会话不属于当前工作区",
             "notice.titleEmpty": "标题不能为空",
             "notice.contentEmpty": "内容不能为空",
@@ -74,8 +74,8 @@
     {
       "id": "goal",
       "category": "automation",
-      "display_name": "Goal",
-      "description": "Persistent goal execution with an autonomous continuation loop.",
+      "display_name": "Goal Execution",
+      "description": "Keep an agent working toward a goal, track completed steps, and pause or resume progress.",
       "repository": "https://github.com/BANG404/openagent-goal",
       "homepage": "https://github.com/BANG404/openagent-goal",
       "source_url": "https://github.com/BANG404/openagent-goal",
@@ -84,9 +84,9 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "Goal",
-            "description": "Persistent goal execution with an autonomous continuation loop.",
-            "commands.goal.label": "Goal",
+            "display_name": "Goal Execution",
+            "description": "Keep an agent working toward a goal, track completed steps, and pause or resume progress.",
+            "commands.goal.label": "Goal Execution",
             "commands.goal.description": "View, set, edit, pause, resume or clear a persistent objective.",
             "commands.cancel.label": "Cancel Goal",
             "commands.cancel.description": "Stop the Goal on this branch and preserve its progress.",
@@ -116,9 +116,9 @@
             "notice.unexpected": "Goal operation failed ({code})"
           },
           "zh": {
-            "display_name": "目标",
-            "description": "通过自主续行循环持续执行目标任务。",
-            "commands.goal.label": "目标",
+            "display_name": "目标推进",
+            "description": "让智能体持续推进一个目标，记录每一步进度，并可随时暂停或继续。",
+            "commands.goal.label": "目标推进",
             "commands.goal.description": "查看、设置、编辑、暂停、恢复或清除持续执行的目标。",
             "commands.cancel.label": "取消目标",
             "commands.cancel.description": "停止当前分支上的目标任务并保留进度。",
@@ -153,8 +153,8 @@
     {
       "id": "graph",
       "category": "automation",
-      "display_name": "Graph",
-      "description": "Dependency graph execution through OpenAgent checkpoints.",
+      "display_name": "Task Orchestration",
+      "description": "Split work into dependent tasks, run independent tasks in parallel, and view progress and results in a task graph.",
       "repository": "https://github.com/BANG404/openagent-graph",
       "homepage": "https://github.com/BANG404/openagent-graph",
       "source_url": "https://github.com/BANG404/openagent-graph",
@@ -163,11 +163,11 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "Graph",
-            "description": "Dependency graph execution through OpenAgent checkpoints.",
-            "commands.graph.label": "Graph",
+            "display_name": "Task Orchestration",
+            "description": "Split work into dependent tasks, run independent tasks in parallel, and view progress and results in a task graph.",
+            "commands.graph.label": "Task Orchestration",
             "commands.graph.description": "Execute dependency-aware graph nodes.",
-            "sidebar.graph.title": "Graph",
+            "sidebar.graph.title": "Task Orchestration",
             "notice.viewContext": "conversation and branch context are required",
             "notice.conversationWorkspace": "Conversation is outside the current workspace",
             "notice.branchContext": "OpenAgent did not provide a branch context for Graph",
@@ -193,11 +193,11 @@
             "notice.unexpected": "Graph operation failed ({code})"
           },
           "zh": {
-            "display_name": "任务图",
-            "description": "通过 OpenAgent 检查点执行依赖关系图任务。",
-            "commands.graph.label": "依赖图",
+            "display_name": "任务编排",
+            "description": "将工作拆成有依赖关系的任务，并行执行独立任务，在任务图中查看进度和结果。",
+            "commands.graph.label": "任务编排",
             "commands.graph.description": "执行具有依赖关系的图节点。",
-            "sidebar.graph.title": "任务图",
+            "sidebar.graph.title": "任务编排",
             "notice.viewContext": "必须提供会话和分支上下文",
             "notice.conversationWorkspace": "该会话不属于当前工作区",
             "notice.branchContext": "OpenAgent 未提供 Graph 所需的分支上下文",
@@ -228,8 +228,8 @@
     {
       "id": "cua-driver",
       "category": "automation",
-      "display_name": "Cua Driver",
-      "description": "Desktop control through a standard MCP plugin, without a standalone application.",
+      "display_name": "Desktop Control",
+      "description": "Let an agent take screenshots, click, and type in desktop apps after you grant computer access.",
       "repository": "https://github.com/BANG404/openagent-cua-driver",
       "homepage": "https://github.com/BANG404/openagent-cua-driver",
       "source_url": "https://github.com/BANG404/openagent-cua-driver",
@@ -238,8 +238,8 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "Cua Driver",
-            "description": "Desktop control through a standard MCP plugin, without a standalone application.",
+            "display_name": "Desktop Control",
+            "description": "Let an agent take screenshots, click, and type in desktop apps after you grant computer access.",
             "notice.pluginData": "PLUGIN_DATA is not set, so this launcher has nowhere to keep the driver it downloads. The OpenAgent host exports it as the package's own writable directory; set it to a writable empty directory to run this package outside OpenAgent, or set OPENAGENT_CUA_DRIVER_BIN to a Cua Driver already on this machine.",
             "notice.unsupportedPlatform": "Cua Driver publishes no pinned release for {platform}. Pinned platforms: {supported}. Set OPENAGENT_CUA_DRIVER_BIN to a driver built for this machine to run one anyway.",
             "notice.pinnedTable": "The pinned table has no entry for '{platform}'. Pinned platforms: {supported}. Set OPENAGENT_CUA_DRIVER_BIN to a driver built for this machine to run one anyway.",
@@ -262,8 +262,8 @@
             "notice.screenshotPathFailed": "Cannot prepare screenshot output path {path} ({code}). Choose a writable file path, or omit screenshot_out_file to receive the image inline."
           },
           "zh": {
-            "display_name": "桌面控制",
-            "description": "通过标准 MCP 插件控制桌面，无需启动独立应用。",
+            "display_name": "桌面操作",
+            "description": "授权后，让智能体通过截图、点击和键盘输入操作桌面应用。",
             "notice.pluginData": "未设置 PLUGIN_DATA，启动器没有位置保存下载的驱动。OpenAgent 主机会将它设为插件专用的可写目录；若要在 OpenAgent 外运行，请将其设为可写的空目录，或将 OPENAGENT_CUA_DRIVER_BIN 设为本机已有的 Cua Driver 路径。",
             "notice.unsupportedPlatform": "Cua Driver 没有为 {platform} 提供固定版本。支持的平台：{supported}。若要在此设备运行，请将 OPENAGENT_CUA_DRIVER_BIN 指向为本机编译的驱动。",
             "notice.pinnedTable": "固定版本表中没有平台“{platform}”的条目。支持的平台：{supported}。若要在此设备运行，请将 OPENAGENT_CUA_DRIVER_BIN 指向为本机编译的驱动。",
@@ -291,8 +291,8 @@
     {
       "id": "message-board",
       "category": "communication",
-      "display_name": "Message Board",
-      "description": "Durable channels, threads, search, subscriptions, and idempotent agent collaboration.",
+      "display_name": "Agent Message Board",
+      "description": "Save agent collaboration messages in channels and threads, then search them or subscribe to updates.",
       "repository": "https://github.com/BANG404/openagent-message-board",
       "homepage": "https://github.com/BANG404/openagent-message-board",
       "source_url": "https://github.com/BANG404/openagent-message-board",
@@ -301,8 +301,8 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "Message Board",
-            "description": "Durable channels, threads, search, subscriptions, and idempotent agent collaboration.",
+            "display_name": "Agent Message Board",
+            "description": "Save agent collaboration messages in channels and threads, then search them or subscribe to updates.",
             "notice.required": "{field} is required",
             "notice.length": "{field} exceeds 256 characters",
             "notice.limit": "limit must be a positive integer",
@@ -334,8 +334,8 @@
             "notice.storage": "Cannot access board data ({code}); preserve the data and retry after fixing the storage error."
           },
           "zh": {
-            "display_name": "留言板",
-            "description": "为智能体提供持久化频道、话题、搜索、订阅和幂等消息协作。",
+            "display_name": "智能体留言板",
+            "description": "按频道和话题保存智能体协作消息，支持搜索历史记录和订阅更新。",
             "notice.required": "必须填写 {field}",
             "notice.length": "{field} 超过 256 个字符",
             "notice.limit": "limit 必须是正整数",
@@ -373,7 +373,7 @@
       "id": "openagent-plugin-kit",
       "category": "development",
       "display_name": "Plugin Developer",
-      "description": "Create plugins from Skills and templates, implement, test and qualify them with the production Runtime.",
+      "description": "Create OpenAgent plugins from requirements or templates, then develop, test, and validate them for installation.",
       "repository": "https://github.com/BANG404/openagent-plugin-kit",
       "homepage": "https://github.com/BANG404/openagent-plugin-kit",
       "source_url": "https://github.com/BANG404/openagent-plugin-kit",
@@ -383,7 +383,7 @@
         "translations": {
           "en": {
             "display_name": "Plugin Developer",
-            "description": "Create plugins from Skills and templates, implement, test and qualify them with the production Runtime.",
+            "description": "Create OpenAgent plugins from requirements or templates, then develop, test, and validate them for installation.",
             "commands.create.label": "Create plugin",
             "commands.create.description": "Start plugin development and acceptance",
             "commands.resume.label": "Resume development",
@@ -397,7 +397,7 @@
           },
           "zh": {
             "display_name": "插件开发助手",
-            "description": "结合 Skills 和模板创建插件，完成开发、测试及生产 Runtime 验证。",
+            "description": "根据需求或模板创建 OpenAgent 插件，完成开发、测试和安装前验证。",
             "commands.create.label": "创建插件",
             "commands.create.description": "开始插件开发与验收流程",
             "commands.resume.label": "恢复开发",
@@ -415,8 +415,8 @@
     {
       "id": "asana",
       "category": "productivity",
-      "display_name": "asana",
-      "description": "Asana tasks and projects through the V2 MCP server.",
+      "display_name": "Asana Tasks",
+      "description": "Find and update tasks and projects in Asana; requires an authorized Asana account.",
       "repository": "https://github.com/BANG404/openagent-asana",
       "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/asana",
       "source_url": "https://github.com/BANG404/openagent-asana",
@@ -425,8 +425,8 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "asana",
-            "description": "Asana tasks and projects through the V2 MCP server.",
+            "display_name": "Asana Tasks",
+            "description": "Find and update tasks and projects in Asana; requires an authorized Asana account.",
             "commands.setup.label": "Setup",
             "commands.setup.description": "Review connection prerequisites",
             "configuration.client-id.label": "OAuth client ID",
@@ -435,8 +435,8 @@
             "configuration.scope.description": "Optional scopes accepted by the provider. Changing this disconnects the existing local authorization."
           },
           "zh": {
-            "display_name": "asana",
-            "description": "通过 V2 MCP 服务管理 Asana 任务和项目。",
+            "display_name": "Asana 任务管理",
+            "description": "查询和更新 Asana 任务与项目，需要授权 Asana 账号。",
             "commands.setup.label": "配置",
             "commands.setup.description": "查看连接要求",
             "configuration.client-id.label": "OAuth 客户端 ID",
@@ -450,8 +450,8 @@
     {
       "id": "context7",
       "category": "data",
-      "display_name": "context7",
-      "description": "Current library documentation through Context7.",
+      "display_name": "Context7 Docs",
+      "description": "Look up library documentation and code examples with Context7 while writing code.",
       "repository": "https://github.com/BANG404/openagent-context7",
       "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/context7",
       "source_url": "https://github.com/BANG404/openagent-context7",
@@ -460,14 +460,14 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "context7",
-            "description": "Current library documentation through Context7.",
+            "display_name": "Context7 Docs",
+            "description": "Look up library documentation and code examples with Context7 while writing code.",
             "commands.setup.label": "Setup",
             "commands.setup.description": "Review connection prerequisites"
           },
           "zh": {
-            "display_name": "context7",
-            "description": "通过 Context7 查询最新的库文档。",
+            "display_name": "Context7 文档查询",
+            "description": "编写代码时，通过 Context7 查询软件库文档和代码示例。",
             "commands.setup.label": "配置",
             "commands.setup.description": "查看连接要求"
           }
@@ -477,8 +477,8 @@
     {
       "id": "fakechat",
       "category": "communication",
-      "display_name": "fakechat",
-      "description": "Local web chat for exercising OpenAgent message channels.",
+      "display_name": "Local Channel Test",
+      "description": "Use a local web chat to test incoming messages, agent replies, and message-channel access rules.",
       "repository": "https://github.com/BANG404/openagent-fakechat",
       "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/fakechat",
       "source_url": "https://github.com/BANG404/openagent-fakechat",
@@ -487,8 +487,8 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "fakechat",
-            "description": "Local web chat for exercising OpenAgent message channels.",
+            "display_name": "Local Channel Test",
+            "description": "Use a local web chat to test incoming messages, agent replies, and message-channel access rules.",
             "commands.setup.label": "Setup",
             "commands.setup.description": "Review connection prerequisites",
             "commands.start.label": "Start channel",
@@ -498,8 +498,8 @@
             "configuration.port.label": "Local chat port"
           },
           "zh": {
-            "display_name": "fakechat",
-            "description": "用于验证 OpenAgent 消息通道的本地网页聊天。",
+            "display_name": "本地通道测试",
+            "description": "通过本地网页聊天，测试消息接收、智能体回复和消息通道访问规则。",
             "commands.setup.label": "配置",
             "commands.setup.description": "查看连接要求",
             "commands.start.label": "启动通道",
@@ -514,8 +514,8 @@
     {
       "id": "firebase",
       "category": "development",
-      "display_name": "firebase",
-      "description": "Manage Firebase through the official Firebase MCP server.",
+      "display_name": "Firebase Projects",
+      "description": "Inspect and manage Firebase project resources from your workspace; requires Firebase account access.",
       "repository": "https://github.com/BANG404/openagent-firebase",
       "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/firebase",
       "source_url": "https://github.com/BANG404/openagent-firebase",
@@ -524,14 +524,14 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "firebase",
-            "description": "Manage Firebase through the official Firebase MCP server.",
+            "display_name": "Firebase Projects",
+            "description": "Inspect and manage Firebase project resources from your workspace; requires Firebase account access.",
             "commands.setup.label": "Setup",
             "commands.setup.description": "Review connection prerequisites"
           },
           "zh": {
-            "display_name": "firebase",
-            "description": "通过官方 MCP 服务管理 Firebase。",
+            "display_name": "Firebase 项目管理",
+            "description": "在工作区中查看和管理 Firebase 项目资源，需要 Firebase 账号访问权限。",
             "commands.setup.label": "配置",
             "commands.setup.description": "查看连接要求"
           }
@@ -541,8 +541,8 @@
     {
       "id": "github",
       "category": "development",
-      "display_name": "github",
-      "description": "GitHub repositories through the official GitHub MCP server.",
+      "display_name": "GitHub Repositories",
+      "description": "Work with GitHub repositories, issues, and pull requests; requires a GitHub access token.",
       "repository": "https://github.com/BANG404/openagent-github",
       "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/github",
       "source_url": "https://github.com/BANG404/openagent-github",
@@ -551,16 +551,16 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "github",
-            "description": "GitHub repositories through the official GitHub MCP server.",
+            "display_name": "GitHub Repositories",
+            "description": "Work with GitHub repositories, issues, and pull requests; requires a GitHub access token.",
             "commands.setup.label": "Setup",
             "commands.setup.description": "Review connection prerequisites",
             "configuration.token.label": "GitHub token",
             "configuration.token.description": "Saved privately for this plugin. Leave the password field blank to keep its saved value."
           },
           "zh": {
-            "display_name": "github",
-            "description": "通过官方 GitHub MCP 服务操作仓库。",
+            "display_name": "GitHub 仓库协作",
+            "description": "操作 GitHub 仓库、议题和拉取请求，需要配置 GitHub 访问令牌。",
             "commands.setup.label": "配置",
             "commands.setup.description": "查看连接要求",
             "configuration.token.label": "访问令牌",
@@ -572,8 +572,8 @@
     {
       "id": "gitlab",
       "category": "development",
-      "display_name": "gitlab",
-      "description": "GitLab repositories, issues and pipelines through MCP.",
+      "display_name": "GitLab Projects",
+      "description": "Work with GitLab repositories, issues, merge requests, and pipelines; requires GitLab authorization.",
       "repository": "https://github.com/BANG404/openagent-gitlab",
       "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/gitlab",
       "source_url": "https://github.com/BANG404/openagent-gitlab",
@@ -582,8 +582,8 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "gitlab",
-            "description": "GitLab repositories, issues and pipelines through MCP.",
+            "display_name": "GitLab Projects",
+            "description": "Work with GitLab repositories, issues, merge requests, and pipelines; requires GitLab authorization.",
             "commands.setup.label": "Setup",
             "commands.setup.description": "Review connection prerequisites",
             "configuration.client-id.label": "OAuth client ID",
@@ -592,8 +592,8 @@
             "configuration.scope.description": "Optional scopes accepted by the provider. Changing this disconnects the existing local authorization."
           },
           "zh": {
-            "display_name": "gitlab",
-            "description": "通过 MCP 操作 GitLab 仓库、议题和流水线。",
+            "display_name": "GitLab 项目协作",
+            "description": "操作 GitLab 仓库、议题、合并请求和流水线，需要 GitLab 授权。",
             "commands.setup.label": "配置",
             "commands.setup.description": "查看连接要求",
             "configuration.client-id.label": "OAuth 客户端 ID",
@@ -607,8 +607,8 @@
     {
       "id": "imessage",
       "category": "communication",
-      "display_name": "imessage",
-      "description": "macOS iMessage connected to OpenAgent conversations.",
+      "display_name": "iMessage Channel",
+      "description": "Send messages to OpenAgent and receive agent replies through iMessage on a Mac; requires macOS message access.",
       "repository": "https://github.com/BANG404/openagent-imessage",
       "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/imessage",
       "source_url": "https://github.com/BANG404/openagent-imessage",
@@ -617,8 +617,8 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "imessage",
-            "description": "macOS iMessage connected to OpenAgent conversations.",
+            "display_name": "iMessage Channel",
+            "description": "Send messages to OpenAgent and receive agent replies through iMessage on a Mac; requires macOS message access.",
             "commands.setup.label": "Setup",
             "commands.setup.description": "Review connection prerequisites",
             "commands.start.label": "Start channel",
@@ -627,8 +627,8 @@
             "commands.access.description": "Inspect or change pairing and allowed senders"
           },
           "zh": {
-            "display_name": "imessage",
-            "description": "将 macOS iMessage 连接到 OpenAgent 会话。",
+            "display_name": "iMessage 消息接入",
+            "description": "在 Mac 上通过 iMessage 向 OpenAgent 发消息并接收智能体回复，需要 macOS 消息访问权限。",
             "commands.setup.label": "配置",
             "commands.setup.description": "查看连接要求",
             "commands.start.label": "启动通道",
@@ -642,8 +642,8 @@
     {
       "id": "laravel-boost",
       "category": "development",
-      "display_name": "laravel-boost",
-      "description": "Laravel application tools through Laravel Boost.",
+      "display_name": "Laravel Development",
+      "description": "Inspect and debug the active Laravel app with Laravel Boost; requires PHP and Laravel Boost in the project.",
       "repository": "https://github.com/BANG404/openagent-laravel-boost",
       "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/laravel-boost",
       "source_url": "https://github.com/BANG404/openagent-laravel-boost",
@@ -652,14 +652,14 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "laravel-boost",
-            "description": "Laravel application tools through Laravel Boost.",
+            "display_name": "Laravel Development",
+            "description": "Inspect and debug the active Laravel app with Laravel Boost; requires PHP and Laravel Boost in the project.",
             "commands.setup.label": "Setup",
             "commands.setup.description": "Review connection prerequisites"
           },
           "zh": {
-            "display_name": "laravel-boost",
-            "description": "通过 Laravel Boost 使用 Laravel 应用开发工具。",
+            "display_name": "Laravel 开发助手",
+            "description": "使用 Laravel Boost 查看和调试当前 Laravel 应用，需要项目已安装 PHP 和 Laravel Boost。",
             "commands.setup.label": "配置",
             "commands.setup.description": "查看连接要求"
           }
@@ -669,8 +669,8 @@
     {
       "id": "langfuse",
       "category": "development",
-      "display_name": "Langfuse",
-      "description": "Execution and tool observability through Langfuse OTLP.",
+      "display_name": "Langfuse Tracing",
+      "description": "Send agent execution and tool-call traces to Langfuse after setup; message and model-content capture are separately opt-in.",
       "repository": "https://github.com/BANG404/openagent-langfuse",
       "source_url": "https://github.com/BANG404/openagent-langfuse",
       "i18n": {
@@ -678,8 +678,8 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "Langfuse",
-            "description": "Execution and tool observability through Langfuse OTLP.",
+            "display_name": "Langfuse Tracing",
+            "description": "Send agent execution and tool-call traces to Langfuse after setup; message and model-content capture are separately opt-in.",
             "configuration.enabled.label": "Enable upload",
             "configuration.enabled.description": "Uploads execution telemetry to the configured Langfuse project.",
             "configuration.public-key.label": "Project public key",
@@ -708,8 +708,8 @@
             "configuration.capture-model-content.description": "Records each model call’s non-system text history, tool calls/results, reply, model and token usage. Excludes system prompts, reasoning and attachments."
           },
           "zh": {
-            "display_name": "Langfuse",
-            "description": "通过 Langfuse OTLP 观测执行过程和工具调用。",
+            "display_name": "Langfuse 运行追踪",
+            "description": "配置后将智能体执行和工具调用记录发送到 Langfuse；聊天消息和模型调用内容需分别开启采集。",
             "configuration.enabled.label": "开启上传",
             "configuration.enabled.description": "将执行遥测上传到所配置的 Langfuse 项目。",
             "configuration.public-key.label": "项目公钥",
@@ -743,8 +743,8 @@
     {
       "id": "linear",
       "category": "productivity",
-      "display_name": "linear",
-      "description": "Linear issues and projects through MCP.",
+      "display_name": "Linear Issues",
+      "description": "Find and update issues and projects in Linear; requires an authorized Linear account.",
       "repository": "https://github.com/BANG404/openagent-linear",
       "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/linear",
       "source_url": "https://github.com/BANG404/openagent-linear",
@@ -753,8 +753,8 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "linear",
-            "description": "Linear issues and projects through MCP.",
+            "display_name": "Linear Issues",
+            "description": "Find and update issues and projects in Linear; requires an authorized Linear account.",
             "commands.setup.label": "Setup",
             "commands.setup.description": "Review connection prerequisites",
             "configuration.client-id.label": "OAuth client ID",
@@ -763,8 +763,8 @@
             "configuration.scope.description": "Optional scopes accepted by the provider. Changing this disconnects the existing local authorization."
           },
           "zh": {
-            "display_name": "linear",
-            "description": "通过 MCP 管理 Linear 议题和项目。",
+            "display_name": "Linear 任务管理",
+            "description": "查询和更新 Linear 议题与项目，需要授权 Linear 账号。",
             "commands.setup.label": "配置",
             "commands.setup.description": "查看连接要求",
             "configuration.client-id.label": "OAuth 客户端 ID",
@@ -778,8 +778,8 @@
     {
       "id": "playwright",
       "category": "development",
-      "display_name": "playwright",
-      "description": "Browser automation through the Microsoft Playwright MCP server.",
+      "display_name": "Playwright Browser Automation",
+      "description": "Let an agent open web pages, click, fill forms, and take browser screenshots with Playwright.",
       "repository": "https://github.com/BANG404/openagent-playwright",
       "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/playwright",
       "source_url": "https://github.com/BANG404/openagent-playwright",
@@ -788,14 +788,14 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "playwright",
-            "description": "Browser automation through the Microsoft Playwright MCP server.",
+            "display_name": "Playwright Browser Automation",
+            "description": "Let an agent open web pages, click, fill forms, and take browser screenshots with Playwright.",
             "commands.setup.label": "Setup",
             "commands.setup.description": "Review connection prerequisites"
           },
           "zh": {
-            "display_name": "playwright",
-            "description": "通过 Microsoft Playwright MCP 服务自动操作浏览器。",
+            "display_name": "Playwright 浏览器自动化",
+            "description": "让智能体通过 Playwright 打开网页、点击、填写表单和截取浏览器画面。",
             "commands.setup.label": "配置",
             "commands.setup.description": "查看连接要求"
           }
@@ -805,8 +805,8 @@
     {
       "id": "serena",
       "category": "development",
-      "display_name": "serena",
-      "description": "Semantic code navigation and editing through Serena.",
+      "display_name": "Serena Code Navigation",
+      "description": "Find symbols, follow references, and edit code by symbol with Serena in the active project.",
       "repository": "https://github.com/BANG404/openagent-serena",
       "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/serena",
       "source_url": "https://github.com/BANG404/openagent-serena",
@@ -815,14 +815,14 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "serena",
-            "description": "Semantic code navigation and editing through Serena.",
+            "display_name": "Serena Code Navigation",
+            "description": "Find symbols, follow references, and edit code by symbol with Serena in the active project.",
             "commands.setup.label": "Setup",
             "commands.setup.description": "Review connection prerequisites"
           },
           "zh": {
-            "display_name": "serena",
-            "description": "通过 Serena 进行语义代码导航和编辑。",
+            "display_name": "Serena 代码导航",
+            "description": "在当前项目中通过 Serena 查找代码符号、追踪引用，并按符号编辑代码。",
             "commands.setup.label": "配置",
             "commands.setup.description": "查看连接要求"
           }
@@ -832,8 +832,8 @@
     {
       "id": "terraform",
       "category": "development",
-      "display_name": "terraform",
-      "description": "Terraform registry and workspace tools through the HashiCorp MCP server.",
+      "display_name": "Terraform Infrastructure",
+      "description": "Look up Terraform providers and modules and work with infrastructure workspaces; requires Docker, with account access for hosted workspaces.",
       "repository": "https://github.com/BANG404/openagent-terraform",
       "homepage": "https://github.com/anthropics/claude-plugins-official/tree/ac996c0dde7fb2a9f805cd5277ffc95ecd44a321/external_plugins/terraform",
       "source_url": "https://github.com/BANG404/openagent-terraform",
@@ -842,16 +842,16 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "terraform",
-            "description": "Terraform registry and workspace tools through the HashiCorp MCP server.",
+            "display_name": "Terraform Infrastructure",
+            "description": "Look up Terraform providers and modules and work with infrastructure workspaces; requires Docker, with account access for hosted workspaces.",
             "commands.setup.label": "Setup",
             "commands.setup.description": "Review connection prerequisites",
             "configuration.token.label": "Terraform Enterprise token",
             "configuration.token.description": "Saved privately for this plugin. Leave the password field blank to keep its saved value."
           },
           "zh": {
-            "display_name": "terraform",
-            "description": "通过 HashiCorp MCP 服务使用 Terraform 注册表和工作区工具。",
+            "display_name": "Terraform 基础设施",
+            "description": "查询 Terraform 提供商和模块，并操作基础设施工作区；需要 Docker，托管工作区还需账号权限。",
             "commands.setup.label": "配置",
             "commands.setup.description": "查看连接要求",
             "configuration.token.label": "访问令牌",
@@ -863,8 +863,8 @@
     {
       "id": "openagent-theme-nova",
       "category": "design",
-      "display_name": "Nova",
-      "description": "Nova: nova / neutral / neutral / neutral",
+      "display_name": "Nova Compact Theme",
+      "description": "A neutral gray theme with 13px text, rounded controls, and compact spacing; supports light and dark modes.",
       "repository": "https://github.com/BANG404/openagent-theme-nova",
       "homepage": "https://ui.shadcn.com/create",
       "source_url": "https://github.com/BANG404/openagent-theme-nova",
@@ -873,12 +873,12 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "Nova",
-            "description": "Nova: nova / neutral / neutral / neutral"
+            "display_name": "Nova Compact Theme",
+            "description": "A neutral gray theme with 13px text, rounded controls, and compact spacing; supports light and dark modes."
           },
           "zh": {
-            "display_name": "Nova",
-            "description": "Nova 主题：nova / neutral / neutral / neutral"
+            "display_name": "Nova 简约主题",
+            "description": "中性灰阶配色，搭配 13px 字号、圆角控件和紧凑间距，支持浅色与深色模式。"
           }
         }
       }
@@ -886,8 +886,8 @@
     {
       "id": "openagent-theme-vega",
       "category": "design",
-      "display_name": "Vega",
-      "description": "Vega: vega / neutral / neutral / neutral",
+      "display_name": "Vega Spacious Theme",
+      "description": "A neutral gray theme with 14px text, rounded controls, and spacious spacing; supports light and dark modes.",
       "repository": "https://github.com/BANG404/openagent-theme-vega",
       "homepage": "https://ui.shadcn.com/create",
       "source_url": "https://github.com/BANG404/openagent-theme-vega",
@@ -896,12 +896,12 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "Vega",
-            "description": "Vega: vega / neutral / neutral / neutral"
+            "display_name": "Vega Spacious Theme",
+            "description": "A neutral gray theme with 14px text, rounded controls, and spacious spacing; supports light and dark modes."
           },
           "zh": {
-            "display_name": "Vega",
-            "description": "Vega 主题：vega / neutral / neutral / neutral"
+            "display_name": "Vega 舒展主题",
+            "description": "中性灰阶配色，搭配 14px 字号、圆角控件和宽松间距，支持浅色与深色模式。"
           }
         }
       }
@@ -909,8 +909,8 @@
     {
       "id": "openagent-theme-maia",
       "category": "design",
-      "display_name": "Maia",
-      "description": "Maia: maia / neutral / neutral / neutral",
+      "display_name": "Maia Rounded Theme",
+      "description": "A neutral gray theme with 14px text, large rounded controls, and extra spacing; supports light and dark modes.",
       "repository": "https://github.com/BANG404/openagent-theme-maia",
       "homepage": "https://ui.shadcn.com/create",
       "source_url": "https://github.com/BANG404/openagent-theme-maia",
@@ -919,12 +919,12 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "Maia",
-            "description": "Maia: maia / neutral / neutral / neutral"
+            "display_name": "Maia Rounded Theme",
+            "description": "A neutral gray theme with 14px text, large rounded controls, and extra spacing; supports light and dark modes."
           },
           "zh": {
-            "display_name": "Maia",
-            "description": "Maia 主题：maia / neutral / neutral / neutral"
+            "display_name": "Maia 大圆角主题",
+            "description": "中性灰阶配色，搭配 14px 字号、大圆角控件和更宽松的间距，支持浅色与深色模式。"
           }
         }
       }
@@ -932,8 +932,8 @@
     {
       "id": "openagent-theme-lyra",
       "category": "design",
-      "display_name": "Lyra",
-      "description": "Lyra: lyra / neutral / neutral / neutral",
+      "display_name": "Lyra Monospace Theme",
+      "description": "A neutral gray theme with 12px monospace text and square corners; supports light and dark modes.",
       "repository": "https://github.com/BANG404/openagent-theme-lyra",
       "homepage": "https://ui.shadcn.com/create",
       "source_url": "https://github.com/BANG404/openagent-theme-lyra",
@@ -942,12 +942,12 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "Lyra",
-            "description": "Lyra: lyra / neutral / neutral / neutral"
+            "display_name": "Lyra Monospace Theme",
+            "description": "A neutral gray theme with 12px monospace text and square corners; supports light and dark modes."
           },
           "zh": {
-            "display_name": "Lyra",
-            "description": "Lyra 主题：lyra / neutral / neutral / neutral"
+            "display_name": "Lyra 等宽主题",
+            "description": "中性灰阶配色，搭配 12px 等宽字体和直角控件，支持浅色与深色模式。"
           }
         }
       }
@@ -955,8 +955,8 @@
     {
       "id": "openagent-theme-mira",
       "category": "design",
-      "display_name": "Mira",
-      "description": "Mira: mira / neutral / neutral / neutral",
+      "display_name": "Mira Dense Theme",
+      "description": "A neutral gray theme with 12px text, small rounded controls, and dense spacing; supports light and dark modes.",
       "repository": "https://github.com/BANG404/openagent-theme-mira",
       "homepage": "https://ui.shadcn.com/create",
       "source_url": "https://github.com/BANG404/openagent-theme-mira",
@@ -965,12 +965,12 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "Mira",
-            "description": "Mira: mira / neutral / neutral / neutral"
+            "display_name": "Mira Dense Theme",
+            "description": "A neutral gray theme with 12px text, small rounded controls, and dense spacing; supports light and dark modes."
           },
           "zh": {
-            "display_name": "Mira",
-            "description": "Mira 主题：mira / neutral / neutral / neutral"
+            "display_name": "Mira 紧凑主题",
+            "description": "中性灰阶配色，搭配 12px 字号、小圆角控件和紧凑间距，支持浅色与深色模式。"
           }
         }
       }
@@ -978,8 +978,8 @@
     {
       "id": "openagent-theme-luma",
       "category": "design",
-      "display_name": "Luma",
-      "description": "Luma: luma / neutral / neutral / neutral",
+      "display_name": "Luma Soft Theme",
+      "description": "A neutral gray theme with 14px text, extra-rounded controls, and spacious spacing; supports light and dark modes.",
       "repository": "https://github.com/BANG404/openagent-theme-luma",
       "homepage": "https://ui.shadcn.com/create",
       "source_url": "https://github.com/BANG404/openagent-theme-luma",
@@ -988,12 +988,12 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "Luma",
-            "description": "Luma: luma / neutral / neutral / neutral"
+            "display_name": "Luma Soft Theme",
+            "description": "A neutral gray theme with 14px text, extra-rounded controls, and spacious spacing; supports light and dark modes."
           },
           "zh": {
-            "display_name": "Luma",
-            "description": "Luma 主题：luma / neutral / neutral / neutral"
+            "display_name": "Luma 柔和主题",
+            "description": "中性灰阶配色，搭配 14px 字号、柔和的大圆角和宽松间距，支持浅色与深色模式。"
           }
         }
       }
@@ -1001,8 +1001,8 @@
     {
       "id": "openagent-theme-sera",
       "category": "design",
-      "display_name": "Sera",
-      "description": "Sera: sera / taupe / taupe / taupe",
+      "display_name": "Sera Warm Gray Theme",
+      "description": "A warm taupe theme with 14px text and subtle rounded corners; supports light and dark modes.",
       "repository": "https://github.com/BANG404/openagent-theme-sera",
       "homepage": "https://ui.shadcn.com/create",
       "source_url": "https://github.com/BANG404/openagent-theme-sera",
@@ -1011,12 +1011,12 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "Sera",
-            "description": "Sera: sera / taupe / taupe / taupe"
+            "display_name": "Sera Warm Gray Theme",
+            "description": "A warm taupe theme with 14px text and subtle rounded corners; supports light and dark modes."
           },
           "zh": {
-            "display_name": "Sera",
-            "description": "Sera 主题：sera / taupe / taupe / taupe"
+            "display_name": "Sera 暖灰主题",
+            "description": "暖灰褐配色，搭配 14px 字号和轻微圆角，支持浅色与深色模式。"
           }
         }
       }
@@ -1024,8 +1024,8 @@
     {
       "id": "openagent-theme-rhea",
       "category": "design",
-      "display_name": "Rhea",
-      "description": "Rhea: rhea / neutral / neutral / neutral",
+      "display_name": "Rhea Dense Rounded Theme",
+      "description": "A neutral gray theme with 12px text, large rounded controls, and dense spacing; supports light and dark modes.",
       "repository": "https://github.com/BANG404/openagent-theme-rhea",
       "homepage": "https://ui.shadcn.com/create",
       "source_url": "https://github.com/BANG404/openagent-theme-rhea",
@@ -1034,12 +1034,12 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "Rhea",
-            "description": "Rhea: rhea / neutral / neutral / neutral"
+            "display_name": "Rhea Dense Rounded Theme",
+            "description": "A neutral gray theme with 12px text, large rounded controls, and dense spacing; supports light and dark modes."
           },
           "zh": {
-            "display_name": "Rhea",
-            "description": "Rhea 主题：rhea / neutral / neutral / neutral"
+            "display_name": "Rhea 紧凑圆角主题",
+            "description": "中性灰阶配色，搭配 12px 字号、大圆角控件和紧凑间距，支持浅色与深色模式。"
           }
         }
       }
@@ -1047,8 +1047,8 @@
     {
       "id": "openagent-theme-garden",
       "category": "design",
-      "display_name": "Garden",
-      "description": "Garden: maia / olive / emerald / violet",
+      "display_name": "Garden Emerald Theme",
+      "description": "An olive-gray theme with emerald accents, violet charts, 14px text, and large rounded controls; supports light and dark modes.",
       "repository": "https://github.com/BANG404/openagent-theme-garden",
       "homepage": "https://ui.shadcn.com/create",
       "source_url": "https://github.com/BANG404/openagent-theme-garden",
@@ -1057,12 +1057,12 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "Garden",
-            "description": "Garden: maia / olive / emerald / violet"
+            "display_name": "Garden Emerald Theme",
+            "description": "An olive-gray theme with emerald accents, violet charts, 14px text, and large rounded controls; supports light and dark modes."
           },
           "zh": {
-            "display_name": "Garden",
-            "description": "Garden 主题：maia / olive / emerald / violet"
+            "display_name": "Garden 翠绿主题",
+            "description": "橄榄灰底色，搭配翠绿强调色、紫色图表、14px 字号和大圆角控件，支持浅色与深色模式。"
           }
         }
       }
@@ -1070,8 +1070,8 @@
     {
       "id": "openagent-theme-rose-ink",
       "category": "design",
-      "display_name": "Rose Ink",
-      "description": "Rose Ink: sera / taupe / rose / cyan",
+      "display_name": "Rose Ink Rose Theme",
+      "description": "A warm taupe theme with rose accents, cyan charts, and 14px text; supports light and dark modes.",
       "repository": "https://github.com/BANG404/openagent-theme-rose-ink",
       "homepage": "https://ui.shadcn.com/create",
       "source_url": "https://github.com/BANG404/openagent-theme-rose-ink",
@@ -1080,12 +1080,12 @@
         "default_locale": "en",
         "translations": {
           "en": {
-            "display_name": "Rose Ink",
-            "description": "Rose Ink: sera / taupe / rose / cyan"
+            "display_name": "Rose Ink Rose Theme",
+            "description": "A warm taupe theme with rose accents, cyan charts, and 14px text; supports light and dark modes."
           },
           "zh": {
-            "display_name": "Rose Ink",
-            "description": "Rose Ink 主题：sera / taupe / rose / cyan"
+            "display_name": "Rose Ink 玫瑰主题",
+            "description": "暖灰褐底色，搭配玫瑰强调色、青色图表和 14px 字号，支持浅色与深色模式。"
           }
         }
       }

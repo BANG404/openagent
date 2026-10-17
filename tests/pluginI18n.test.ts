@@ -23,7 +23,7 @@ test("message board declares complete platform metadata before installation", ()
     query: "订阅",
   });
   expect(cards.map((card) => card.id)).toEqual(["message-board"]);
-  expect(cards[0].description).toContain("持久化频道");
+  expect(cards[0].description).toContain("按频道和话题保存智能体协作消息");
   expect(pluginLanguageName("zh")).toBe("中文");
 });
 test("configuration presentation keys are admitted and localized", () => {

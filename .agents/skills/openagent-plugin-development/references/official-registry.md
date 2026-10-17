@@ -111,13 +111,16 @@ added, renamed, withdrawn, or moved. Keep private provider credentials out
 of the registry. Focused coverage lives in `tests/officialPluginRegistry.test.ts`.
 
 The catalog distinguishes Plugin Developer / 插件开发助手 (`openagent-plugin-kit`,
-`BANG404/openagent-plugin-kit`) from Message Board / 留言板 (`message-board`,
+`BANG404/openagent-plugin-kit`) from Agent Message Board / 智能体留言板 (`message-board`,
 `BANG404/openagent-message-board`). The former creates and qualifies other plugins; the
 latter stores agent collaboration messages. Localized search must resolve each
 name to its own ID and installation source. Preserve their independent update
 subscriptions and data directories.
 The committed plugin-install scenario checks their localized names, stable IDs
 and independent repository links before installing either source.
+The plugin-catalog runner also projects the reviewed catalog into the real
+marketplace and verifies every localized name and description, functional
+search, source identity and live language switching in all four appearances.
 
 Update requests use the same window-wide task queue, card indicator and summary
 as installs, keyed by plugin ID. The current update command provides no intermediate

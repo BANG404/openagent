@@ -35,17 +35,10 @@ export function resolveThemeTokens(input: Record<string, string>): Record<string
     tokens["--mica-divider"] ??= "var(--border)";
     tokens["--composer-border"] ??= "var(--border)";
   }
-  // Keep the desktop cards visible even when an upstream palette collapses
-  // sidebar/card colors. Prefer another supplied surface before deriving a tint.
-  const canvas = tokens["--sidebar"] ?? tokens["--background"];
-  if (canvas && tokens["--card"]) {
-    tokens["--workspace-canvas"] ??=
-      canvas !== tokens["--card"]
-        ? "var(--sidebar)"
-        : tokens["--background"] && tokens["--background"] !== tokens["--card"]
-          ? "var(--background)"
-          : "color-mix(in srgb, var(--card) 96%, var(--card-foreground))";
-  }
+  // Match desktop chrome even when the package uses the same color for its cards.
+  // Packages may explicitly choose a different workspace canvas.
+  if (tokens["--sidebar"] || tokens["--background"])
+    tokens["--workspace-canvas"] ??= "var(--sidebar)";
   // A standard color theme supplies its own matching foreground. Legacy accent-only
   // packages retain the built-in button foreground until the author adds a pair.
   return tokens;

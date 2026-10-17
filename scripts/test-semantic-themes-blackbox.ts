@@ -12,6 +12,14 @@ const artifacts = resolve(process.env.BLACKBOX_ARTIFACT_DIR ?? ".cache/semantic-
 mkdirSync(artifacts, { recursive: true });
 const candidates = themeCollection.map(({ id }) => ({ id, output: join("plugins", id) }));
 const fromRelease = process.argv.includes("--release");
+const modeFilter = process.argv.find((arg) => arg.startsWith("--mode="))?.slice(7);
+const languageFilter = process.argv.find((arg) => arg.startsWith("--language="))?.slice(11);
+if (modeFilter !== undefined && !["light", "dark"].includes(modeFilter))
+  throw new Error("--mode must be light or dark");
+if (languageFilter !== undefined && !["en", "zh"].includes(languageFilter))
+  throw new Error("--language must be en or zh");
+const modes = (["light", "dark"] as const).filter((mode) => !modeFilter || mode === modeFilter);
+const languages = ["en", "zh"].filter((language) => !languageFilter || language === languageFilter);
 const packageFamilies = [
   ...new Set(
     candidates.flatMap(({ output }) =>
@@ -135,8 +143,8 @@ try {
     );
     installed.push(candidate.id);
   }
-  for (const mode of ["light", "dark"] as const)
-    for (const language of ["en", "zh"]) {
+  for (const mode of modes)
+    for (const language of languages) {
       await operation(
         `document.querySelector('[role=dialog] button[aria-label="Close"], [role=dialog] button[aria-label="关闭"]')?.click();const {desktopOpenAgent:c,emit}=await import('/src/lib/openagent/tauriClient.ts');const config=await c.invokeProduct('get_settings',{});config.theme='${mode}';config.language='${language}';config.theme_plugin='';config.theme_overrides={light:{},dark:{},font_family:''};for(const id of ${JSON.stringify(installed)})config.agent_plugins_enabled[id]=true;await c.invokeProduct('save_settings',{config});await emit('settings-changed');await emit('agent-plugins-changed');`,
       );
@@ -150,6 +158,9 @@ try {
           readFileSync(join(root, candidate.output, "plugin.json"), "utf8"),
         );
         const expected = manifest.extensions.openagent.theme[mode];
+        const inheritsSidebarCanvas =
+          !expected["--workspace-canvas"] &&
+          !manifest.extensions.openagent.theme.tokens["--workspace-canvas"];
         pilot(["click", "[data-appearance-theme] button"]);
         await wait(`document.querySelector('[role=option][data-value="${candidate.id}"]')`);
         pilot(["click", `[role=option][data-value="${candidate.id}"]`]);
@@ -169,14 +180,16 @@ try {
         const root=getComputedStyle(document.documentElement);const expected=${JSON.stringify(expected)};
         for(const key of ['--primary','--primary-foreground','--background','--foreground','--chart-1','--chart-5'])if(root.getPropertyValue(key).trim()!==expected[key])throw Error('Token mismatch '+key);
         if(document.documentElement.classList.contains('native-window-material'))throw Error('Native material hid theme canvas');
+        if(${inheritsSidebarCanvas} && getComputedStyle(document.querySelector('.main')).backgroundColor!==getComputedStyle(document.querySelector('.sidebar')).backgroundColor)throw Error('Theme workspace canvas differs from sidebar');
         const probe=document.createElement('div');document.body.append(probe);
         const computed=(property,value)=>{probe.style.setProperty(property,value);return getComputedStyle(probe).getPropertyValue(property)};
         const send=document.querySelector('.send-btn');if(!send)throw Error('Composer action missing');
         if(getComputedStyle(send).color!==computed('color','var(--primary-foreground)'))throw Error('Action foreground mismatch');
         const composer=document.querySelector('.conversation-input-surface');if(getComputedStyle(composer).borderTopLeftRadius!==computed('border-top-left-radius','var(--radius)'))throw Error('Radius did not reach composer');
+        const requireFont=async(family,label)=>{for(let attempt=0;attempt<100;attempt++){if((await document.fonts.load('14px "'+family+'"')).length)return;await new Promise(done=>setTimeout(done,50));}throw Error(label+' '+family);};
         const font=root.getPropertyValue('--font-sans').split(',')[0].trim().replaceAll("'",'');
-        const loaded=await document.fonts.load('14px "'+font+'"');if(!loaded.length)throw Error('Offline font unavailable '+font);
-        for(const family of ${JSON.stringify(families)})if(!(await document.fonts.load('14px "'+family+'"')).length)throw Error('Package heading/body font unavailable '+family);
+        await requireFont(font,'Offline font unavailable');
+        for(const family of ${JSON.stringify(families)})await requireFont(family,'Package heading/body font unavailable');
         const {readThemePalette}=await import('/src/lib/streamdown/themePalette.ts');const palette=readThemePalette();
         const chart=window.__themeEcharts.getInstanceByDom(document.querySelector('#semantic-theme-renderers [_echarts_instance_]'));
         if(JSON.stringify(chart.getOption().color)!==JSON.stringify([1,2,3,4,5].map(i=>palette['chart-'+i])))throw Error('Mounted chart palette stale');
@@ -235,7 +248,7 @@ try {
   );
   writeFileSync(join(artifacts, "results.json"), JSON.stringify(results, null, 2) + "\n");
 }
-assert.equal(results.length, candidates.length * 4);
+assert.equal(results.length, candidates.length * modes.length * languages.length);
 console.log(
   `Verified ${results.length} installed theme/appearance/locale combinations. Artifacts: ${artifacts}`,
 );

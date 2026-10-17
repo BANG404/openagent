@@ -140,7 +140,7 @@ describe("official plugin registry", () => {
           installed: new Map(),
           locale,
           category: "design",
-          query: "emerald",
+          query: locale === "zh" ? "翠绿" : "emerald",
         }).map((plugin) => plugin.id),
       ).toEqual(["openagent-theme-garden"]);
     }
@@ -150,9 +150,15 @@ describe("official plugin registry", () => {
     const registry = parseOfficialPluginRegistry(bundledRegistry);
     for (const [locale, query, id] of [
       ["zh", "插件开发助手", "openagent-plugin-kit"],
-      ["zh", "留言板", "message-board"],
+      ["zh", "智能体留言板", "message-board"],
       ["en", "Plugin Developer", "openagent-plugin-kit"],
-      ["en", "Message Board", "message-board"],
+      ["en", "Agent Message Board", "message-board"],
+      ["zh", "目标推进", "goal"],
+      ["zh", "任务编排", "graph"],
+      ["zh", "多智能体群聊", "chat-groups"],
+      ["zh", "桌面操作", "cua-driver"],
+      ["zh", "浏览器自动化", "playwright"],
+      ["zh", "本地通道测试", "fakechat"],
     ]) {
       expect(
         projectOfficialPluginCatalog(registry, { installed: new Map(), locale, query }).map(

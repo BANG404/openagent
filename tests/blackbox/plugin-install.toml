@@ -10,7 +10,7 @@ script = '''(() => {
   const locale = window.__pluginLifecycleProbe.locale;
   const expected = [
     ['openagent-plugin-kit', locale === 'en' ? 'Plugin Developer' : '插件开发助手', 'https://github.com/BANG404/openagent-plugin-kit'],
-    ['message-board', locale === 'en' ? 'Message Board' : '留言板', 'https://github.com/BANG404/openagent-message-board'],
+    ['message-board', locale === 'en' ? 'Agent Message Board' : '智能体留言板', 'https://github.com/BANG404/openagent-message-board'],
   ];
   for (const [id, name, repository] of expected) {
     const card = document.querySelector(`.official-plugin-card[data-plugin-id="${id}"]`);
