@@ -48,6 +48,7 @@
       <nav aria-label="Main navigation">
         <a href="#components" data-i18n="nav.components">Features</a>
         <a href="#control" data-i18n="nav.control">Control</a>
+        <a href="#plugins" class="store-link" data-i18n="nav.store">Plugin store</a>
         <a href="#developers" class="docs-link" data-i18n="nav.docs">Plugin tutorials</a>
         <a class="github-link" href="https://github.com/BANG404/openagent/releases/latest" data-i18n-html="nav.download">Download <span aria-hidden="true">↗</span></a>
         <button class="language" type="button" data-language-toggle aria-label="Switch language">中文</button>
@@ -100,6 +101,22 @@
           <a class="tutorial-card" href="./docs/plugins/publishing/" data-doc-path="plugins/publishing/"><span class="component-mark">05</span><h3 data-i18n="docs.publishing.title">Publish & update</h3><p data-i18n="docs.publishing.copy">Ship a stable archive and verify its update path.</p><span class="tutorial-arrow" aria-hidden="true">↗</span></a>
         </div>
         <p class="developer-footnote"><span data-i18n="docs.packages">Explore independently installed packages: Plugin Developer, Chat Groups, Goal, Graph, Cua Driver, and Message Board.</span> <a href="./docs/" data-doc-path="" data-i18n="docs.index">All plugin tutorials →</a></p>
+      </section>
+
+      <section id="plugins" class="plugin-store page-width" aria-labelledby="store-title">
+        <div class="section-heading">
+          <p class="kicker" data-i18n="store.kicker">Extend your workspace</p>
+          <h2 id="store-title" data-i18n="store.title">Official plugin store.</h2>
+          <p data-i18n="store.copy">Discover tools, workflows, integrations, and themes from the official OpenAgent catalog.</p>
+        </div>
+        <p class="store-guidance" data-i18n="store.install">To install, open Integrations → Plugins in OpenAgent and find the plugin in the official store. Check its README for setup requirements.</p>
+        <div class="store-controls" data-store-controls hidden>
+          <label class="store-search"><span data-i18n="store.search">Search plugins</span><input type="search" data-store-search autocomplete="off" /></label>
+          <div class="store-filters" role="group" aria-label="Plugin category" data-i18n-aria-label="store.categories" data-store-filters></div>
+        </div>
+        <p class="store-count" data-store-count role="status" aria-live="polite"></p>
+        <div class="store-grid" data-store-grid><!-- official-plugin-cards --></div>
+        <p class="store-empty" data-store-empty data-i18n="store.empty" hidden>No matching plugins. Try another search or category.</p>
       </section>
 
       <section id="components" class="component-section">

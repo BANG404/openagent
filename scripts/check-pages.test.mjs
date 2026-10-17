@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { checkPages } from "./check-pages.mjs";
+import { renderPluginStore } from "./pages-plugin-store.mjs";
 
 /** @type {string[]} */
 const fixtures = [];
@@ -43,4 +44,49 @@ test("documentation package sources cannot be published", async () => {
   const root = siteFixture();
   writeFileSync(join(root, "docs", "package.json"), "{}");
   await expect(checkPages(root)).rejects.toThrow("Documentation source leaked");
+});
+
+const plugin = {
+  id: "example",
+  display_name: 'Example <plugin> "name"',
+  description: "Tools & workflows",
+  repository: "https://github.com/Example/plugin",
+  category: "development",
+  i18n: { translations: { zh: { display_name: "示例插件", description: "开发工具" } } },
+};
+
+test("store publishes escaped bilingual discovery and repository releases without invented versions", () => {
+  const html = renderPluginStore({ schema_version: 1, plugins: [plugin] });
+  expect(html).toContain("Example &lt;plugin&gt; &quot;name&quot;");
+  expect(html).toContain('data-plugin-zh="示例插件"');
+  expect(html).toContain('data-plugin-zh="开发工具"');
+  expect(html).toContain('href="https://github.com/Example/plugin/releases"');
+  expect(html).toContain('data-plugin-category="development"');
+  expect(html).not.toContain("undefined");
+});
+
+test("store uses English when a translation is missing and keeps uncategorized entries", () => {
+  const html = renderPluginStore({
+    schema_version: 1,
+    plugins: [{ ...plugin, category: undefined, i18n: undefined }],
+  });
+  expect(html).toContain('data-plugin-zh="Tools &amp; workflows"');
+  expect(html).toContain('data-plugin-category="uncategorized"');
+});
+
+test("store rejects unsupported schemas, duplicate identities, and unsafe repository links", () => {
+  expect(() => renderPluginStore({ schema_version: 2, plugins: [] })).toThrow("schema");
+  expect(() => renderPluginStore({ schema_version: 1, plugins: [plugin, plugin] })).toThrow(
+    "duplicate",
+  );
+  for (const repository of [
+    "javascript:alert(1)",
+    "https://example.com/plugin",
+    "https://user:secret@github.com/Example/plugin",
+    "https://github.com/Example/plugin?token=secret",
+  ]) {
+    expect(() =>
+      renderPluginStore({ schema_version: 1, plugins: [{ ...plugin, repository }] }),
+    ).toThrow("repository");
+  }
 });

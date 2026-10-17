@@ -9,6 +9,8 @@ on:
       - "scripts/build-pages.mjs"
       - "scripts/check-pages.mjs"
       - "scripts/check-pages.test.mjs"
+      - "scripts/pages-plugin-store.mjs"
+      - "src/lib/officialPluginRegistry.json"
       - ".github/workflows/pages.yml"
   pull_request:
     paths:
@@ -17,6 +19,8 @@ on:
       - "scripts/build-pages.mjs"
       - "scripts/check-pages.mjs"
       - "scripts/check-pages.test.mjs"
+      - "scripts/pages-plugin-store.mjs"
+      - "src/lib/officialPluginRegistry.json"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
     inputs:
