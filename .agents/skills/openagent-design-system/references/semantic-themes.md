@@ -17,8 +17,8 @@ surfaces coincide, derive a subtle foreground tint. Preserve explicit
 `--workspace-canvas` values. Saved background overrides restore the canvas to
 their derived sidebar color. Paint it below the title-bar padding only, avoiding
 duplicate compositing of translucent chrome.
-The built-in opaque dark canvas uses the same subtle separation; the native
-canvas remains transparent.
+The built-in opaque canvas uses the sidebar color in both light and dark modes,
+without an additional foreground tint. The native canvas remains transparent.
 
 `themeTokens.ts` normalizes installed theme-v1 legacy names at the input
 boundary, with explicit semantic names winning. Existing packages remain
