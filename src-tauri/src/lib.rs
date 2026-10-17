@@ -22,8 +22,8 @@ use component_updates::{
     arm_frontend_confirmation_deadline, frontend_resource_manager, modular_update_channel,
     runtime_resource_manager, RuntimeUpdateState,
 };
-mod cua_driver;
-use cua_driver::stop_cua_driver_serve;
+mod plugin_daemons;
+use plugin_daemons::stop_plugin_daemons;
 mod desktop_windows;
 #[cfg(desktop)]
 use desktop_windows::install_desktop_tray;
@@ -367,7 +367,7 @@ pub fn run() {
                 // path: this is the only cleanup a workspace window, quick chat,
                 // onboarding, settings, or development instance process runs, and
                 // the daemon it started must not outlive it.
-                tauri::RunEvent::Exit => stop_cua_driver_serve(),
+                tauri::RunEvent::Exit => stop_plugin_daemons(),
                 _ => {}
             }
             #[cfg(not(target_os = "macos"))]

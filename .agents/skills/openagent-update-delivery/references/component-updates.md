@@ -74,10 +74,10 @@ publishes current-version installers and shell updater metadata, even when
 `nativeShell` source is unchanged; a selected shell update follows the coupled
 shell-first sequence above.
 
-The Cua Driver is a plugin-owned daemon. OpenAgent installs and updates the
+The Cua Driver is an ordinary MCP plugin. OpenAgent installs and updates the
 verified package from `https://github.com/BANG404/openagent-cua-driver` beneath
-the normal plugin root. The host resolves the declared daemon command and
-supervises it with the same lifetime boundary as other plugin processes.
+the normal plugin root. Runtime loads its declared `mcp.json` through the common
+package loader; the desktop has no CUA-specific update or process adapter.
 
 The shell step begins with a preparation command that re-acquires the barrier —
 an in-process frontend confirmation releases it, so the Runtime must be drained

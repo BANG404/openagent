@@ -172,10 +172,6 @@
         />
       </div>
       <ScrollArea height="100%" class="detail-content mcp-detail-content" scrollHideDelay={350}>
-        {@const owner = server.plugin_owned
-          ? plugins.agentPlugins.find((plugin) => plugin.id === server.id)
-          : undefined}
-        {#if owner}<PluginSource plugin={owner} onOpen={openPlugin} />{/if}
         <section class="detail-section mcp-form-section">
           <h4 class="detail-section-title">{$t("basicInfo")}</h4>
           <div class="detail-grid mcp-detail-grid">

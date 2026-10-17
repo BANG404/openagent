@@ -123,3 +123,7 @@ HTTP transfers; it never contains provider credentials. Initial release startup
 opens the shell before resource download. Runtime's existing inspected backup and
 transition flow runs only after verified installation. Missing resources do not
 force deletion or normalization of persisted configuration or conversations.
+
+Package lifecycle follows [plugin enablement](plugin-enablement.md). Persisted plugin-owned MCP
+projections remain readable for recovery but are not mounted or edited as user
+servers. Runtime resolves their current launch from the installed package.

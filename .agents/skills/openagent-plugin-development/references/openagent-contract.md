@@ -93,12 +93,11 @@ package after the same manifest validation as any other plugin.
 `enabled` is the lifecycle gate for portable components. Missing persisted
 entries default to `true` for compatibility; disabling a plugin removes its
 Skills, MCP servers, and Automation Hooks from new Runtime assemblies.
-Product compatibility switches retain their existing settings through one
-resolver: Chat Groups keeps the legacy `chat_groups_enabled` field, Cua uses
-its reserved MCP entry, and installed packages use `agent_plugins_enabled`.
-All Runtime and desktop entry points use this resolver, so a temporary
-mismatch between legacy and normalized settings cannot expose one path after a
-plugin is disabled.
+Installed packages use `agent_plugins_enabled`, including Cua Driver; user MCP
+settings do not control package enablement. Chat Groups retains its legacy
+`chat_groups_enabled` fallback through the shared resolver. All Runtime and
+desktop entry points use this resolver, so a disabled plugin cannot remain
+available through another entry point.
 
 Installed-plugin cards show a named enablement switch in the header. A package
 requesting host access has a separate, always-visible permission row below the
@@ -143,19 +142,18 @@ transport. The Runtime validates and reports this descriptor. The host owns
 supervision, permissions, endpoint selection, and shutdown; a daemon can be
 paired with an MCP client declared in `mcp.json`. The Runtime resolves the
 daemon's process policy alongside the descriptor and the host consumes it at its
-  spawn point, so a daemon starts either confined by the session-derived policy or
-  under a recorded user-authorization reason; the host stops rather than starting
-  a daemon whose managed policy cannot satisfy its declared capability.
+spawn point, so a daemon starts either confined by the session-derived policy or
+under a recorded user-authorization reason; the host stops rather than starting
+a daemon whose managed policy cannot satisfy its declared capability.
 
 The desktop host has a `PluginDaemonSupervisor` registry for declared long-lived
-daemons. Enabled non-reserved daemon packages are discovered before MCP
+daemons. Enabled daemon packages are discovered before MCP
 connections are mounted, keyed by their validated plugin ID, and receive a
 private `PLUGIN_DATA` working directory plus an optional
 `OPENAGENT_PLUGIN_ENDPOINT`. The registry owns duplicate-start protection,
 stdin lifetime pipes, socket readiness, bounded stop, forced reaping, stderr
-draining, adapter resource ownership, and host-exit cleanup. The reserved Cua
-Driver daemon uses the same registry after its adapter resolves endpoint
-ownership and provisioning. A plugin cannot select another plugin's ID or
+draining, adapter resource ownership, and host-exit cleanup. A plugin cannot
+select another plugin's ID or
 an arbitrary executable through this path. Daemons whose resolved policy is
 managed are rejected until the host supplies a sandbox-aware transport adapter;
 the host must never turn that rejection into an ambient unsandboxed spawn.
@@ -293,9 +291,8 @@ Multi-Agent V2; its six tools and child-conversation registry are owned
 directly by Runtime, and its dedicated `multi_agent_v2.enabled` setting is not
 a plugin lifecycle switch. Goal, Graph, Chat Groups, and Cua Driver are loaded
 from installed package manifests and use the same ordinary package boundary.
-They do not register a domain implementation with Runtime. Cua Driver's daemon
-is resolved from its installed package and supervised through the same host
-daemon boundary as any other plugin; real computer access is a generic
+They do not register a domain implementation with Runtime. Cua Driver declares
+its direct embedded MCP process in `mcp.json`; real computer access is a generic
 per-plugin authorization.
 
 ### MCP Apps UI

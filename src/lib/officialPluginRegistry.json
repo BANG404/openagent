@@ -229,7 +229,7 @@
       "id": "cua-driver",
       "category": "automation",
       "display_name": "Cua Driver",
-      "description": "Desktop control through the OpenAgent Cua Driver daemon.",
+      "description": "Desktop control through a standard MCP plugin, without a standalone application.",
       "repository": "https://github.com/BANG404/openagent-cua-driver",
       "homepage": "https://github.com/BANG404/openagent-cua-driver",
       "source_url": "https://github.com/BANG404/openagent-cua-driver",
@@ -239,7 +239,7 @@
         "translations": {
           "en": {
             "display_name": "Cua Driver",
-            "description": "Desktop control through the OpenAgent Cua Driver daemon.",
+            "description": "Desktop control through a standard MCP plugin, without a standalone application.",
             "notice.pluginData": "PLUGIN_DATA is not set, so this launcher has nowhere to keep the driver it downloads. The OpenAgent host exports it as the package's own writable directory; set it to a writable empty directory to run this package outside OpenAgent, or set OPENAGENT_CUA_DRIVER_BIN to a Cua Driver already on this machine.",
             "notice.unsupportedPlatform": "Cua Driver publishes no pinned release for {platform}. Pinned platforms: {supported}. Set OPENAGENT_CUA_DRIVER_BIN to a driver built for this machine to run one anyway.",
             "notice.pinnedTable": "The pinned table has no entry for '{platform}'. Pinned platforms: {supported}. Set OPENAGENT_CUA_DRIVER_BIN to a driver built for this machine to run one anyway.",
@@ -263,7 +263,7 @@
           },
           "zh": {
             "display_name": "桌面控制",
-            "description": "通过 OpenAgent Cua Driver 守护进程控制桌面。",
+            "description": "通过标准 MCP 插件控制桌面，无需启动独立应用。",
             "notice.pluginData": "未设置 PLUGIN_DATA，启动器没有位置保存下载的驱动。OpenAgent 主机会将它设为插件专用的可写目录；若要在 OpenAgent 外运行，请将其设为可写的空目录，或将 OPENAGENT_CUA_DRIVER_BIN 设为本机已有的 Cua Driver 路径。",
             "notice.unsupportedPlatform": "Cua Driver 没有为 {platform} 提供固定版本。支持的平台：{supported}。若要在此设备运行，请将 OPENAGENT_CUA_DRIVER_BIN 指向为本机编译的驱动。",
             "notice.pinnedTable": "固定版本表中没有平台“{platform}”的条目。支持的平台：{supported}。若要在此设备运行，请将 OPENAGENT_CUA_DRIVER_BIN 指向为本机编译的驱动。",

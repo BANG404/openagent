@@ -422,40 +422,18 @@ describe("desktop navigation chrome", () => {
     // Both long-lived children outlive every Rust exit path — a force-kill,
     // `panic = "abort"`, a logoff — so the kernel, not `Drop`, has to own them.
     // They bind through one module so neither can silently lose that guarantee.
-    // The Runtime binds its own child; the Cua Driver daemon starts through the
+    // The Runtime binds its own child; plugin daemons start through the
     // shared plugin daemon supervisor, which binds every daemon it starts.
     expect(processLifetime).toContain("JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE");
     expect(processLifetime).toContain("AssignProcessToJobObject(job.0, process)");
     expect(runtimeProcess).toContain('bind_tokio_child("Runtime", &child)');
-    expect(host).toContain('label: "Cua Driver".to_string()');
-    expect(host).toContain("plugin_daemon_supervisor().start_with_resources(");
+    expect(host).toContain("plugin_daemon_supervisor().start(");
     expect(pluginDaemonSupervisor).toContain("bind_std_child(&spec.label, &child)");
-
-    // The Cua Driver daemon mirrors the Runtime's control-pipe contract: the
-    // host holds its stdin open, and the daemon treats EOF as "my owner is
-    // gone". Holding that pipe is what makes the guarantee cross-platform, and
-    // the shared supervisor holds it for every daemon it starts, releasing it
-    // only as the first step of the bounded stop.
     expect(pluginDaemonSupervisor).toContain(".stdin(Stdio::piped())");
     expect(pluginDaemonSupervisor).toContain("child.stdin.take()");
-    expect(pluginDaemonSupervisor).toContain("stdin: ChildStdin,");
     expect(pluginDaemonSupervisor).toContain("drop(self.stdin);");
-    // The `serve --embedded` the daemon runs belongs to the package that
-    // publishes the launcher, so the host appends only its policy tail to the
-    // descriptor the kernel resolved. A host that rebuilt the leading arguments
-    // here is how an interpreter ends up being started as if it were the script.
-    const cuaLaunchArgs = host.slice(
-      host.indexOf("fn cua_driver_launch_args"),
-      host.indexOf("fn cua_driver_serve_environment"),
-    );
-    expect(cuaLaunchArgs).toContain(
-      "launch\n        .args\n        .iter()\n        .cloned()\n        .chain(cua_driver_serve_args())",
-    );
-    expect(host).toContain('"--parent-liveness-stdio"');
-
-    // Tauri's own exit event is the only cleanup a non-primary window process
-    // reaches, so a daemon started there must not outlive it.
-    expect(host).toContain("tauri::RunEvent::Exit => stop_cua_driver_serve()");
+    expect(host).not.toContain("cua_driver");
+    expect(host).toContain("tauri::RunEvent::Exit => stop_plugin_daemons()");
   });
 
   test("keeps the system tray and its actions in the native host", async () => {

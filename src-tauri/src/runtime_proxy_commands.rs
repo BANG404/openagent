@@ -1,5 +1,5 @@
 //! Native command boundary for authenticated external Runtime requests.
-use crate::cua_driver::plugin_daemon_supervisor;
+use crate::plugin_daemons::plugin_daemon_supervisor;
 use crate::runtime_process::RuntimeProcessSupervisor;
 use crate::runtime_transport::{
     self, RuntimeEventProxy, RuntimeProxyRequest, RuntimeProxyResponse,
@@ -12,12 +12,6 @@ pub(crate) async fn proxy_runtime_request(
     supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
     request: RuntimeProxyRequest,
 ) -> Result<RuntimeProxyResponse, String> {
-    let saves_settings = request.path == "/api/desktop/operations"
-        && request
-            .body
-            .as_deref()
-            .and_then(|body| serde_json::from_str::<serde_json::Value>(body).ok())
-            .is_some_and(|body| body["operation"] == "save_settings");
     if request.method == "POST" && request.path == "/api/desktop/operations" {
         if let Some(body) = request.body.as_deref() {
             if let Ok(operation) = serde_json::from_str::<serde_json::Value>(body) {
@@ -36,15 +30,6 @@ pub(crate) async fn proxy_runtime_request(
     }
     let response =
         runtime_transport::proxy_webview_runtime_request(supervisor.inner(), request).await?;
-    if saves_settings && response.status == 200 {
-        if let Ok(config) = serde_json::from_str::<serde_json::Value>(&response.body) {
-            if config["agent_plugins_enabled"]["cua-driver"] == false
-                || config["agent_plugins_host_access"]["cua-driver"] != true
-            {
-                plugin_daemon_supervisor().stop("cua-driver")?;
-            }
-        }
-    }
     Ok(response)
 }
 

@@ -19,6 +19,7 @@ export function createSettingsDraft(
   let autoSaveInitialized = false;
   let suppressNextAutoSave = false;
   let pendingSave: Promise<void> = Promise.resolve();
+  let saveInFlight = $state(false);
 
   let draftConfig = $state<NormalizedAppConfig>(
     normalizeConfigShape(untrack(() => options.config) ?? DEFAULT_APP_CONFIG),
@@ -42,6 +43,9 @@ export function createSettingsDraft(
       return;
     }
     if (incomingFingerprint === acceptedConfigFingerprint) return;
+    // Returning a field to its old baseline during a save is still a new edit.
+    // Let the save rebase it before accepting incoming settings notifications.
+    if (saveInFlight) return;
 
     const draftFingerprint = JSON.stringify($state.snapshot(draftConfig));
     if (draftFingerprint === incomingFingerprint) {
@@ -86,6 +90,7 @@ export function createSettingsDraft(
         if (incompletePendingMcp || !settingsConfigChanged(snapshot, acceptedConfigFingerprint))
           return;
         const baseConfig = JSON.parse(acceptedConfigFingerprint) as AppConfig;
+        saveInFlight = true;
         try {
           const saved = normalizeConfigShape(await options.onSave(snapshot, baseConfig));
           const edited = snapshotDraftConfig();
@@ -114,6 +119,8 @@ export function createSettingsDraft(
             options.onAccepted();
           }
           throw error;
+        } finally {
+          saveInFlight = false;
         }
       });
     return pendingSave;

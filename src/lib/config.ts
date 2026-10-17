@@ -168,9 +168,9 @@ export function normalizeConfigShape(input: AppConfig): NormalizedAppConfig {
       return {
         ...defaults,
         ...s,
-        // Preserve the persisted ownership value here. Product-owned entries
-        // migrate through their owner so the original snapshot remains a valid
-        // three-way-merge base while that migration is saved.
+        // Preserve persisted ownership without inferring it from a server ID.
+        // Runtime resolves package servers from installed manifests; the raw
+        // snapshot stays intact as the settings merge base.
         plugin_owned: s.plugin_owned === true,
         disabled_tools: [
           ...new Set((s.disabled_tools ?? []).map((tool) => tool.trim()).filter(Boolean)),

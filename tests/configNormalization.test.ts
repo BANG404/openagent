@@ -123,7 +123,7 @@ describe("MCP tool policy config", () => {
     expect(normalized.mcp.servers[0].disabled_tools).toEqual(["alpha", "beta"]);
   });
 
-  test("preserves a legacy reserved entry as the persisted migration base", () => {
+  test("preserves persisted ownership without inferring it from a server ID", () => {
     const normalized = normalizeConfigShape({
       mcp: { servers: [{ id: "cua-driver" }, { id: "user-server" }] },
     } as unknown as AppConfig);

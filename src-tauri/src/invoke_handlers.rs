@@ -1,15 +1,13 @@
 //! IPC registration uses the defining adapter module and preserves command names.
 use crate::{
-    component_updates, cua_driver, desktop_exit, desktop_windows, diagnostics, native_commands,
+    component_updates, desktop_exit, desktop_windows, diagnostics, native_commands, plugin_daemons,
     runtime_proxy_commands,
 };
 
 #[allow(clippy::too_many_lines)]
 pub(crate) fn register(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
     let builder = builder.invoke_handler(tauri::generate_handler![
-        cua_driver::start_cua_driver_serve,
-        cua_driver::agent_plugin_daemon_running,
-        cua_driver::cua_driver_endpoint,
+        plugin_daemons::agent_plugin_daemon_running,
         crate::desktop_bootstrap::provisioning::prepare_release_resources,
         crate::desktop_bootstrap::provisioning::shell_resource_status,
         crate::desktop_bootstrap::provisioning::set_shell_setup_appearance,

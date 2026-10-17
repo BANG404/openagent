@@ -65,6 +65,10 @@ after the preceding result has rebased the draft. Edits made during a save stay
 dirty and schedule another save; accepting an earlier result must not suppress
 their autosave. Verify delayed save replies, intervening notifications and
 reopening with `bun run test:blackbox:plugin-presentation`.
+While a save is in flight, incoming settings notifications wait for its rebase:
+an edit that returns to the previous accepted value still overrides that save.
+The plugin Node-runtime native scenario verifies disabling and immediately
+re-enabling through the common plugin switch, persistence and restored MCP use.
 
 Frontend configuration normalization shares the same stable plugin-ID validator
 across enablement, host access, and MCP mode overrides. Only enablement drops
@@ -163,24 +167,11 @@ not a generic `tool_call` routing instruction.
 Probe failures or missing Flash credentials leave the last valid catalog
 untouched and never block settings persistence.
 
-The Cua Driver plugin entry is seeded and normalized during the first desktop
-startup bootstrap, before the first chat turn. Its reserved stdio entry carries
-the fixed `mcp --embedded --socket <endpoint>` client arguments onto the
-plugin-owned `serve` daemon, where `<endpoint>` is the private endpoint the host
-reports through `cua_driver_endpoint`; normalization restores those arguments
-with the current endpoint, records plugin ownership, and clears legacy
-permission, socket, grant, and manifest overrides. The persisted program name is
-a placeholder the Runtime replaces when it mounts MCP servers with the launcher
-the installed package declares, so the reserved entry never starts a program
-from the persisted token. Generic transport normalization preserves the
-persisted ownership value so an older entry remains the exact merge base while
-this product-owned migration is saved. The bootstrap also starts the daemon
-before saving, because the Runtime connects the persisted MCP list before this
-surface exists and the reserved client cannot start a daemon itself.
-Settings discovers Cua tools only when the user explicitly tests the connection;
-opening the plugin surface must not launch another probe. It exposes only the
-plugin enable switch and disabled-tool list; permission mode, socket, and grants
-are not user-configurable.
+Package MCP configuration comes from the installed package's `mcp.json`,
+including Cua Driver. Bootstrap and settings never seed user MCP entries or
+rewrite executable arguments for a named plugin. See
+[plugin enablement](plugin-enablement.md) for lifecycle ownership and retained
+configuration data. Tool discovery uses the common plugin test action.
 
 The Memory Management surface reads and writes the SDK-owned global
 `memory.md` or workspace `.agents/memory.md` file through the product command

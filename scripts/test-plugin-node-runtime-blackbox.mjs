@@ -72,8 +72,25 @@ function pilot(args, window = "main") {
 /** @param {string} script @param {number} [timeout] */
 async function waitFor(script, timeout = 30_000) {
   const deadline = Date.now() + timeout;
+  const id = `${Date.now()}-${Math.random()}`;
   while (Date.now() < deadline) {
-    if (pilot(["eval", script]) === "true") return;
+    // Keep long Runtime calls in the WebView. Pilot evaluations have a shorter
+    // RPC budget than cold package provisioning and MCP refresh.
+    if (
+      pilot([
+        "eval",
+        `(() => {
+      let probe=window.__pluginNodeWait;
+      if(probe?.id!==${JSON.stringify(id)}) probe=window.__pluginNodeWait={id:${JSON.stringify(id)},pending:false,value:false};
+      if(!probe.pending && probe.value!==true){
+        probe.pending=true;
+        Promise.resolve().then(()=>(${script})).then(value=>{probe.value=value;probe.pending=false;},error=>{probe.error=String(error);probe.pending=false;});
+      }
+      return probe.value===true;
+    })()`,
+      ]) === "true"
+    )
+      return;
     await new Promise((done) => setTimeout(done, 250));
   }
   throw new Error(`Desktop assertion timed out: ${script}`);
@@ -141,6 +158,8 @@ try {
   for (const [theme, language] of [
     ["light", "en"],
     ["dark", "zh"],
+    ["light", "zh"],
+    ["dark", "en"],
   ]) {
     pilot(["snapshot", "-i"]);
     pilot(["eval", `document.querySelector('.fullscreen-surface-close')?.click(); true`]);
@@ -151,20 +170,28 @@ try {
     ]);
     const general = '[role=tabpanel][data-value="general"]';
     await waitFor(`!!document.querySelector('${general} [data-appearance-mode] button')`);
-    for (const [selector, value] of [
-      [`${general} [data-appearance-mode] button`, theme],
-      [`${general} button[aria-label="Language"], ${general} button[aria-label="语言"]`, language],
+    for (const [property, selector, value] of [
+      ["theme", `${general} [data-appearance-mode] button`, theme],
+      [
+        "language",
+        `${general} button[aria-label="Language"], ${general} button[aria-label="语言"]`,
+        language,
+      ],
     ]) {
       await waitFor(`!!document.querySelector(${JSON.stringify(selector)})`);
       pilot(["snapshot", "-i"]);
       pilot(["click", selector]);
       pilot(["snapshot", "-i"]);
       pilot(["click", `[role=option][data-value="${value}"]`]);
+      await waitFor(`(async () => {
+        const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
+        return (await c.invokeProduct('get_settings',{}))[${JSON.stringify(property)}] === ${JSON.stringify(value)};
+      })()`);
     }
     pilot(["eval", `document.querySelector('.fullscreen-surface-close')?.click(); true`]);
     await waitFor("!document.querySelector('.fullscreen-surface')");
     await waitFor(
-      `document.documentElement.classList.contains('${theme}') && document.body.innerText.includes(${JSON.stringify(language === "zh" ? "新聊天" : "New chat")})`,
+      `document.documentElement.classList.contains('${theme}') && document.querySelector('#application-integrations-menu')?.textContent.trim() === ${JSON.stringify(language === "zh" ? "集成" : "Integrations")}`,
     );
     pilot(["snapshot", "-i"]);
     pilot([
@@ -181,8 +208,18 @@ try {
     await waitFor(
       "!!document.querySelector('.official-plugin-card[data-plugin-id=\"cua-driver\"]')",
     );
-    if (language === "en") {
-      pilot(["eval", `window.__pluginLifecycleProbe = {ids:['cua-driver'], locale:'en'}; true`]);
+    if (theme === "light" && language === "en") {
+      // Exercise the shared install UI with this checkout's package rather than
+      // an older published archive. Installation still uses the real Runtime.
+      pilot([
+        "eval",
+        `(async () => {
+        window.__pluginLifecycleProbe = {ids:['cua-driver'], locale:'en'};
+        const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
+        c.installOfficialAgentPlugin=async () => c.installAgentPlugin(${JSON.stringify(path.join(root, "plugins/cua-driver"))});
+        return true;
+      })()`,
+      ]);
       pilot(["snapshot", "-i"]);
       pilot(["run", path.join(root, "tests/blackbox/plugin-install.toml")]);
       await waitFor(
@@ -197,7 +234,7 @@ try {
       const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
       const config=await c.invokeProduct('get_settings',{});
       const plugins=await c.invokeProduct('list_agent_plugins',{});
-      return !!config.agent_plugins_host_access?.['cua-driver'] && plugins.some(p=>p.id==='cua-driver' && p.enabled);
+      return !!config.agent_plugins_host_access?.['cua-driver'] && plugins.some(p=>p.id==='cua-driver' && p.enabled && !p.daemon && p.mcp_servers.length === 1 && p.mcp_servers[0].name === 'desktop' && p.mcp_servers[0].transport === 'stdio') && !config.mcp.servers.some(s=>s.id==='cua-driver');
     })()`);
     await waitFor(
       `(async () => {
@@ -207,14 +244,85 @@ try {
         return !result.isError && result.structuredContent?.width > 0 && result.structuredContent?.height > 0;
       } catch {return false;}
     })()`,
+      180_000,
+    );
+    pilot(["snapshot", "-i"]);
+    pilot(["eval", "document.querySelectorAll('.plugin-management-tabs button')[1].click(); true"]);
+    await waitFor("!!document.querySelector('#plugin-enable-cua-driver')");
+    pilot(["snapshot", "-i"]);
+    pilot(["click", "#plugin-enable-cua-driver"]);
+    await waitFor(
+      "document.querySelector('#plugin-enable-cua-driver')?.getAttribute('aria-checked') === 'false'",
+    );
+    await waitFor(`(async () => {
+      const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
+      const config=await c.invokeProduct('get_settings',{});
+      if (config.agent_plugins_enabled?.['cua-driver'] !== false) return false;
+      try { await c.invokeProduct('call_agent_plugin_tool',{plugin_id:'cua-driver',tool_name:'get_screen_size',arguments:{}}); return false; }
+      catch { return true; }
+    })()`);
+    pilot(["snapshot", "-i"]);
+    pilot(["click", "#plugin-enable-cua-driver"]);
+    await waitFor(
+      "document.querySelector('#plugin-enable-cua-driver')?.getAttribute('aria-checked') === 'true'",
+    );
+    await waitFor(`(async () => {
+      const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
+      return (await c.invokeProduct('get_settings',{})).agent_plugins_enabled?.['cua-driver'] === true;
+    })()`);
+    await waitFor(
+      `(async () => {
+      const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
+      try {
+        const result=await c.invokeProduct('call_agent_plugin_tool',{plugin_id:'cua-driver',tool_name:'get_screen_size',arguments:{}});
+        return !result.isError && result.structuredContent?.width > 0;
+      } catch {return false;}
+    })()`,
       60_000,
     );
     pilot(["snapshot", "-i"]);
     pilot(["screenshot", path.join(directory, `${theme}-${language}.png`)]);
+    pilot(["eval", "document.querySelector('.fullscreen-surface-close')?.click(); true"]);
+    await waitFor("!document.querySelector('.fullscreen-surface')");
+    pilot(["snapshot", "-i"]);
+    pilot([
+      "eval",
+      `(async () => {
+      document.querySelector('#application-integrations-menu').click();
+      await new Promise(done => setTimeout(done, 0));
+      [...document.querySelectorAll('[role=menuitem]')].find(item => /MCP/.test(item.textContent)).click();
+      return true;
+    })()`,
+    ]);
+    await waitFor("!!document.querySelector('[data-plugin-mcp=\"plugin:cua-driver:desktop\"]')");
+    pilot(["snapshot", "-i"]);
+    pilot(["click", '[data-plugin-mcp="plugin:cua-driver:desktop"]']);
+    await waitFor(
+      "!!document.querySelector('[data-plugin-mcp-detail=\"plugin:cua-driver:desktop\"] [data-plugin-setup=cua-driver]') && !document.querySelector('.mcp-form-section')",
+    );
+    pilot(["snapshot", "-i"]);
+    pilot(["screenshot", path.join(directory, `${theme}-${language}-mcp.png`)]);
   }
   const records = logs.join("");
   assert(!records.includes("command 'node' not found"), "No interpreter lookup failure is allowed");
+  await writeFile(
+    path.join(directory, "webview-errors.json"),
+    pilot(["logs", "--level", "error", "--json"]),
+  );
   console.log(`Plugin Node.js native black-box passed; fixture and artifacts: ${directory}`);
+} catch (error) {
+  try {
+    await writeFile(path.join(directory, "failure-snapshot.txt"), pilot(["snapshot", "-i"]));
+    pilot(["screenshot", path.join(directory, "failure.png")]);
+    await writeFile(
+      path.join(directory, "webview-errors.json"),
+      pilot(["logs", "--level", "error", "--json"]),
+    );
+  } catch {
+    /* Preserve the original failure if the window already exited. */
+  }
+  console.error(`Native fixture failed; artifacts: ${directory}`);
+  throw error;
 } finally {
   if (desktop && desktop.exitCode === null) {
     try {

@@ -4,8 +4,6 @@ import { openUrl as openExternalUrl } from "@tauri-apps/plugin-opener";
 import { untrack } from "svelte";
 import { fromStore } from "svelte/store";
 import { type NormalizedMcpServerConfig } from "$lib/config";
-import { CUA_DRIVER_ID } from "$lib/cuaDriver";
-import { startCuaDriverDaemon } from "$lib/openagent/cuaDriverHost";
 import {
   mcpConnectionFingerprint,
   mcpOAuthHintKey,
@@ -44,8 +42,9 @@ export function createMcpSettings(draft: SettingsDraft) {
 
   const mcpConnectionFingerprints = new Map<string, string>();
 
-  const cuaDriverId = CUA_DRIVER_ID;
-  const userMcpServers = $derived(draft.draftConfig.mcp.servers);
+  const userMcpServers = $derived(
+    draft.draftConfig.mcp.servers.filter((server) => !server.plugin_owned),
+  );
 
   function ensureSelectedMcpServer() {
     if (userMcpServers.some((server) => server.id === selectedMcpId)) return;
@@ -76,7 +75,7 @@ export function createMcpSettings(draft: SettingsDraft) {
     draft.draftConfig.mcp.servers = draft.draftConfig.mcp.servers.filter((s) => s.id !== id);
     draft.pendingMcpServerIds.delete(id);
     if (selectedMcpId === id) {
-      selectedMcpId = draft.draftConfig.mcp.servers[0]?.id ?? null;
+      selectedMcpId = userMcpServers[0]?.id ?? null;
     }
   }
 
@@ -100,19 +99,6 @@ export function createMcpSettings(draft: SettingsDraft) {
     if (!server) return;
     const notReady = server.transport === "http" ? !server.url.trim() : !server.command.trim();
     if (notReady) return;
-    // The reserved entry is only a client; its daemon has to accept
-    // connections before the probe can attach to the shared endpoint.
-    if (id === cuaDriverId) {
-      try {
-        await startCuaDriverDaemon();
-      } catch (error) {
-        mcpTestStatus = {
-          ...mcpTestStatus,
-          [id]: { tone: "error", message: `${translation.current("mcpTestFailed")}: ${error}` },
-        };
-        return;
-      }
-    }
     mcpTestStatus = {
       ...mcpTestStatus,
       [id]: { tone: "testing", message: translation.current("mcpTesting") },
@@ -215,11 +201,6 @@ export function createMcpSettings(draft: SettingsDraft) {
     if (!server) return;
     if (!enabled) {
       server.enabled = false;
-      if (server.plugin_owned)
-        draft.draftConfig.agent_plugins_enabled = {
-          ...draft.draftConfig.agent_plugins_enabled,
-          [server.id]: false,
-        };
       return;
     }
 
@@ -259,11 +240,6 @@ export function createMcpSettings(draft: SettingsDraft) {
         [id]: [...new Set(probe.tools)].sort((left, right) => left.localeCompare(right)),
       };
       server.enabled = true;
-      if (server.plugin_owned)
-        draft.draftConfig.agent_plugins_enabled = {
-          ...draft.draftConfig.agent_plugins_enabled,
-          [server.id]: true,
-        };
       mcpTestStatus = {
         ...mcpTestStatus,
         [id]: {
@@ -369,9 +345,6 @@ export function createMcpSettings(draft: SettingsDraft) {
     addEnvVar,
     addHeader,
     addMcpServer,
-    get cuaDriverId() {
-      return cuaDriverId;
-    },
     ensureSelectedMcpServer,
     get mcpDiscoveredTools() {
       return mcpDiscoveredTools;

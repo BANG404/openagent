@@ -214,8 +214,7 @@ Invalid modes reject the manifest; unknown server overrides report a diagnostic.
 Mounting mode does not change transport, plugin identity, permissions, locale,
 disabled tools, MCP App visibility or availability to Agent Roles.
 Installed Settings cards provide Follow plugin declaration, Direct and Relay.
-The saved per-plugin override wins over all server declarations, including a
-reserved daemon client; selecting Follow removes the override. Transport and
+The saved per-plugin override wins over all server declarations, including desktop-control servers; selecting Follow removes the override. Transport and
 host-access authorization stay independent.
 
 `extensions.openagent.message_policies` is an optional array for declaring
@@ -445,17 +444,9 @@ servers, Automation Hooks, and sidebar surfaces are not mounted into a new
 Runtime assembly. Re-enabling the plugin restores those components without
 changing its package data.
 
-The Cua Driver is a standard published package at
-`https://github.com/BANG404/openagent-cua-driver`. The package ships a launcher
-and no driver: its `bin/cua-driver.mjs` provisions a SHA-256-verified upstream
-release in the package's own `PLUGIN_DATA`, and the desktop host starts that
-launcher instead of a bundled executable. The host supplies the private endpoint,
-the lifetime pipe, `PLUGIN_DATA`, and the product-policy arguments; the package
-declares the program, its interpreter, and the `serve --embedded` it publishes.
-The reserved `cua-driver` MCP entry remains the client connection. All published
-standard packages use the same package overlay and verified GitHub release
-updater.
-
+All published standard packages use the same package overlay and verified
+GitHub release updater. CUA declares a direct embedded stdio server in root
+mcp.json, owns its provisioning launcher, and starts no standalone application.
 Driver updates are package-owned and separate from plugin release updates.
 Screenshot export preparation is also package-owned: the Cua launcher prepares
 explicit window/desktop MCP output paths before forwarding to the driver;
@@ -463,15 +454,15 @@ ordinary reads retain inline image content. The package's bundled Skill owns
 path resolution and failure recovery. Keep this handling out of the desktop
 host and shared MCP transports.
 
-`--openagent-prepare` checks plain stable driver tags at most once every six
-hours and activates a verified platform asset before daemon startup. Serve,
-MCP and stop use the selected cache without an update check. Update failure
+MCP startup and `--openagent-prepare` check stable driver tags at most once every
+six hours and activate a verified platform asset before the next MCP connection.
+Serve and stop use the selected cache without an update check. Update failure
 retains the verified selection or falls back to the bundled pin; explicit
-`OPENAGENT_CUA_DRIVER_BIN` overrides bypass updating. A running daemon changes
-version on its next host-supervised start. Selection, cache recovery, retained
+`OPENAGENT_CUA_DRIVER_BIN` overrides bypass updating. A running MCP server changes
+version on its next ordinary connection. Selection, cache recovery, retained
 releases and preparation locking are owned by the Cua package README and Skill.
 
-The Cua topology uses the same user authorization boundary as every plugin.
+All packages use the same user authorization boundary.
 The Settings installation flow checks the validated package's `desktop-control`,
 `host-access`, and `computer-use` capabilities after copying the package and
 before desktop activation. If saved per-plugin access is absent, present a
@@ -484,56 +475,6 @@ Existing saved grants do not prompt again. Concurrent installation prompts are
 serialized by plugin ID and survive Settings remounts; a stale answer cannot
 authorize another package. A save failure keeps the prompt open for retry.
 Chat answers and model statements are never persisted authorization.
-
-The desktop host runs `<launcher> serve --embedded --permission-mode unrestricted
---dangerously-bypass-approvals --parent-liveness-stdio --socket <endpoint>`,
-waits until that endpoint accepts connections, and then the reserved MCP client
-runs the same launcher with `mcp --embedded --socket <endpoint>`. The daemon owns
-the desktop runtime; the MCP process remains a protocol client. Never pass
-`--grant` to the client: it configures a runtime the driver launches itself, it
-is valid only in standard permission mode, and the driver refuses it whenever a
-daemon already listens on the endpoint.
-
-Because the launcher fetches tens of megabytes on a machine that has no cached
-driver, the host asks it to provision first — the same command line plus
-`--openagent-prepare`, which fetches, verifies the pinned digest, and exits —
-before it starts the daemon. That step has its own long budget; the daemon's
-startup timeout must never pay for a download, and a slow first fetch must not
-look like a daemon that failed to listen. `OPENAGENT_CUA_DRIVER_BIN` overrides
-the whole mechanism for a driver the user already has, and a machine the pin
-table has no release for gets a named failure rather than a wrong-architecture
-binary.
-
-The daemon runs outside the managed process sandbox only after the user grants
-the plugin real computer access. The host consumes that authorization at the
-same spawn point as every other plugin process and refuses a daemon whose policy
-is still managed, so an installed package cannot silently obtain desktop
-control.
-
-Both `--embedded` flags are lifetime contracts, not cosmetics. The daemon's
-makes it stay inside the host's process tree instead of relaunching itself as a
-standalone app; the client's makes an unreachable endpoint a hard failure
-instead of a reason to start a standalone Cua app whose lifetime belongs to
-nobody. `--parent-liveness-stdio` makes the daemon exit on stdin EOF, so the
-host holding that pipe is what guarantees the daemon cannot outlive it.
-
-`cua-driver mcp --socket` cannot start a daemon on Windows or Linux, so the host
-owns the daemon lifecycle. The host reports its private endpoint through
-`cua_driver_endpoint`, the frontend persists it into the reserved entry, and
-`start_cua_driver_serve` starts the daemon idempotently and returns whether this
-call spawned it. The endpoint is deliberately not the driver's own default, so a
-standalone `cua-driver` installation can never answer the reserved entry with
-standard-mode authorization. A Runtime that already connected its persisted MCP
-list before the daemon existed reconnects when the bootstrap saves settings
-after a fresh start.
-
-The reserved entry's persisted `command` is a placeholder, not a program: the
-Runtime replaces it with the launcher the installed package declares when it
-mounts MCP servers, and exports that package's `PLUGIN_DATA` to the child. An
-entry whose package, launcher, or daemon declaration is missing is disabled with
-a named error rather than started, and the settings probe applies the identical
-substitution, so a manual test cannot report a success the mount would not
-deliver. The authorization names an installed plugin identity, never a program path.
 
 The settings surface exposes the plugin enable switch, MCP tool-scope switches,
 and a generic real-computer-access switch for plugins whose declared
@@ -555,3 +496,11 @@ Declare it inside the OpenAgent extension, for example:
 ```json
 { "extensions": { "openagent": { "category": "development" } } }
 ```
+
+### Uniform MCP ownership
+
+Every package, including desktop-control packages, contributes MCP exclusively
+through root `mcp.json`. Hosts must not reserve a package ID, seed a configuration
+entry, rewrite its executable, or provide package-specific controls or IPC.
+Domain runtime flags, provisioning and application suppression belong to the
+package launcher. CUA uses direct embedded stdio MCP and declares no daemon.

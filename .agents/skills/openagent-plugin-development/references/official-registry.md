@@ -89,7 +89,7 @@ without teaching the frontend how to copy, validate, or activate a package.
 
 The published catalog packages use the generic plugin contract: Goal and Graph
 expose portable commands, Chat Groups uses its package MCP server, and Cua Driver
-declares a portable daemon. They require a Runtime implementing the generic Host
+declares its direct embedded MCP server. They require a Runtime implementing the generic Host
 Bridge; do not offer them as replacements for an older Runtime that depends on
 package implementation bindings or package flows. A contract migration must
 increment the manifest version even when only an extension field is removed,
@@ -152,9 +152,8 @@ update badge after success. Read the installed directory and optional marketplac
 independently, and reject stale refresh responses after a newer mutation.
 
 Installed cards share one version, component summary, diagnostics, sidebar and
-repository/update/removal template, including Cua Driver. Cua adds its reserved
-MCP probe and tool switches inside that shared card and retains its lifecycle
-and explicit host-access controls.
+repository/update/removal template, including Cua Driver. Package MCP probes,
+tool switches, lifecycle and explicit host-access controls use the common card.
 
 Qualify published sources through `bun run test:blackbox:plugin-lifecycle` in an
 isolated `OPENAGENT_HOME`. `BLACKBOX_PLUGIN_IDS` can select catalog entries.

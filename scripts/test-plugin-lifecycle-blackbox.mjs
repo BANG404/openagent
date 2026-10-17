@@ -403,19 +403,6 @@ for (const plugin of plugins) {
       if (opener.getAttribute('aria-expanded') !== 'true') opener.click();
       return true;
     })()`);
-    // The desktop endpoint is shared. A live peer may own its daemon; an
-    // installation authorization pass proves readiness through MCP below
-    // without replacing or stopping that peer's process.
-    if (!hostAccessOnly) {
-      await waitFor(
-        `(async () => {
-        const { invoke } = await import('/src/lib/openagent/tauriClient.ts');
-        try { return await invoke('agent_plugin_daemon_running', { pluginId: 'cua-driver' }); } catch { return false; }
-      })()`,
-        "Cua daemon did not become ready after the explicit grant",
-        600000,
-      );
-    }
     pilot(["snapshot", "-i"]);
     evaluate(`(() => {
       const card = document.querySelector('.plugin-accordion-item[data-plugin-id="cua-driver"]');
@@ -445,14 +432,10 @@ for (const plugin of plugins) {
     await waitFor(
       `(async () => { const {desktopOpenAgent, invoke} = await import('/src/lib/openagent/tauriClient.ts');
         const config = await desktopOpenAgent.invokeProduct('get_settings', {});
-        return !config.agent_plugins_host_access?.['cua-driver'] && !(await invoke('agent_plugin_daemon_running', {pluginId:'cua-driver'})); })()`,
-      "revoking Cua host access did not stop its daemon",
+        return !config.agent_plugins_host_access?.['cua-driver']; })()`,
+      "revoking Cua host access did not persist",
       20000,
     );
-    const denied = evaluate(
-      `(async () => {const {invoke} = await import('/src/lib/openagent/tauriClient.ts');try { await invoke('start_cua_driver_serve'); return false; } catch {return true;}})()`,
-    );
-    if (denied !== "true") throw new Error("Cua started after host access was revoked");
     pilot(["snapshot", "-i"]);
     evaluate(
       `document.querySelector('[role="dialog"] button[aria-label="Close"], [role="dialog"] button[aria-label="关闭"]')?.click(); true`,
@@ -476,23 +459,16 @@ for (const plugin of plugins) {
     evaluate(
       `document.querySelectorAll('.plugin-accordion-item[data-plugin-id="cua-driver"] [role=switch]')[1].click(); true`,
     );
-    if (!hostAccessOnly) {
-      await waitFor(
-        `(async () => {const {invoke} = await import('/src/lib/openagent/tauriClient.ts');return await invoke('agent_plugin_daemon_running', {pluginId:'cua-driver'});})()`,
-        "Cua did not restart after restoring the grant",
-        30000,
-      );
-    } else {
-      await waitFor(
-        `(async () => {const {desktopOpenAgent} = await import('/src/lib/openagent/tauriClient.ts');
+
+    await waitFor(
+      `(async () => {const {desktopOpenAgent} = await import('/src/lib/openagent/tauriClient.ts');
           try {
             const result = await desktopOpenAgent.invokeProduct('call_agent_plugin_tool', {plugin_id:'cua-driver', tool_name:'get_screen_size', arguments:{}});
             return !result.isError && result.structuredContent?.width > 0;
           } catch (error) { window.__pluginLifecycleProbe.error = String(error); return false; }})()`,
-        "Cua MCP did not reconnect after restoring the grant",
-        30000,
-      );
-    }
+      "Cua MCP did not reconnect after restoring the grant",
+      30000,
+    );
   }
   pilot(["snapshot", "-i"]);
   await capture(`${plugin.id}-installed`);
@@ -505,7 +481,7 @@ for (const plugin of plugins) {
     await waitFor(
       `(async () => { const {desktopOpenAgent, invoke} = await import('/src/lib/openagent/tauriClient.ts');
         const config = await desktopOpenAgent.invokeProduct('get_settings', {});
-        return !config.agent_plugins_host_access?.['cua-driver'] && !(await invoke('agent_plugin_daemon_running', {pluginId:'cua-driver'})); })()`,
+        return !config.agent_plugins_host_access?.['cua-driver']; })()`,
       "Cua fixture access did not clear before the next authorization pass",
       30000,
     );

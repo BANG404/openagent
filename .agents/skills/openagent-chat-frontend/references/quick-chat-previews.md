@@ -332,22 +332,11 @@
   message policies describe which tagged prompts are user-visible and which are
   model-only. Every package, including Cua Driver, uses the common plugin
   enablement and capability controls. MCP connection testing and per-tool
-  enablement live in the common MCP settings surface. The Cua Driver entry is
-  still seeded because its transport endpoint and launcher are owned by the
-  desktop host; permission mode, socket, grants, and manifest remain fixed
-  product policy rather than user settings. The
-  Runtime-owned Multi-Agent V2 capability is intentionally absent from this
-  surface; its `multi_agent_v2.enabled` switch belongs to Runtime configuration
-  and must not be presented as plugin enablement.
-  reserved `cua-driver` command is resolved from the installed package when MCP
-  servers are mounted, and the package's launcher provisions the driver it runs
-  into that package's own data directory, so no build ships a Cua executable for
-  this entry to find. The common MCP connection test starts the plugin-owned
-  daemon before probing, because the reserved client only attaches to an
-  endpoint; without that call discovery fails in the common MCP view. Ordinary
-  plugin cards use their manifest components;
-  do not add plugin-ID-specific MCP tests or tool toggles. Keep common MCP tool
-  switches usable down to a single column on narrow windows.
+  enablement live in the common plugin MCP surfaces. Every package declares
+  its servers in root mcp.json; startup and Settings never synthesize entries,
+  reserve commands or start domain processes by plugin ID. Multi-Agent V2 is a
+  Runtime capability whose dedicated switch stays outside plugin settings.
+  Keep common MCP controls usable down to a single column on narrow windows.
 - Settings action controls use one compact, shadowless semantic hierarchy:
   primary blue pills for creation, divider-bordered filled controls for ordinary
   file, test, and navigation actions, blue controls for inline row construction,

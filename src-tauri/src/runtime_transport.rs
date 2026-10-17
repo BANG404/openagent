@@ -583,7 +583,7 @@ async fn handle_local_plugin_refresh(
     let result = if event.name == "agent-plugin-refresh-prepare" {
         let id = id.to_owned();
         tauri::async_runtime::spawn_blocking(move || {
-            crate::cua_driver::release_refreshing_plugin_daemon(&id)
+            crate::plugin_daemons::release_refreshing_plugin_daemon(&id)
         })
         .await
         .map_err(|error| error.to_string())?
@@ -610,7 +610,7 @@ async fn resume_local_plugin_daemon(
     id: &str,
     restart: bool,
 ) -> Result<(), String> {
-    if !crate::cua_driver::plugin_daemon_refresh_pending(id) {
+    if !crate::plugin_daemons::plugin_daemon_refresh_pending(id) {
         return Ok(());
     }
     let launch = if restart {
@@ -641,7 +641,7 @@ async fn resume_local_plugin_daemon(
     };
     let id = id.to_owned();
     tauri::async_runtime::spawn_blocking(move || {
-        crate::cua_driver::resume_refreshing_plugin_daemon(&id, launch)
+        crate::plugin_daemons::resume_refreshing_plugin_daemon(&id, launch)
     })
     .await
     .map_err(|error| error.to_string())?

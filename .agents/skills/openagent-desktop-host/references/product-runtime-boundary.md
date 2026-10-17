@@ -38,3 +38,8 @@ changes select native CI, including standalone product/protocol formatting,
 Clippy and tests. Verify the product dependency graph without private source.
 Runtime artifacts retain signature/hash admission, loopback authentication,
 parent-liveness, bounded exit, and stop-before-start activation semantics.
+
+Plugin daemon lifecycle is generic and keyed by validated package identity.
+The native shell adds no named-plugin launch flags, endpoints or commands.
+Direct MCP plugins own their children through the ordinary Runtime process
+boundary; the shell never starts a parallel application for them.

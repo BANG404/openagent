@@ -35,12 +35,10 @@ frontend selection. Moving commands between modules preserves their public IPC
 names; register the defining module's native or proxy command path.
 Add only these Tauri-owned adapter files to the public Rust source allowlist.
 
-`cua_driver/` owns the installed daemon's native adapter. `policy.rs` derives
-the private endpoint and host-owned argument/environment tail; `ownership.rs`
-decides whether to serve, reclaim an orphan, adopt, or await a live peer from
-the endpoint lock. The module composes provisioning and the shared plugin
-daemon supervisor. SDK authorization and package launch resolution remain in
-the Runtime; the adapter does not reinterpret package commands.
+`plugin_daemons.rs` adapts the generic native daemon registry, source-refresh
+release/resume handshake, and shutdown. Runtime owns authorization and package
+launch resolution. The host must not choose commands, flags, endpoints, or
+startup behavior by package ID.
 
 `desktop_windows/` owns native material, foreground activity, utility geometry,
 settings/role windows, startup reveal commands, and tray actions. Utility windows
@@ -98,94 +96,27 @@ own debug-only adapter. Arm frontend confirmation after those surfaces exist.
   durable-state Runtime; the packaged server is a fallback binary, not a
   concurrent writer.
 
-## Plugin-owned Cua Driver daemon
+## Package process lifecycle
 
-Long-lived plugin processes use the host's `PluginDaemonSupervisor` registry.
-It stores one managed child per validated plugin ID, holds the stdin lifetime
-pipe and adapter resources, drains diagnostics, waits for socket readiness when
-a transport declares an endpoint, and performs bounded stop plus forced
-reaping on exit. Cua Driver uses this same registry; its adapter keeps only the
-reserved endpoint ownership lock, provisioning step, unrestricted policy, and
-command-line policy tail. A daemon with a managed process policy must go
-through a sandbox-aware host adapter; it is rejected rather than started with
-ambient permissions.
+Runtime owns package MCP processes and loads their launch declarations only
+from validated `mcp.json`. Cua Driver uses direct embedded MCP and declares no
+native daemon. Its package owns provisioning, driver flags and configuration;
+the desktop has no reserved endpoint, executable substitution or launch IPC.
 
-- The Cua Driver package is subscribed and updated from
-  `https://github.com/BANG404/openagent-cua-driver` through the normal Agent
-  Plugin updater. The desktop bundle does not contain a Cua binary or resource
-  downloader.
-- The host resolves the package's validated `extensions.openagent.daemon`
-  descriptor and supervises that command. Package updates are installed into a
-  versioned plugin directory before activation.
+`PluginDaemonSupervisor` retains the separate generic native daemon boundary.
+It stores one child per validated plugin ID, holds its stdin lifetime pipe,
+drains diagnostics, checks a declared transport endpoint, and performs bounded
+stop plus forced reaping on exit. Runtime resolves the validated launch through
+the native-only authenticated `/api/desktop/plugin-daemon-launch` endpoint and
+checks enablement, explicit host access and unmanaged policy. Launch data stays
+in Rust; the WebView cannot access that endpoint.
 
-### Daemon lifecycle
-
-- Before forwarding a package uninstall or update, stop its host-owned daemon
-  and await the supervisor's bounded shutdown. Apply this in both the supervised
-  product proxy and embedded command adapter; an active daemon may hold the
-  package directory open on Windows even after Runtime has stopped its MCP client.
-- The supervised desktop resolves Cua's launch through the native-only,
-  Bearer-authenticated `/api/desktop/plugin-daemon-launch` endpoint. Runtime checks
-  the installed manifest, enablement and explicit host-access grant. The launch
-  environment stays in native Rust; WebView proxy requests to this endpoint are
-  rejected. Persist a new
-  grant before requesting launch, and reconnect the reserved MCP client after
-  a fresh daemon start. Revoking host access or disabling Cua stops the daemon.
-
-- Start the daemon from the verified installed plugin directory; never replace
-  files in the active directory while the daemon is running.
-- The kernel resolves the launch — the program it runs, and the `serve
---embedded` the package declares — and the host appends only the policy tail
-  it owns through `cua_driver_launch_args()`: `--permission-mode unrestricted
---dangerously-bypass-approvals --parent-liveness-stdio --socket <host
-endpoint>`. Pass the same values again through
-  `cua_driver_serve_environment()`. The driver refuses a contradictory pair, and
-  the environment is what carries the contract to the code paths that read
-  configuration rather than argv. Never rebuild the leading arguments in the
-  host: interpreting the launch twice is how `node` gets started as if it were
-  the package's launcher file.
-- The launcher fetches the driver it runs into the package's own writable
-  directory on first use, so every invocation — provisioning, serving, stopping
-  — carries `PLUGIN_DATA` from the resolved descriptor and runs with the package
-  root as its working directory. That is why a package that ships a launcher and
-  no driver still needs no write access to the package it was loaded from.
-- The launcher's `--openagent-prepare` mode fetches and verifies the driver and
-  exits without starting anything, under its own long budget, so the daemon's
-  startup timeout never pays for a download. Provisioning happens before the
-  serve call, never in the middle of the wait for the endpoint to listen.
-- Hold the daemon's stdin open for the life of the entry. That pipe is the
-  driver's own parent-liveness contract: EOF means the host is gone, and the
-  daemon shuts itself down. It is the only mechanism that works on every
-  platform, so never replace it with `Stdio::null()`.
-- That contract is verifiable without a packaged build: run the installed
-  package's launcher with `serve --embedded` and the flags above, a piped stdin,
-  and `PLUGIN_DATA` pointing at a writable empty directory, wait for the socket,
-  then close the pipe. The daemon logs `Cua Driver embedded host closed its lifetime pipe; shutting down.`, exits 0 within about 100 ms, and unlinks its own socket.
-  A `status --socket` call against the running daemon reports
-  `permission mode: unrestricted (trusted_startup_configuration)`, which is what
-  confirms the embedded unrestricted launch took effect rather than being
-  silently downgraded.
-- Stop the daemon this process spawned on every product exit path, including
-  the quit watchdog that force-exits a hung shutdown and Tauri's
-  `RunEvent::Exit`, which is the only cleanup a non-primary window process
-  reaches. Ask first through the same package launcher with the driver's `stop
---socket <host endpoint>` subcommand, then drop the liveness pipe, then kill;
-  never signal it by pid, which would reach an unrelated process.
-- The endpoint has exactly one owner at a time, recorded as an exclusive lock
-  on `<cache>/openagent/cua-driver/owner/daemon.lock`. Holding the lock means
-  the daemon behind the endpoint is this process's; a lock held by someone else
-  means a live peer's daemon, which this process must never stop; an unheld lock
-  beside a listening endpoint means an orphan whose owner is gone, which is
-  reclaimed with the launcher's `stop --socket` before a new daemon starts. The lock
-  is also the only serialization point — without it two launching windows race,
-  and the loser unlinks the winner's live socket.
-- `mcp --embedded` is what keeps the reserved entry's client from starting a
-  standalone Cua app of its own when the endpoint is unreachable. Dropping that
-  flag reintroduces the leak the daemon's lifetime management exists to close.
-- The driver's default endpoint (`\\.\pipe\cua-driver`) belongs to a
-  separately installed Cua, which registers its own logon task and is not part
-  of this topology. This product never stops it; a user who does not want it
-  disables it with `cua-driver autostart disable`.
+Before package uninstall, update, or source activation, stop the host-owned
+daemon and await bounded shutdown so Windows package files are released. Source
+refresh resumes only the daemon this host released, using the new validated
+descriptor; removing the declaration leaves it stopped. Stop owned daemons on
+all product exit paths, including the quit watchdog and Tauri `RunEvent::Exit`.
+Keep generic daemon supervision independent of any package's MCP topology.
 
 ## Windows child-process console policy
 
@@ -196,12 +127,8 @@ endpoint>`. Pass the same values again through
   Windows. The release host is a `windows`-subsystem process that owns no
   console, so a console-subsystem child created without the flag allocates a
   new visible terminal window beside the product window.
-- The policy covers the supervised Runtime, the desktop-bootstrap helper, child
-  workspace windows, `wsl.exe` probes, the Cua Driver daemon, and the
-  launcher's `stop` request sent during shutdown. Startup starts that daemon
-  whenever the reserved MCP entry is enabled, and shutdown stops it on every
-  exit path, so one unflagged spawn puts a terminal window in every production
-  launch and every quit.
+- The policy covers the supervised Runtime, desktop-bootstrap helper,
+  workspace windows, `wsl.exe` probes and generic native plugin daemons.
 - `bun tauri dev` hides an omission because the development host already owns a
   console for the child to inherit; confirm a new spawn site in a packaged
   Windows build.
@@ -238,8 +165,6 @@ endpoint>`. Pass the same values again through
 
 ## Asset protocols and native opener
 
-- Resolve the installed Cua Driver plugin descriptor through the authenticated
-  Runtime before provisioning its host-supervised daemon.
 - Rewrite Runtime media asset URLs to the host-owned `openagent-runtime`
   protocol. Permit only GET/HEAD requests for bounded media asset paths,
   preserve byte-range response headers, and attach the process token only in

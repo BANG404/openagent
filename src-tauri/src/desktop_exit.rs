@@ -1,7 +1,7 @@
 use crate::component_updates::{acquire_component_update_barrier, RuntimeUpdateState};
-use crate::cua_driver::stop_cua_driver_serve;
 #[cfg(desktop)]
 use crate::desktop_windows::DESKTOP_TRAY_ID;
+use crate::plugin_daemons::stop_plugin_daemons;
 use crate::runtime_process::RuntimeProcessSupervisor;
 use crate::runtime_transport::RuntimeEventProxy;
 use crate::workspace_process::{
@@ -236,8 +236,8 @@ fn hide_desktop_surfaces(app: &tauri::AppHandle) {
 }
 
 /// Stop everything the host owns that outlives its windows: the supervised
-/// Runtime, the event proxy, child workspace processes, and the Cua Driver
-/// daemon. Every step is bounded and idempotent, so a shell install may run
+/// Runtime, the event proxy, child workspace processes, and plugin daemons.
+/// Every step is bounded and idempotent, so a shell install may run
 /// this before an exit request runs it again.
 async fn stop_desktop_children(app: &tauri::AppHandle) -> Result<(), String> {
     let mut failures = Vec::new();
@@ -286,7 +286,7 @@ async fn stop_desktop_children(app: &tauri::AppHandle) -> Result<(), String> {
         }
     }
     report_exit_progress(app, "tools", 3);
-    stop_cua_driver_serve();
+    stop_plugin_daemons();
     report_exit_progress(app, "finishing", 4);
     if failures.is_empty() {
         Ok(())
@@ -322,7 +322,7 @@ fn arm_desktop_exit_watchdog(app: &tauri::AppHandle, action: DesktopExitAction) 
         .name("openagent-quit-watchdog".to_string())
         .spawn(move || {
             std::thread::sleep(DESKTOP_QUIT_WATCHDOG_TIMEOUT);
-            stop_cua_driver_serve();
+            stop_plugin_daemons();
             match action {
                 DesktopExitAction::Quit => std::process::exit(0),
                 DesktopExitAction::Restart => watchdog_app.restart(),

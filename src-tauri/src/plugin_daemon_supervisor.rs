@@ -21,12 +21,10 @@ pub(crate) struct PluginDaemonLaunch {
     pub plugin_id: String,
     pub root: String,
     pub command: String,
-    pub launcher_args: Vec<String>,
     pub args: Vec<String>,
     pub data_root: String,
     pub transport: String,
     pub environment: Vec<(String, String)>,
-    pub authorization_reason: String,
 }
 
 #[derive(Clone, Debug)]

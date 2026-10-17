@@ -303,9 +303,7 @@ function closePluginList() {
 }
 
 // The window keeps one log buffer for the process's whole life, so a run has to
-// say which entries are its own. The app logs its own bootstrap failures — a dev
-// build has no embedded Runtime for the Cua driver daemon to be supervised by —
-// before any runner reaches it, and those are not this run's.
+// say which entries are its own; older startup diagnostics are not this run's.
 const runStartedAt = Date.now();
 
 // The host answers on its pipe before the window has rendered, so the first

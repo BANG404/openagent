@@ -69,8 +69,6 @@
   import { pluginCommandText } from "$lib/pluginI18n";
   import { LatestRequest } from "$lib/latestRequest";
   import { showToast } from "$lib/toast";
-  import { ensureCuaDriverServer, isCuaDriverEnabled } from "$lib/cuaDriver";
-  import { hydrateCuaDriverEndpoint, startCuaDriverDaemon } from "$lib/openagent/cuaDriverHost";
   import { decodeModelBinding } from "$lib/modelBinding";
   import { DEFAULT_QUICK_CHAT_SHORTCUT, normalizeQuickChatShortcut } from "$lib/quickChatShortcut";
   import { disposeQuickChatShortcut, replaceQuickChatShortcut } from "$lib/quickChatWindow";
@@ -1905,29 +1903,6 @@
   async function applyStartupBootstrap(bootstrap: StartupBootstrap) {
     settingsRequests.invalidate();
     config = normalizeConfigShape(bootstrap.config);
-    const cuaDriverEndpoint = await hydrateCuaDriverEndpoint();
-    const configWithCuaDriver = ensureCuaDriverServer(config, cuaDriverEndpoint);
-    // The reserved MCP entry is a client of the daemon the desktop host owns.
-    // Start it first so the Runtime can connect the remaining MCP list.
-    let cuaDriverDaemonStarted = false;
-    if (
-      isCuaDriverEnabled(configWithCuaDriver) &&
-      configWithCuaDriver.agent_plugins_host_access?.["cua-driver"]
-    ) {
-      try {
-        cuaDriverDaemonStarted = await startCuaDriverDaemon();
-      } catch (error) {
-        console.error("Failed to start the Cua Driver daemon during bootstrap:", error);
-      }
-    }
-    if (configWithCuaDriver !== config || cuaDriverDaemonStarted) {
-      // Runtime startup connects the persisted MCP list before this surface is
-      // mounted, so persist the product-managed entry here: the first chat turn
-      // can use Cua Driver without requiring a visit to Settings first, and a
-      // Runtime that already failed to attach reconnects now that the daemon
-      // accepts connections.
-      await saveSettings(configWithCuaDriver, bootstrap.config, false);
-    }
     applyTheme(config.theme ?? "system");
     await initI18n(config.language);
     workspacePath = bootstrap.workspace_path;

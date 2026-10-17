@@ -6,10 +6,6 @@ src-tauri/src/component_updates/mod.rs
 src-tauri/src/component_updates/runtime.rs
 src-tauri/src/component_updates/sources.rs
 src-tauri/src/component_updates/versions.rs
-src-tauri/src/cua_driver/mod.rs
-src-tauri/src/cua_driver/ownership.rs
-src-tauri/src/cua_driver/policy.rs
-src-tauri/src/cua_driver/tests.rs
 src-tauri/src/desktop_bootstrap/external.rs
 src-tauri/src/desktop_bootstrap/instances.rs
 src-tauri/src/desktop_bootstrap/mod.rs
@@ -36,6 +32,7 @@ src-tauri/src/main.rs
 src-tauri/src/native_commands.rs
 src-tauri/src/node_runtime.rs
 src-tauri/src/plugin_daemon_supervisor.rs
+src-tauri/src/plugin_daemons.rs
 src-tauri/src/process_lifetime.rs
 src-tauri/src/replay_capture.rs
 src-tauri/src/resource_download.rs

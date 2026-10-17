@@ -12,7 +12,6 @@ const nativeCommands = new Set([
   "confirm_frontend_activation",
   "end_component_update",
   "create_workspace_window",
-  "cua_driver_endpoint",
   "desktop_exit_progress",
   "desktop_exit_presented",
   "get_embedding_resource_status",
@@ -47,7 +46,6 @@ const nativeCommands = new Set([
   "reveal_onboarding_window",
   "runtime_transport_mode",
   "save_download_file",
-  "start_cua_driver_serve",
   "start_runtime_event_proxy",
 ]);
 
@@ -144,14 +142,13 @@ describe("desktop command boundary", () => {
         "utf8",
       );
 
-      // Product package ids remain one shared compatibility catalog, but domain
-      // packages must not be registered as Runtime implementations. Goal,
-      // Graph, Chat Groups, and Cua are ordinary installed packages; only the
-      // Runtime-owned multi-agent capability belongs in this registry.
-      for (const capability of ["CHAT_GROUPS_ID", "GOAL_ID", "GRAPH_ID", "CUA_DRIVER_ID"]) {
+      // Retained catalog constants do not register domain implementations.
+      // Only the Runtime-owned multi-agent capability belongs in this registry.
+      for (const capability of ["CHAT_GROUPS_ID", "GOAL_ID", "GRAPH_ID"]) {
         expect(plugins).toContain(`pub const ${capability}: &str = `);
         expect(plugins).not.toContain(`id: ${capability},`);
       }
+      expect(plugins).not.toContain("pub const CUA_DRIVER_ID");
       expect(plugins).toContain("pub message_policies: Vec<AgentPluginMessagePolicy>");
       expect(plugins).toContain("id: MULTI_AGENT_V2_ID,");
       expect(plugins).toContain("legacy_enabled: multi_agent_v2_legacy_enabled,");

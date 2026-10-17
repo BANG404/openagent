@@ -137,9 +137,11 @@ pages, loading older requests and selected detail in all theme/locale pairs.
 
 `bun run test:blackbox:plugin-node-runtime` owns a fresh Windows Tauri fixture
 whose PATH has every system Node directory removed. It runs the committed
-installation and host-access scenarios with light/English and dark/Chinese,
-proving Cua driver provisioning, daemon supervision, MCP discovery and a display
-tool call without a system interpreter. Prepare the current checkout's Runtime
+installation and host-access scenarios in all four theme/locale combinations,
+proving Cua driver provisioning, direct embedded MCP discovery and a display
+tool call without a system interpreter. It asserts a declared package server,
+no seeded user MCP entry or native daemon, and tool rejection/recovery through
+the ordinary plugin switch in light/dark and English/Chinese. Prepare the current checkout's Runtime
 before running it. The script owns its temporary home, Vite and desktop processes;
 it never modifies the OS PATH or a developer's application data.
 
@@ -184,8 +186,7 @@ log delta carrying the fixture command's own failure, which the desktop run path
 reports to the log rather than to the conversation; the handshake report the
 fixture's MCP server writes into its own data directory after `tools/list`; the
 restored configuration; and the window's error log, ignoring entries older than
-the run, because a dev build logs its own bootstrap failure for the Cua driver
-daemon before any runner reaches it.
+the run.
 
 The run ends with the fixture package disabled, which is the state the scenario
 restores. The wrapper unmounts the package through the same switch before
@@ -235,8 +236,8 @@ Start `bun tauri dev --multi-instance plugin-lifecycle` with an isolated
 `OPENAGENT_HOME`; the runner uses that same root and refuses existing packages.
 It installs catalog sources, checks visible Runtime phases and live MCP tools,
 then removes each enabled package and checks preserved data plus marketplace
-availability. Cua additionally needs its explicit host-access switch and a ready
-native daemon. Capture the light/dark and English/Chinese states using the
+availability. Cua additionally needs its explicit host-access switch and declares its MCP
+server through the same package path, with no native daemon. Capture the light/dark and English/Chinese states using the
 Windows Appium procedure above. Functional qualification of specific plugin
 checkouts is documented in the plugin owner's `official-registry.md`.
 

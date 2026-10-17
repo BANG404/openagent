@@ -39,9 +39,7 @@ test("production update checks aggregate Runtime and Shell updates", () => {
 test("Cua updates use the Agent Plugin subscription path", () => {
   expect(updater).not.toContain("prepare_cua_driver_resource");
   expect(updater).not.toContain("activate_cua_driver_resource");
-  expect(host).toContain('path: "/api/desktop/plugin-daemon-launch"');
-  expect(host).toContain("runtime_transport::proxy_runtime_request");
-  expect(host).toContain('"cua-driver"');
+  expect(host).not.toContain('"cua-driver"');
   expect(host).not.toContain('Command::new("cua-driver")');
 });
 

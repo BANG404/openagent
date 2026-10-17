@@ -14,15 +14,6 @@ import type {
 } from "$lib/types";
 import { desktopPluginInstallQueue, type PluginInstallTask } from "$lib/agentPluginInstallQueue";
 import { desktopPluginHostAccessQueue, pluginRequestsHostAccess } from "$lib/agentPluginHostAccess";
-import { type NormalizedMcpServerConfig } from "$lib/config";
-import {
-  CUA_DRIVER_COMMAND,
-  CUA_DRIVER_ID,
-  createCuaDriverServer,
-  cuaDriverMcpArgs,
-  isCuaDriverServerCurrent,
-} from "$lib/cuaDriver";
-import { cuaDriverEndpoint, startCuaDriverDaemon } from "$lib/openagent/cuaDriverHost";
 import { tr, locale, type TranslationKeys } from "$lib/i18n";
 import {
   agentPluginUpdateErrorKey,
@@ -122,12 +113,6 @@ export function createPluginSettings(
     }),
   );
 
-  let cuaDefaultApplied = $state(false);
-
-  function findCuaDriverServer(): NormalizedMcpServerConfig | undefined {
-    return draft.draftConfig.mcp.servers.find((server) => server.id === CUA_DRIVER_ID);
-  }
-
   function agentPluginEnabled(pluginId: string): boolean {
     return draft.draftConfig.agent_plugins_enabled?.[pluginId] ?? true;
   }
@@ -137,8 +122,6 @@ export function createPluginSettings(
       ...(draft.draftConfig.agent_plugins_enabled ?? {}),
       [pluginId]: enabled,
     };
-    const pluginMcpServer = draft.draftConfig.mcp.servers.find((server) => server.id === pluginId);
-    if (pluginMcpServer?.plugin_owned) pluginMcpServer.enabled = enabled;
   }
 
   function agentPluginHostAccess(pluginId: string): boolean {
@@ -203,34 +186,6 @@ export function createPluginSettings(
   ): PluginSidebarLifecycle {
     return pluginSidebarLifecycle(view, plugin, options.pluginSidebarContext);
   }
-
-  $effect(() => {
-    if (!draft.initializedFromConfig || cuaDefaultApplied) return;
-    const endpoint = cuaDriverEndpoint();
-    // The desktop host owns the reserved endpoint, so an unresolved endpoint
-    // means this surface cannot build the fixed launch shape yet.
-    if (!endpoint) return;
-    cuaDefaultApplied = true;
-    const existing = findCuaDriverServer();
-    if (!existing) {
-      draft.draftConfig.mcp.servers = [
-        createCuaDriverServer(endpoint),
-        ...draft.draftConfig.mcp.servers,
-      ];
-      queueMicrotask(() => draft.saveDraftConfig().catch(console.error));
-      return;
-    }
-    if (isCuaDriverServerCurrent(existing, endpoint)) return;
-    // Entries written by older OpenAgent builds carried a permission mode, a
-    // user-selected socket, and manifest overrides. The launch topology is
-    // fixed product policy now, so normalize the reserved entry before the
-    // next settings save.
-    existing.command = CUA_DRIVER_COMMAND;
-    existing.args = cuaDriverMcpArgs(endpoint);
-    existing.env = {};
-    existing.plugin_owned = true;
-    queueMicrotask(() => draft.saveDraftConfig().catch(console.error));
-  });
 
   async function refreshAgentPlugins(preserveStatus = false) {
     if (!isTauri()) {
@@ -530,10 +485,6 @@ export function createPluginSettings(
           if (pluginRequestsHostAccess(installed) && !granted) {
             granted = await pluginHostAccessQueue.request(installed);
             if (!granted) return "host-access-required";
-          }
-          if (installed.id === CUA_DRIVER_ID && granted) {
-            await startCuaDriverDaemon();
-            await desktopOpenAgent.invokeProduct("refresh_mcp_servers", {});
           }
         } finally {
           await refreshAgentPlugins();
