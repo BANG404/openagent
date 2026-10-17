@@ -90,3 +90,7 @@ Pass `--release` to install the public repository releases instead of local
 source directories and repeat the same actual selection/rendering assertions.
 The runner warms optional dependencies before fixture changes so the initial
 Vite dependency reload cannot erase its saved settings or cleanup state.
+Wait for font registration when checking body and heading families: settings
+updates can retire the current faces before their replacements finish loading.
+For independent native fixtures, select one appearance with `--mode=light|dark`
+and `--language=en|zh`. Run all four combinations to retain full coverage.
