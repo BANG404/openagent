@@ -1,0 +1,55 @@
+[scenario]
+name = "Concise settings retain controls, content and useful feedback"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "visible settings express their state without repeated instructions"
+action = "eval"
+script = '''(() => {
+  const { section, language, theme } = window.__copyProbe;
+  const panel = document.querySelector(`[role=tabpanel][data-value=${section}][data-state=active]`);
+  if (!panel || !document.documentElement.classList.contains(theme)) throw new Error('Wrong surface or theme');
+  const assert = (condition, message) => { if (!condition) throw new Error(message); };
+  const visible = element => {
+    const rect = element?.getBoundingClientRect();
+    return rect?.height > 0 && rect.width > 0 && rect.bottom <= innerHeight + 1;
+  };
+  assert(panel.scrollWidth <= panel.clientWidth + 1, 'Settings overflow horizontally');
+  if (section === 'general') {
+    assert(!panel.querySelector('.settings-card-row:not([data-appearance-native-background]) .settings-card-copy .detail-hint'), 'Simple controls repeat their labels');
+    assert(panel.querySelector('.shortcut-recorder') && panel.querySelector('[role=switch]'), 'Settings controls missing');
+    assert(panel.textContent.includes(language === 'en' ? 'Privacy' : '隐私'), 'Wrong locale or missing privacy information');
+    assert(panel.querySelector('.startup-copy .detail-hint'), 'Diagnostic privacy explanation missing');
+  } else if (section === 'memory') {
+    assert(panel.textContent.includes(language === 'en' ? 'User Memory' : '用户记忆'), 'Wrong memory locale');
+    assert(!panel.querySelector('.detail-section-intro') && !panel.querySelector('.memory-scope-control p'), 'Memory repeats permanent instructions');
+    assert(panel.querySelector('.memory-editor').placeholder.length < 50, 'Editor placeholder is an instruction paragraph');
+    assert(visible(panel.querySelector('.memory-editor-footer')) && visible(panel.querySelector('.memory-search')), 'Memory controls clipped');
+    const user = panel.querySelector('.memory-user-pane .detail-section-title').getBoundingClientRect();
+    const agent = panel.querySelector('.memory-agent-pane .detail-section-title').getBoundingClientRect();
+    if (Math.abs(user.top - agent.top) < 4) {
+      const editor = panel.querySelector('.memory-editor').getBoundingClientRect();
+      const search = panel.querySelector('.memory-search').getBoundingClientRect();
+      assert(Math.abs(editor.top - search.top) < 4, 'Memory input rows do not align');
+    }
+    assert(panel.querySelector('.memory-editor-footer button:last-child').disabled, 'Clean memory has an active Save action');
+    assert(!panel.querySelector('.memory-count[role=status]').textContent.trim(), 'Idle memory repeats saved state');
+  } else if (section === 'skills') {
+    const detail = panel.querySelector('[data-skill-detail]');
+    assert(detail?.textContent.includes('Settings inventory fixture'), 'Skill description missing');
+    assert(detail.querySelector('[data-open-skill-directory] button'), 'Directory action missing');
+    assert(panel.querySelector('.settings-content-col [data-scroll-area-content]').firstElementChild === detail, 'Skills prepend an inventory explanation');
+  } else if (section === 'agents') {
+    assert(!panel.querySelector('.agents-settings-intro p, .flash-task-group-heading p'), 'Flash groups repeat task descriptions');
+    assert(panel.querySelector('.flash-task-copy p') && panel.querySelector('[role=switch]'), 'Task capability descriptions or switches missing');
+  } else if (section === 'defaults') {
+    assert(!panel.querySelector('.detail-section-intro, .settings-card-copy .detail-hint'), 'Retry labels are repeated');
+    assert(panel.querySelector('input[type=number]'), 'Retry controls missing');
+  } else if (section === 'execution') {
+    assert(!panel.querySelector('.execution-value-row .detail-hint'), 'Maximum-turn label is repeated');
+    assert(panel.querySelector('.execution-toggle-row .detail-hint'), 'Turn-limit consequences missing');
+    assert(panel.querySelector('.detail-section-intro'), 'Execution permission guidance missing');
+  }
+  return true;
+})()'''

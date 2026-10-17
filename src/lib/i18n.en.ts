@@ -4,7 +4,6 @@ const en: Record<TranslationKeys, string> = {
   appearanceMode: "Mode",
   appearanceEnableTheme: "Enable selected theme",
   appearancePluginTheme: "Theme",
-  appearancePluginThemeHint: "Choose an installed theme plugin to customize the design",
   appearanceDefaultTheme: "OpenAgent default",
   appearanceUnavailable: "Unavailable",
   appearanceUnavailableHint:
@@ -205,7 +204,6 @@ const en: Record<TranslationKeys, string> = {
   quickChat: "Quick chat",
   quickChatPlaceholder: "Ask OpenAgent…",
   quickShortcutLabel: "Global shortcut",
-  quickShortcutHint: "Click the shortcut, then press a new combination with at least one modifier.",
   quickShortcutRecording: "Press a shortcut…",
   quickShortcutModifierRequired: "Include Ctrl, Command, Alt, or Shift.",
   quickShortcutUnsupported: "This key cannot be registered as a global shortcut.",
@@ -307,10 +305,8 @@ const en: Record<TranslationKeys, string> = {
   toolSubmitCompactionSummary: "Submit context summary",
   toolDispatchRole: "Dispatch role",
   agentMemory: "Agent Memory",
+  memoryEditPlaceholder: "Add preferences or useful facts…",
   agentMemoryEmpty: "No agent memories yet",
-  agentMemoryHint: "Agent extracts and saves memories after each conversation",
-  memoryEditHint:
-    "This content is included in future conversation context; keep stable facts and preferences clear.",
   memorySaveSuccess: "User memory saved",
   memoryRefresh: "Refresh",
   memorySearchPlaceholder: "Search agent memories…",
@@ -328,10 +324,7 @@ const en: Record<TranslationKeys, string> = {
   memoryManagementHint:
     "Import, export, or clear user memory and agent memories for the selected scope.",
   memoryBackup: "Backup",
-  memoryScopeHint: "View and manage memories in the selected scope.",
   memoryUnsaved: "Unsaved changes",
-  memorySaved: "No unsaved changes",
-  memoryUnsavedHint: "Save or discard your edits before switching scope or restoring a backup.",
   memoryDiscard: "Discard changes",
   memorySaving: "Saving…",
   memorySearchEmpty: "No memories match your search",
@@ -365,14 +358,8 @@ const en: Record<TranslationKeys, string> = {
   providers: "Providers",
   defaultModels: "Default Models",
   flashAgents: "Flash Tasks",
-  flashAgentsDescription:
-    "Manage lightweight work performed by the Flash model. Task switches control execution; custom instructions are optional.",
   conversationFlashTasks: "Conversation organization",
-  conversationFlashTasksDescription:
-    "Generate titles and follow-up suggestions, and maintain memory.",
   automationFlashTasks: "Background automation",
-  automationFlashTasksDescription:
-    "Summarize MCP capabilities, create scheduled work, and support automatic approval decisions.",
   taskEnabled: "Enable task",
   taskCustomPrompt: "Custom instructions",
   managedByApprovalMode: "Controlled by approval mode",
@@ -399,8 +386,6 @@ const en: Record<TranslationKeys, string> = {
   integrationWorkspaceSkill: "Workspace skill",
   integrationGlobalSkill: "Global skill",
   integrationSkillsEmpty: "No matching skills.",
-  integrationSkillsHint:
-    "Browse global, workspace and enabled plugin skills. Refresh after changing local files.",
   integrationSkillUnavailable:
     "Enable the plugin and refresh Skills to resolve its local directory.",
   integrationPluginMcpHint:
@@ -550,22 +535,15 @@ const en: Record<TranslationKeys, string> = {
   about: "About",
   appearance: "Appearance",
   theme: "Theme",
-  themeHint: "Controls the app's light or dark appearance; System follows your OS setting.",
   themeSystem: "System",
   themeLight: "Light",
   themeDark: "Dark",
   language: "Language",
-  languageHint: "Selects the language used by the OpenAgent interface.",
   messageLayout: "Message layout",
-  messageLayoutHint:
-    "Keeps responses in one column or automatically paginates them into two when the transcript is wide enough.",
   messageLayoutSingle: "Single column",
   messageLayoutResponsiveDouble: "Auto-paginated two columns",
   messageDoubleColumnMinWidth: "Minimum two-column width (px)",
-  messageDoubleColumnHint:
-    "Responses paginate their rendered content into two columns once the transcript reaches this width, and return to one column below it. The message index remains available in both layouts.",
   bookModeFontSize: "Book mode font size (px)",
-  bookModeFontSizeHint: "Sets the body size for full-screen two-column reading, from 14 to 24 px.",
   channels: "Channels",
   feishuChannel: "Feishu",
   feishuChannelSubtitle: "Receive messages through a Feishu or Lark long connection",
@@ -664,20 +642,17 @@ const en: Record<TranslationKeys, string> = {
   copy: "Copy",
   startup: "Startup",
   launchOnStartup: "Launch at startup",
-  launchOnStartupHint: "Start OpenAgent automatically after you sign in.",
   privacyDiagnostics: "Privacy & diagnostics",
   diagnosticLogCollection: "Send software errors and diagnostic logs",
   diagnosticLogCollectionHint:
     "Enabled by default to diagnose crashes, configuration loading, and UI failures. Conversation content, model output, tool arguments, configuration values, and secrets are never sent. Disabling this keeps only rotating local logs.",
   mentionPalette: "Mention palette",
   showGlobalDraftsInMentions: "Show global drafts",
-  showGlobalDraftsInMentionsHint: "Show global drafts in MentionPalette @ mention results.",
   agentExecution: "Processing Execution",
   agentTurnLimit: "Limit turns per process",
   agentTurnLimitHint:
     "Prevents endless tool-call loops. Enabling it disables automatic chat model retries.",
   agentMaxTurns: "Maximum turns",
-  agentMaxTurnsHint: "Sets the maximum number of model and tool-call turns allowed in one run.",
   contextCompaction: "Automatically summarize context",
   contextCompactionHint:
     "After the threshold, checkpoint model messages are compacted with a recent execution timeline; the full visible conversation is preserved.",
@@ -757,12 +732,8 @@ const en: Record<TranslationKeys, string> = {
   chatModelRetryQueue: "Chat Model Retry Queue",
   flashModelRetryQueue: "Flash Model Retry Queue",
   modelRetryPolicy: "Model Retry Policy",
-  modelRetryPolicyDescription:
-    "Controls retry behavior for each model in both the chat and Flash model queues.",
   retryCountPerModel: "Retry count per model",
-  retryCountPerModelHint: "Sets how many times each queued model may retry after a failure.",
   retryDelaySeconds: "Retry interval (seconds)",
-  retryDelaySecondsHint: "Sets the wait between consecutive attempts for the same model.",
   retryQueueDragHandle: "Drag to reorder",
   noQueuedChatFallbackModels: "No queued chat fallback models",
   noQueuedFlashFallbackModels: "No queued flash fallback models",

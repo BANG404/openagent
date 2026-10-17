@@ -79,7 +79,6 @@
 <div class="settings-card-row" data-appearance-theme>
   <span class="settings-card-copy">
     <span class="label-text">{$t("appearancePluginTheme")}</span>
-    <span class="detail-hint">{$t("appearancePluginThemeHint")}</span>
   </span>
   <div class="settings-card-control">
     {#if plugins.agentPluginsLoading && themes.length === 0}

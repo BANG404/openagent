@@ -12,13 +12,11 @@
   <ScrollArea height="100%" class="settings-content-col" scrollHideDelay={350}>
     <header class="agents-settings-intro">
       <h3>{$t("flashAgents")}</h3>
-      <p>{$t("flashAgentsDescription")}</p>
     </header>
 
     <section class="flash-task-group" aria-labelledby="conversation-flash-tasks">
       <div class="flash-task-group-heading">
         <h4 id="conversation-flash-tasks">{$t("conversationFlashTasks")}</h4>
-        <p>{$t("conversationFlashTasksDescription")}</p>
       </div>
       <div class="application-settings-surface flash-task-card">
         <article class="flash-task-item">
@@ -180,7 +178,6 @@
     <section class="flash-task-group" aria-labelledby="automation-flash-tasks">
       <div class="flash-task-group-heading">
         <h4 id="automation-flash-tasks">{$t("automationFlashTasks")}</h4>
-        <p>{$t("automationFlashTasksDescription")}</p>
       </div>
       <div class="application-settings-surface flash-task-card">
         <article class="flash-task-item">
