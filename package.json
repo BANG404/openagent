@@ -40,6 +40,8 @@
     "test": "bun test --timeout 30000 ./tests ./scripts ./sdk/typescript/tests",
     "test:sonar": "bun scripts/test-sonar.mjs",
     "test:browser:preview": "bun scripts/test-browser-preview.mjs",
+    "test:perf:resources": "bun scripts/test-process-resources.mjs",
+    "test:blackbox:memory-status-polling": "bun scripts/test-memory-status-polling-blackbox.mjs",
     "test:perf:conversation": "bun scripts/test-conversation-performance.mjs",
     "test:perf:browser": "bun scripts/test-conversation-performance-browser.mjs",
     "test:blackbox:memory": "bun scripts/test-memory-blackbox.mjs",

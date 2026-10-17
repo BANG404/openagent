@@ -38,6 +38,13 @@ Fixture sizes use the shared `smoke`/`standard`/`stress` options, with explicit
 turn, payload, compaction interval and cycle overrides. Each run covers light
 and dark in English and Chinese.
 
+Only the live `AssistantTurnRow` receives changing stream items. Historical
+rows receive a stable empty array: their projection derives from durable
+messages, so passing live items to every row needlessly invalidates historical
+grouping and segment arrays on every chunk. Historical UI still refreshes from
+message, branch, locale and configuration changes. Keep the existing stable-node,
+compaction, content and restore assertions when changing this boundary.
+
 Assertions retain earliest/latest input and output, hide provider-only replay,
 require one divider per compaction and preserve historical DOM identity across
 warm hydration and compaction. A clear-and-restore pass checks that the
@@ -65,6 +72,28 @@ message accumulation, persistence, repeated compaction, restart and provider
 projection cache verification in the private SDK. Browser data is synthetic and
 must never be described as exercising a real model or measuring model cache
 hits. Real-provider cache measurement remains an explicit SDK opt-in probe.
+
+## Background resource usage
+
+Memory-sync status polling is owned by `page/memoryStatusPolling.ts`. Run only
+one request at a time: active synchronization refreshes after two seconds;
+idle or failed reads back off to fifteen seconds. Hidden documents cancel the
+timer; unfocused native windows pause too because WebView2 may report a minimized
+document as visible. Becoming visible/focused refreshes immediately. Dispose
+both listeners and the timer on page teardown, ignore late results, and do not start polling if asynchronous
+startup finishes after teardown. `tests/memoryStatusPolling.test.ts` exercises
+these lifecycle and request-count bounds with a deterministic clock. The idle
+steady-state rate is four reads/minute instead of thirty; this is a request
+reduction, not a measured percentage reduction in whole-application CPU.
+Run `bun run test:blackbox:memory-status-polling` against an explicitly selected,
+configured isolated native fixture. It counts actual SDK status reads, delivers
+deterministic Tauri focus/blur events, checks idle cadence and holds a slow read
+through repeated activation. Native event delivery is covered even on a
+disconnected desktop; this does not prove OS foreground activation succeeded.
+
+For native CPU, memory and background occupation use the desktop owner's
+[process resource sampling](../../openagent-desktop-host/references/process-resources.md).
+Browser JS heap cannot substitute for those counters.
 
 ## Cache evaluation
 

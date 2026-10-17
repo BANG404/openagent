@@ -1,0 +1,90 @@
+[scenario]
+name = "memory status polling follows native activity without overlapping requests"
+fail_fast = true
+global_timeout_ms = 45000
+
+[[step]]
+name = "install read counters and verify native inactivity"
+action = "eval"
+script = '''(async () => {
+  const {desktopOpenAgent: client, emit} = await import('/src/lib/openagent/tauriClient.ts');
+  const assert = (condition, message) => { if (!condition) throw new Error(message); };
+  const delay = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+  const original = client.invokeProduct;
+  const probe = {reads: 0, active: 0, peak: 0, hold: false, release: null};
+  const activity = active => emit(active ? 'tauri://focus' : 'tauri://blur');
+  client.invokeProduct = async function(operation, args) {
+    if (operation !== 'get_memory_status') return original.call(this, operation, args);
+    probe.reads++;
+    probe.active++;
+    probe.peak = Math.max(probe.peak, probe.active);
+    try {
+      if (probe.hold) await new Promise(resolve => { probe.release = resolve; });
+      return await original.call(this, operation, args);
+    } finally { probe.active--; }
+  };
+  const cleanup = async () => {
+    probe.release?.();
+    client.invokeProduct = original;
+    await activity(await window.__TAURI_INTERNALS__.invoke('plugin:window|is_focused', {label:'main'}));
+    delete window.__memoryStatusPollingFixture;
+  };
+  window.__memoryStatusPollingFixture = {probe, activity, assert, delay, cleanup};
+  const config = await client.invokeProduct('get_settings', {});
+  assert(config.onboarding_completed, 'use a configured isolated fixture');
+  // Deterministic Tauri activity events cover delivery on disconnected desktops,
+  // without claiming that OS foreground activation worked.
+  await activity(false);
+  await delay(250);
+  const inactive = probe.reads;
+  await delay(2500);
+  assert(probe.reads === inactive, 'inactive native window still polled');
+  return 'native inactivity pauses reads';
+})()'''
+
+[[step]]
+name = "activation refreshes immediately and idle polling backs off"
+action = "eval"
+script = '''(async () => {
+  const {probe, activity, assert, delay} = window.__memoryStatusPollingFixture;
+  const inactive = probe.reads;
+  await activity(true);
+  await delay(750);
+  assert(probe.reads === inactive + 1, 'native activation did not refresh immediately');
+  probe.visibleReads = probe.reads;
+  await delay(7000);
+  assert(probe.reads === probe.visibleReads, 'idle polling did not back off');
+  return 'idle cadence first half passed';
+})()'''
+
+[[step]]
+name = "idle status refreshes after fifteen seconds"
+action = "eval"
+script = '''(async () => {
+  const {probe, assert, delay} = window.__memoryStatusPollingFixture;
+  await delay(8500);
+  assert(probe.reads === probe.visibleReads + 1, 'idle status did not use the fifteen-second cadence');
+  return 'idle cadence passed';
+})()'''
+
+[[step]]
+name = "slow reads do not overlap across repeated native activation"
+action = "eval"
+script = '''(async () => {
+  const {probe, activity, assert, delay} = window.__memoryStatusPollingFixture;
+  await activity(false);
+  await delay(250);
+  probe.hold = true;
+  await activity(true);
+  await delay(250);
+  assert(probe.active === 1, 'slow read did not start');
+  const slow = probe.reads;
+  await activity(false);
+  await activity(true);
+  await delay(2500);
+  assert(probe.reads === slow && probe.peak === 1, 'slow native reads overlapped');
+  probe.hold = false;
+  probe.release();
+  await delay(750);
+  return {status: 'passed', reads: probe.reads, max_concurrent: probe.peak};
+})()'''

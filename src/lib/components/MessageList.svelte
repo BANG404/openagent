@@ -143,6 +143,9 @@
   }: Props = $props();
 
   let copiedAssistantMessageId = $state<string | null>(null);
+  // Historical turns never consume live items. Keep their prop identity stable
+  // so each streaming chunk only invalidates the active response's projection.
+  const historicalStreamItems: StreamItem[] = [];
   let readingTurnKey = $state<string | null>(null);
   let loadingBookTurnKey = $state<string | null>(null);
   let BookReader = $state<typeof import("./AgentBookReader.svelte").default | null>(null);
@@ -374,7 +377,9 @@
         <AssistantTurnRow
           {entry}
           {messages}
-          {currentStreamItems}
+          currentStreamItems={entry.kind === "live_stream"
+            ? currentStreamItems
+            : historicalStreamItems}
           {activeConvId}
           {activeBranchId}
           {activeTree}

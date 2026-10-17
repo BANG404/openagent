@@ -10,6 +10,7 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { onMount, tick, untrack } from "svelte";
+  import { startMemoryStatusPolling } from "$lib/page/memoryStatusPolling";
   import type { Component } from "svelte";
   import { detectWindowPlatform } from "$lib/windowPlatform";
   import { createWindowMaximizer } from "$lib/windowMaximizer";
@@ -1863,8 +1864,14 @@
     refreshAgentCommands,
     pollMemoryStatus,
   });
+  let pageDisposed = false;
+  let stopMemoryStatusPolling: (() => void) | null = null;
   onMount(() => {
     void startup.start();
+    return () => {
+      pageDisposed = true;
+      stopMemoryStatusPolling?.();
+    };
   });
 
   // Data-only restore for a startup snapshot that never arrived. It re-reads
@@ -2730,14 +2737,20 @@
   }
 
   function pollMemoryStatus() {
-    if (!tauriAvailable) return;
-
-    setInterval(async () => {
-      try {
-        const next = await openAgent.invokeProduct("get_memory_status", {});
-        isMemorySyncing = next;
-      } catch {}
-    }, 2000);
+    if (!tauriAvailable || pageDisposed || stopMemoryStatusPolling) return;
+    stopMemoryStatusPolling = startMemoryStatusPolling({
+      read: () => openAgent.invokeProduct("get_memory_status", {}),
+      update: (next) => (isMemorySyncing = next),
+      visibility: document,
+      observeActivity: appWindow
+        ? async (changed) => {
+            const unlisten = await appWindow.onFocusChanged(({ payload }) => changed(payload));
+            // WebView2 may keep document.hidden=false after minimization.
+            changed(await appWindow.isFocused().catch(() => true));
+            return unlisten;
+          }
+        : undefined,
+    });
   }
 
   function normalizeSuggestions(value: unknown): string[] {

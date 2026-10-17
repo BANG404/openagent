@@ -8,4 +8,5 @@ metadata:
 # OpenAgent desktop host
 
 Follow [product boundaries](references/product-runtime-boundary.md).
-Read references for native ownership, startup and verification. Deliver via OWT.
+Read matching references, including [process resources](references/process-resources.md)
+for CPU and memory. Deliver via OWT.
