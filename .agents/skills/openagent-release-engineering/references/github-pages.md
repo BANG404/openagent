@@ -49,6 +49,22 @@ Plugin update metadata is published independently as a rolling Release asset;
 see [plugin release index](plugin-release-index.md). Pages builds do not collect
 or publish it.
 
+The landing page's `#plugins` official store is rendered at build time from
+`src/lib/officialPluginRegistry.json` through `scripts/pages-plugin-store.mjs`.
+Registry changes trigger Pages deployment. Keep this reviewed directory as the
+single discovery source; do not initialize independent plugin checkouts, request
+per-plugin release APIs, or present discovery entries as installed/compatible
+versions. Cards contain escaped English/Chinese metadata and source/Release links,
+and remain browsable without JavaScript. Website search matches either language
+and plugin IDs, intersects with category buttons, and retains both filters when
+the locale changes. Category controls remain available with empty results.
+Installation happens in the desktop app's Integrations → Plugins store; README
+setup requirements and actual release availability remain package-owned.
+Verify all catalog cards, combined search/category filters, empty-result recovery,
+locale switching with retained filters, mobile navigation/layout, and no-script
+card/link availability in the combined production artifact. Do not publish the
+registry's unrelated runtime/tool translation keys as website assets.
+
 Verify English/Chinese landing-page links, every tutorial route, theme and locale
 switching, mobile menu/layout, Pagefind search in a production preview, and the
 release-manifest fallback. This is a browser site; no native desktop scenario

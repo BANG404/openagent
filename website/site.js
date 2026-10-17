@@ -1,5 +1,24 @@
 const dictionary = {
   en: {
+    "nav.store":"Plugin store",
+    "store.kicker":"Extend your workspace",
+    "store.title":"Official plugin store.",
+    "store.copy":"Discover tools, workflows, integrations, and themes from the official OpenAgent catalog.",
+    "store.install":"To install, open Integrations → Plugins in OpenAgent and find the plugin in the official store. Check its README for setup requirements.",
+    "store.search":"Search plugins",
+    "store.categories":"Plugin category",
+    "store.empty":"No matching plugins. Try another search or category.",
+    "store.source":"Source ↗",
+    "store.releases":"Releases ↗",
+    "store.category.all":"All",
+    "store.category.automation":"Automation",
+    "store.category.communication":"Communication",
+    "store.category.development":"Development",
+    "store.category.productivity":"Productivity",
+    "store.category.data":"Data & knowledge",
+    "store.category.design":"Design & themes",
+    "store.category.other":"Other",
+    "store.category.uncategorized":"Other",
     "nav.docs":"Plugin tutorials",
     "downloads.guidance":"First installation? Choose a full bundle with the local embedding model, or let the lightweight bundle download it during setup.",
     "downloads.assets":"Browse all release assets ↗",
@@ -30,6 +49,25 @@ const dictionary = {
     "closing.kicker":"Open source desktop AI", "closing.title":"Make your next<br />agent task feel grounded.", "closing.copy":"Download the latest desktop release, connect a provider, and build a workspace that works the way you do.", "closing.action":"Download the latest release", "footer":"Built with Tauri, SvelteKit, and Rust."
   },
   zh: {
+    "nav.store":"插件商店",
+    "store.kicker":"扩展你的工作区",
+    "store.title":"官方插件商店。",
+    "store.copy":"从 OpenAgent 官方目录发现工具、工作流、服务集成与主题。",
+    "store.install":"安装时，请在 OpenAgent 中打开「集成 → 插件」，在官方商店中找到对应插件。使用前请查看插件 README 中的配置要求。",
+    "store.search":"搜索插件",
+    "store.categories":"插件分类",
+    "store.empty":"没有匹配的插件，请尝试其他关键词或分类。",
+    "store.source":"查看源码 ↗",
+    "store.releases":"发布版本 ↗",
+    "store.category.all":"全部",
+    "store.category.automation":"自动化",
+    "store.category.communication":"沟通协作",
+    "store.category.development":"开发工具",
+    "store.category.productivity":"效率工具",
+    "store.category.data":"数据与知识",
+    "store.category.design":"设计与主题",
+    "store.category.other":"其他",
+    "store.category.uncategorized":"其他",
     "nav.docs":"插件教程",
     "downloads.guidance":"首次安装可选择包含本地嵌入模型的 full 完整包；轻量包会在初始化时下载模型。",
     "downloads.assets":"查看全部发布附件 ↗",
@@ -75,9 +113,61 @@ function render() {
     link.href = `./docs/${locale === "zh" ? "zh-cn/" : ""}${link.dataset.docPath}`;
   });
   renderDownloadChannel();
+  renderPluginStore();
 }
 document.querySelector("[data-language-toggle]").addEventListener("click", () => { locale = locale === "zh" ? "en" : "zh"; render(); });
+initializePluginStore();
 render();
+
+function initializePluginStore() {
+  const cards = [...document.querySelectorAll("[data-plugin-id]")];
+  const filters = document.querySelector("[data-store-filters]");
+  const search = document.querySelector("[data-store-search]");
+  if (!cards.length || !filters || !search) return;
+  const categories = ["all", ...new Set(cards.map((card) => card.dataset.pluginCategory))];
+  categories.forEach((category) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.storeCategory = category;
+    button.setAttribute("aria-pressed", String(category === "all"));
+    button.addEventListener("click", () => {
+      filters.querySelectorAll("button").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+      renderPluginStore();
+    });
+    filters.append(button);
+  });
+  search.addEventListener("input", renderPluginStore);
+  document.querySelector("[data-store-controls]").hidden = false;
+}
+
+function renderPluginStore() {
+  const cards = [...document.querySelectorAll("[data-plugin-id]")];
+  if (!cards.length) return;
+  const content = dictionary[locale];
+  const categoryLabel = (category) => content[`store.category.${category}`] ?? category;
+  document.querySelectorAll("[data-plugin-en]").forEach((node) => {
+    node.textContent = locale === "zh" ? node.dataset.pluginZh : node.dataset.pluginEn;
+  });
+  document.querySelectorAll("[data-store-category-label]").forEach((node) => {
+    node.textContent = categoryLabel(node.dataset.storeCategoryLabel);
+  });
+  document.querySelectorAll("[data-store-category]").forEach((button) => {
+    button.textContent = categoryLabel(button.dataset.storeCategory);
+  });
+  const query = document.querySelector("[data-store-search]").value.trim().toLocaleLowerCase();
+  const category = document.querySelector('[data-store-category][aria-pressed="true"]')?.dataset.storeCategory ?? "all";
+  let visible = 0;
+  cards.forEach((card) => {
+    const metadata = [...card.querySelectorAll("[data-plugin-en]")].flatMap((node) => [node.dataset.pluginEn, node.dataset.pluginZh]);
+    const text = [card.dataset.pluginId, categoryLabel(card.dataset.pluginCategory), ...metadata].join(" ").toLocaleLowerCase();
+    card.hidden = (category !== "all" && card.dataset.pluginCategory !== category) || !text.includes(query);
+    if (!card.hidden) visible++;
+  });
+  document.querySelector("[data-store-count]").textContent = locale === "zh"
+    ? `显示 ${visible} / ${cards.length} 个插件`
+    : `Showing ${visible} of ${cards.length} plugins`;
+  document.querySelector("[data-store-empty]").hidden = visible !== 0;
+}
 
 function renderDownloadChannel() {
   const release = downloadChannels[activeDownloadChannel];

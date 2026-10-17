@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 
 import { checkPages } from "./check-pages.mjs";
+import { renderPluginStore } from "./pages-plugin-store.mjs";
 
 const output = "dist-pages";
 const releaseManifestPaths = {
@@ -75,7 +76,13 @@ await cp("website/docs/dist", `${output}/docs`, { recursive: true });
 await cp("assets", `${output}/assets`, { recursive: true });
 const indexPath = `${output}/index.html`;
 const index = await readFile(indexPath, "utf8");
-await writeFile(indexPath, index.replaceAll("../assets/", "./assets/"));
+const registry = JSON.parse(await readFile("src/lib/officialPluginRegistry.json", "utf8"));
+await writeFile(
+  indexPath,
+  index
+    .replaceAll("../assets/", "./assets/")
+    .replace("<!-- official-plugin-cards -->", () => renderPluginStore(registry)),
+);
 await writeFile(
   `${output}/downloads.json`,
   `${JSON.stringify(await buildDownloadManifest(), null, 2)}\n`,
