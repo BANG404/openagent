@@ -24,7 +24,7 @@ const root = fileURLToPath(new URL("../", import.meta.url));
 const git = (args) =>
   execFileSync("git", args, { cwd: root, encoding: "utf8", windowsHide: true }).trim();
 
-/** Builds both installers from one release-mode shell in a disposable worktree.
+/** Builds all three installers from one release-mode shell in a disposable worktree.
  * @param {{output: string}} options
  */
 export async function buildWindowsAcceptance({ output }) {
@@ -219,6 +219,7 @@ export async function buildWindowsAcceptance({ output }) {
   assert(names.length === 1, "Expected one online installer");
   const online = `OpenAgent-Acceptance_${version}_online-setup.exe`;
   const offline = `OpenAgent-Acceptance_${version}_offline-setup.exe`;
+  const noWebview = `OpenAgent-Acceptance_${version}_full-no-webview-setup.exe`;
   await copyFile(path.join(bundles, names[0]), path.join(output, online));
   run(process.execPath, [
     "scripts/tauri-bundle.mjs",
@@ -227,6 +228,15 @@ export async function buildWindowsAcceptance({ output }) {
     "src-tauri/tauri.full.conf.json",
   ]);
   await copyFile(path.join(bundles, names[0]), path.join(output, offline));
+  run(process.execPath, [
+    "scripts/tauri-bundle.mjs",
+    ...common,
+    "--config",
+    "src-tauri/tauri.full.conf.json",
+    "--config",
+    "src-tauri/tauri.full-no-webview.conf.json",
+  ]);
+  await copyFile(path.join(bundles, names[0]), path.join(output, noWebview));
   await cp(resources, output, { recursive: true });
   const pilot = execFileSync("where.exe", ["tauri-pilot.exe"], {
     encoding: "utf8",
@@ -245,10 +255,12 @@ export async function buildWindowsAcceptance({ output }) {
     source_sha: sourceSha,
     sdk_sha: sdkSha,
     public_key: signer.publicKey,
-    installers: { online, offline },
+    installers: { online, offline, "full-no-webview": noWebview },
   });
   await verifyCandidate(output);
-  console.log(`Verified online and offline acceptance installers: ${output}`);
+  console.log(
+    `Verified online, offline and full without WebView2 acceptance installers: ${output}`,
+  );
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

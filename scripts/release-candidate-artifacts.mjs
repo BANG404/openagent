@@ -64,9 +64,12 @@ function validateAssetNames(target, names, includeFull) {
     if (includeFull) requireOne(names, /-full\.AppImage$/, "full AppImage");
     return;
   }
-  requireOne(names, /(?<!-full)-setup\.exe$/, "lightweight NSIS installer");
-  requireOne(names, /(?<!-full)-setup\.exe\.sig$/, "NSIS updater signature");
-  if (includeFull) requireOne(names, /-full-setup\.exe$/, "full NSIS installer");
+  requireOne(names, /(?<!-full)(?<!-full-no-webview)-setup\.exe$/, "lightweight NSIS installer");
+  requireOne(names, /(?<!-full)(?<!-full-no-webview)-setup\.exe\.sig$/, "NSIS updater signature");
+  if (includeFull) {
+    requireOne(names, /-full-setup\.exe$/, "full NSIS installer");
+    requireOne(names, /-full-no-webview-setup\.exe$/, "full NSIS installer without WebView2");
+  }
 }
 
 /** @param {string} target @param {string} name */
@@ -122,10 +125,21 @@ export async function stageTauriArtifacts({ artifactPaths, outputDirectory, targ
 }
 
 /**
- * @param {{ bundleRoot: string, outputDirectory: string, target: string, version: string }} options
+ * @param {{ bundleRoot: string, outputDirectory: string, target: string, version: string, variant?: string }} options
  */
-export async function stageFullInstaller({ bundleRoot, outputDirectory, target, version }) {
+export async function stageFullInstaller({
+  bundleRoot,
+  outputDirectory,
+  target,
+  version,
+  variant = "full",
+}) {
   requireTarget(target);
+  if (
+    !["full", "full-no-webview"].includes(variant) ||
+    (variant !== "full" && target !== "windows-x64")
+  )
+    throw new Error(`Unsupported installer variant ${variant} for ${target}`);
   const directoryByTarget = target === "windows-x64" ? "nsis" : "appimage";
   const directory = target.startsWith("macos-") ? "dmg" : directoryByTarget;
   const extensionByTarget = target === "windows-x64" ? ".exe" : ".AppImage";
@@ -144,7 +158,7 @@ export async function stageFullInstaller({ bundleRoot, outputDirectory, target, 
   const sourceName = path.basename(candidates[0]);
   const outputName =
     target === "windows-x64" && sourceName.endsWith("-setup.exe")
-      ? sourceName.replace(/-setup\.exe$/, "-full-setup.exe")
+      ? sourceName.replace(/-setup\.exe$/, `-${variant}-setup.exe`)
       : `${sourceName.slice(0, -extension.length)}-full${extension}`;
   await mkdir(outputDirectory, { recursive: true });
   await copyFile(candidates[0], path.join(outputDirectory, outputName));
@@ -302,8 +316,8 @@ export async function createUpdaterManifest({
     await add(
       "windows-x64",
       ["windows-x86_64", "windows-x86_64-nsis"],
-      /(?<!-full)-setup\.exe\.sig$/,
-      /(?<!-full)-setup\.exe$/,
+      /(?<!-full)(?<!-full-no-webview)-setup\.exe\.sig$/,
+      /(?<!-full)(?<!-full-no-webview)-setup\.exe$/,
     );
   }
   if (expectedTargets.includes("macos-arm64")) {
@@ -366,6 +380,7 @@ async function main() {
       outputDirectory: path.resolve(option(args, "--output")),
       target: option(args, "--target"),
       version: option(args, "--version"),
+      variant: args.includes("--variant") ? option(args, "--variant") : "full",
     });
   } else if (command === "manifest") {
     await writeCandidateManifest({

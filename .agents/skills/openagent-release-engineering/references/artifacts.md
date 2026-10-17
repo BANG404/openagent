@@ -42,12 +42,14 @@
   npm, or modify the machine PATH. Prepare it before native tests and desktop
   startup; updating the pin requires reviewing upstream SHASUMS and qualifying
   all shell targets. Node belongs to the shell, not the private Runtime resource.
-- Every shell installer and updater also bundles portable `rg`, `fd`, `bat`, and
-  `sd` under `terminal-tools/`, including lightweight, full, and Store layouts.
+- Every shell installer and updater also bundles portable `rg`, `fd`, and `bat`
+  under `terminal-tools/`, including lightweight, full, and Store layouts.
   `prepare-terminal-tools.mjs` selects the actual Tauri target, verifies the
   reviewed upstream archive SHA-256 pins in `terminal-tool-releases.mjs`, and
   stages only executables, license notices, and provenance. Linux uses static
-  musl assets. Cached preparation rechecks all executables and licenses; a
+  musl assets. Cached preparation requires the exact current tool set and
+  rechecks all executables and licenses; removed tools invalidate the cache and
+  the successful replacement drops their executables and licenses. A
   failed download or extraction leaves the previous tool set intact. Prepare
   these resources before native tests or desktop startup. Never depend on a
   developer's Codex/Scoop installation, install a package manager, or modify OS
@@ -212,9 +214,18 @@ installer targets and cache-hit/miss timings before claiming a measured speedup.
 The ordinary updater/install package embeds only the standalone shell bootstrap.
 `tauri.full.conf.json` bundles `resources/bootstrap-release/`, a platform subset
 of the immutable signed product distribution. On Windows its NSIS package also
-includes WebView2's offline installer. Both packages run the identical shell
-executable and import identical component bytes; full packaging does not compile
-another product. `distribution-resources` binds signed Runtime and frontend
+includes WebView2's offline installer. Windows also publishes
+`-full-no-webview-setup.exe`: bundle with `--config src-tauri/tauri.full.conf.json
+--config src-tauri/tauri.full-no-webview.conf.json`, in that order. This overlay
+retains every signed application resource and disables updater artifacts, but
+downloads the WebView2 bootstrapper only when the installed runtime is missing.
+Offline first setup with this variant requires WebView2 already installed;
+keep the existing `-full-setup.exe` for machines without it. All three Windows
+packages reuse the same shell executable. Stage each full variant immediately
+after bundling because NSIS reuses its output filename. Candidate validation
+requires both full variants; updater metadata selects only the online shell.
+Release notes describe both complete variants and the WebView2 prerequisite.
+`distribution-resources` binds signed Runtime and frontend
 candidates, pinned sandbox helpers, embedding provenance files, and the exact
 TypeScript snapshot. Release publication must gate on
 `publish-distribution-resources`. `stage-distribution.mjs` verifies and selects

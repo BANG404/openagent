@@ -33,7 +33,7 @@ async function writeAssets(directory, names) {
 }
 
 describe("release candidate artifacts", () => {
-  test("stages lightweight and full Windows installers with source identity", async () => {
+  test("stages all three Windows installers with source identity", async () => {
     const root = await temporaryDirectory();
     const generated = path.join(root, "generated");
     const output = path.join(root, "candidate");
@@ -56,6 +56,22 @@ describe("release candidate artifacts", () => {
         version: "1.2.3",
       }),
     ).toBe("openagent_1.2.3_x64-full-setup.exe");
+    await writeFile(path.join(fullDirectory, light), "full resources without WebView2");
+    expect(
+      await stageFullInstaller({
+        bundleRoot: path.join(root, "target"),
+        outputDirectory: output,
+        target: "windows-x64",
+        version: "1.2.3",
+        variant: "full-no-webview",
+      }),
+    ).toBe("openagent_1.2.3_x64-full-no-webview-setup.exe");
+    expect(
+      await readFile(path.join(output, "openagent_1.2.3_x64-full-no-webview-setup.exe"), "utf8"),
+    ).toBe("full resources without WebView2");
+    expect(await readFile(path.join(output, "openagent_1.2.3_x64-full-setup.exe"), "utf8")).toBe(
+      `bytes:${light}`,
+    );
 
     const manifest = await writeCandidateManifest({
       outputDirectory: output,
@@ -63,9 +79,67 @@ describe("release candidate artifacts", () => {
       desktopSha,
       sdkSha,
     });
-    expect(manifest.assets).toHaveLength(3);
+    expect(manifest.assets).toHaveLength(4);
     expect(manifest.desktop_sha).toBe(desktopSha);
     expect(manifest.sdk_sha).toBe(sdkSha);
+    await rm(path.join(output, "openagent_1.2.3_x64-full-no-webview-setup.exe"));
+    await expect(
+      writeCandidateManifest({
+        outputDirectory: output,
+        target: "windows-x64",
+        desktopSha,
+        sdkSha,
+      }),
+    ).rejects.toThrow("without WebView2");
+  });
+
+  test("a full installer without WebView2 cannot replace the online updater installer", async () => {
+    const root = await temporaryDirectory();
+    const name = "openagent_1.2.3_x64-full-no-webview-setup.exe";
+    await writeAssets(root, [name, `${name}.sig`]);
+    await expect(
+      stageTauriArtifacts({
+        artifactPaths: [path.join(root, name), path.join(root, `${name}.sig`)],
+        outputDirectory: path.join(root, "candidate"),
+        target: "windows-x64",
+      }),
+    ).rejects.toThrow("lightweight NSIS installer");
+    await expect(
+      stageFullInstaller({
+        bundleRoot: root,
+        outputDirectory: root,
+        target: "linux-x64",
+        version: "1.2.3",
+        variant: "full-no-webview",
+      }),
+    ).rejects.toThrow("Unsupported installer variant");
+  });
+
+  test("the no-WebView2 overlay retains full resources and updater exclusion", async () => {
+    const full = JSON.parse(
+      await readFile(new URL("../src-tauri/tauri.full.conf.json", import.meta.url), "utf8"),
+    );
+    const overlay = JSON.parse(
+      await readFile(
+        new URL("../src-tauri/tauri.full-no-webview.conf.json", import.meta.url),
+        "utf8",
+      ),
+    );
+    expect(overlay.bundle).not.toHaveProperty("resources");
+    expect(overlay.bundle).not.toHaveProperty("createUpdaterArtifacts");
+    const merged = {
+      ...full.bundle,
+      windows: { ...full.bundle.windows, ...overlay.bundle.windows },
+    };
+    expect(merged.resources["resources/bootstrap-release/"]).toBe("bootstrap-release/");
+    expect(merged.resources["resources/node-runtime/"]).toBe("node-runtime/");
+    expect(merged.resources["resources/terminal-tools/"]).toBe("terminal-tools/");
+    expect(merged.createUpdaterArtifacts).toBe(false);
+    expect(merged.windows.webviewInstallMode).toEqual({
+      type: "downloadBootstrapper",
+      silent: true,
+    });
+    expect(full.bundle.windows.webviewInstallMode.type).toBe("offlineInstaller");
   });
 
   test("names macOS updater archives per architecture before artifact merging", async () => {
@@ -121,6 +195,7 @@ describe("release candidate artifacts", () => {
         "openagent_1.2.3_x64-setup.exe",
         "openagent_1.2.3_x64-setup.exe.sig",
         "openagent_1.2.3_x64-full-setup.exe",
+        "openagent_1.2.3_x64-full-no-webview-setup.exe",
       ],
     };
     const targets = Object.keys(assetsByTarget);

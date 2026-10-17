@@ -828,6 +828,26 @@ jobs:
           --target "${{ matrix.runtime_target }}"
           --version "${{ needs.detect.outputs.version }}"
 
+      - name: Bundle Windows full installer without WebView2
+        if: matrix.runtime_target == 'windows-x64'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          OPENAGENT_RUNTIME_TARGET: ${{ matrix.sidecar_target }}
+        run: >-
+          bun run tauri:bundle -- --config src-tauri/tauri.full.conf.json
+          --config src-tauri/tauri.full-no-webview.conf.json ${{ matrix.args }}
+
+      - name: Stage Windows full installer without WebView2
+        if: matrix.runtime_target == 'windows-x64'
+        shell: bash
+        run: >-
+          node scripts/release-candidate-artifacts.mjs stage-full
+          --bundle-root src-tauri/target
+          --output "$RUNNER_TEMP/native-release"
+          --target "${{ matrix.runtime_target }}"
+          --version "${{ needs.detect.outputs.version }}"
+          --variant full-no-webview
+
       - name: Bind native candidate to release source
         shell: bash
         run: >-

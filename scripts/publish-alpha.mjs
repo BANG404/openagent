@@ -26,11 +26,16 @@ export async function publishAlpha({ directory, version, sourceSha, sdkSha, repo
       throw new Error("Alpha release identity already exists; create a new Alpha candidate");
     const full = candidate.assets.find((artifact) => artifact.file.endsWith("-full-setup.exe"));
     if (!full) throw new Error("Missing complete Windows installer");
+    const noWebview = candidate.assets.find((artifact) =>
+      artifact.file.endsWith("-full-no-webview-setup.exe"),
+    );
+    if (!noWebview) throw new Error("Missing complete Windows installer without WebView2");
     const body = path.join(scratch, "release.md");
     await writeFile(
       body,
       `Windows Alpha preview. Built with reduced qualification for manual testing.\n\n` +
         `[Download the complete Windows installer](https://github.com/${repository}/releases/download/${tag}/${encodeURIComponent(full.file)})\n\n` +
+        `[Download without bundled WebView2](https://github.com/${repository}/releases/download/${tag}/${encodeURIComponent(noWebview.file)}) — Includes all application resources; requires Internet if WebView2 is missing.\n\n` +
         `Source: ${sourceSha}\nSDK: ${sdkSha}\nUpgrade baseline: ${candidate.baseline_tag}\n\n` +
         `Installs as OpenAgent Alpha and defaults to ~/.openagent-alpha. Production update channels are unchanged.\n`,
     );

@@ -25,7 +25,7 @@ export function safeName(name) {
   return name;
 }
 
-/** @typedef {{schema_version: number; purpose: string; version: string; source_sha: string; sdk_sha: string; public_key: string; identifier: string; profile: string; installers: {offline: string; online: string}; assets: {file: string; size: number; sha256: string}[]}} AcceptanceCandidate */
+/** @typedef {{schema_version: number; purpose: string; version: string; source_sha: string; sdk_sha: string; public_key: string; identifier: string; profile: string; installers: {offline: string; online: string; 'full-no-webview': string}; assets: {file: string; size: number; sha256: string}[]}} AcceptanceCandidate */
 
 /** @param {string} directory @param {Omit<AcceptanceCandidate, 'schema_version' | 'purpose' | 'identifier' | 'profile' | 'assets'>} identity */
 export async function writeCandidate(directory, identity) {
@@ -93,14 +93,11 @@ export async function verifyCandidate(directory) {
     actual.length === names.size && actual.every((file) => names.has(file)),
     "Unexpected acceptance assets",
   );
-  for (const mode of ["online", "offline"]) {
+  for (const mode of ["online", "offline", "full-no-webview"]) {
     const name = safeName(candidate.installers[mode]);
     assert(names.has(name) && name.endsWith("-setup.exe"), "Missing installer");
   }
-  assert(
-    candidate.installers.online !== candidate.installers.offline,
-    "Installers must be distinct",
-  );
+  assert(new Set(Object.values(candidate.installers)).size === 3, "Installers must be distinct");
   const bytes = await readFile(path.join(directory, "openagent-distribution.json"));
   verifySignedBytes(
     bytes,

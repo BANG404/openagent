@@ -242,6 +242,26 @@ export async function buildAlphaWindows({ version, sourceSha, sdkSha, baselineTa
     target: "windows-x64",
     version,
   });
+  run(
+    process.execPath,
+    [
+      "scripts/tauri-bundle.mjs",
+      "--bundles",
+      "nsis",
+      "--config",
+      "src-tauri/tauri.full.conf.json",
+      "--config",
+      "src-tauri/tauri.full-no-webview.conf.json",
+    ],
+    { env: shellEnvironment },
+  );
+  await stageFullInstaller({
+    bundleRoot: path.join(root, "src-tauri/target"),
+    outputDirectory: output,
+    target: "windows-x64",
+    version,
+    variant: "full-no-webview",
+  });
   await cp(distributionDirectory, output, { recursive: true });
   const url = `https://github.com/BANG404/openagent/releases/download/v${version}/${encodeURIComponent(lightweight[0])}`;
   const entry = {

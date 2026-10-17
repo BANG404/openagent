@@ -13,6 +13,7 @@ import { TERMINAL_TOOLS, terminalToolRelease } from "./terminal-tool-releases.mj
 
 describe("bundled terminal tools", () => {
   test("selects all tools for the requested shell target, using portable Linux binaries", () => {
+    expect(Object.keys(TERMINAL_TOOLS)).toEqual(["rg", "fd", "bat"]);
     for (const target of [
       "x86_64-pc-windows-msvc",
       "x86_64-unknown-linux-gnu",
@@ -84,12 +85,16 @@ describe("bundled terminal tools", () => {
       await writeFile(provenance, JSON.stringify({ target, tools }));
       expect(await preparedTerminalToolsMatch(root, target)).toBe(true);
       expect(await preparedTerminalToolsMatch(root, "x86_64-apple-darwin")).toBe(false);
-      await writeFile(path.join(root, "sd.exe"), "modified");
+      await writeFile(path.join(root, "bat.exe"), "modified");
       expect(await preparedTerminalToolsMatch(root, target)).toBe(false);
-      await writeFile(path.join(root, "sd.exe"), "fixture");
-      await rm(path.join(root, "licenses/sd/LICENSE"));
+      await writeFile(path.join(root, "bat.exe"), "fixture");
+      await rm(path.join(root, "licenses/bat/LICENSE-APACHE"));
       expect(await preparedTerminalToolsMatch(root, target)).toBe(false);
-      await writeFile(path.join(root, "licenses/sd/LICENSE"), "fixture");
+      await writeFile(path.join(root, "licenses/bat/LICENSE-APACHE"), "fixture");
+      tools.retired = { ...tools.rg };
+      await writeFile(provenance, JSON.stringify({ target, tools }));
+      expect(await preparedTerminalToolsMatch(root, target)).toBe(false);
+      delete tools.retired;
       tools.rg.archiveSha256 = "outdated pin";
       await writeFile(provenance, JSON.stringify({ target, tools }));
       expect(await preparedTerminalToolsMatch(root, target)).toBe(false);
@@ -100,7 +105,7 @@ describe("bundled terminal tools", () => {
 
   test("extracts only the executable and license notices", async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "openagent-tool-extract-"));
-    const release = terminalToolRelease("sd", "x86_64-apple-darwin");
+    const release = terminalToolRelease("bat", "x86_64-apple-darwin");
     const source = path.join(root, "source", release.directory);
     const destination = path.join(root, "destination");
     try {

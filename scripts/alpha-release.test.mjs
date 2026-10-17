@@ -172,6 +172,11 @@ test("Windows-only Alpha signs complete resources and rejects corruption, identi
       path.join(directories.distribution, installer.replace("-setup", "-full-setup")),
       "full NSIS fixture",
     );
+    const noWebviewInstaller = installer.replace("-setup", "-full-no-webview-setup");
+    await writeFile(
+      path.join(directories.distribution, noWebviewInstaller),
+      "full without WebView2 NSIS fixture",
+    );
     await writeFile(
       path.join(directories.distribution, "latest.json"),
       JSON.stringify({
@@ -202,7 +207,7 @@ test("Windows-only Alpha signs complete resources and rejects corruption, identi
     );
     await expect(verifyAlphaDistribution(options)).rejects.toThrow("mismatch");
     await expect(verifyAlphaCandidate({ ...options, sourceSha })).rejects.toThrow("mismatch");
-    await rm(path.join(directories.distribution, installer.replace("-setup", "-full-setup")));
+    await rm(path.join(directories.distribution, noWebviewInstaller));
     await writeAlphaCandidate({ ...options, sourceSha, baselineTag: "v0.80.0-beta.1" });
     await writeFile(
       path.join(directories.distribution, "alpha-candidate.json.sig"),

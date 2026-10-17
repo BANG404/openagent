@@ -10,7 +10,16 @@ const DOWNLOADS = [
     architecture: "x64",
     package: "Standard installer",
     description: "Online shell; downloads Runtime, frontend, and embedding resources after launch.",
-    pattern: /(?<!-full)-setup\.exe$/,
+    pattern: /(?<!-full)(?<!-full-no-webview)-setup\.exe$/,
+  },
+  {
+    id: "windows-full-no-webview",
+    platform: "Windows",
+    architecture: "x64",
+    package: "Full installer without WebView2",
+    description:
+      "Includes all application resources; reuses installed WebView2 or downloads it if missing.",
+    pattern: /-full-no-webview-setup\.exe$/,
   },
   {
     id: "windows-full",
@@ -181,7 +190,7 @@ export function createReleaseNotes({ manifest, changelog, assetNames, repository
     return `| ${download.platform} | ${download.architecture} | ${download.package} | [Download](${assetUrl(repository, manifest.tag, name)}) | ${download.description} |`;
   });
   lines.push(
-    "Standard packages are online shells that download verified application resources after launch. Full packages include Runtime, frontend, embedding, and platform helpers for offline first setup. Model providers may still require a network connection.",
+    "Standard packages are online shells that download verified application resources after launch. Full packages include Runtime, frontend, embedding, and platform helpers. The Windows full installer without WebView2 needs Internet only if WebView2 is missing; the other full installers support offline first setup. Model providers may still require a network connection.",
     "",
     "| Platform | Architecture | Package | Link | Description |",
     "| --- | --- | --- | --- | --- |",

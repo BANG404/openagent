@@ -12,7 +12,7 @@ import {
   writeCandidate,
 } from "./windows-acceptance-artifacts.mjs";
 
-test("acceptance candidates bind both installers and reject changed, missing or extra bytes", async () => {
+test("acceptance candidates bind all three installers and reject changed, missing or extra bytes", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "acceptance-contract-"));
   const signer = signingFixture();
   const sourceSha = "a".repeat(40);
@@ -70,6 +70,7 @@ test("acceptance candidates bind both installers and reject changed, missing or 
     const installers = {
       online: "acceptance-online-setup.exe",
       offline: "acceptance-offline-setup.exe",
+      "full-no-webview": "acceptance-full-no-webview-setup.exe",
     };
     for (const file of Object.values(installers))
       await writeFile(path.join(dirs.candidate, file), file);
@@ -93,7 +94,7 @@ test("acceptance candidates bind both installers and reject changed, missing or 
     await writeCandidate(dirs.candidate, { ...identity, sdk_sha: "c".repeat(40) });
     await expect(verifyCandidate(dirs.candidate)).rejects.toThrow("identity mismatch");
     await writeCandidate(dirs.candidate, identity);
-    await rm(path.join(dirs.candidate, installers.offline));
+    await rm(path.join(dirs.candidate, installers["full-no-webview"]));
     await expect(verifyCandidate(dirs.candidate)).rejects.toThrow();
   } finally {
     await rm(root, { recursive: true, force: true });

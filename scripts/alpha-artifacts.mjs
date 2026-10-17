@@ -221,15 +221,18 @@ export async function verifyAlphaCandidate({ directory, version, sourceSha, sdkS
   if (actual.length !== names.size || actual.some((file) => !names.has(file)))
     throw new Error("Unexpected Alpha candidate assets");
   const installer = [...names].filter(
-    (name) =>
-      name.includes(version) && name.endsWith("-setup.exe") && !name.endsWith("-full-setup.exe"),
+    (name) => name.includes(version) && /(?<!-full)(?<!-full-no-webview)-setup\.exe$/.test(name),
   );
   const full = [...names].filter(
     (name) => name.includes(version) && name.endsWith("-full-setup.exe"),
   );
+  const noWebview = [...names].filter(
+    (name) => name.includes(version) && name.endsWith("-full-no-webview-setup.exe"),
+  );
   if (
     installer.length !== 1 ||
     full.length !== 1 ||
+    noWebview.length !== 1 ||
     !names.has(`${installer[0]}.sig`) ||
     !names.has("latest.json")
   )

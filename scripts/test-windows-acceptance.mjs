@@ -23,7 +23,7 @@ async function until(predicate, label, timeout = 120_000) {
 }
 
 /** Real installers, packaged frontend and supervised Runtime; no Vite or debug app.
- * @param {{directory: string; mode: 'online' | 'offline'; reportDirectory: string}} options
+ * @param {{directory: string; mode: 'online' | 'offline' | 'full-no-webview'; reportDirectory: string}} options
  */
 export async function testWindowsAcceptance({ directory, mode, reportDirectory }) {
   assert(process.platform === "win32", "Windows is required");
@@ -106,7 +106,7 @@ export async function testWindowsAcceptance({ directory, mode, reportDirectory }
   }
   /** @param {string} operation @param {object} [args] */
   const invoke = (operation, args = {}) => client("invokeProduct", [operation, args]);
-  let allowDownloads = mode === "offline";
+  let allowDownloads = mode !== "online";
   let downloadCount = 0;
   let modelRequests = 0;
   let toolRequested = false;
@@ -284,7 +284,6 @@ fs.writeFileSync('acceptance-tool-success.txt', 'sandbox and bundled tools verif
       ["terminal-tools/rg.exe", ["--version"]],
       ["terminal-tools/fd.exe", ["--version"]],
       ["terminal-tools/bat.exe", ["--version"]],
-      ["terminal-tools/sd.exe", ["--version"]],
     ];
     for (const [name, args] of bundledTools) {
       const result = spawnSync(path.join(installation, name), args, {
@@ -297,11 +296,11 @@ fs.writeFileSync('acceptance-tool-success.txt', 'sandbox and bundled tools verif
       path.join(installation, "bootstrap-release/openagent-distribution.json"),
     ).catch(() => null);
     assert(
-      Boolean(offlineManifest) === (mode === "offline"),
+      Boolean(offlineManifest) === (mode !== "online"),
       "Installer contains the wrong resource set",
     );
     passed("installer layout and bundled tools execute");
-    if (mode === "offline")
+    if (mode !== "online")
       native("BlockNetwork", { ACCEPTANCE_PROGRAMS: JSON.stringify(offlinePrograms) });
     start();
     if (mode === "online") {
@@ -520,7 +519,7 @@ fs.writeFileSync('acceptance-tool-success.txt', 'sandbox and bundled tools verif
       "Resource source did not match installer mode",
     );
     passed(
-      mode === "offline"
+      mode !== "online"
         ? "offline startup succeeds with host Internet blocked and zero resource requests"
         : "online installer downloads and activates signed resources",
     );
@@ -595,10 +594,10 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     return process.argv[index + 1];
   };
   const mode = option("--mode");
-  assert(mode === "online" || mode === "offline", "Invalid installer mode");
+  assert(["online", "offline", "full-no-webview"].includes(mode), "Invalid installer mode");
   await testWindowsAcceptance({
     directory: path.resolve(option("--artifacts")),
-    mode,
+    mode: /** @type {'online' | 'offline' | 'full-no-webview'} */ (mode),
     reportDirectory: path.resolve(option("--reports")),
   });
 }

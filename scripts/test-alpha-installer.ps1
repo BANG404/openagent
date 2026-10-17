@@ -5,8 +5,9 @@ param(
 $ErrorActionPreference = 'Stop'
 $candidate = Get-Content -LiteralPath (Join-Path $Artifacts 'alpha-candidate.json') -Raw | ConvertFrom-Json
 if ($candidate.version -ne $Version -or $candidate.channel -ne 'alpha') { throw 'Wrong Alpha installer identity' }
-$full = @($candidate.assets | Where-Object { $_.file.EndsWith('-full-setup.exe') })
-if ($full.Count -ne 1) { throw 'Expected one complete Alpha installer' }
+$full = @($candidate.assets | Where-Object { $_.file.EndsWith('-full-setup.exe') -or $_.file.EndsWith('-full-no-webview-setup.exe') })
+if ($full.Count -ne 2) { throw 'Expected both complete Alpha installers' }
+foreach ($package in $full) {
 $fixture = Join-Path ([IO.Path]::GetTempPath()) ('openagent-alpha-install-' + [guid]::NewGuid())
 $installation = Join-Path $fixture 'installed'
 $data = Join-Path $fixture 'data'
@@ -15,11 +16,11 @@ $oldRoot = $env:OPENAGENT_HOME
 $app = $null
 $installer = $null
 try {
-    $installer = Start-Process -FilePath (Join-Path $Artifacts $full[0].file) -ArgumentList @('/S', "/D=$installation") -WindowStyle Hidden -PassThru
+    $installer = Start-Process -FilePath (Join-Path $Artifacts $package.file) -ArgumentList @('/S', "/D=$installation") -WindowStyle Hidden -PassThru
     if (-not $installer.WaitForExit(180000) -or $installer.ExitCode -ne 0) { throw 'Alpha installer failed' }
     $executable = Join-Path $installation 'openagent.exe'
     if ((Get-Item -LiteralPath $executable).VersionInfo.ProductVersion -ne $Version) { throw 'Installed shell version mismatch' }
-    foreach ($resource in @('bootstrap-release/openagent-distribution.json', 'node-runtime/node.exe', 'terminal-tools/rg.exe', 'terminal-tools/fd.exe', 'terminal-tools/bat.exe', 'terminal-tools/sd.exe')) {
+    foreach ($resource in @('bootstrap-release/openagent-distribution.json', 'node-runtime/node.exe', 'terminal-tools/rg.exe', 'terminal-tools/fd.exe', 'terminal-tools/bat.exe')) {
         if (-not (Test-Path -LiteralPath (Join-Path $installation $resource))) { throw "Missing installed resource: $resource" }
     }
     $env:OPENAGENT_HOME = $data
@@ -59,4 +60,5 @@ try {
     }
     $env:OPENAGENT_HOME = $oldRoot
     # Retain this task-owned fixture for local diagnostics. CI never uploads its data/logs.
+}
 }

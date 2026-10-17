@@ -432,7 +432,7 @@ describe("release CI verification", () => {
     expect(releaseWorkflow).not.toContain("pattern: runtime-component-*");
     expect(
       releaseWorkflow.match(/OPENAGENT_RUNTIME_TARGET: \$\{\{ matrix\.sidecar_target \}\}/g),
-    ).toHaveLength(2);
+    ).toHaveLength(3);
     expect(releaseWorkflow).not.toContain("TAURI_ENV_ARCH:");
     expect(releaseWorkflow).toContain(
       "shared-key: public-host-release-${{ matrix.runtime_target }}",
