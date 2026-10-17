@@ -67,7 +67,12 @@ plugins and expand the exact owner card, including disabled packages.
 Integrations → Skills browses the Runtime's `list_skills` inventory: global,
 current workspace, and enabled plugin skills. It shows name, description, scope,
 Runtime-resolved directory and read-only SKILL.md content, with search and
-refresh. Open local directory passes that exact directory through the existing
+refresh. The source Select combines all/global/workspace/plugin filtering with
+text search; selection follows the filtered list and clears when no rows match.
+Each collection row shows its description beneath its name and retains source
+provenance separately. Visible Windows drive and UNC paths omit the verbatim
+namespace prefix; retain the original Runtime path for identity, reads and opens.
+Open local directory passes that exact directory through the existing
 SDK desktop path capability; failures remain visible and retryable. Never infer
 skill paths from manifest names. The selected plugin card also lists its skill
 metadata and resolves directory actions by plugin scope and skill name. Disabled
@@ -85,7 +90,8 @@ must not key the list or resolve the selected detail.
 Run `bun run test:blackbox:integration-inventory` against the isolated
 `integration-provenance` instance and explicit Pilot socket. It covers source
 navigation, same-named package MCP servers, plugin and workspace skill metadata,
-content, overlapping global/workspace directory selection and refresh,
+content, source filters combined with search, description rows, display paths,
+plugin/Skills menu shortcuts, overlapping global/workspace directory selection and refresh,
 directory opening and failure, disablement and uninstall in
 light/dark and Chinese/English. Global skills use the same inventory projection;
 fixtures must never write to the user's global skill directory.

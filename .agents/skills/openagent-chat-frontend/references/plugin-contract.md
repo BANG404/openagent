@@ -16,6 +16,10 @@ controls. Keep it out of conversation state; the plugin owner documents source
 associations and task-safe activation. Refresh notifications reload package
 summaries while preserving the operation status a user is reading.
 
+The Integrations menu displays and handles the same primary-modifier shortcuts:
+Shift+7 opens Plugins and Shift+8 opens Skills (Ctrl on Windows/Linux, Cmd on
+macOS). Keep menu hints and global keyboard routing aligned.
+
 The product page injects its shared SDK client and resource event listener into
 `OnboardingFlow`. The embedded first-run welcome uses that same component with
 native provisioning props and has no SDK transport. Inline onboarding completion

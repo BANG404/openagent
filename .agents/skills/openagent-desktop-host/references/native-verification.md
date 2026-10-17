@@ -73,7 +73,8 @@ Run `bun run test:blackbox:memory` against the same isolated debug instance and
 scope changes, and cleanup cancellation. Its
 `retired-management-controls.toml` scenario also asserts that the memory toolbar
 contains only Refresh, Automation has no menu or settings tabs, and the retired
-Alt+U / Ctrl+Shift+7 / Ctrl+Shift+8 shortcuts leave Memory Management open. Run
+Alt+U shortcut leaves Memory Management open. Ctrl+Shift+7 and Ctrl+Shift+8 now
+open Plugins and Skills, covered by `test:blackbox:integration-inventory`. Run
 these assertions in all light/dark and Chinese/English visual passes. The runner
 temporarily puts an empty
 directory at the fixture's global `memory.md` path to exercise a real write
