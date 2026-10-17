@@ -25,6 +25,7 @@ describe("settings window domains", () => {
 
   test("falls back to the domain's first section for an unknown request", () => {
     expect(settingsWindowSection("integrations", "plugins")).toBe("plugins");
+    expect(settingsWindowSection("integrations", "skills")).toBe("skills");
     expect(settingsWindowSection("integrations", "lifecycle")).toBe("channels");
     expect(settingsWindowSection("general", undefined)).toBe("general");
   });

@@ -391,6 +391,20 @@ const en: Record<TranslationKeys, string> = {
   agentRunFailed: "Run failed",
   agentRunInterrupted: "Run interrupted",
   agentReplyCompletedNotification: "Agent finished responding",
+  integrationSkillSource: "Source",
+  integrationSource: "Source plugin",
+  integrationOpenDirectory: "Open local directory",
+  integrationOpenFailed: "Could not open directory",
+  integrationSkillSearch: "Search skills",
+  integrationWorkspaceSkill: "Workspace skill",
+  integrationGlobalSkill: "Global skill",
+  integrationSkillsEmpty: "No matching skills.",
+  integrationSkillsHint:
+    "Browse global, workspace and enabled plugin skills. Refresh after changing local files.",
+  integrationSkillUnavailable:
+    "Enable the plugin and refresh Skills to resolve its local directory.",
+  integrationPluginMcpHint:
+    "This MCP server is provided by the source plugin. Configuration and enablement are managed together with that plugin.",
   extensions: "MCP",
   plugins: "Plugins",
   pluginMarketplaceTab: "Marketplace",

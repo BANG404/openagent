@@ -2738,3 +2738,28 @@
     gap: 10px;
   }
 }
+
+.plugin-component-details {
+  display: grid;
+  gap: 12px;
+  margin-block: 20px;
+}
+.plugin-component-row {
+  padding-block: 8px;
+  border-bottom: 1px solid var(--mica-divider);
+}
+.integration-path {
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+.integration-list-skeleton {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+.integration-list-skeleton span {
+  height: 36px;
+  border-radius: 8px;
+  background: var(--control-surface);
+}

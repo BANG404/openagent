@@ -1,28 +1,55 @@
 <script lang="ts">
   import { ContextMenu, Tabs } from "bits-ui";
-  import { t } from "$lib/i18n";
+  import { t, locale } from "$lib/i18n";
+  import { pluginText } from "$lib/pluginI18n";
   import Select from "../ui/Select.svelte";
   import Switch from "../ui/Switch.svelte";
   import SettingsActionButton from "../ui/SettingsActionButton.svelte";
   import SettingsStatusToggle from "../ui/SettingsStatusToggle.svelte";
   import ScrollArea from "../ui/ScrollArea.svelte";
   import { useSettingsContext } from "$lib/settings/context";
-  const { mcp, draft } = useSettingsContext();
+  import PluginSource from "./PluginSource.svelte";
+  import PluginSetup from "./PluginSetup.svelte";
+  const { mcp, draft, plugins, openPlugin } = useSettingsContext();
+  let selectedPluginKey = $state<string | null>(null);
+  const pluginServers = $derived(
+    plugins.agentPlugins.flatMap((plugin) =>
+      plugin.mcp_servers.map((server) => ({
+        key: `plugin:${plugin.id}:${server.name}`,
+        plugin,
+        server,
+      })),
+    ),
+  );
+  const selectedPluginServer = $derived(
+    pluginServers.find((entry) => entry.key === selectedPluginKey),
+  );
+  $effect(() => {
+    if (plugins.agentPluginsLoading) return;
+    if (selectedPluginKey && !selectedPluginServer) selectedPluginKey = null;
+    if (!selectedPluginKey && !mcp.userMcpServers.length && pluginServers.length)
+      selectedPluginKey = pluginServers[0].key;
+  });
 </script>
 
 <Tabs.Content value="extensions" class="settings-tab-panel">
   <div class="settings-list-col">
     <ScrollArea height="100%" class="provider-list-scroll" scrollHideDelay={350}>
       <div class="provider-list">
-        {#if mcp.userMcpServers.length === 0}
+        {#if mcp.userMcpServers.length === 0 && pluginServers.length === 0 && !plugins.agentPluginsLoading}
           <div class="provider-list-empty">{$t("noMcpServers")}</div>
         {:else}
           {#each mcp.userMcpServers as server (server.id)}
             <ContextMenu.Root>
               <ContextMenu.Trigger>
                 <button
-                  class="provider-item {mcp.selectedMcpId === server.id ? 'active' : ''}"
-                  onclick={() => (mcp.selectedMcpId = server.id)}
+                  class="provider-item {!selectedPluginKey && mcp.selectedMcpId === server.id
+                    ? 'active'
+                    : ''}"
+                  onclick={() => {
+                    selectedPluginKey = null;
+                    mcp.selectedMcpId = server.id;
+                  }}
                 >
                   <div class="provider-item-icon mcp-icon">M</div>
                   <div class="provider-item-info">
@@ -52,6 +79,39 @@
             </ContextMenu.Root>
           {/each}
         {/if}
+        {#if plugins.agentPluginsLoading}
+          <div class="integration-list-skeleton" aria-busy="true" aria-label={$t("pluginLoading")}>
+            <span></span><span></span>
+          </div>
+        {/if}
+        {#each pluginServers as entry (entry.key)}
+          <button
+            class="provider-item"
+            class:active={selectedPluginKey === entry.key}
+            data-plugin-mcp={entry.key}
+            onclick={() => (selectedPluginKey = entry.key)}
+          >
+            <div class="provider-item-icon mcp-icon">M</div>
+            <div class="provider-item-info">
+              <span class="provider-item-name">{entry.server.name}</span>
+              <span class="provider-item-url"
+                >{$t("integrationSource")}: {pluginText(
+                  entry.plugin.i18n,
+                  $locale,
+                  "display_name",
+                  entry.plugin.name,
+                )}</span
+              >
+            </div>
+            <span
+              class:provider-enabled-dot={plugins.agentPluginEnabled(entry.plugin.id)}
+              class:provider-disabled-dot={!plugins.agentPluginEnabled(entry.plugin.id)}
+            ></span>
+          </button>
+        {/each}
+        {#if plugins.agentPluginStatus}<p class="provider-status error" role="status">
+            {plugins.agentPluginStatus}
+          </p>{/if}
       </div>
     </ScrollArea>
     <div class="list-footer">
@@ -59,12 +119,43 @@
         label={$t("addMcpServer")}
         icon="add"
         fullWidth
-        onclick={mcp.addMcpServer}
+        onclick={() => {
+          selectedPluginKey = null;
+          mcp.addMcpServer();
+        }}
       />
     </div>
   </div>
 
-  {#if mcp.selectedMcpServer && mcp.selectedMcpIndex >= 0}
+  {#if selectedPluginServer}
+    {@const entry = selectedPluginServer}
+    <ScrollArea height="100%" class="settings-content-col" scrollHideDelay={350}>
+      <section class="detail-section" data-plugin-mcp-detail={entry.key}>
+        <div class="detail-section-header">
+          <h4 class="detail-section-title">{entry.server.name}</h4>
+          <SettingsStatusToggle
+            checked={plugins.agentPluginEnabled(entry.plugin.id)}
+            disabled={!!entry.plugin.error}
+            onCheckedChange={(enabled) => plugins.setAgentPluginEnabled(entry.plugin.id, enabled)}
+            ariaLabel={$t("pluginEnable")}
+          />
+        </div>
+        <PluginSource plugin={entry.plugin} onOpen={openPlugin} />
+        <p class="detail-hint">{entry.server.transport}</p>
+        <p class="detail-hint">{$t("integrationPluginMcpHint")}</p>
+        {#if entry.plugin.error}<p class="provider-status error" role="alert">
+            {entry.plugin.error}
+          </p>
+        {:else}
+          {#key entry.plugin.id}<PluginSetup
+              plugin={entry.plugin}
+              setup={plugins.setup}
+              enabled={plugins.agentPluginEnabled(entry.plugin.id)}
+            />{/key}
+        {/if}
+      </section>
+    </ScrollArea>
+  {:else if mcp.selectedMcpServer && mcp.selectedMcpIndex >= 0}
     {@const server = draft.draftConfig.mcp.servers[mcp.selectedMcpIndex]}
     {@const status = mcp.mcpTestStatus[server.id]}
     {@const discoveredTools = mcp.mcpDiscoveredTools[server.id] ?? []}
@@ -81,6 +172,10 @@
         />
       </div>
       <ScrollArea height="100%" class="detail-content mcp-detail-content" scrollHideDelay={350}>
+        {@const owner = server.plugin_owned
+          ? plugins.agentPlugins.find((plugin) => plugin.id === server.id)
+          : undefined}
+        {#if owner}<PluginSource plugin={owner} onOpen={openPlugin} />{/if}
         <section class="detail-section mcp-form-section">
           <h4 class="detail-section-title">{$t("basicInfo")}</h4>
           <div class="detail-grid mcp-detail-grid">

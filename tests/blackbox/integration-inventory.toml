@@ -1,0 +1,20 @@
+[scenario]
+name = "skill metadata and exact local directory"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "workspace metadata content and localized directory action"
+action = "eval"
+script = '''(() => {
+  const panel = document.querySelector('[data-skill-detail]');
+  const probe = window.__inventoryProbe;
+  if (panel?.dataset.skillDetail !== probe.directory ||
+      !panel.textContent.includes('Workspace inventory fixture') ||
+      !panel.textContent.includes(probe.source) ||
+      panel.querySelector('[data-open-skill-directory] button')?.textContent.trim() !== probe.open)
+    throw new Error('Skill metadata, provenance, directory or localized action missing');
+  if (!document.querySelector('[data-skill-content]')?.textContent.includes('Local skill instructions.'))
+    throw new Error('Actual SKILL.md content is missing');
+  return true;
+})()'''

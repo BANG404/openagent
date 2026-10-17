@@ -15,7 +15,10 @@
 
   let spec = $derived(settingsWindowSkeletonSpec(kind, initialSection));
   let hasCollection = $derived(
-    spec.layout === "providers" || spec.layout === "channels" || spec.layout === "extensions",
+    spec.layout === "providers" ||
+      spec.layout === "channels" ||
+      spec.layout === "extensions" ||
+      spec.layout === "skills",
   );
   let contentGroups = $derived(
     spec.section === "general"

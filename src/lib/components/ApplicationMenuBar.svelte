@@ -497,6 +497,11 @@
             >{primaryModifier}+Shift+7</span
           ></DropdownMenu.Item
         >
+        <DropdownMenu.Item
+          class="application-menu-item"
+          onSelect={() => onOpenSettingsWindow("integrations", "skills")}
+          ><span>{$t("skills")}…</span></DropdownMenu.Item
+        >
       </DropdownMenu.Content>
     </DropdownMenu.Portal>
   </DropdownMenu.Root>
