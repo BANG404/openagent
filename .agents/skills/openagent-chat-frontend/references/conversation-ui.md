@@ -1,5 +1,11 @@
 # Conversation components
 
+Assistant reply timestamps share the footer metadata typography with first-token
+timing and cache usage: 11px, unit line height and muted foreground, vertically
+centered in the same wrapping row. Keep their style rule shared so timestamps
+cannot drift into a smaller caption style. Verify computed typography and row
+alignment in light/dark and English/Chinese with `bun run test:blackbox:turn-footer`.
+
 Sidebar child conversations expand beneath the active ancestor with 24px of
 indentation per level, a neutral connector rail, and a rounded elbow ending at
 the last direct child's row center. Ancestor rails continue past expanded
