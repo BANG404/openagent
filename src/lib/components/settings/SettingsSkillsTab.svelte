@@ -85,14 +85,16 @@
   </div>
   <ScrollArea height="100%" class="settings-content-col" scrollHideDelay={350}>
     {#if skill && !integrations.loading && !integrations.error}
-      <section class="detail-section" data-skill-detail={skill.path}>
+      <section class="detail-section skill-detail" data-skill-detail={skill.path}>
         <h4 class="detail-section-title">{skill.name}</h4>
         <p class="skill-description">{skill.description}</p>
-        {#if owner}<PluginSource plugin={owner} onOpen={openPlugin} />
-        {:else}<p class="detail-hint">
-            {$t("integrationSkillSource")}: {sourceLabel(skill.scope)}
-          </p>{/if}
-        <p class="skill-path">{displayPath(skill.path)}</p>
+        <div class="skill-metadata">
+          {#if owner}<PluginSource plugin={owner} onOpen={openPlugin} />
+          {:else}<p class="detail-hint">
+              {$t("integrationSkillSource")}: {sourceLabel(skill.scope)}
+            </p>{/if}
+          <p class="skill-path">{displayPath(skill.path)}</p>
+        </div>
         <div data-open-skill-directory>
           <SettingsActionButton
             label={$t("integrationOpenDirectory")}
@@ -141,12 +143,16 @@
     line-height: 1.5;
   }
   .skill-description {
+    margin: 0;
     font-size: 13px;
+    line-height: 1.6;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }
   .skill-path {
+    margin: 0;
     font-size: 12px;
+    line-height: 1.5;
     color: var(--muted-foreground);
     overflow-wrap: anywhere;
   }
@@ -156,6 +162,22 @@
     font-size: 12px;
     line-height: 1.6;
     user-select: text;
+  }
+  .skill-detail {
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+  }
+  .skill-detail .detail-section-title {
+    margin: 0;
+  }
+  .skill-metadata {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+  .skill-metadata .detail-hint {
+    margin: 0;
   }
   .skill-skeleton {
     display: grid;

@@ -25,6 +25,12 @@ owner documents the availability projection and native navigation coverage.
 
 ### Spacing System
 
+Skill details use a 12px vertical gap between the title, description, metadata
+group and directory action. Source and wrapping path stay together with a 4px
+gap; reset heading and paragraph margins inside these groups so browser defaults
+do not collapse or double their spacing. Keep the 24px section break before
+the SKILL.md content and readable description/path line heights.
+
 - **Base unit:** 8px. Sub-base values (2, 4, 5, 6, 7) are used for tight typographic adjustments; structural layout snaps to 8/12/16/20/24.
 - **Tokens:** `{spacing.xxs}` 4px · `{spacing.xs}` 8px · `{spacing.sm}` 12px · `{spacing.md}` 17px · `{spacing.lg}` 24px · `{spacing.xl}` 32px · `{spacing.xxl}` 48px · `{spacing.section}` 80px.
 - **Section vertical padding:** `{spacing.section}` (80px) inside a product tile; tiles stack edge-to-edge with 0 gap (the color change provides the break).
