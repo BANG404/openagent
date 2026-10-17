@@ -59,8 +59,8 @@ cd src-tauri && cargo check
 
 Before committing, inspect the complete diff, stage intended new files, and run
 `bun run preflight`. It evaluates the branch, index, worktree, and untracked
-filenames against the selected baseline. Manual verification on `main` uses `origin/main`; OWT branches use local
-`main` so unpublished local commits do not expand the task scope. Set
+filenames against the selected baseline. Manual verification on `main` uses `origin/main`; OWT delivery passes the recorded local
+`main` SHA so unpublished local commits do not expand the task scope. Set
 `PREFLIGHT_BASE` or pass `--base <ref>` when a batch coordinator records a
 different immutable base. Use `--dry-run` to inspect the plan.
 
@@ -145,6 +145,6 @@ layout-stable skeleton.
   `tauri-pilot` black-box scenario, including light/dark themes and Chinese/English where applicable. See `.agents/skills/openagent-desktop-host/references/native-verification.md`.
 
 ## Delivery
-Every repository-changing task uses `deliver-via-owt`: implement in isolated worktrees, verify, and fast-forward into local `main`, keeping the default directory available for debugging.
+Every repository-changing task uses `deliver-via-owt`: reuse a suitable isolated conversation worktree or create one when needed, verify, and fast-forward into local `main`. The skill owns eligibility and cleanup; keep the default directory available for debugging.
 Batches coordinate concurrent tasks; the skill owns preservation, reconciliation, and cleanup.
 The workspace owner authorizes plugin updates and pushes, and proactive synchronization and pushes of verified repository changes to remote `main` without further confirmation. User instructions override delivery.
