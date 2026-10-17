@@ -122,7 +122,7 @@
   }
   .skill-path {
     font-size: 12px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
     overflow-wrap: anywhere;
   }
   .skill-content {
@@ -139,7 +139,7 @@
   }
   .skill-skeleton div {
     height: 36px;
-    border-radius: 8px;
+    border-radius: calc(var(--radius) * 0.666667);
     background: var(--control-surface);
   }
 </style>

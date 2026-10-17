@@ -20,7 +20,7 @@
     gap: 6px;
     align-items: baseline;
     font-size: 12px;
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
   button {
     padding: 0;
