@@ -140,7 +140,7 @@ describe("desktop navigation chrome", () => {
     expect(menuBar).toContain('key === "w") runShortcut(event, onCloseWindow)');
     const host = hostRustSource();
     expect(host).toContain("tauri::RunEvent::Reopen");
-    expect(titleBar).toMatch(/\.title-bar\s*{[^}]*background: transparent;/s);
+    expect(titleBar).toMatch(/\.title-bar\s*{[^}]*background: var\(--sidebar\);/s);
     expect(titleBar).toContain("height: var(--desktop-titlebar-height)");
     expect(sidebar).not.toContain("border-right:");
     expect(titleBar).not.toContain("border-bottom:");

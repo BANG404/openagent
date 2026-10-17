@@ -65,7 +65,8 @@ radius, font loading, menus and chart palettes, not just root variable strings.
 `bun run test:blackbox:semantic-themes` installs the collection from
 `plugins/<id>` into an explicit isolated `plugin-presentation` home and Pilot
 socket. It checks all ten packages in light/dark and English/Chinese, captures
-native screenshots, and restores settings/removes its packages on exit. On
+native screenshots, asserts that rendered title-bar and sidebar backgrounds and
+control foregrounds match, and restores settings/removes its packages on exit. On
 Windows supply the verified main HWND as `BLACKBOX_NATIVE_WINDOW_ID`.
 Pass `--release` to install the public repository releases instead of local
 source directories and repeat the same actual selection/rendering assertions.

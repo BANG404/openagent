@@ -141,6 +141,8 @@ try {
         if(JSON.stringify(chart.getOption().color)!==JSON.stringify([1,2,3,4,5].map(i=>palette['chart-'+i])))throw Error('Mounted chart palette stale');
         probe.remove();
       `);
+        evaluate("delete window.__nativeBackgroundGeometry; true");
+        pilot(["run", join(root, "tests/blackbox/native-background.toml")]);
         pilot(["click", "[data-appearance-theme] button"]);
         await operation(
           `const menu=document.querySelector('[role=listbox]');if(!menu)throw Error('Theme selector menu missing');const probe=document.createElement('div');probe.style.background='var(--menu-surface)';document.body.append(probe);if(getComputedStyle(menu).backgroundColor!==getComputedStyle(probe).backgroundColor)throw Error('Menu color mismatch');probe.remove();`,
@@ -154,6 +156,10 @@ try {
       await operation(
         `document.querySelector('[role=dialog] button[aria-label="Close"], [role=dialog] button[aria-label="关闭"]')?.click();`,
       );
+      await wait("!document.querySelector('[data-appearance-theme]')");
+      evaluate("document.querySelector('#semantic-theme-renderers').hidden=true; true");
+      captureBlackboxScreenshot(pilot, join(artifacts, `shell-${mode}-${language}.png`));
+      evaluate("document.querySelector('#semantic-theme-renderers').hidden=false; true");
       captureBlackboxScreenshot(pilot, join(artifacts, `renderers-${mode}-${language}.png`));
     }
 } finally {

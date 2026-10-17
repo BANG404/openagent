@@ -165,7 +165,16 @@
     align-items: center;
     height: var(--desktop-titlebar-height);
     box-sizing: border-box;
-    background: transparent;
+    background: var(--sidebar);
+    color: var(--sidebar-foreground);
+    --foreground: var(--sidebar-foreground);
+    --muted-foreground: var(--sidebar-foreground);
+    --primary: var(--sidebar-primary);
+    --primary-foreground: var(--sidebar-primary-foreground);
+    --accent: var(--sidebar-accent);
+    --interactive-state-bg: var(--sidebar-accent);
+    --accent-foreground: var(--sidebar-accent-foreground);
+    --ring: var(--sidebar-ring);
     user-select: none;
   }
 

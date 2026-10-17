@@ -211,6 +211,7 @@
     display: flex;
     flex-direction: column;
     background: var(--sidebar);
+    background-clip: content-box;
     color: var(--sidebar-foreground);
     --foreground: var(--sidebar-foreground);
     --primary: var(--sidebar-primary);
