@@ -315,7 +315,7 @@ function acquireLock(path) {
         continue;
       }
       if (Date.now() - startedAt >= LOCK_TIMEOUT_MS) {
-        throw new Error(`Timed out waiting for OWT batch lock: ${path}`, { cause: error });
+        throw new Error(`Timed out waiting for OWT lock: ${path}`, { cause: error });
       }
       Atomics.wait(WAIT_BUFFER, 0, 0, LOCK_WAIT_MS);
     }
@@ -330,6 +330,13 @@ function withLock(path, callback) {
   } finally {
     rmSync(path, { recursive: true, force: true });
   }
+}
+
+/** Share the short main-update lock with ordinary conversation deliveries.
+ * @template T @param {string} repo @param {() => T} callback
+ */
+export function withLocalDeliveryLock(repo, callback) {
+  return withLock(resolve(commonDirectory(repo), "openagent-owt", "delivery.lock"), callback);
 }
 
 /** @param {string} root @param {string} batchId @returns {BatchState} */

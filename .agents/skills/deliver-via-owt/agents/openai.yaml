@@ -1,4 +1,4 @@
 interface:
   display_name: "Deliver via OWT"
   short_description: "Deliver verified changes through OWT"
-  default_prompt: "Use $deliver-via-owt to reuse a suitable isolated worktree or create one if needed, verify and fast-forward changes into local main, and clean up only task-owned temporary resources."
+  default_prompt: "Use $deliver-via-owt with the simple Codex worktree path when available: validate and return changes automatically to local main, retain the managed checkout, and use ordinary OWT otherwise."

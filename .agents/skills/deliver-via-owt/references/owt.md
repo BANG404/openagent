@@ -1,7 +1,10 @@
 # OWT delivery
 
-OWT is the only repository delivery workflow, including single-agent tasks.
-No prompt prefix selects a mode. Keep the default worktree on local `main`
+OWT supports Codex-managed and ordinary Git worktrees. For a conversation in an
+eligible isolated checkout, prefer [the short Codex path](codex-worktree.md):
+validate, commit, and return automatically to local `main` without a task branch
+or batch. Use the ordinary steps below when Codex-managed worktrees are
+unavailable. No prompt prefix selects a mode. Keep the default worktree on local `main`
 for developer debugging; implement and validate in an isolated task worktree.
 Reuse the conversation's worktree when it meets the selection rules below.
 Never switch the default worktree to a task or integration branch.
@@ -31,12 +34,14 @@ that ownership before delivery; never switch an unrelated checkout to `main`.
   worktree on an older ancestor may fast-forward to that SHA before editing.
   Never reset or rebase a checkout to make it eligible. A resumed task may keep
   its identified task changes and original recorded base; inspect them first.
-- Keep an existing dedicated task branch, including a `codex/` branch. For a
-  detached checkout, create a unique `agent/<task-slug>` branch at its current
-  `HEAD` in the same directory; do not create a second worktree. Never use `main`
-  as a task branch.
+- Keep an existing dedicated task branch, including a `codex/` branch. The
+  short Codex path also accepts detached HEAD without creating a branch. Only
+  the ordinary branch workflow or an explicitly coordinated batch needs a
+  unique `agent/<task-slug>` branch at that `HEAD`; do not create a second
+  worktree. Never use `main` as a task branch.
 - When starting in the default directory, or when the current checkout is
-  ineligible, create a unique `agent/<task-slug>` branch and new sibling worktree
+  ineligible, prefer Codex's managed creation when available, using the recorded
+  local `main` SHA. Otherwise create a unique `agent/<task-slug>` branch and new sibling worktree
   from the recorded committed local `main` SHA. Leave the original checkout and
   its changes intact, and report the selected task path.
 

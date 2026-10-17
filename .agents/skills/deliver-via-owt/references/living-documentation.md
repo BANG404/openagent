@@ -54,7 +54,8 @@ private SDK gitlink.
 - `AGENTS.md` and skills contain durable guidance rather than task history.
 - Skill metadata still describes the situations that should trigger it.
 - Public documentation contains no private SDK implementation detail.
-- OWT reached its terminal state under [the delivery contract](owt.md): verified
+- Delivery used the [short Codex path](codex-worktree.md) for eligible
+  conversation worktrees or [ordinary OWT](owt.md) when needed: verified
   commits are fast-forwarded into local `main`, task-created temporary resources
   are cleaned up, and reused worktrees stay with their manager. Report actual
   push status separately. The default directory stays on `main` for developer

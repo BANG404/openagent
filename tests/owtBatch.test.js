@@ -20,6 +20,7 @@ import {
   sealBatch,
   taskEnvironment,
 } from "../.agents/skills/deliver-via-owt/scripts/coordinate-owt-batch.mjs";
+import { finishWorktree } from "../.agents/skills/deliver-via-owt/scripts/finish-worktree.mjs";
 
 const temporaryRoots = [];
 const coordinator = fileURLToPath(
@@ -100,6 +101,263 @@ function runCoordinator(cwd, args) {
     });
   });
 }
+
+function createConversation() {
+  const fixture = createRepository();
+  const worktree = join(fixture.root, "Codex conversation");
+  git(fixture.repo, ["worktree", "add", "--detach", worktree, fixture.base]);
+  return { ...fixture, worktree };
+}
+
+function stageFeature(worktree, file = "feature.txt", content = "task\n") {
+  writeFileSync(join(worktree, file), content);
+  git(worktree, ["add", file]);
+}
+
+describe("Codex conversation delivery", () => {
+  test("the CLI runs preflight with the immutable base and propagates its real exit status", () => {
+    const finisher = fileURLToPath(
+      new URL("../.agents/skills/deliver-via-owt/scripts/finish-worktree.mjs", import.meta.url),
+    );
+    for (const fail of [false, true]) {
+      const { root, repo } = createRepository();
+      writeFileSync(
+        join(repo, "package.json"),
+        JSON.stringify({ scripts: { preflight: "bun preflight.mjs" } }),
+      );
+      writeFileSync(
+        join(repo, "preflight.mjs"),
+        `
+import { execFileSync } from "node:child_process";
+import { writeFileSync } from "node:fs";
+writeFileSync(execFileSync("git", ["rev-parse", "--git-path", "preflight-fixture.json"], { encoding: "utf8" }).trim(), JSON.stringify(process.argv.slice(2)));
+process.exit(${fail ? 23 : 0});
+`,
+      );
+      git(repo, ["add", "package.json", "preflight.mjs"]);
+      git(repo, ["commit", "-m", "test: fixture validation"]);
+      const base = git(repo, ["rev-parse", "HEAD"]);
+      const worktree = join(root, "Codex CLI worktree");
+      git(repo, ["worktree", "add", "--detach", worktree, base]);
+      stageFeature(worktree);
+      const invoke = () =>
+        execFileSync(
+          process.execPath,
+          [finisher, "--repo", worktree, "--base", base, "--message", "feat: CLI task"],
+          { cwd: repo, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+        );
+      if (fail) {
+        expect(invoke).toThrow();
+        expect(git(repo, ["rev-parse", "HEAD"])).toBe(base);
+        expect(git(worktree, ["rev-parse", "HEAD"])).toBe(base);
+        expect(git(worktree, ["show", ":feature.txt"])).toBe("task");
+      } else {
+        expect(invoke()).toContain('"action": "integrated"');
+        expect(git(repo, ["rev-parse", "HEAD"])).toBe(git(worktree, ["rev-parse", "HEAD"]));
+        expect(readFileSync(join(repo, "feature.txt"), "utf8")).toBe("task\n");
+      }
+      const log = git(worktree, ["rev-parse", "--git-path", "preflight-fixture.json"]);
+      expect(JSON.parse(readFileSync(log, "utf8"))).toEqual(["--base", base]);
+    }
+  }, 20_000);
+
+  test("validates and commits detached work, updates local main and retains the same checkout", () => {
+    const { repo, worktree, base } = createConversation();
+    stageFeature(worktree);
+    const worktrees = git(repo, ["worktree", "list", "--porcelain"]);
+    let checks = 0;
+    const result = finishWorktree(
+      worktree,
+      { base, message: "feat: reviewed task" },
+      (root, sha) => {
+        expect(root.replaceAll("\\", "/")).toBe(worktree.replaceAll("\\", "/"));
+        expect(sha).toBe(base);
+        expect(git(repo, ["rev-parse", "HEAD"])).toBe(base);
+        expect(git(root, ["show", ":feature.txt"])).toBe("task");
+        checks += 1;
+      },
+    );
+    expect(checks).toBe(1);
+    expect(result).toMatchObject({
+      action: "integrated",
+      taskBranch: null,
+      worktreeRetained: true,
+      pushed: false,
+    });
+    expect(git(repo, ["rev-parse", "HEAD"])).toBe(result.verifiedHead);
+    expect(git(worktree, ["rev-parse", "HEAD"])).toBe(result.verifiedHead);
+    expect(git(worktree, ["branch", "--show-current"])).toBe("");
+    expect(git(repo, ["branch", "--format=%(refname:short)"])).toBe("main");
+    expect(git(repo, ["branch", "--show-current"])).toBe("main");
+    expect(git(repo, ["worktree", "list", "--porcelain"]).match(/worktree /g)).toHaveLength(
+      worktrees.match(/worktree /g).length,
+    );
+    expect(readFileSync(join(repo, "feature.txt"), "utf8")).toBe("task\n");
+    expect(git(repo, ["status", "--porcelain"])).toBe("");
+    expect(git(worktree, ["status", "--porcelain"])).toBe("");
+  }, 20_000);
+
+  test("preserves an existing Codex branch and supports already committed tasks", () => {
+    const { repo, worktree, base } = createConversation();
+    git(worktree, ["switch", "-c", "codex/existing"]);
+    stageFeature(worktree);
+    git(worktree, ["commit", "-m", "feat: existing task"]);
+    const head = git(worktree, ["rev-parse", "HEAD"]);
+    const result = finishWorktree(worktree, { base }, () => {});
+    expect(result.verifiedHead).toBe(head);
+    expect(git(worktree, ["branch", "--show-current"])).toBe("codex/existing");
+    expect(git(repo, ["rev-parse", "HEAD"])).toBe(head);
+    expect(existsSync(worktree)).toBe(true);
+  }, 20_000);
+
+  test("merges concurrent main commits in the conversation and revalidates the combined tree", () => {
+    const { repo, worktree, base } = createConversation();
+    stageFeature(worktree);
+    let checks = 0;
+    let concurrent = "";
+    const result = finishWorktree(worktree, { base, message: "feat: task" }, (root) => {
+      checks += 1;
+      if (checks === 1) {
+        stageFeature(repo, "concurrent.txt", "other task\n");
+        git(repo, ["commit", "-m", "feat: concurrent delivery"]);
+        concurrent = git(repo, ["rev-parse", "HEAD"]);
+      } else {
+        expect(readFileSync(join(root, "concurrent.txt"), "utf8")).toBe("other task\n");
+        expect(readFileSync(join(root, "feature.txt"), "utf8")).toBe("task\n");
+        expect(git(repo, ["rev-parse", "HEAD"])).toBe(concurrent);
+      }
+    });
+    expect(checks).toBe(2);
+    expect(git(repo, ["rev-parse", "HEAD"])).toBe(result.verifiedHead);
+    expect(git(repo, ["rev-parse", `${result.verifiedHead}^2`])).toBe(concurrent);
+    expect(readFileSync(join(repo, "feature.txt"), "utf8")).toBe("task\n");
+    expect(readFileSync(join(repo, "concurrent.txt"), "utf8")).toBe("other task\n");
+  }, 20_000);
+
+  test("failed validation preserves the reviewed index and leaves main unchanged", () => {
+    const { repo, worktree, base } = createConversation();
+    stageFeature(worktree);
+    const status = git(worktree, ["status", "--porcelain"]);
+    expect(() =>
+      finishWorktree(worktree, { base, message: "feat: task" }, () => {
+        throw new Error("fixture validation failed");
+      }),
+    ).toThrow("fixture validation failed");
+    expect(git(worktree, ["rev-parse", "HEAD"])).toBe(base);
+    expect(git(worktree, ["status", "--porcelain"])).toBe(status);
+    expect(git(repo, ["rev-parse", "HEAD"])).toBe(base);
+    expect(existsSync(join(repo, "feature.txt"))).toBe(false);
+  }, 20_000);
+
+  test("failed validation after a concurrent merge cannot deliver the combined source", () => {
+    const { repo, worktree, base } = createConversation();
+    stageFeature(worktree);
+    let checks = 0;
+    let concurrent = "";
+    expect(() =>
+      finishWorktree(worktree, { base, message: "feat: task" }, () => {
+        checks += 1;
+        if (checks === 1) {
+          stageFeature(repo, "concurrent.txt", "other task\n");
+          git(repo, ["commit", "-m", "feat: concurrent delivery"]);
+          concurrent = git(repo, ["rev-parse", "HEAD"]);
+        } else {
+          throw new Error("combined validation failed");
+        }
+      }),
+    ).toThrow("combined validation failed");
+    expect(checks).toBe(2);
+    expect(git(repo, ["rev-parse", "HEAD"])).toBe(concurrent);
+    expect(existsSync(join(repo, "feature.txt"))).toBe(false);
+    expect(readFileSync(join(worktree, "feature.txt"), "utf8")).toBe("task\n");
+    expect(readFileSync(join(worktree, "concurrent.txt"), "utf8")).toBe("other task\n");
+    expect(git(worktree, ["status", "--porcelain"])).toBe("");
+  }, 20_000);
+
+  test("source changes during verification cannot reach main", () => {
+    const { repo, worktree, base } = createConversation();
+    stageFeature(worktree);
+    expect(() =>
+      finishWorktree(worktree, { base, message: "feat: task" }, () => {
+        stageFeature(worktree, "feature.txt", "changed while validating\n");
+      }),
+    ).toThrow("Task changed during preflight");
+    expect(git(repo, ["rev-parse", "HEAD"])).toBe(base);
+    expect(git(worktree, ["show", ":feature.txt"])).toBe("changed while validating");
+  }, 20_000);
+
+  test("dirty main blocks automatic integration without changing developer bytes or staging", () => {
+    const { repo, worktree, base } = createConversation();
+    stageFeature(worktree);
+    stageFeature(repo, "base.txt", "developer staged\n");
+    writeFileSync(join(repo, "base.txt"), "developer working\n");
+    writeFileSync(join(repo, "untracked.txt"), "developer untracked\n");
+    const status = git(repo, ["status", "--porcelain"]);
+    expect(() => finishWorktree(worktree, { base, message: "feat: task" }, () => {})).toThrow(
+      "Checkout has uncommitted changes",
+    );
+    expect(git(repo, ["rev-parse", "HEAD"])).toBe(base);
+    expect(git(repo, ["status", "--porcelain"])).toBe(status);
+    expect(git(repo, ["show", ":base.txt"])).toBe("developer staged");
+    expect(readFileSync(join(repo, "base.txt"), "utf8")).toBe("developer working\n");
+    expect(readFileSync(join(repo, "untracked.txt"), "utf8")).toBe("developer untracked\n");
+    expect(git(worktree, ["log", "-1", "--format=%s"])).toBe("feat: task");
+  }, 20_000);
+
+  test("a merge conflict stays in the conversation and preserves the committed main", () => {
+    const { repo, worktree, base } = createConversation();
+    stageFeature(worktree, "base.txt", "task content\n");
+    stageFeature(repo, "base.txt", "concurrent content\n");
+    git(repo, ["commit", "-m", "feat: concurrent change"]);
+    const concurrent = git(repo, ["rev-parse", "HEAD"]);
+    let checks = 0;
+    expect(() =>
+      finishWorktree(worktree, { base, message: "feat: task" }, () => {
+        checks += 1;
+      }),
+    ).toThrow();
+    expect(checks).toBe(1);
+    expect(git(repo, ["rev-parse", "HEAD"])).toBe(concurrent);
+    expect(readFileSync(join(repo, "base.txt"), "utf8")).toBe("concurrent content\n");
+    expect(git(worktree, ["diff", "--name-only", "--diff-filter=U"])).toBe("base.txt");
+    expect(git(worktree, ["log", "-1", "--format=%s"])).toBe("feat: task");
+  }, 20_000);
+
+  test("rejects the default directory, missing commit message and unreviewed task files", () => {
+    const { repo, worktree, base } = createConversation();
+    const verify = () => {
+      throw new Error("must not verify rejected input");
+    };
+    expect(() => finishWorktree(worktree, { base: "main" }, verify)).toThrow("full immutable");
+    expect(() => finishWorktree(repo, { base }, verify)).toThrow("isolated task checkout");
+    stageFeature(worktree);
+    expect(() => finishWorktree(worktree, { base }, verify)).toThrow("require --message");
+    writeFileSync(join(worktree, "unreviewed.txt"), "preserve me\n");
+    expect(() => finishWorktree(worktree, { base, message: "feat: task" }, verify)).toThrow(
+      "unstaged or untracked",
+    );
+    expect(readFileSync(join(worktree, "unreviewed.txt"), "utf8")).toBe("preserve me\n");
+    expect(git(repo, ["rev-parse", "HEAD"])).toBe(base);
+  }, 20_000);
+
+  test("refuses rewritten main ancestry without changing either history", () => {
+    const { repo, worktree } = createConversation();
+    // Record a newer main base, then model an external history rewrite.
+    stageFeature(repo, "new-base.txt", "new base\n");
+    git(repo, ["commit", "-m", "test: newer recorded base"]);
+    const base = git(repo, ["rev-parse", "HEAD"]);
+    git(worktree, ["merge", "--ff-only", base]);
+    git(repo, ["reset", "--hard", "HEAD^"]);
+    const rewritten = git(repo, ["rev-parse", "HEAD"]);
+    stageFeature(worktree);
+    expect(() => finishWorktree(worktree, { base, message: "feat: task" }, () => {})).toThrow(
+      "must descend from the recorded local base",
+    );
+    expect(git(repo, ["rev-parse", "HEAD"])).toBe(rewritten);
+    expect(git(worktree, ["rev-parse", "HEAD"])).toBe(base);
+    expect(git(worktree, ["show", ":feature.txt"])).toBe("task");
+  }, 20_000);
+});
 
 describe("OWT batch coordination", () => {
   test("reuses a Codex branch and retains its worktree and later edits by default", async () => {
