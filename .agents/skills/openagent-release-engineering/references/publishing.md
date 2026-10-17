@@ -77,6 +77,10 @@ and `bun:test` or existing implicit Bun globals use the pinned Bun runner.
 bounds both individual tests and each runner process. This keeps native Node
 HTTP/child-process fixtures out of Bun's compatibility test bridge and ensures
 a failed fixture cannot leave publication waiting indefinitely on orphan processes.
+Theme packages may omit the `tests/` directory; classify this exception from the
+archived manifest's `extensions.openagent.type`, never from a directory name.
+Present theme suites still execute, and non-theme packages missing their test
+directory stop publication even when other packages supply passing suites.
 
 1. concurrently qualify the desktop SHA and stage or reuse its pinned SDK
    release, including the exact Runtime binaries and manifest;

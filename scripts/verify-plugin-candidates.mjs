@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -20,7 +20,13 @@ export function candidateVerificationCommands(root) {
   const files = { node: [], bun: [] };
   for (const packageEntry of readdirSync(root, { withFileTypes: true })) {
     if (!packageEntry.isDirectory()) continue;
-    const directory = join(root, packageEntry.name, "tests");
+    const packageDirectory = join(root, packageEntry.name);
+    const directory = join(packageDirectory, "tests");
+    if (!existsSync(directory)) {
+      const manifest = JSON.parse(readFileSync(join(packageDirectory, "plugin.json"), "utf8"));
+      if (manifest.extensions?.openagent?.type === "theme") continue;
+      throw new Error(`Plugin ${packageEntry.name} requires packaged tests.`);
+    }
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
       if (!entry.isFile() || !entry.name.endsWith(".test.mjs")) continue;
       const path = join(directory, entry.name);
