@@ -10,6 +10,14 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.85.0-beta.1] - 2026-10-17
+
+### Features
+- **release**: Add full Windows installer without WebView2 and remove sd
+
+### Performance
+- **desktop**: Measure process resources and reduce background work
+
 ## [0.84.0-beta.1] - 2026-10-17
 
 ### Features
