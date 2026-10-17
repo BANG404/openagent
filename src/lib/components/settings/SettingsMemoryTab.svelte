@@ -31,13 +31,9 @@
             ariaLabel={$t("scope")}
           />
         </fieldset>
-        <p class="detail-hint">
-          {memory.memoryDirty
-            ? $t("memoryUnsavedHint")
-            : memory.memoryScope === "local" && !options.workspacePath
-              ? $t("memoryNoWorkspace")
-              : $t("memoryScopeHint")}
-        </p>
+        {#if memory.memoryScope === "local" && !options.workspacePath}
+          <p class="detail-hint" role="status">{$t("memoryNoWorkspace")}</p>
+        {/if}
       </div>
       <div class="memory-heading-actions">
         <SettingsActionButton
@@ -55,7 +51,6 @@
           <div class="memory-editor-body">
             <div class="detail-section-heading">
               <h4 class="detail-section-title">{$t("userMemory")}</h4>
-              <p class="detail-section-intro">{$t("memoryEditHint")}</p>
             </div>
             <textarea
               class="detail-input memory-editor"
@@ -66,7 +61,7 @@
                 memory.memoryBusy ||
                 !memory.memoryScopeAvailable()}
               aria-label={$t("userMemory")}
-              placeholder={$t("memoryEditHint")}></textarea>
+              placeholder={$t("memoryEditPlaceholder")}></textarea>
           </div>
         </ScrollArea>
         <div class="memory-editor-footer">
@@ -77,7 +72,7 @@
                 ? ""
                 : memory.memoryDirty
                   ? $t("memoryUnsaved")
-                  : $t("memorySaved")}</span
+                  : ""}</span
           >
           <div class="memory-heading-actions">
             {#if memory.memoryDirty}
@@ -107,7 +102,6 @@
           <div class="detail-section-header">
             <div class="detail-section-heading">
               <h4 class="detail-section-title">{$t("agentMemory")}</h4>
-              <p class="detail-section-intro">{$t("agentMemoryHint")}</p>
             </div>
             <span class="memory-count"
               >{$t("memoryAgentCount").replace(

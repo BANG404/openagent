@@ -151,11 +151,9 @@
   {:else if spec.layout === "agents"}
     <main class="content-skeleton agents-skeleton" aria-hidden="true">
       <span class="block page-title"></span>
-      <span class="block page-intro"></span>
       {#each Array(2) as _, groupIndex (groupIndex)}
         <section class="content-group">
           <span class="block group-title"></span>
-          <span class="block group-intro"></span>
           <div class="application-settings-surface task-card">
             {#each Array(groupIndex === 0 ? 4 : 3) as _, index (index)}
               <span class="task-row">
@@ -333,9 +331,7 @@
     gap: 8px;
   }
 
-  .channel-subtitle,
-  .page-intro,
-  .group-intro {
+  .channel-subtitle {
     width: 240px;
     height: 8px;
     opacity: 0.72;
@@ -450,18 +446,8 @@
     height: 16px;
   }
 
-  .agents-skeleton > .page-intro {
-    width: min(420px, 72%);
-    margin-top: 10px;
-  }
-
   .agents-skeleton .content-group:first-of-type {
     margin-top: 28px;
-  }
-
-  .group-intro {
-    width: min(360px, 68%);
-    margin: -6px 0 14px;
   }
 
   .task-row {

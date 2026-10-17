@@ -1014,14 +1014,6 @@
   line-height: var(--settings-heading-leading);
 }
 
-.agents-settings-intro p {
-  max-width: 640px;
-  margin: 8px 0 0;
-  color: var(--muted-foreground);
-  font-size: var(--settings-body-size);
-  line-height: var(--settings-body-leading);
-}
-
 .detail-section {
   margin-bottom: 24px;
 }
@@ -1914,13 +1906,6 @@
   line-height: var(--settings-heading-leading);
 }
 
-.flash-task-group-heading p {
-  margin: 4px 0 0;
-  color: var(--muted-foreground);
-  font-size: var(--settings-hint-size);
-  line-height: var(--settings-hint-leading);
-}
-
 .flash-task-item {
   position: relative;
   padding: 16px;
@@ -2472,6 +2457,10 @@
   height: 100%;
   min-height: 200px;
   padding: 2px 4px 4px 2px;
+}
+
+.memory-editor-body .detail-section-title {
+  margin: 0;
 }
 
 .memory-user-pane .memory-editor {

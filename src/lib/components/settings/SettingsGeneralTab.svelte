@@ -18,7 +18,6 @@
         <div class="settings-card-row" data-appearance-mode>
           <span class="settings-card-copy">
             <span class="label-text">{$t("appearanceMode")}</span>
-            <span class="detail-hint">{$t("themeHint")}</span>
           </span>
           <div class="settings-card-control">
             <Select
@@ -36,7 +35,6 @@
         <div class="settings-card-row">
           <span class="settings-card-copy">
             <span class="label-text">{$t("language")}</span>
-            <span class="detail-hint">{$t("languageHint")}</span>
           </span>
           <div class="settings-card-control">
             <Select
@@ -52,7 +50,6 @@
         <div class="settings-card-row">
           <span class="settings-card-copy">
             <span class="label-text">{$t("messageLayout")}</span>
-            <span class="detail-hint">{$t("messageLayoutHint")}</span>
           </span>
           <div class="settings-card-control">
             <Select
@@ -69,7 +66,6 @@
           <label class="settings-card-row">
             <span class="settings-card-copy">
               <span class="label-text">{$t("messageDoubleColumnMinWidth")}</span>
-              <span class="detail-hint">{$t("messageDoubleColumnHint")}</span>
             </span>
             <input
               type="number"
@@ -84,7 +80,6 @@
         <label class="settings-card-row">
           <span class="settings-card-copy">
             <span class="label-text">{$t("bookModeFontSize")}</span>
-            <span class="detail-hint">{$t("bookModeFontSizeHint")}</span>
           </span>
           <input
             type="number"
@@ -102,7 +97,6 @@
       <div class="application-settings-surface shortcut-setting-row">
         <div class="shortcut-setting-copy">
           <span class="label-text">{$t("quickShortcutLabel")}</span>
-          <p class="detail-hint">{$t("quickShortcutHint")}</p>
         </div>
         <div class="shortcut-setting-controls">
           <button
@@ -164,7 +158,6 @@
       <div class="application-settings-surface startup-row">
         <div class="startup-copy">
           <span class="label-text">{$t("launchOnStartup")}</span>
-          <p class="detail-hint">{$t("launchOnStartupHint")}</p>
         </div>
         <Switch
           bind:checked={draft.draftConfig.launch_on_startup}
@@ -181,7 +174,6 @@
       <div class="application-settings-surface startup-row">
         <div class="startup-copy">
           <span class="label-text">{$t("showGlobalDraftsInMentions")}</span>
-          <p class="detail-hint">{$t("showGlobalDraftsInMentionsHint")}</p>
         </div>
         <Switch
           bind:checked={draft.draftConfig.mention_palette_show_global_drafts}

@@ -204,12 +204,10 @@
     </section>
     <section class="detail-section">
       <h4 class="detail-section-title">{$t("modelRetryPolicy")}</h4>
-      <p class="detail-section-intro">{$t("modelRetryPolicyDescription")}</p>
       <div class="application-settings-surface settings-card">
         <label class="settings-card-row">
           <span class="settings-card-copy">
             <span class="label-text">{$t("retryCountPerModel")}</span>
-            <span class="detail-hint">{$t("retryCountPerModelHint")}</span>
           </span>
           <span class="settings-card-control settings-card-number-control">
             <input
@@ -224,7 +222,6 @@
         <label class="settings-card-row">
           <span class="settings-card-copy">
             <span class="label-text">{$t("retryDelaySeconds")}</span>
-            <span class="detail-hint">{$t("retryDelaySecondsHint")}</span>
           </span>
           <span class="settings-card-control settings-card-number-control">
             <input
