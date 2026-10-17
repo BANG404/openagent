@@ -22,11 +22,10 @@ script = '''(() => {
     throw new Error('Conversation content lost its surface');
   const main = stage.closest('.main');
   if (!main) throw new Error('Desktop workspace canvas missing');
-  const builtInCanvas = !document.documentElement.style.getPropertyValue('--workspace-canvas');
-  if (builtInCanvas && getComputedStyle(main).backgroundColor !== sidebarStyle.backgroundColor)
-    throw new Error('Built-in workspace canvas does not use the sidebar color');
-  if (!builtInCanvas && getComputedStyle(main).backgroundColor === getComputedStyle(stage).backgroundColor)
-    throw new Error('Workspace canvas hides the conversation card');
+  const canvas = document.documentElement.style.getPropertyValue('--workspace-canvas').trim();
+  if ((!canvas || canvas === 'var(--sidebar)') &&
+      getComputedStyle(main).backgroundColor !== sidebarStyle.backgroundColor)
+    throw new Error('Workspace canvas does not use the sidebar color');
   if (getComputedStyle(stage).borderTopLeftRadius !== '12px')
     throw new Error('Theme control radius changed the workspace card shape');
   const workspace = stage.closest('.conversation-workspace').getBoundingClientRect();
@@ -35,9 +34,8 @@ script = '''(() => {
       innerWidth - workspace.right !== 8 || innerHeight - workspace.bottom !== 8)
     throw new Error('Theme changed desktop workspace gutters');
   const panel = document.querySelector('#semantic-theme-sidebar .flow-panel-surface');
-  if (panel && (getComputedStyle(panel).borderTopRightRadius !== '12px' ||
-      (!builtInCanvas && getComputedStyle(panel).backgroundColor === getComputedStyle(main).backgroundColor)))
-    throw new Error('Theme hides the right sidebar card');
+  if (panel && getComputedStyle(panel).borderTopRightRadius !== '12px')
+    throw new Error('Theme control radius changed the right sidebar card shape');
   const bounds = element => {
     const {x,y,width,height} = element.getBoundingClientRect();
     return {x,y,width,height};

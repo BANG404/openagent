@@ -150,6 +150,9 @@ try {
           readFileSync(join(root, candidate.output, "plugin.json"), "utf8"),
         );
         const expected = manifest.extensions.openagent.theme[mode];
+        const inheritsSidebarCanvas =
+          !expected["--workspace-canvas"] &&
+          !manifest.extensions.openagent.theme.tokens["--workspace-canvas"];
         pilot(["click", "[data-appearance-theme] button"]);
         await wait(`document.querySelector('[role=option][data-value="${candidate.id}"]')`);
         pilot(["click", `[role=option][data-value="${candidate.id}"]`]);
@@ -169,6 +172,7 @@ try {
         const root=getComputedStyle(document.documentElement);const expected=${JSON.stringify(expected)};
         for(const key of ['--primary','--primary-foreground','--background','--foreground','--chart-1','--chart-5'])if(root.getPropertyValue(key).trim()!==expected[key])throw Error('Token mismatch '+key);
         if(document.documentElement.classList.contains('native-window-material'))throw Error('Native material hid theme canvas');
+        if(${inheritsSidebarCanvas} && getComputedStyle(document.querySelector('.main')).backgroundColor!==getComputedStyle(document.querySelector('.sidebar')).backgroundColor)throw Error('Theme workspace canvas differs from sidebar');
         const probe=document.createElement('div');document.body.append(probe);
         const computed=(property,value)=>{probe.style.setProperty(property,value);return getComputedStyle(probe).getPropertyValue(property)};
         const send=document.querySelector('.send-btn');if(!send)throw Error('Composer action missing');

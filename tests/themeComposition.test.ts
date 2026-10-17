@@ -166,7 +166,7 @@ test("semantic names win over theme-v1 aliases and derived surfaces never replac
   expect(accentForeground("#FFFF00")).toBe("#000000");
 });
 
-test("flat theme palettes retain a distinct workspace canvas without changing package colors", () => {
+test("theme canvases follow the sidebar without changing package colors or explicit canvases", () => {
   const light = resolveThemeTokens({
     "--background": "white",
     "--card": "white",
@@ -178,11 +178,14 @@ test("flat theme palettes retain a distinct workspace canvas without changing pa
     "--card": "#222222",
     "--sidebar": "#222222",
   });
-  expect(dark["--workspace-canvas"]).toBe("var(--background)");
+  expect(dark["--workspace-canvas"]).toBe("var(--sidebar)");
   expect(dark["--card"]).toBe("#222222");
   expect(dark["--sidebar"]).toBe("#222222");
   const flat = { "--background": "white", "--card": "white" };
-  expect(resolveThemeTokens(flat)["--workspace-canvas"]).toContain("color-mix");
+  expect(resolveThemeTokens(flat)["--workspace-canvas"]).toBe("var(--sidebar)");
+  expect(resolveThemeTokens({ "--sidebar": "#222222" })["--workspace-canvas"]).toBe(
+    "var(--sidebar)",
+  );
   expect(resolveThemeTokens({ ...flat, "--workspace-canvas": "pink" })["--workspace-canvas"]).toBe(
     "pink",
   );
