@@ -188,10 +188,16 @@ try {
       }
       await closeAppearance();
       captureBlackboxScreenshot(pilot, join(artifacts, `renderers-${mode}-${language}.png`));
-      await operation(
-        `const {desktopOpenAgent:c,emit}=await import('/src/lib/openagent/tauriClient.ts');const config=await c.invokeProduct('get_settings',{});config.theme_plugin='';await c.invokeProduct('save_settings',{config});await emit('settings-changed');`,
-      );
+      await openAppearance();
+      // Use the same draft/save path as users; an external save can race the
+      // Settings controller's final autosave when its dialog unmounts.
+      pilot(["click", "[data-appearance-theme] button"]);
+      pilot(["click", '[role=option][data-value=""]']);
       await wait(`${packageFaces}.length===0`);
+      await operation(
+        `const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');for(let i=0;i<100;i++){if(!(await c.invokeProduct('get_settings',{})).theme_plugin)return;await new Promise(r=>setTimeout(r,100))}throw Error('Default theme selection was not saved');`,
+      );
+      await closeAppearance();
     }
   const first = candidates[0];
   const firstManifest = JSON.parse(readFileSync(join(root, first.output, "plugin.json"), "utf8"));
