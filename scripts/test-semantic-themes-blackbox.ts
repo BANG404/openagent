@@ -12,7 +12,18 @@ const artifacts = resolve(process.env.BLACKBOX_ARTIFACT_DIR ?? ".cache/semantic-
 mkdirSync(artifacts, { recursive: true });
 const candidates = themeCollection.map(({ id }) => ({ id, output: join("plugins", id) }));
 const fromRelease = process.argv.includes("--release");
-const packageFaces = "[...document.fonts].filter(face=>!window.__themeBaselineFonts.has(face))";
+const packageFamilies = [
+  ...new Set(
+    candidates.flatMap(({ output }) =>
+      JSON.parse(
+        readFileSync(join(root, output, "plugin.json"), "utf8"),
+      ).extensions.openagent.theme.fonts.map((face: { family: string }) => face.family),
+    ),
+  ),
+];
+// Renderer CSS faces can be replaced during development stylesheet updates.
+// Identify package families directly instead of comparing FontFace identity.
+const packageFaces = `[...document.fonts].filter(face=>${JSON.stringify(packageFamilies)}.includes(face.family.replaceAll('"','')))`;
 
 function pilot(args: string[]): string {
   if (["click", "fill"].includes(args[0])) pilot(["snapshot", "-i"]);
@@ -111,7 +122,7 @@ try {
   );
   await wait("document.querySelector('#semantic-theme-sidebar .flow-panel-surface')");
   await operation(
-    `const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');window.__themeOriginal=await c.invokeProduct('get_settings',{});window.__themeBaselineFonts=new Set(document.fonts);if((await c.listAgentPlugins()).some(p=>${JSON.stringify(candidates.map((item) => item.id))}.includes(p.id)))throw Error('Fixture theme already installed');`,
+    `const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');window.__themeOriginal=await c.invokeProduct('get_settings',{});if((await c.listAgentPlugins()).some(p=>${JSON.stringify(candidates.map((item) => item.id))}.includes(p.id)))throw Error('Fixture theme already installed');`,
   );
   for (const candidate of candidates) {
     const manifest = JSON.parse(readFileSync(join(root, candidate.output, "plugin.json"), "utf8"));
