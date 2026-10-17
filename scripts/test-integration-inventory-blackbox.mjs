@@ -222,9 +222,29 @@ try {
       );
       pilot(["snapshot", "-i"]);
       evaluate(
-        `window.__inventoryProbe=${JSON.stringify({ source: language === "en" ? "Workspace skill" : "工作区 Skill", directory: localSkill, open: language === "en" ? "Open local directory" : "打开本地目录" })}; true`,
+        `window.__inventoryProbe=${JSON.stringify({ source: language === "en" ? "Workspace skill" : "工作区 Skill", globalSource: language === "en" ? "Global skill" : "全局 Skill", directory: localSkill, open: language === "en" ? "Open local directory" : "打开本地目录" })}; true`,
       );
-      pilot(["run", join(root, "tests/blackbox/integration-inventory.toml")]);
+      // A home workspace discovers one directory in two scopes. Project that
+      // overlap using only fixture files, without writing global user skills.
+      await operation(`const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
+        window.__inventoryInvokeProduct=c.invokeProduct;
+        c.invokeProduct=async function(command,args){
+          const result=await window.__inventoryInvokeProduct.call(this,command,args);
+          if(command!=='list_skills')return result;
+          const local=result.find(skill=>skill.name==='inventory-local' && skill.scope==='local');
+          if(!local)throw new Error('Local inventory fixture missing');
+          return [...result,{...local,scope:'global'}];
+        }; return true;`);
+      try {
+        pilot(["click", '[data-value="skills"] .list-footer button']);
+        await until(
+          `document.querySelectorAll('[data-skill-path]').length===2 && !document.querySelector('[data-skills-list] [aria-busy]') && document.querySelector('[data-skill-content]')?.textContent===${JSON.stringify(localContent)}`,
+        );
+        pilot(["run", join(root, "tests/blackbox/integration-inventory.toml")]);
+      } finally {
+        await operation(`const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
+          c.invokeProduct=window.__inventoryInvokeProduct; return true;`);
+      }
       captureBlackboxScreenshot(pilot, join(artifacts, `${theme}-${language}-skills.png`));
       pilot(["click", "[data-open-skill-directory] button"]);
       assertExplorer(localSkill);

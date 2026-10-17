@@ -9,11 +9,11 @@ import { tr } from "$lib/i18n";
 export function createIntegrationSettings(
   options: Pick<SettingsOptions, "workspacePath" | "visibleSections">,
 ) {
-  let skills = $state<SkillMetadata[]>([]);
+  let skills = $state<(SkillMetadata & { key: string })[]>([]);
   let loading = $state(true);
   let error = $state("");
   let query = $state("");
-  let selectedPath = $state<string | null>(null);
+  let selectedKey = $state<string | null>(null);
   let content = $state("");
   let contentLoading = $state(false);
   let contentError = $state("");
@@ -23,7 +23,7 @@ export function createIntegrationSettings(
   let openGeneration = 0;
   let disposed = false;
   let inventoryRevision = $state(0);
-  const selectedSkill = $derived(skills.find((skill) => skill.path === selectedPath) ?? null);
+  const selectedSkill = $derived(skills.find((skill) => skill.key === selectedKey) ?? null);
   const filteredSkills = $derived(
     skills.filter((skill) =>
       `${skill.name} ${skill.description} ${skill.scope} ${skill.path}`
@@ -39,12 +39,12 @@ export function createIntegrationSettings(
     try {
       const result = (await desktopOpenAgent.invokeProduct("list_skills", {})) as SkillMetadata[];
       if (disposed || request !== generation) return;
-      skills = result.toSorted(
-        (a, b) => a.name.localeCompare(b.name) || a.path.localeCompare(b.path),
-      );
+      // A directory can be both global and local when the workspace is the home directory.
+      skills = result
+        .map((skill) => ({ ...skill, key: JSON.stringify([skill.scope, skill.path]) }))
+        .toSorted((a, b) => a.name.localeCompare(b.name) || a.path.localeCompare(b.path));
       inventoryRevision++;
-      if (!skills.some((skill) => skill.path === selectedPath))
-        selectedPath = skills[0]?.path ?? null;
+      if (!skills.some((skill) => skill.key === selectedKey)) selectedKey = skills[0]?.key ?? null;
     } catch (cause) {
       if (!disposed && request === generation) error = String(cause);
     } finally {
@@ -127,11 +127,11 @@ export function createIntegrationSettings(
     set query(value: string) {
       query = value;
     },
-    get selectedPath() {
-      return selectedPath;
+    get selectedKey() {
+      return selectedKey;
     },
-    set selectedPath(value: string | null) {
-      selectedPath = value;
+    set selectedKey(value: string | null) {
+      selectedKey = value;
     },
     get selectedSkill() {
       return selectedSkill;

@@ -77,11 +77,16 @@ paths (`\\?\...`) reject appended forward slashes.
 Loading reserves the list layout; discovery and content errors have distinct
 feedback. Workspace changes and unmount retire pending results. Content is
 plain text and does not load or execute package instructions in the WebView.
+Inventory row identity and selection use scope together with directory: a home
+workspace can expose the exact same directory as both global and workspace
+skills. Keep both provenance entries independently selectable; a path alone
+must not key the list or resolve the selected detail.
 
 Run `bun run test:blackbox:integration-inventory` against the isolated
 `integration-provenance` instance and explicit Pilot socket. It covers source
 navigation, same-named package MCP servers, plugin and workspace skill metadata,
-content, directory opening and failure, refresh, disablement and uninstall in
+content, overlapping global/workspace directory selection and refresh,
+directory opening and failure, disablement and uninstall in
 light/dark and Chinese/English. Global skills use the same inventory projection;
 fixtures must never write to the user's global skill directory.
 

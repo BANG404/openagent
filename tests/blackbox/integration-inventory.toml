@@ -18,3 +18,69 @@ script = '''(() => {
     throw new Error('Actual SKILL.md content is missing');
   return true;
 })()'''
+
+[[step]]
+name = "overlapping global and workspace directories render independently"
+action = "eval"
+script = '''(() => {
+  const rows = [...document.querySelectorAll('[data-skill-path]')];
+  if (rows.length !== 2 || rows.some(row => row.dataset.skillPath !== window.__inventoryProbe.directory) ||
+      new Set(rows.map(row => row.dataset.skillScope)).size !== 2 ||
+      rows.filter(row => row.classList.contains('active')).length !== 1)
+    throw new Error('Overlapping skill directories did not retain independent scope identities');
+  return true;
+})()'''
+
+[[step]]
+name = "select the global provenance of the shared directory"
+action = "click"
+target = "[data-skill-path][data-skill-scope=global]"
+
+[[step]]
+name = "global row alone is selected and detail uses its scope"
+action = "eval"
+script = '''(() => {
+  const active = [...document.querySelectorAll('[data-skill-path].active')];
+  if (active.length !== 1 || active[0].dataset.skillScope !== 'global' ||
+      !document.querySelector('[data-skill-detail]')?.textContent.includes(window.__inventoryProbe.globalSource))
+    throw new Error('Shared directory selection resolved the wrong skill scope');
+  return true;
+})()'''
+
+[[step]]
+name = "refresh preserves the selected scope"
+action = "click"
+target = "[data-value=skills] .list-footer button"
+
+[[step]]
+name = "refreshed shared directory is still global"
+action = "eval"
+script = '''(async () => {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    if (!document.querySelector('[data-skills-list] [aria-busy]')) {
+      const active = [...document.querySelectorAll('[data-skill-path].active')];
+      if (active.length !== 1 || active[0].dataset.skillScope !== 'global' ||
+          !document.querySelector('[data-skill-detail]')?.textContent.includes(window.__inventoryProbe.globalSource))
+        throw new Error('Refresh lost the selected scope of the shared directory');
+      return true;
+    }
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  throw new Error('Overlapping inventory refresh never finished');
+})()'''
+
+[[step]]
+name = "restore the workspace provenance for directory actions"
+action = "click"
+target = "[data-skill-path][data-skill-scope=local]"
+
+[[step]]
+name = "workspace detail resolves independently"
+action = "eval"
+script = '''(() => {
+  const active = [...document.querySelectorAll('[data-skill-path].active')];
+  if (active.length !== 1 || active[0].dataset.skillScope !== 'local' ||
+      !document.querySelector('[data-skill-detail]')?.textContent.includes(window.__inventoryProbe.source))
+    throw new Error('Workspace scope did not resolve after switching the shared directory');
+  return true;
+})()'''

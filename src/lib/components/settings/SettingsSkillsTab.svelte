@@ -33,12 +33,13 @@
         {:else if integrations.error}
           <p class="provider-status error" role="alert">{integrations.error}</p>
         {:else}
-          {#each integrations.filteredSkills as item (item.path)}
+          {#each integrations.filteredSkills as item (item.key)}
             <button
               class="provider-item"
-              class:active={item.path === integrations.selectedPath}
+              class:active={item.key === integrations.selectedKey}
               data-skill-path={item.path}
-              onclick={() => (integrations.selectedPath = item.path)}
+              data-skill-scope={item.scope}
+              onclick={() => (integrations.selectedKey = item.key)}
             >
               <span class="provider-item-info">
                 <strong class="provider-item-name">{item.name}</strong>
