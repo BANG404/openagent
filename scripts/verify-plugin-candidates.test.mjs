@@ -20,6 +20,45 @@ function candidateFixture(sources) {
 }
 
 describe("packaged plugin test frameworks", () => {
+  test("theme packages without test directories preserve other packaged suites", () => {
+    const root = candidateFixture({ code: 'import { test } from "bun:test";' });
+    try {
+      const theme = join(root, "theme");
+      mkdirSync(theme);
+      writeFileSync(
+        join(theme, "plugin.json"),
+        JSON.stringify({ extensions: { openagent: { type: "theme" } } }),
+      );
+      expect(candidateVerificationCommands(root)).toEqual([
+        {
+          command: "bun",
+          args: ["test", "--timeout", "10000", join(root, "code/tests/package.test.mjs")],
+        },
+      ]);
+      mkdirSync(join(theme, "tests"));
+      writeFileSync(join(theme, "tests/theme.test.mjs"), 'import { test } from "node:test";');
+      expect(candidateVerificationCommands(root)[0].args).toContain(
+        join(theme, "tests/theme.test.mjs"),
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test("a non-theme package without tests cannot hide behind another package's suite", () => {
+    const root = candidateFixture({ code: 'import { test } from "bun:test";' });
+    try {
+      const missingTests = join(root, "missing-tests");
+      mkdirSync(missingTests);
+      writeFileSync(join(missingTests, "plugin.json"), JSON.stringify({ name: "missing-tests" }));
+      expect(() => candidateVerificationCommands(root)).toThrow(
+        "Plugin missing-tests requires packaged tests.",
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   test("real Node and Bun fixtures both execute with their native runtime capabilities", () => {
     const root = candidateFixture({
       "native-node": [
