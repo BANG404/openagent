@@ -7,6 +7,7 @@ import { resolveBlackboxHome } from "./tauri-test-environment.mjs";
 import { captureBlackboxScreenshot } from "./blackbox-screenshot.mjs";
 import { en } from "../src/lib/i18n.en.ts";
 import { zh } from "../src/lib/i18n.zh.ts";
+import reviewedCatalog from "../src/lib/officialPluginRegistry.json";
 
 const root = resolve(import.meta.dirname, "..");
 const home = resolveBlackboxHome(process.env, { instanceName: "plugin-catalog" });
@@ -14,20 +15,21 @@ if (!process.env.TAURI_PILOT_SOCKET || !home.includes("plugin-catalog"))
   throw new Error("Use an isolated plugin-catalog instance with an explicit TAURI_PILOT_SOCKET");
 const artifacts = mkdtempSync(join(tmpdir(), "openagent-plugin-catalog-"));
 
-/** @param {string[]} args */
-function pilot(args) {
+/** @param {string[]} args @param {string} [input] */
+function pilot(args, input) {
   const result = spawnSync("tauri-pilot", [...args, "--window", "main"], {
     cwd: artifacts,
     env: process.env,
     encoding: "utf8",
     windowsHide: true,
+    input,
   });
   if (result.error || result.status !== 0)
     throw new Error(result.stderr || result.stdout, { cause: result.error });
   return result.stdout.trim();
 }
 /** @param {string} script */
-const evaluate = (script) => pilot(["eval", script]);
+const evaluate = (script) => pilot(["eval", "-"], script);
 const close = () => evaluate("document.querySelector('.fullscreen-surface-close')?.click(); true");
 
 pilot(["ping"]);
@@ -80,6 +82,16 @@ try {
       ]);
       pilot(["snapshot", "-i"]);
       pilot(["run", join(root, "tests/blackbox/plugin-catalog.toml")]);
+      evaluate(`(() => {
+        window.__reviewedPluginCatalog=${JSON.stringify(reviewedCatalog)};
+        window.__catalogLanguage=${JSON.stringify(language)};
+        window.__catalogProbe.plugins=window.__reviewedPluginCatalog.plugins;
+        document.querySelector('.official-plugin-store-toolbar button').click();
+        return true;
+      })()`);
+      pilot(["wait", "--selector", '[data-plugin-id="goal"]', "--timeout", "20000"]);
+      pilot(["snapshot", "-i"]);
+      pilot(["run", join(root, "tests/blackbox/plugin-copy.toml")]);
       captureBlackboxScreenshot(pilot, join(artifacts, `${theme}-${language}.png`));
       // Reopening must fetch again rather than reuse the previous snapshot.
       const requests = Number(evaluate("window.__catalogProbe.requests"));
@@ -90,7 +102,7 @@ try {
         [...document.querySelectorAll('[role=menuitem]')].find(item=>/Plugins|插件/.test(item.textContent)).click();
         return true;
       })()`);
-      pilot(["wait", "--selector", '[data-plugin-id="catalog-new"]', "--timeout", "20000"]);
+      pilot(["wait", "--selector", '[data-plugin-id="goal"]', "--timeout", "20000"]);
       if (Number(evaluate("window.__catalogProbe.requests")) !== requests + 1)
         throw new Error("Reopening did not fetch the catalog again");
     }

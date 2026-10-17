@@ -44,6 +44,10 @@ const sources = ["goal", "graph", "chat-groups", "cua-driver", "message-board"].
     version: String(manifest.version),
     revision: revision(directory),
     names: { en: String(translations.en.display_name), zh: String(translations.zh.display_name) },
+    descriptions: {
+      en: String(translations.en.description),
+      zh: String(translations.zh.description),
+    },
   };
 });
 
@@ -110,9 +114,8 @@ try {
       "--timeout",
       "20000",
     ]);
-    const names = Object.fromEntries(sources.map((source) => [source.id, source.names]));
     evaluate(
-      `window.__pluginModesProbe=${JSON.stringify({ label: messages.pluginMcpToolMode, hint: messages.pluginMcpToolModeHint, direct: messages.pluginMcpToolModeDirect, relay: messages.pluginMcpToolModeRelay, follow: messages.pluginMcpToolModeDefault, plugins: Object.entries(names).map(([id, translations]) => ({ id, name: translations[language], names: translations })) })}; true`,
+      `window.__pluginModesProbe=${JSON.stringify({ label: messages.pluginMcpToolMode, hint: messages.pluginMcpToolModeHint, direct: messages.pluginMcpToolModeDirect, relay: messages.pluginMcpToolModeRelay, follow: messages.pluginMcpToolModeDefault, plugins: sources.map(({ id, names, descriptions }) => ({ id, name: names[language], description: descriptions[language], names, descriptions })) })}; true`,
     );
     pilot(["snapshot", "-i"]);
     pilot(["run", join(repo, "tests/blackbox/plugin-mcp-modes.toml")]);
@@ -149,6 +152,7 @@ try {
         sdkRevision: revision(join(repo, "runtime")),
         checks: [
           "names",
+          "descriptions",
           "live locale",
           "direct",
           "relay",

@@ -13,6 +13,7 @@ script = '''(async () => {
     if (!card) throw new Error(`missing installed plugin ${plugin.id}`);
     const name = card.querySelector('.plugin-accordion-copy .label-text').textContent.trim();
     if (name !== plugin.name) throw new Error(`${plugin.id}: ${name} !== ${plugin.name}`);
+    if (card.querySelector('.plugin-description')?.textContent.trim() !== plugin.description) throw new Error(`wrong description: ${plugin.id}`);
     const trigger = card.querySelector('.plugin-accordion-trigger');
     if (trigger.getAttribute('aria-expanded') !== 'true') trigger.click();
     await new Promise(resolve => setTimeout(resolve, 0));
@@ -109,6 +110,7 @@ script = '''(async () => {
       const plugin = probe.plugins[index];
       const card = document.querySelector(`.plugin-accordion-item[data-plugin-id="${plugin.id}"]`);
       if (card !== cards[index] || card.querySelector('.plugin-accordion-copy .label-text').textContent.trim() !== plugin.names[language]) throw new Error('locale switch changed identity or left a stale name');
+      if (card.querySelector('.plugin-description')?.textContent.trim() !== plugin.descriptions[language]) throw new Error('locale switch left a stale description');
     }
   }
   return 'both language directions kept the same installed cards';
