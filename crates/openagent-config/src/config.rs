@@ -780,7 +780,7 @@ impl Default for MultiAgentV2Config {
 }
 
 /// Resolve the lifecycle switch for any portable plugin. The shared map is the
-/// current source of truth; the two legacy product switches below remain only
+/// current source of truth; the legacy product switch below remains only
 /// so older settings can disable an already-installed package after upgrade.
 pub fn agent_plugin_enabled(config: &Config, plugin_id: &str) -> bool {
     if plugin_id == crate::plugins::MULTI_AGENT_V2_ID {
@@ -791,14 +791,6 @@ pub fn agent_plugin_enabled(config: &Config, plugin_id: &str) -> bool {
     }
     if plugin_id == crate::plugins::CHAT_GROUPS_ID {
         return config.chat_groups_enabled;
-    }
-    if plugin_id == crate::plugins::CUA_DRIVER_ID {
-        return config
-            .mcp
-            .servers
-            .iter()
-            .find(|server| server.id == crate::plugins::CUA_DRIVER_ID)
-            .is_some_and(|server| server.enabled);
     }
     true
 }
@@ -2054,8 +2046,8 @@ network = "restricted"
         assert!(agent_plugin_enabled(&config, "goal"));
         assert!(agent_plugin_enabled(&config, "graph"));
         assert!(
-            !agent_plugin_enabled(&config, "cua-driver"),
-            "the driver capability follows its reserved MCP client entry"
+            agent_plugin_enabled(&config, "cua-driver"),
+            "desktop-control packages use ordinary plugin enablement"
         );
         assert!(
             agent_plugin_enabled(&config, "unknown-plugin"),
@@ -2073,6 +2065,13 @@ network = "restricted"
         )
         .expect("a configuration with the reserved Cua Driver entry");
         assert!(agent_plugin_enabled(&config, "cua-driver"));
+        config.mcp.servers[0].enabled = false;
+        assert!(agent_plugin_enabled(&config, "cua-driver"));
+        config
+            .agent_plugins_enabled
+            .insert("cua-driver".into(), false);
+        config.mcp.servers[0].enabled = true;
+        assert!(!agent_plugin_enabled(&config, "cua-driver"));
 
         config.chat_groups_enabled = false;
         assert!(!agent_plugin_enabled(&config, "chat-groups"));

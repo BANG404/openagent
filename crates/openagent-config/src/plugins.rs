@@ -1,7 +1,6 @@
 //! Product identifiers and package-name syntax; execution stays in Runtime.
 pub const CHAT_GROUPS_ID: &str = "chat-groups";
 pub const MULTI_AGENT_V2_ID: &str = "multi-agent-v2";
-pub const CUA_DRIVER_ID: &str = "cua-driver";
 
 pub fn is_plugin_name(value: &str) -> bool {
     let bytes = value.as_bytes();
