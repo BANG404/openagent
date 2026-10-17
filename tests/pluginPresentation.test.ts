@@ -73,6 +73,7 @@ test("user overrides win and light/dark palettes stay independent after package 
     },
   };
   expect(appearanceTokens([theme], config)["--primary"]).toBe("#ABCDEF");
+  expect(appearanceTokens([theme], config)["--workspace-canvas"]).toBe("var(--sidebar)");
   expect(appearanceTokens([theme], config)["--app-radius"]).toBe("20px");
   expect(appearanceTokens([theme], config, true)["--primary"]).toBe("#cc99ff");
   expect(appearanceTokens([theme], config, true)["--foreground"]).toBe("#EEEEEE");

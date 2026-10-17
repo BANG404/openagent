@@ -54,7 +54,17 @@ the same gray canvas tokens used on Linux in light/dark mode.
 The built-in sidebar inherits `--background`, so the title bar and left sidebar
 form one continuous canvas with native material both enabled and disabled;
 the switch must not change shell geometry or introduce a color seam at the
-sidebar width. Explicit theme-package sidebar colors retain their own semantics.
+sidebar width. The title bar always paints `--sidebar` and uses the sidebar
+foreground, primary, hover and focus pairs, including when a package or saved
+background override supplies a sidebar color different from `--background`.
+Do not make the title bar transparent over a different canvas or erase a
+package's sidebar color to hide that seam.
+The sidebar paints below its title-bar padding (`background-clip: content-box`),
+so translucent sidebar colors are composited once on both sides of that edge.
+The conversation workspace paints a separate canvas behind its cards so a
+package's identical background/card colors cannot erase their outer edges.
+The [semantic theme contract](semantic-themes.md) owns this surface derivation
+and the fixed desktop card geometry.
 Run `bun run test:blackbox:native-background` against an isolated
 `native-background` Tauri instance to exercise the Appearance switch off and
 back on, persistence after reopening Settings, shell geometry, and surfaced

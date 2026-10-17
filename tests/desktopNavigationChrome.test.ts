@@ -130,6 +130,7 @@ describe("desktop navigation chrome", () => {
     );
     expect(appCss).toContain("--desktop-titlebar-height: 35px");
     expect(appCss).toContain("--workspace-card-gap: 8px");
+    expect(appCss).toContain("--workspace-card-radius: 12px");
     expect(appCss).toContain("--column-resize-hit-width: 8px");
     expect(appCss).toContain("--column-resize-indicator-width: 2px");
     expect(appCss).toContain("--column-resize-indicator-opacity: 0.7");
@@ -140,7 +141,7 @@ describe("desktop navigation chrome", () => {
     expect(menuBar).toContain('key === "w") runShortcut(event, onCloseWindow)');
     const host = hostRustSource();
     expect(host).toContain("tauri::RunEvent::Reopen");
-    expect(titleBar).toMatch(/\.title-bar\s*{[^}]*background: transparent;/s);
+    expect(titleBar).toMatch(/\.title-bar\s*{[^}]*background: var\(--sidebar\);/s);
     expect(titleBar).toContain("height: var(--desktop-titlebar-height)");
     expect(sidebar).not.toContain("border-right:");
     expect(titleBar).not.toContain("border-bottom:");
@@ -153,18 +154,18 @@ describe("desktop navigation chrome", () => {
       "height: calc(100vh - var(--desktop-titlebar-height) - var(--workspace-card-gap))",
     );
     expect(desktopShellPreview).toContain(
-      "margin: var(--desktop-titlebar-height) var(--workspace-card-gap) var(--workspace-card-gap)",
+      "margin: 0 var(--workspace-card-gap) var(--workspace-card-gap)",
     );
     const conversationWorkspace = conversationSurface.match(
       /\.conversation-workspace\s*{([^}]*)}/s,
     )?.[1];
     const conversationStage = conversationSurface.match(/\.conversation-stage\s*{([^}]*)}/s)?.[1];
     expect(conversationWorkspace).toContain(
-      "margin: var(--desktop-titlebar-height) var(--workspace-card-gap) var(--workspace-card-gap)",
+      "margin: 0 var(--workspace-card-gap) var(--workspace-card-gap)",
     );
     expect(conversationWorkspace).toContain("background: transparent");
     expect(conversationWorkspace).not.toContain("box-shadow");
-    expect(conversationStage).toContain("border-radius: var(--radius)");
+    expect(conversationStage).toContain("border-radius: var(--workspace-card-radius)");
     expect(conversationSurface).toContain('class="conversation-stage bg-conversation-surface"');
     expect(conversationSurface).not.toContain(".conversation-stage::before");
     expect(conversationStage).not.toContain("box-shadow");
@@ -650,7 +651,7 @@ describe("desktop navigation chrome", () => {
     expect(collapsedPanelShell).not.toContain("display: none;");
     expect(panelShell).toContain("margin-left: var(--flow-panel-gap)");
     expect(panel).toMatch(
-      /\.flow-panel-surface\s*{[^}]*border-radius: 0 var\(--radius\) var\(--radius\) 0;[^}]*background: var\(--card\);/s,
+      /\.flow-panel-surface\s*{[^}]*border-radius: 0 var\(--workspace-card-radius\) var\(--workspace-card-radius\) 0;[^}]*background: var\(--card\);/s,
     );
     expect(panelShell).not.toContain("border:");
     expect(panelShell).not.toContain("box-shadow:");

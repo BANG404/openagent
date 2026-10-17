@@ -11,14 +11,30 @@ script = '''(() => {
   const title = document.querySelector('.title-bar');
   const stage = document.querySelector('#conversation-stage');
   if (!sidebar || !title || !stage) throw new Error('Desktop shell is missing');
-  const bodyStyle = getComputedStyle(document.body);
   const sidebarStyle = getComputedStyle(sidebar);
   const titleStyle = getComputedStyle(title);
-  if (sidebarStyle.backgroundColor !== bodyStyle.backgroundColor ||
-      titleStyle.backgroundColor !== 'rgba(0, 0, 0, 0)')
+  if (sidebarStyle.backgroundColor !== titleStyle.backgroundColor)
     throw new Error('Title bar and sidebar do not form one continuous canvas');
+  if (sidebarStyle.color !== titleStyle.color ||
+      getComputedStyle(title.querySelector('.application-menu-trigger')).color !== sidebarStyle.color)
+    throw new Error('Title bar controls do not use the sidebar foreground');
   if (getComputedStyle(stage).backgroundColor === 'rgba(0, 0, 0, 0)')
     throw new Error('Conversation content lost its surface');
+  const main = stage.closest('.main');
+  if (!main) throw new Error('Desktop workspace canvas missing');
+  if (getComputedStyle(main).backgroundColor === getComputedStyle(stage).backgroundColor)
+    throw new Error('Workspace canvas hides the conversation card');
+  if (getComputedStyle(stage).borderTopLeftRadius !== '12px')
+    throw new Error('Theme control radius changed the workspace card shape');
+  const workspace = stage.closest('.conversation-workspace').getBoundingClientRect();
+  const side = sidebar.getBoundingClientRect();
+  if (workspace.top !== 35 || workspace.left - side.right !== 8 ||
+      innerWidth - workspace.right !== 8 || innerHeight - workspace.bottom !== 8)
+    throw new Error('Theme changed desktop workspace gutters');
+  const panel = document.querySelector('#semantic-theme-sidebar .flow-panel-surface');
+  if (panel && (getComputedStyle(panel).borderTopRightRadius !== '12px' ||
+      getComputedStyle(panel).backgroundColor === getComputedStyle(main).backgroundColor))
+    throw new Error('Theme hides the right sidebar card');
   const bounds = element => {
     const {x,y,width,height} = element.getBoundingClientRect();
     return {x,y,width,height};

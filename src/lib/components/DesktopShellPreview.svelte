@@ -391,6 +391,9 @@
     min-width: 0;
     flex: 1;
     height: 100%;
+    padding-top: var(--desktop-titlebar-height);
+    background: var(--workspace-canvas);
+    background-clip: content-box;
   }
 
   .desktop-shell-content {
@@ -400,10 +403,10 @@
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    margin: var(--desktop-titlebar-height) var(--workspace-card-gap) var(--workspace-card-gap);
+    margin: 0 var(--workspace-card-gap) var(--workspace-card-gap);
     padding: 32px;
     overflow: hidden;
-    border-radius: var(--radius);
+    border-radius: var(--workspace-card-radius);
     background: var(--card);
   }
 

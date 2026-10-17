@@ -42,6 +42,27 @@ async function operation(script: string) {
   assert.equal(evaluate("Boolean(window.__themeError)"), "false", evaluate("window.__themeError"));
 }
 
+async function closeAppearance() {
+  await operation(
+    `document.querySelector('[role=dialog] button[aria-label="Close"], [role=dialog] button[aria-label="关闭"]')?.click();`,
+  );
+  await wait("!document.querySelector('[data-appearance-theme]')");
+}
+
+async function openAppearance() {
+  pilot(["click", "#application-edit-menu"]);
+  await operation(
+    `const item=[...document.querySelectorAll('[role=menuitem]')].find(e=>/Settings|设置/.test(e.textContent));if(!item)throw Error('Settings menu missing');item.click();`,
+  );
+  await wait("document.querySelector('[data-appearance-theme] button')");
+}
+
+function captureShell(filename: string) {
+  evaluate("document.querySelector('#semantic-theme-renderers').hidden=true; true");
+  captureBlackboxScreenshot(pilot, join(artifacts, filename));
+  evaluate("document.querySelector('#semantic-theme-renderers').hidden=false; true");
+}
+
 // Vite can reload once when these optional renderer dependencies are first used.
 // Warm them before capturing settings or installing any fixture package.
 async function warmRenderers() {
@@ -79,10 +100,16 @@ try {
     const target=document.createElement('section');target.id='semantic-theme-renderers';
     target.style.cssText='position:fixed;left:20px;top:55px;width:360px;padding:16px;background:var(--card);color:var(--card-foreground);border:1px solid var(--border);z-index:10';
     document.body.append(target);window.__themeRenderers=[mount(Renderers,{target})];
+    const {default:Sidebar}=await import('/src/lib/components/CheckpointFlowStatus.svelte');
+    const sidebar=document.createElement('div');sidebar.id='semantic-theme-sidebar';sidebar.style.display='contents';
+    document.querySelector('.conversation-workspace').append(sidebar);
+    window.__themeRenderers.push(mount(Sidebar,{target:sidebar,props:{flow:null,changes:[],width:300,collapsed:false,resizing:false,onResizeStart:()=>{},activePanel:'terminal',terminalAvailable:true,terminalPreviewSessions:[]}}));
+    document.querySelector('#conversation-stage').classList.add('sidebar-open');
   `);
   await wait(
     "document.querySelector('#semantic-theme-renderers svg .node rect') && document.querySelector('#semantic-theme-renderers [_echarts_instance_]')",
   );
+  await wait("document.querySelector('#semantic-theme-sidebar .flow-panel-surface')");
   await operation(
     `const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');window.__themeOriginal=await c.invokeProduct('get_settings',{});window.__themeBaselineFonts=new Set(document.fonts);if((await c.listAgentPlugins()).some(p=>${JSON.stringify(candidates.map((item) => item.id))}.includes(p.id)))throw Error('Fixture theme already installed');`,
   );
@@ -103,11 +130,10 @@ try {
         `document.querySelector('[role=dialog] button[aria-label="Close"], [role=dialog] button[aria-label="关闭"]')?.click();const {desktopOpenAgent:c,emit}=await import('/src/lib/openagent/tauriClient.ts');const config=await c.invokeProduct('get_settings',{});config.theme='${mode}';config.language='${language}';config.theme_plugin='';config.theme_overrides={light:{},dark:{},font_family:''};for(const id of ${JSON.stringify(installed)})config.agent_plugins_enabled[id]=true;await c.invokeProduct('save_settings',{config});await emit('settings-changed');await emit('agent-plugins-changed');`,
       );
       await wait(`document.documentElement.classList.contains('${mode}')`);
-      pilot(["click", "#application-edit-menu"]);
-      await operation(
-        `const item=[...document.querySelectorAll('[role=menuitem]')].find(e=>/Settings|设置/.test(e.textContent));if(!item)throw Error('Settings menu missing');item.click();`,
-      );
-      await wait("document.querySelector('[data-appearance-theme] button')");
+      evaluate("delete window.__nativeBackgroundGeometry; true");
+      pilot(["run", join(root, "tests/blackbox/native-background.toml")]);
+      captureShell(`shell-default-${mode}-${language}.png`);
+      await openAppearance();
       for (const candidate of candidates) {
         const manifest = JSON.parse(
           readFileSync(join(root, candidate.output, "plugin.json"), "utf8"),
@@ -145,19 +171,22 @@ try {
         if(JSON.stringify(chart.getOption().color)!==JSON.stringify([1,2,3,4,5].map(i=>palette['chart-'+i])))throw Error('Mounted chart palette stale');
         probe.remove();
       `);
+        pilot(["run", join(root, "tests/blackbox/native-background.toml")]);
         pilot(["click", "[data-appearance-theme] button"]);
         await operation(
           `const menu=document.querySelector('[role=listbox]');if(!menu)throw Error('Theme selector menu missing');const probe=document.createElement('div');probe.style.background='var(--menu-surface)';document.body.append(probe);if(getComputedStyle(menu).backgroundColor!==getComputedStyle(probe).backgroundColor)throw Error('Menu color mismatch');probe.remove();`,
         );
-        pilot(["press", "Escape"]);
+        pilot(["click", "[data-appearance-theme] button"]);
         const filename = `${candidate.id}-${mode}-${language}.png`;
         captureBlackboxScreenshot(pilot, join(artifacts, filename));
-        results.push({ id: candidate.id, mode, language, screenshot: filename });
+        await closeAppearance();
+        const shell = `shell-${filename}`;
+        captureShell(shell);
+        results.push({ id: candidate.id, mode, language, screenshot: filename, shell });
+        await openAppearance();
         console.log(`Verified ${candidate.id}/${mode}/${language}`);
       }
-      await operation(
-        `document.querySelector('[role=dialog] button[aria-label="Close"], [role=dialog] button[aria-label="关闭"]')?.click();`,
-      );
+      await closeAppearance();
       captureBlackboxScreenshot(pilot, join(artifacts, `renderers-${mode}-${language}.png`));
       await operation(
         `const {desktopOpenAgent:c,emit}=await import('/src/lib/openagent/tauriClient.ts');const config=await c.invokeProduct('get_settings',{});config.theme_plugin='';await c.invokeProduct('save_settings',{config});await emit('settings-changed');`,
@@ -185,7 +214,7 @@ try {
   await wait(`${packageFaces}.length===0`);
 } finally {
   await operation(
-    `const {unmount}=await import('/node_modules/.vite/deps/svelte.js');for(const renderer of window.__themeRenderers??[])await unmount(renderer);document.querySelector('#semantic-theme-renderers')?.remove();const {desktopOpenAgent:c,emit}=await import('/src/lib/openagent/tauriClient.ts');document.querySelector('[role=dialog] button[aria-label="Close"], [role=dialog] button[aria-label="关闭"]')?.click();if(window.__themeOriginal)await c.invokeProduct('save_settings',{config:window.__themeOriginal});for(const id of ${JSON.stringify(installed)})await c.uninstallAgentPlugin(id);await emit('settings-changed');await emit('agent-plugins-changed');`,
+    `const {unmount}=await import('/node_modules/.vite/deps/svelte.js');for(const renderer of window.__themeRenderers??[])await unmount(renderer);document.querySelector('#semantic-theme-renderers')?.remove();document.querySelector('#semantic-theme-sidebar')?.remove();document.querySelector('#conversation-stage')?.classList.remove('sidebar-open');const {desktopOpenAgent:c,emit}=await import('/src/lib/openagent/tauriClient.ts');document.querySelector('[role=dialog] button[aria-label="Close"], [role=dialog] button[aria-label="关闭"]')?.click();if(window.__themeOriginal)await c.invokeProduct('save_settings',{config:window.__themeOriginal});for(const id of ${JSON.stringify(installed)})await c.uninstallAgentPlugin(id);await emit('settings-changed');await emit('agent-plugins-changed');`,
   );
   writeFileSync(join(artifacts, "results.json"), JSON.stringify(results, null, 2) + "\n");
 }

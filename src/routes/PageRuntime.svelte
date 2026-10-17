@@ -4560,6 +4560,9 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
+    padding-top: var(--desktop-titlebar-height);
+    background: var(--workspace-canvas);
+    background-clip: content-box;
     overflow: hidden;
   }
 </style>

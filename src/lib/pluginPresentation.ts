@@ -88,6 +88,7 @@ export function appearanceTokens(
     tokens["--primary-hover"] = `color-mix(in srgb, ${colors.accent} 85%, var(--foreground))`;
   }
   if (colors.background) {
+    tokens["--workspace-canvas"] = "var(--sidebar)";
     for (const key of [
       "--background",
       "--card",
