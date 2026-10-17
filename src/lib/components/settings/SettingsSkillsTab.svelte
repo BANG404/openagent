@@ -5,6 +5,8 @@
   import ScrollArea from "../ui/ScrollArea.svelte";
   import SettingsActionButton from "../ui/SettingsActionButton.svelte";
   import PluginSource from "./PluginSource.svelte";
+  import Select from "../ui/Select.svelte";
+  import { displayPath } from "$lib/workspacePath";
   const { integrations, plugins, openPlugin } = useSettingsContext();
   const skill = $derived(integrations.selectedSkill);
   const owner = $derived(
@@ -12,6 +14,11 @@
       ? plugins.agentPlugins.find((plugin) => `plugin:${plugin.id}` === skill.scope)
       : undefined,
   );
+  function sourceLabel(scope: string) {
+    return scope.startsWith("plugin:")
+      ? scope
+      : $t(scope === "local" ? "integrationWorkspaceSkill" : "integrationGlobalSkill");
+  }
 </script>
 
 <Tabs.Content value="skills" class="settings-tab-panel">
@@ -19,9 +26,23 @@
     <div class="skill-search">
       <input
         class="detail-input"
+        type="search"
         aria-label={$t("integrationSkillSearch")}
         placeholder={$t("integrationSkillSearch")}
         bind:value={integrations.query}
+      />
+      <Select
+        id="skill-scope-filter"
+        ariaLabel={$t("integrationSkillFilter")}
+        bind:value={integrations.scopeFilter}
+        items={(
+          [
+            ["all", "integrationSkillFilterAll"],
+            ["global", "integrationGlobalSkill"],
+            ["local", "integrationWorkspaceSkill"],
+            ["plugin", "integrationPluginSkill"],
+          ] as const
+        ).map(([value, key]) => ({ value, label: $t(key) }))}
       />
     </div>
     <ScrollArea height="100%" class="provider-list-scroll" scrollHideDelay={350}>
@@ -43,15 +64,10 @@
             >
               <span class="provider-item-info">
                 <strong class="provider-item-name">{item.name}</strong>
-                <span class="provider-item-url"
-                  >{item.scope.startsWith("plugin:")
-                    ? item.scope
-                    : $t(
-                        item.scope === "local"
-                          ? "integrationWorkspaceSkill"
-                          : "integrationGlobalSkill",
-                      )}</span
-                >
+                {#if item.description}
+                  <span class="skill-item-description">{item.description}</span>
+                {/if}
+                <span class="provider-item-url">{sourceLabel(item.scope)}</span>
               </span>
             </button>
           {:else}<p class="provider-list-empty">{$t("integrationSkillsEmpty")}</p>{/each}
@@ -74,13 +90,9 @@
         <p class="skill-description">{skill.description}</p>
         {#if owner}<PluginSource plugin={owner} onOpen={openPlugin} />
         {:else}<p class="detail-hint">
-            {$t("integrationSkillSource")}: {skill.scope.startsWith("plugin:")
-              ? skill.scope
-              : $t(
-                  skill.scope === "local" ? "integrationWorkspaceSkill" : "integrationGlobalSkill",
-                )}
+            {$t("integrationSkillSource")}: {sourceLabel(skill.scope)}
           </p>{/if}
-        <p class="skill-path">{skill.path}</p>
+        <p class="skill-path">{displayPath(skill.path)}</p>
         <div data-open-skill-directory>
           <SettingsActionButton
             label={$t("integrationOpenDirectory")}
@@ -113,7 +125,20 @@
 
 <style>
   .skill-search {
+    display: grid;
+    gap: 8px;
     padding: 12px;
+  }
+  .skill-item-description {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    color: var(--muted-foreground);
+    font-size: 12px;
+    line-height: 1.5;
   }
   .skill-description {
     font-size: 13px;

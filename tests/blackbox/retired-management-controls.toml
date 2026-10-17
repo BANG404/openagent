@@ -21,9 +21,6 @@ return true;
 name = "retired shortcuts leave the current memory surface open"
 action = "eval"
 script = '''(async () => {
-for (const digit of ['7', '8']) {
-  window.dispatchEvent(new KeyboardEvent('keydown', {key: digit, code: `Digit${digit}`, ctrlKey: true, shiftKey: true, bubbles: true}));
-}
 window.dispatchEvent(new KeyboardEvent('keydown', {key: 'u', code: 'KeyU', altKey: true, bubbles: true}));
 await new Promise(resolve => setTimeout(resolve, 250));
 const panel = document.querySelector('[role=tabpanel][data-value=memory]');

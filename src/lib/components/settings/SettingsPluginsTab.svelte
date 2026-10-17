@@ -6,6 +6,7 @@
   import PluginLanguageSupport from "../PluginLanguageSupport.svelte";
   import PluginMarketplaceSkeleton from "../PluginMarketplaceSkeleton.svelte";
   import { pluginText } from "$lib/pluginI18n";
+  import { displayPath } from "$lib/workspacePath";
   import { PLUGIN_CATEGORIES, pluginCategoryKeys, isPluginCategory } from "$lib/pluginCategories";
   import type { OfficialPluginCatalogItem } from "$lib/officialPluginRegistry";
   import { t, locale } from "$lib/i18n";
@@ -532,7 +533,7 @@
                       <strong>{skill.name}</strong>
                       <p class="detail-hint">{skill.description}</p>
                       {#if metadata}
-                        <p class="integration-path">{metadata.path}</p>
+                        <p class="integration-path">{displayPath(metadata.path)}</p>
                         <SettingsActionButton
                           label={$t("integrationOpenDirectory")}
                           onclick={() => integrations.openDirectory(metadata.path)}
@@ -595,7 +596,7 @@
                 <div class="plugin-accordion-footer">
                   <div class="plugin-footer-meta">
                     {#if plugin.local_source}
-                      <Tooltip text={plugin.local_source}>
+                      <Tooltip text={displayPath(plugin.local_source)}>
                         {#snippet trigger(props)}
                           <span {...props} class="detail-hint" data-local-plugin-source>
                             {$t("pluginLocalSource")}

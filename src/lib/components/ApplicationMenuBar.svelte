@@ -94,6 +94,8 @@
     Digit4: { kind: "memory", section: "memory" },
     Digit5: { kind: "integrations", section: "channels" },
     Digit6: { kind: "integrations", section: "extensions" },
+    Digit7: { kind: "integrations", section: "plugins" },
+    Digit8: { kind: "integrations", section: "skills" },
   };
 
   function isTextControl(element: Element | null): element is TextControl {
@@ -500,7 +502,9 @@
         <DropdownMenu.Item
           class="application-menu-item"
           onSelect={() => onOpenSettingsWindow("integrations", "skills")}
-          ><span>{$t("skills")}…</span></DropdownMenu.Item
+          ><span>{$t("skills")}…</span><span class="application-menu-shortcut"
+            >{primaryModifier}+Shift+8</span
+          ></DropdownMenu.Item
         >
       </DropdownMenu.Content>
     </DropdownMenu.Portal>

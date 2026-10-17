@@ -1,0 +1,51 @@
+[scenario]
+name = "Plugins and Skills menu shortcuts match keyboard routing"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "open the Integrations menu"
+action = "click"
+target = "#application-integrations-menu"
+
+[[step]]
+name = "plugin and skill entries advertise their keyboard shortcuts"
+action = "eval"
+script = '''(() => {
+const items=[...document.querySelectorAll('[role=menuitem]')];
+for(const [label,digit] of [[/Plugins|插件/,'7'],[/Skills|技能/,'8']]){
+  const item=items.find(item=>label.test(item.textContent));
+  if(!item?.querySelector('.application-menu-shortcut')?.textContent.includes(`Shift+${digit}`))
+    throw new Error(`Missing menu shortcut hint for ${digit}`);
+}
+return true;
+})()'''
+
+[[step]]
+name = "close the menu before using keyboard shortcuts"
+action = "click"
+target = "#application-integrations-menu"
+
+[[step]]
+name = "primary modifier Shift 7 opens Plugins"
+action = "eval"
+script = '''(async () => {
+window.dispatchEvent(new KeyboardEvent('keydown', {key: '&', code: 'Digit7', ctrlKey: true, shiftKey: true, bubbles: true}));
+for(let i=0;i<100;i++){
+  if(document.querySelector('[data-value=plugins][data-state=active]'))return true;
+  await new Promise(r=>setTimeout(r,100));
+}
+throw new Error('Plugins shortcut did not open Plugins');
+})()'''
+
+[[step]]
+name = "primary modifier Shift 8 opens Skills"
+action = "eval"
+script = '''(async () => {
+window.dispatchEvent(new KeyboardEvent('keydown', {key: '*', code: 'Digit8', ctrlKey: true, shiftKey: true, bubbles: true}));
+for(let i=0;i<100;i++){
+  if(document.querySelector('[data-value=skills][data-state=active]'))return true;
+  await new Promise(r=>setTimeout(r,100));
+}
+throw new Error('Skills shortcut did not open Skills');
+})()'''

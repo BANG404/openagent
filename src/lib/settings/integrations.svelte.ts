@@ -13,6 +13,7 @@ export function createIntegrationSettings(
   let loading = $state(true);
   let error = $state("");
   let query = $state("");
+  let scopeFilter = $state("all");
   let selectedKey = $state<string | null>(null);
   let content = $state("");
   let contentLoading = $state(false);
@@ -23,14 +24,22 @@ export function createIntegrationSettings(
   let openGeneration = 0;
   let disposed = false;
   let inventoryRevision = $state(0);
-  const selectedSkill = $derived(skills.find((skill) => skill.key === selectedKey) ?? null);
   const filteredSkills = $derived(
-    skills.filter((skill) =>
-      `${skill.name} ${skill.description} ${skill.scope} ${skill.path}`
-        .toLocaleLowerCase()
-        .includes(query.trim().toLocaleLowerCase()),
+    skills.filter(
+      (skill) =>
+        (scopeFilter === "all" ||
+          (scopeFilter === "plugin"
+            ? skill.scope.startsWith("plugin:")
+            : skill.scope === scopeFilter)) &&
+        `${skill.name} ${skill.description} ${skill.scope} ${skill.path}`
+          .toLocaleLowerCase()
+          .includes(query.trim().toLocaleLowerCase()),
     ),
   );
+  const selectedSkill = $derived(filteredSkills.find((skill) => skill.key === selectedKey) ?? null);
+  $effect(() => {
+    if (!selectedSkill) selectedKey = filteredSkills[0]?.key ?? null;
+  });
 
   async function refreshSkills() {
     const request = ++generation;
@@ -44,7 +53,6 @@ export function createIntegrationSettings(
         .map((skill) => ({ ...skill, key: JSON.stringify([skill.scope, skill.path]) }))
         .toSorted((a, b) => a.name.localeCompare(b.name) || a.path.localeCompare(b.path));
       inventoryRevision++;
-      if (!skills.some((skill) => skill.key === selectedKey)) selectedKey = skills[0]?.key ?? null;
     } catch (cause) {
       if (!disposed && request === generation) error = String(cause);
     } finally {
@@ -126,6 +134,12 @@ export function createIntegrationSettings(
     },
     set query(value: string) {
       query = value;
+    },
+    get scopeFilter() {
+      return scopeFilter;
+    },
+    set scopeFilter(value: string) {
+      scopeFilter = value;
     },
     get selectedKey() {
       return selectedKey;

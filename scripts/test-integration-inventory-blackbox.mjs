@@ -178,6 +178,7 @@ try {
       await operation(`const {getCurrentWindow}=await import('/node_modules/@tauri-apps/api/window.js');
       await getCurrentWindow().show(); await getCurrentWindow().setFocus();
       await new Promise(r=>setTimeout(r,500)); return true;`);
+      pilot(["run", join(root, "tests/blackbox/integration-shortcuts.toml")]);
       await open("channels");
       await until("document.querySelector('[data-integration-plugin=inventory-one]')");
       pilot(["click", "[data-integration-plugin=inventory-one]"]);
@@ -241,6 +242,22 @@ try {
           `document.querySelectorAll('[data-skill-path]').length===2 && !document.querySelector('[data-skills-list] [aria-busy]') && document.querySelector('[data-skill-content]')?.textContent===${JSON.stringify(localContent)}`,
         );
         pilot(["run", join(root, "tests/blackbox/integration-inventory.toml")]);
+        for (const scope of ["global", "local", "plugin", "all"]) {
+          pilot(["click", "#skill-scope-filter"]);
+          pilot(["click", `[role=option][data-value=${scope}]`]);
+          const count = scope === "all" ? 2 : scope === "plugin" ? 0 : 1;
+          await until(`document.querySelectorAll('[data-skill-path]').length===${count}`);
+          assert.equal(
+            evaluate(`Boolean(document.querySelector('[data-skill-detail]'))`),
+            String(count > 0),
+          );
+          if (scope === "global" || scope === "local")
+            assert.equal(
+              evaluate(`document.querySelector('[data-skill-path].active')?.dataset.skillScope`),
+              scope,
+            );
+        }
+        pilot(["click", "[data-skill-scope=local]"]);
       } finally {
         await operation(`const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');
           c.invokeProduct=window.__inventoryInvokeProduct; return true;`);
@@ -264,6 +281,26 @@ try {
       await until(
         "document.querySelector('[data-skill-content]')?.textContent.includes('Plugin skill instructions.')",
       );
+      pilot(["click", "#skill-scope-filter"]);
+      pilot(["click", "[role=option][data-value=plugin]"]);
+      assert.equal(
+        evaluate("document.querySelector('.skill-item-description')?.textContent"),
+        "Plugin inventory fixture",
+      );
+      const displayedPath = evaluate("document.querySelector('.skill-path')?.textContent");
+      assert(
+        !displayedPath.startsWith("\\\\?\\"),
+        "Visible plugin skill path must omit Windows namespace syntax",
+      );
+      pilot(["fill", ".skill-search input", "no-such-inventory-skill"]);
+      await until(
+        "!document.querySelector('[data-skill-detail]') && !document.querySelector('[data-skill-path]')",
+      );
+      pilot(["fill", ".skill-search input", "plugin:inventory-one"]);
+      await until(
+        "document.querySelector('[data-skill-content]')?.textContent.includes('Plugin skill instructions.')",
+      );
+      captureBlackboxScreenshot(pilot, join(artifacts, `${theme}-${language}-plugin-skills.png`));
       const skillPath = JSON.parse(
         evaluate(
           "JSON.stringify(document.querySelector('[data-skill-detail]').dataset.skillDetail)",
