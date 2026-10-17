@@ -37,6 +37,9 @@ const en: Record<TranslationKeys, string> = {
   shellDownloading: "Downloading resources",
   shellInstalling: "Installing verified resources",
   shellStarting: "Starting OpenAgent",
+  startupTakingLonger: "Startup is taking longer. You can minimize this window while it continues.",
+  historyReadTimedOut:
+    "History loading took more than 10 seconds. Retry or open another conversation.",
   shellRetry: "Retry",
   shellImport: "Import offline resources",
   shellResume:

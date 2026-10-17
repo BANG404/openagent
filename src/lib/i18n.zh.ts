@@ -30,6 +30,8 @@ export const zh = {
   shellDownloading: "正在下载资源",
   shellInstalling: "正在安装已校验的资源",
   shellStarting: "正在启动 OpenAgent",
+  startupTakingLonger: "启动时间较长，你可以最小化窗口，等待加载完成。",
+  historyReadTimedOut: "历史记录加载已超过 10 秒。请重试，或打开其他对话。",
   shellRetry: "重试",
   shellImport: "导入离线资源包",
   shellResume: "下载中断后会保留进度。离线安装包可直接完成准备。",

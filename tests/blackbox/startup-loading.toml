@@ -1,0 +1,43 @@
+[scenario]
+name = "main window stays available while startup is stalled"
+fail_fast = true
+global_timeout_ms = 15000
+
+[[step]]
+name = "native main window is visible before Runtime and resources are ready"
+action = "eval"
+script = '''(async () => {
+  const invoke = window.__TAURI_INTERNALS__.invoke;
+  if (!await invoke('plugin:window|is_visible', {label: 'main'})) throw new Error('startup left only the tray visible');
+  const status = await invoke('shell_resource_status');
+  if (status.phase !== 'waiting' || status.presentation !== 'startup') throw new Error('fixture is not blocking resource startup');
+  const shell = document.querySelector('[data-module="startup-loading"]');
+  if (!shell || shell.getAttribute('aria-busy') !== 'true') throw new Error('loading shell is missing');
+  const feedbackDeadline = Date.now() + 3500;
+  while (!shell.querySelector('.startup-slow')) {
+    if (Date.now() > feedbackDeadline) throw new Error('slow startup has no feedback after three seconds');
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  if (!['Starting OpenAgent', '正在启动 OpenAgent'].includes(shell.querySelector('p[role=status]')?.textContent)) throw new Error('localized startup status is missing');
+  if (document.querySelector('[data-module="shell-resources"]')) throw new Error('Welcome flashed during loading');
+  if (!shell.querySelector('.composer-frame') || shell.scrollWidth > shell.clientWidth + 1) throw new Error('loading geometry is invalid');
+  return true;
+})()'''
+
+[[step]]
+name = "minimize remains usable while Runtime startup is blocked"
+action = "eval"
+script = '''(async () => {
+  const button = document.querySelector('[data-module="startup-loading"] .win-minimize');
+  if (!button || button.disabled) throw new Error('startup minimize is unavailable');
+  button.click();
+  const invoke = window.__TAURI_INTERNALS__.invoke;
+  const deadline = Date.now() + 2000;
+  while (!await invoke('plugin:window|is_minimized', {label: 'main'})) {
+    if (Date.now() > deadline) throw new Error('startup minimize did not reach the native window');
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  await invoke('plugin:window|unminimize', {label: 'main'});
+  if (!await invoke('plugin:window|is_visible', {label: 'main'})) throw new Error('startup could not be restored');
+  return true;
+})()'''

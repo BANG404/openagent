@@ -16,6 +16,7 @@ use tokio::sync::Mutex;
 
 #[derive(Clone, Debug, Serialize)]
 pub(crate) struct ProvisioningStatus {
+    pub(crate) presentation: &'static str,
     pub(crate) phase: String,
     pub(crate) error: Option<String>,
     pub(crate) downloaded_bytes: u64,
@@ -34,6 +35,7 @@ impl Default for ProvisioningState {
         Self {
             operation: Mutex::new(()),
             status: std::sync::Mutex::new(ProvisioningStatus {
+                presentation: "startup",
                 phase: "waiting".into(),
                 error: None,
                 downloaded_bytes: 0,
@@ -269,6 +271,12 @@ pub(crate) fn frontend_failed(app: &tauri::AppHandle) {
 }
 
 fn reveal_preparation(app: &tauri::AppHandle) -> Result<(), String> {
+    {
+        let state = app.state::<ProvisioningState>();
+        let mut status = state.status.lock().map_err(|error| error.to_string())?;
+        status.presentation = "preparation";
+        let _ = app.emit("shell-resource-progress", &*status);
+    }
     tracing::info!(target: "openagent::startup", "showing shell resource preparation");
     crate::desktop_windows::reveal_main_window(
         app.clone(),
@@ -519,6 +527,26 @@ async fn provision_inner(
     app: &tauri::AppHandle,
     offline_directory: Option<PathBuf>,
 ) -> Result<(), String> {
+    // Exercise the release startup path with a stalled resource owner without
+    // adding delay controls to production or touching real installation state.
+    #[cfg(debug_assertions)]
+    if std::env::var("OPENAGENT_BOOTSTRAP_TEST").is_ok_and(|value| value == "1")
+        && app
+            .state::<ProvisioningState>()
+            .status
+            .lock()
+            .map_err(|error| error.to_string())?
+            .phase
+            == "waiting"
+    {
+        if let Some(delay) = startup_test_delay(
+            std::env::var("OPENAGENT_BOOTSTRAP_TEST_DELAY_MS")
+                .ok()
+                .as_deref(),
+        ) {
+            tokio::time::sleep(delay).await;
+        }
+    }
     if offline_directory.is_none() {
         if let Some(runtime) = installed_startup_resource(app).await? {
             tracing::info!(
@@ -574,6 +602,14 @@ async fn provision_inner(
         _ => runtime,
     };
     start_installed_resources(app, &selected_runtime, Some(&frontend.version)).await
+}
+
+#[cfg(debug_assertions)]
+fn startup_test_delay(value: Option<&str>) -> Option<std::time::Duration> {
+    let milliseconds = value?.parse::<u64>().ok()?;
+    (1..=60_000)
+        .contains(&milliseconds)
+        .then(|| std::time::Duration::from_millis(milliseconds))
 }
 
 /// Resource owners reverify their selected bytes. A shell update must still
@@ -717,21 +753,23 @@ async fn start_installed_resources(
         .get_webview_window("main")
         .ok_or("Main window is unavailable")?;
     let active_frontend_version = frontend_manager.current_version();
-    let bootstrap = crate::runtime_transport::proxy_runtime_request(
+    // Window routing needs only settings. Reading the full bootstrap here
+    // would restore/transfer a long transcript twice before the product opens.
+    let settings = crate::runtime_transport::proxy_runtime_request(
         supervisor.inner(),
         crate::runtime_transport::RuntimeProxyRequest {
-            method: "GET".into(),
-            path: "/api/desktop/bootstrap".into(),
-            body: None,
+            method: "POST".into(),
+            path: "/api/desktop/operations".into(),
+            body: Some(serde_json::json!({"operation": "get_settings", "args": {}}).to_string()),
         },
     )
     .await?;
-    if bootstrap.status != 200 {
+    if settings.status != 200 {
         return Err("Runtime startup settings are unavailable".into());
     }
-    let bootstrap: serde_json::Value =
-        serde_json::from_str(&bootstrap.body).map_err(|error| error.to_string())?;
-    let onboarding_completed = bootstrap["config"]["onboarding_completed"]
+    let settings: serde_json::Value =
+        serde_json::from_str(&settings.body).map_err(|error| error.to_string())?;
+    let onboarding_completed = settings["onboarding_completed"]
         .as_bool()
         .ok_or("Runtime startup settings omit onboarding completion")?;
     let mut query = if onboarding_completed {
@@ -838,6 +876,28 @@ pub(crate) async fn retry_shell_resources(
 #[cfg(test)]
 mod release_identity_tests {
     use super::*;
+
+    #[test]
+    #[cfg(debug_assertions)]
+    fn startup_delay_fixture_is_bounded_and_opt_in() {
+        for input in [
+            None,
+            Some(""),
+            Some("0"),
+            Some("-1"),
+            Some("NaN"),
+            Some("60001"),
+            Some("18446744073709551616"),
+        ] {
+            assert_eq!(startup_test_delay(input), None, "{input:?}");
+        }
+        for milliseconds in [1, 9_999, 10_000, 10_001, 38_000, 60_000] {
+            assert_eq!(
+                startup_test_delay(Some(&milliseconds.to_string())),
+                Some(std::time::Duration::from_millis(milliseconds))
+            );
+        }
+    }
 
     fn distribution(product: &str, shell: Option<&str>) -> Distribution {
         Distribution {

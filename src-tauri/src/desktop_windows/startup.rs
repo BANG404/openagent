@@ -5,12 +5,12 @@ use crate::desktop_bootstrap::instances::should_install_desktop_tray;
 use crate::frontend_resource::FrontendResourceManager;
 use tauri::Manager;
 
-pub(crate) fn initialize(
+/// Install the primary window's native lifecycle before any asynchronous startup.
+pub(crate) fn initialize_main_window(
     app: &tauri::AppHandle,
-    startup_frontend_manager: &FrontendResourceManager,
     is_workspace_window: bool,
     development_multi_instance: bool,
-) -> Result<(), Box<dyn std::error::Error>> {
+) {
     if let Some(window) = app.get_webview_window("main") {
         apply_native_window_material(&window);
         if should_install_desktop_tray(is_workspace_window, development_multi_instance) {
@@ -28,7 +28,14 @@ pub(crate) fn initialize(
             });
         }
     }
+}
 
+pub(crate) fn initialize(
+    app: &tauri::AppHandle,
+    startup_frontend_manager: &FrontendResourceManager,
+    is_workspace_window: bool,
+    _development_multi_instance: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
     if !is_workspace_window {
         if app.get_webview_window("onboarding").is_none() {
             let onboarding_window = tauri::WebviewWindowBuilder::new(

@@ -1,0 +1,31 @@
+[scenario]
+name = "history timeout offers a working localized retry"
+fail_fast = true
+global_timeout_ms = 15000
+
+[[step]]
+name = "timeout stops blocking history and exposes Retry"
+action = "eval"
+script = '''(() => {
+  const alert = document.querySelector('.checkpoint-load-error[role=alert]');
+  if (!alert || !/10/.test(alert.textContent)) throw new Error('history deadline feedback missing');
+  const retry = alert.querySelector('button');
+  if (!retry || retry.disabled || !['Retry', '重试'].includes(retry.textContent.trim())) throw new Error('localized Retry unavailable');
+  retry.click();
+  return true;
+})()'''
+
+[[step]]
+name = "retry restores complete history and removes the timeout"
+action = "eval"
+script = '''(async () => {
+  const deadline = Date.now() + 10000;
+  while (document.querySelector('[data-performance-phase]')?.getAttribute('data-performance-phase') !== 'history-restored') {
+    if (Date.now() > deadline) throw new Error('retry did not finish');
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  if (document.querySelector('.checkpoint-load-error')) throw new Error('stale timeout after retry');
+  const text = document.querySelector('.messages-inner')?.textContent ?? '';
+  if (!text.includes('Performance request 1:') || !text.includes('Performance answer 4.')) throw new Error('retry lost history');
+  return true;
+})()'''

@@ -402,14 +402,17 @@ The packaged application embeds `src/bootstrap/`, built independently with
 `bootstrap.vite.config.js`. It renders the shared `OnboardingFlow` welcome step
 with native resource progress, retry and offline import. The component receives
 its SDK client only from the product page; the embedded welcome has no Runtime
-transport and cannot advance before resources are ready. Release startup creates a hidden
-main window and checks the installed selections through their resource owners.
+transport and cannot advance before resources are ready. Release startup shows a
+neutral loading shell in the main window before checking installed selections
+through their resource owners. Startup presentation and resource phase are
+independent: downloading or starting does not imply first-use onboarding.
 With a verified Runtime and a frontend meeting the signed installation identity, ordinary
 startup opens the product directly, without staging or recopying a distribution.
 An unfinished shell handoff still consumes its exact signed distribution.
-An existing frontend admitted by its resource owner keeps the bootstrap hidden
+An existing frontend admitted by its resource owner keeps Welcome unmounted
 through replacement-resource preparation, Runtime startup and product
-navigation, including shell continuation and cached repair. A frontend older
+navigation, including shell continuation and cached repair. The visible loading
+shell provides native window controls throughout that wait. A frontend older
 than the required frontend component may require a new distribution without reopening Welcome.
 Formal releases can retain original shell and frontend bytes while advancing the
 installed product version. The signed packaged distribution binds those component
@@ -418,14 +421,14 @@ identity metadata, existing installers retain their compiled-version behavior.
 See [component reuse](../../openagent-release-engineering/references/component-reuse.md).
 Initial preparation without an admitted frontend, explicit offline import and
 actionable startup failures retain the shared welcome/recovery surface.
-An existing shell handoff also keeps preparation hidden when the new shell's
+An existing shell handoff also keeps Welcome hidden when the new shell's
 protocol rejects the old frontend selection. After staging the exact signed
 distribution, Runtime startup admission may continue with its verified candidate
 when the resource owner has cleared an unusable old selection. Rejected protocol
 or damaged-resource selections must not require a manual retry; malformed or
 unreadable activation state still fails without being overwritten. Keep old
 installed bytes and all product data intact. Native shell-resource coverage seeds
-both old protocol selections and asserts a first-attempt, hidden handoff with
+both old protocol selections and asserts a first-attempt handoff without Welcome, with
 unchanged configuration.
 First installation keeps resource preparation inside the existing welcome step;
 after installation the same main WebView continues the full wizard through

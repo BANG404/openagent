@@ -89,10 +89,9 @@ export function createPageStartup(options: StartupOptions) {
     let requiresOnboarding = false;
     let eventDeliveryInstalled = false;
 
-    // Warm the large Mermaid dynamic module before revealing the main window.
-    // Otherwise the first render_mermaid call can spend the Runtime's entire
-    // 20-second response deadline compiling/loading the renderer.
-    const mermaidPreload = loadMermaid().catch((error) => {
+    // Warm diagrams alongside durable startup. A slow renderer must not delay
+    // the bootstrap request, Runtime subscription or usable conversation shell.
+    void loadMermaid().catch((error) => {
       console.warn("Failed to preload Mermaid renderer; it will retry on demand", error);
     });
 
@@ -131,7 +130,6 @@ export function createPageStartup(options: StartupOptions) {
     try {
       // Seed isDarkTheme before settings load so shikiTheme is correct from first render
       options.isDarkTheme = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      await mermaidPreload;
 
       if (options.tauriAvailable) {
         await applyStartupSnapshot();

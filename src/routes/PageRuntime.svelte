@@ -21,6 +21,7 @@
 
   import Toast from "$lib/components/Toast.svelte";
   import LoadingSkeleton from "$lib/components/LoadingSkeleton.svelte";
+  import StartupSurface from "$lib/components/StartupSurface.svelte";
   import SettingsWindowSkeleton from "$lib/components/SettingsWindowSkeleton.svelte";
   import { frontendActivationShouldShowNotice } from "$lib/frontendActivation";
   import { AgentCompletionNotifier } from "$lib/agentCompletionNotification";
@@ -4107,6 +4108,10 @@
   });
 
   const conversationSurfaceActions = {
+    retryCheckpointLoad: async () => {
+      const convId = activeConvId;
+      if (convId && !loadingConversationIds[convId]) await loadMessagesForConv(convId, true, true);
+    },
     exportConversationTrace: exportCurrentConversationTrace,
     cancelBottomScrollFromUser,
     cancelUserInput,
@@ -4298,6 +4303,8 @@
     {/if}
   {:else if isQuickChatSurface}
     <QuickChatSurface preview={isQuickChatPreview} />
+  {:else if initialLoading}
+    <StartupSurface />
   {:else}
     <div class="app" aria-busy={workspaceLoading} inert={workspaceLoading}>
       <!-- ─── Sidebar ─────────────────────────────────────────────────────────────── -->

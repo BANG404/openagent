@@ -14,10 +14,13 @@
   } from "$lib/devFixtures/conversationPerformance";
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import type { Locale } from "$lib/i18n";
+  import { tr } from "$lib/i18n";
   import type { Conversation, StreamItem } from "$lib/types";
 
   let { theme, locale }: { theme: string; locale: Locale } = $props();
   const query = new URLSearchParams(location.search);
+  const retryFixture = query.has("performance-history-retry");
+  let checkpointLoadError = $state(retryFixture ? tr("historyReadTimedOut") : null);
   const bounded = (key: string, fallback: number, max: number) => {
     const value = Number(query.get(key) ?? fallback);
     if (!Number.isInteger(value) || value < 1 || value > max) throw new Error(`Invalid ${key}`);
@@ -212,6 +215,10 @@
     }
   }
   onMount(() => {
+    if (retryFixture) {
+      phase = "history-timeout";
+      return;
+    }
     void run().catch((error: unknown) => {
       failure = String(error);
       phase = "failed";
@@ -246,6 +253,15 @@
     followTail={false}
     newConversationGreeting={null}
     newConversationGreetingLoading={false}
+    {checkpointLoadError}
+    onRetryCheckpointLoad={retryFixture
+      ? async () => {
+          phase = "history-retrying";
+          checkpointLoadError = null;
+          await hydrate();
+          phase = "history-restored";
+        }
+      : undefined}
     editable={false}
     onCommitEdit={() => {}}
     onAddQuote={() => {}}

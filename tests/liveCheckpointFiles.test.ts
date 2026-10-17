@@ -68,6 +68,41 @@ function fixture() {
   return { options, controller: createCheckpointController(options) };
 }
 
+test("history timeout releases loading, preserves other conversations and allows retry", async () => {
+  const { options, controller } = fixture();
+  options.chatStreams.streamingConversationIds = {};
+  let timedOut = true;
+  const invoke = spyOn(desktopOpenAgent, "invokeProduct").mockImplementation((operation) => {
+    if (operation === "get_checkpoint_view") {
+      return (
+        timedOut
+          ? Promise.reject(new Error("Runtime history read timed out after 10 seconds"))
+          : Promise.resolve([])
+      ) as never;
+    }
+    if (operation === "get_branches") return Promise.resolve([]) as never;
+    if (operation === "get_active_branch_tip") return Promise.resolve(null) as never;
+    if (operation === "restore_agent_history") return Promise.resolve(undefined) as never;
+    throw new Error(`Unexpected operation: ${operation}`);
+  });
+  try {
+    await controller.loadMessagesForConv("conv");
+    expect(options.loadingConversationIds.conv).toBeUndefined();
+    expect(options.loadedConvIds.has("conv")).toBe(false);
+    expect(options.checkpointLoadErrors.conv).toContain("10");
+    expect(options.convTrees.conv).toBeUndefined();
+    timedOut = false;
+    await controller.loadMessagesForConv("other");
+    expect(options.loadedConvIds.has("other")).toBe(true);
+    expect(options.checkpointLoadErrors.conv).toContain("10");
+    await controller.loadMessagesForConv("conv");
+    expect(options.loadedConvIds.has("conv")).toBe(true);
+    expect(options.checkpointLoadErrors.conv).toBeUndefined();
+  } finally {
+    invoke.mockRestore();
+  }
+});
+
 test("live checkpoint files refresh before completion and reject stale or off-branch replies", async () => {
   const { options, controller } = fixture();
   const checkpoints = [checkpoint("first", null), checkpoint("second", "first")];

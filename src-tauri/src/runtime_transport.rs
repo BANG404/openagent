@@ -10,6 +10,30 @@ use tokio::sync::Mutex;
 
 const MAX_PROXY_BODY_BYTES: usize = 64 * 1024 * 1024;
 const MAX_SSE_FRAME_BYTES: usize = 1024 * 1024;
+const HISTORY_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
+
+// Only read-only desktop projections receive the interactive latency budget.
+// Agent execution, installation and writes must not be cancelled by this UI
+// policy: their side effects may already have committed when a caller times out.
+fn interactive_read_timeout(request: &RuntimeProxyRequest) -> Option<std::time::Duration> {
+    if request.method == "GET" && request.path == "/api/desktop/bootstrap" {
+        return Some(HISTORY_READ_TIMEOUT);
+    }
+    if request.method != "POST" || request.path != "/api/desktop/operations" {
+        return None;
+    }
+    let body: Value = serde_json::from_str(request.body.as_deref()?).ok()?;
+    match body["operation"].as_str()? {
+        "get_settings"
+        | "get_conversation_page"
+        | "get_conversation_meta"
+        | "get_child_conversations"
+        | "get_checkpoint_view"
+        | "get_active_branch_tip"
+        | "get_branches" => Some(HISTORY_READ_TIMEOUT),
+        _ => None,
+    }
+}
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -93,6 +117,13 @@ pub async fn proxy_runtime_request(
     request: RuntimeProxyRequest,
 ) -> Result<RuntimeProxyResponse, String> {
     let connection = supervisor.connection().await?;
+    proxy_runtime_connection(&connection, request).await
+}
+
+async fn proxy_runtime_connection(
+    connection: &crate::runtime_process::RuntimeConnection,
+    request: RuntimeProxyRequest,
+) -> Result<RuntimeProxyResponse, String> {
     let method = parse_method(&request.method)?;
     let url = resolve_api_url(&connection.endpoint, &request.path)?;
     if request
@@ -104,16 +135,23 @@ pub async fn proxy_runtime_request(
     }
 
     let client = reqwest::Client::new();
+    let timeout = interactive_read_timeout(&request);
     let mut outbound = client.request(method, url).bearer_auth(&connection.token);
+    if let Some(timeout) = timeout {
+        outbound = outbound.timeout(timeout);
+    }
     if let Some(body) = request.body {
         outbound = outbound
             .header(reqwest::header::CONTENT_TYPE, "application/json")
             .body(body);
     }
-    let mut response = outbound
-        .send()
-        .await
-        .map_err(|error| format!("Runtime request failed: {error}"))?;
+    let mut response = outbound.send().await.map_err(|error| {
+        if timeout.is_some() && error.is_timeout() {
+            "Runtime history read timed out after 10 seconds".to_string()
+        } else {
+            format!("Runtime request failed: {error}")
+        }
+    })?;
     let status = response.status();
     let content_type = response
         .headers()
@@ -121,11 +159,13 @@ pub async fn proxy_runtime_request(
         .and_then(|value| value.to_str().ok())
         .map(str::to_string);
     let mut body = Vec::new();
-    while let Some(chunk) = response
-        .chunk()
-        .await
-        .map_err(|error| format!("Runtime response body failed: {error}"))?
-    {
+    while let Some(chunk) = response.chunk().await.map_err(|error| {
+        if timeout.is_some() && error.is_timeout() {
+            "Runtime history read timed out after 10 seconds".to_string()
+        } else {
+            format!("Runtime response body failed: {error}")
+        }
+    })? {
         if body.len().saturating_add(chunk.len()) > MAX_PROXY_BODY_BYTES {
             return Err("Runtime response body exceeds the desktop proxy limit".to_string());
         }
@@ -248,7 +288,9 @@ fn is_static_route_segment(segment: &str) -> bool {
 /// class, because an unreachable Runtime is what makes a silent shell look like
 /// a server failure.
 fn proxy_delivery_failure(error: &str) -> &'static str {
-    if error == "Runtime process is not running" {
+    if error == "Runtime history read timed out after 10 seconds" {
+        "runtime_read_timed_out"
+    } else if error == "Runtime process is not running" {
         "runtime_not_running"
     } else if error.starts_with("Runtime request failed") {
         "runtime_unreachable"
@@ -636,15 +678,124 @@ fn parse_sse_frame(frame: &[u8]) -> Result<Option<(String, String)>, String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        find_sse_frame, parse_method, parse_sse_frame, proxy_delivery_failure, proxy_route_label,
-        proxy_runtime_asset_connection, resolve_api_url, validate_runtime_asset_request,
-        validate_webview_product_request, RuntimeProxyRequest,
+        find_sse_frame, interactive_read_timeout, parse_method, parse_sse_frame,
+        proxy_delivery_failure, proxy_route_label, proxy_runtime_asset_connection,
+        proxy_runtime_connection, resolve_api_url, validate_runtime_asset_request,
+        validate_webview_product_request, RuntimeProxyRequest, HISTORY_READ_TIMEOUT,
     };
     use crate::runtime_process::RuntimeConnection;
     use reqwest::{Method, Url};
     use std::io::{Read, Write};
     use std::net::TcpListener;
     use std::sync::mpsc;
+
+    #[test]
+    fn interactive_timeouts_cover_history_reads_without_cancelling_writes() {
+        for operation in [
+            "get_settings",
+            "get_conversation_page",
+            "get_conversation_meta",
+            "get_child_conversations",
+            "get_checkpoint_view",
+            "get_active_branch_tip",
+            "get_branches",
+            "delete_conversation",
+            "restore_agent_history",
+            "save_settings",
+            "install_agent_plugin",
+            "get_unknown",
+        ] {
+            let request = RuntimeProxyRequest { method: "POST".into(), path: "/api/desktop/operations".into(), body: Some(serde_json::json!({"operation": operation, "args": {"convId": "a long conversation"}}).to_string()) };
+            let read = [
+                "get_settings",
+                "get_conversation_page",
+                "get_conversation_meta",
+                "get_child_conversations",
+                "get_checkpoint_view",
+                "get_active_branch_tip",
+                "get_branches",
+            ]
+            .contains(&operation);
+            assert_eq!(
+                interactive_read_timeout(&request),
+                read.then_some(HISTORY_READ_TIMEOUT)
+            );
+        }
+        for (method, path, body, expected) in [
+            (
+                "GET",
+                "/api/desktop/bootstrap",
+                None,
+                Some(HISTORY_READ_TIMEOUT),
+            ),
+            ("POST", "/api/conversations/c/runs", None, None),
+            ("GET", "/api/events", None, None),
+            ("POST", "/api/desktop/operations", Some("invalid"), None),
+            ("POST", "/api/desktop/operations", Some("{}"), None),
+        ] {
+            assert_eq!(
+                interactive_read_timeout(&RuntimeProxyRequest {
+                    method: method.into(),
+                    path: path.into(),
+                    body: body.map(str::to_string)
+                }),
+                expected
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn history_read_deadline_bounds_both_headers_and_partial_large_bodies() {
+        for (operation, partial_body) in [
+            (None, false),
+            (Some("get_settings"), false),
+            (Some("get_checkpoint_view"), true),
+        ] {
+            let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+            let address = listener.local_addr().unwrap();
+            let (stop, stopped) = mpsc::channel();
+            let server = std::thread::spawn(move || {
+                let (mut stream, _) = listener.accept().unwrap();
+                let mut request = [0_u8; 4096];
+                let _ = stream.read(&mut request).unwrap();
+                if partial_body {
+                    stream
+                        .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 50000000\r\n\r\n{")
+                        .unwrap();
+                }
+                let _ = stopped.recv_timeout(std::time::Duration::from_secs(15));
+            });
+            let connection = RuntimeConnection {
+                endpoint: Url::parse(&format!("http://{address}/")).unwrap(),
+                token: "fixture".into(),
+            };
+            let started = std::time::Instant::now();
+            let result = proxy_runtime_connection(
+                &connection,
+                RuntimeProxyRequest {
+                    method: if operation.is_some() { "POST" } else { "GET" }.into(),
+                    path: if operation.is_some() {
+                        "/api/desktop/operations"
+                    } else {
+                        "/api/desktop/bootstrap"
+                    }
+                    .into(),
+                    body: operation.map(|operation| {
+                        serde_json::json!({"operation": operation, "args": {}}).to_string()
+                    }),
+                },
+            )
+            .await;
+            let _ = stop.send(());
+            server.join().unwrap();
+            assert_eq!(
+                result.unwrap_err(),
+                "Runtime history read timed out after 10 seconds"
+            );
+            assert!(started.elapsed() >= HISTORY_READ_TIMEOUT);
+            assert!(started.elapsed() < std::time::Duration::from_secs(13));
+        }
+    }
 
     #[test]
     fn proxy_allows_only_product_api_paths_on_the_supervised_origin() {

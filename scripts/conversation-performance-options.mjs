@@ -18,6 +18,7 @@ export function performanceOptions(args) {
     "--base-url",
     "--max-turn-p95-ms",
     "--max-frame-p95-ms",
+    "--max-hydration-ms",
   ]);
   /** @type {Map<string, string>} */
   const values = new Map();
@@ -57,6 +58,7 @@ export function performanceOptions(args) {
     baseUrl: baseUrl.origin,
     maxTurnP95: integer("--max-turn-p95-ms", 0, 0, 3_600_000),
     maxFrameP95: integer("--max-frame-p95-ms", 0, 0, 3_600_000),
+    maxHydration: integer("--max-hydration-ms", 0, 0, 3_600_000),
   };
 }
 

@@ -259,6 +259,12 @@ pub fn run() {
                 install_desktop_tray(app)?;
             }
 
+            desktop_windows::startup::initialize_main_window(
+                app.handle(),
+                is_workspace_window,
+                development_multi_instance,
+            );
+
             if !shell_provisioning {
                 desktop_windows::startup::initialize(
                     app.handle(),
@@ -266,8 +272,20 @@ pub fn run() {
                     is_workspace_window,
                     development_multi_instance,
                 )?;
-            } else if let Some(window) = app.get_webview_window("main") {
-                desktop_windows::apply_native_window_material(&window);
+            } else if app.get_webview_window("main").is_some() {
+                // The embedded frontend starts with a neutral loading shell.
+                // Show it before resource validation, persistence inspection or
+                // Runtime readiness; none of those may strand a tray-only app.
+                desktop_windows::reveal_main_window(
+                    app.handle().clone(),
+                    app.state::<DesktopWindowState>(),
+                )
+                .map_err(std::io::Error::other)?;
+                tracing::info!(
+                    target: "openagent::startup",
+                    elapsed_ms = startup_started_at.elapsed().as_millis() as u64,
+                    "startup loading window revealed"
+                );
                 let provisioning_app = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
                     if let Err(error) =

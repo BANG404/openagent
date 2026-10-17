@@ -15,6 +15,27 @@ function conversation(id: string, messages: ChatMessage[]): Conversation {
 }
 
 describe("workspace conversation transcript restoration", () => {
+  for (const count of [0, 1, 29, 30, 31, 1000]) {
+    test(`restores only the selected long transcript among ${count} histories`, () => {
+      const metadata = Array.from({ length: count }, (_, index) =>
+        conversation(`history-${index}`, []),
+      );
+      const longTranscript = Array.from({ length: 1000 }, (_, index) =>
+        message(`message-${index}`, "long history ".repeat(100)),
+      );
+      const restored = prepareWorkspaceConversationSnapshot(
+        metadata,
+        [],
+        count ? "history-0" : null,
+        count ? longTranscript : null,
+      );
+      expect(restored).toHaveLength(count);
+      expect(restored.flatMap((entry) => entry.messages)).toHaveLength(count ? 1000 : 0);
+      if (count) expect(restored[0].messages).toBe(longTranscript);
+      expect(restored.slice(1).every((entry) => entry.messages.length === 0)).toBe(true);
+    });
+  }
+
   test("reapplies cached transcript state to fresh workspace metadata", () => {
     const optimistic = message("user-live", "still streaming");
     const restored = restoreWorkspaceConversationSnapshot(

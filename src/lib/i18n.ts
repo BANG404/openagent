@@ -1,5 +1,7 @@
 import { writable, derived, get } from "svelte/store";
-import { invoke, listen } from "$lib/openagent/tauriClient";
+// Locale is a native capability, including in the Runtime-free bootstrap.
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { zh } from "./i18n.zh";
 import { en } from "./i18n.en";
 

@@ -1,5 +1,26 @@
 # Conversation performance simulation
 
+Mermaid prewarming runs alongside startup bootstrap. Never await it before
+requesting durable state, installing Runtime event delivery or revealing the
+conversation surface. `tests/startupLifecycle.test.ts` isolates its module mocks
+per process and covers pending/failed renderer imports, snapshot retry/fallback
+and listener failure while preserving restore-before-subscribe ordering.
+
+The native main window appears before provisioning or history restoration. Its
+shared loading shell remains mounted through product bootstrap and adds waiting
+feedback after three seconds. Bootstrap and selected read-only history requests
+have a ten-second transport deadline, including response bodies. The native shell
+reads settings alone for window routing; only the product requests the complete
+startup transcript. A failed
+checkpoint load releases its spinner, keeps other conversations accessible and
+offers Retry. Do not apply this deadline to writes, installations or agent runs.
+The deadline bounds an individual read, not the total provisioning time or
+synchronous rendering of an arbitrarily large transcript. Sidebar history stays
+paged; restoring the active conversation must not eagerly restore every history.
+Workspace snapshot tests cover 0, 1, 29, 30, 31 and 1,000 histories with a
+1,000-message selected transcript, retaining its array without copying it into
+inactive histories. The 29/30/31 cases straddle the default sidebar page size.
+
 Run `bun run test:perf:browser --profile smoke` before larger `standard` or
 `stress` runs. The runner owns a Vite server on loopback and a unique Playwright
 session through the workspace wrapper. `--base-url` selects an existing local
@@ -29,7 +50,12 @@ include two animation frames and rendering, so they are not raw reducer time or
 an FPS measure. JS heap is Chromium-specific and is neither process RSS nor a
 cross-browser memory limit. Missing metrics are `null`/unsupported, never zero.
 Default gates assert correctness. `--max-frame-p95-ms` adds a caller-selected
-latency gate after artifacts are saved. Compare repeated runs with identical
+latency gate after artifacts are saved. `--max-hydration-ms` gates cold/warm
+hydration, compaction hydration and full restore separately. For interactive
+acceptance, target five seconds and use ten seconds as the maximum for the
+1,000-turn stress fixture; retain failures and actual measurements when the
+five-second target is missed. Streaming budgets are separate from loading
+budgets. Compare repeated runs with identical
 hardware, build mode and sizes; browser dev timings do not predict release
 desktop timings. Use an OS/native profiler to attribute CPU and memory growth.
 

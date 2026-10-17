@@ -14,9 +14,16 @@ test("workload sizes reject invalid values before creating state", () => {
     ["--profile", "other"],
     ["--base-url", "https://example.com"],
     ["--cycles", "1.5"],
+    ["--max-hydration-ms", "-1"],
+    ["--max-hydration-ms", "NaN"],
+    ["--max-hydration-ms", "1.5"],
+    ["--max-hydration-ms", "3600001"],
   ])
     expect(() => performanceOptions(args)).toThrow();
   expect(performanceOptions(["--profile", "stress"]).turns).toBe(1000);
+  for (const budget of [0, 1, 4999, 5000, 5001, 10000, 3600000]) {
+    expect(performanceOptions(["--max-hydration-ms", String(budget)]).maxHydration).toBe(budget);
+  }
 });
 
 test("performance percentiles use sorted nearest ranks and retain outliers", () => {

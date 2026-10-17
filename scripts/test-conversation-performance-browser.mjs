@@ -131,6 +131,14 @@ try {
       // Snapshot only the metrics surface; serializing thousands of transcript
       // accessibility nodes would measure the driver after the workload finished.
       browser(["snapshot", "output[data-conversation-performance]"]);
+      if (options.maxHydration) {
+        assert(
+          [...result.hydration_ms, ...result.compaction_hydration_ms, result.restore_ms].every(
+            (milliseconds) => milliseconds <= options.maxHydration,
+          ),
+          "history hydration exceeded the interactive latency budget",
+        );
+      }
       if (options.maxFrameP95)
         assert(
           result.streaming_frame_p95_ms <= options.maxFrameP95,

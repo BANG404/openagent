@@ -397,7 +397,18 @@ runtime's own `McpOAuthCapability::NotRequired` test, not here.
 ## Independent shell resources
 
 `bun run test:blackbox:shell-resources` starts its own Windows Tauri fixture with
-an empty temporary home and an explicit pilot socket. It drives Retry after a
+an empty temporary home, an initially hidden main window and an explicit pilot
+socket. Its `startup-loading.toml` scenario holds the first resource check for
+60 seconds and asserts the visible neutral loading shell, native minimize and
+restore, and absence of Welcome, including after ten seconds. It captures
+light/dark and English/Chinese, then repeats visibility before a configured
+launch's delayed resource check. Native captures record the fixture PID, main
+HWND and Pilot socket. The same runner opens the development-only performance
+preview's history-timeout fixture and runs `startup-history-retry.toml` in all
+four appearances, asserting localized timeout feedback, Retry and complete
+checkpoint restoration. Host loopback tests separately hold headers and a
+partial large response body past the ten-second read deadline.
+It drives Retry after a
 refused loopback resource connection, asserts offline import availability, and
 covers light/dark and English/Chinese. It then builds an ephemeral signed offline
 fixture using the exact prepared Runtime and production frontend and verifies

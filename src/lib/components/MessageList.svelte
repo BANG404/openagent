@@ -4,6 +4,7 @@
   import type { AgentBookTurn } from "./AgentBookReader.svelte";
   import Tooltip from "./Tooltip.svelte";
   import TranscriptList from "./TranscriptList.svelte";
+  import SettingsActionButton from "./ui/SettingsActionButton.svelte";
   import UserMessageRow from "./transcript/UserMessageRow.svelte";
   import AssistantTurnRow from "./transcript/AssistantTurnRow.svelte";
   import {
@@ -72,6 +73,7 @@
     newConversationGreetingLoading: boolean;
     showNewConversationContext?: boolean;
     checkpointLoadError?: string | null;
+    onRetryCheckpointLoad?: () => void | Promise<void>;
     followUpSuggestionsByMessageId?: Record<string, string[]>;
     editable?: boolean;
     attachmentPreviewLoader?: (
@@ -126,6 +128,7 @@
     newConversationGreetingLoading,
     showNewConversationContext = true,
     checkpointLoadError = null,
+    onRetryCheckpointLoad,
     followUpSuggestionsByMessageId = {},
     editable = true,
     attachmentPreviewLoader,
@@ -297,7 +300,12 @@
   style="padding-bottom: {paddingBottom}px; --user-message-collapse-lines: {USER_MESSAGE_COLLAPSE_LINES}; --user-message-index-left: {userMessageIndexLeft}px"
 >
   {#if checkpointLoadError}
-    <div class="checkpoint-load-error" role="alert">{checkpointLoadError}</div>
+    <div class="checkpoint-load-error" role="alert">
+      {checkpointLoadError}
+      {#if onRetryCheckpointLoad}
+        <SettingsActionButton label={$t("shellRetry")} onclick={onRetryCheckpointLoad} />
+      {/if}
+    </div>
   {/if}
   {#if debugMode && activeConvId}
     <aside class="debug-context" aria-label="Debug context">

@@ -1,4 +1,5 @@
 // @ts-check
+import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { mkdtemp, readFile, writeFile, mkdir, cp } from "node:fs/promises";
 import os from "node:os";
@@ -12,6 +13,7 @@ import { createDistribution } from "./distribution-artifacts.mjs";
 import { bindRuntimeHelpers } from "./bind-runtime-helpers.mjs";
 import { rename } from "node:fs/promises";
 import { readDesktopRuntimeProtocol } from "./runtime-protocol.mjs";
+import { findAvailableLoopbackPort } from "./tauri-dev-port.mjs";
 
 if (process.platform !== "win32")
   throw new Error(
@@ -35,6 +37,7 @@ const environment = {
   OPENAGENT_BOOTSTRAP_TEST: "1",
   OPENAGENT_BOOTSTRAP_TEST_URL: "http://127.0.0.1:9/openagent-distribution.json",
   OPENAGENT_BOOTSTRAP_TEST_KEY: keyFile,
+  OPENAGENT_BOOTSTRAP_TEST_DELAY_MS: "60000",
   CARGO_INCREMENTAL: "1",
   RUST_BACKTRACE: "1",
   TAURI_PILOT_SOCKET: String.raw`\\.\pipe\tauri-pilot-com.iumm.openagent.dev.shell-resources`,
@@ -71,13 +74,75 @@ function pilot(args) {
     throw new Error(result.stderr || result.stdout || "Pilot failed", { cause: result.error });
   return result.stdout;
 }
+/** @param {string} pass */
+async function captureNative(pass) {
+  pilot([
+    "eval",
+    "window.__TAURI_INTERNALS__.invoke('plugin:window|set_title', {label:'main', value:'OpenAgent'})",
+  ]);
+  const processes = spawnSync(
+    "powershell",
+    [
+      "-NoProfile",
+      "-Command",
+      "Get-Process openagent -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $env:OPENAGENT_BLACKBOX_BINARY_PATH } | Select-Object -ExpandProperty Id",
+    ],
+    {
+      env: {
+        ...environment,
+        OPENAGENT_BLACKBOX_BINARY_PATH: path.win32.normalize(
+          path.join(
+            process.env.CARGO_TARGET_DIR || path.join(root, "src-tauri/target"),
+            "debug/openagent.exe",
+          ),
+        ),
+      },
+      windowsHide: true,
+      encoding: "utf8",
+    },
+  );
+  assert.equal(processes.status, 0, processes.stderr || String(processes.error));
+  const pids = processes.stdout
+    .trim()
+    .split(/\s+/)
+    .filter((value) => /^\d+$/.test(value));
+  assert.equal(pids.length, 1, "identify only this fixture's native process");
+  const pid = Number(pids[0]);
+  const native = spawnSync(
+    process.env.PYTHON_BIN || "python",
+    [
+      "-c",
+      "import ctypes,sys\nfrom ctypes import wintypes\nu=ctypes.windll.user32\nhandles=[]\n@ctypes.WINFUNCTYPE(wintypes.BOOL,wintypes.HWND,wintypes.LPARAM)\ndef inspect(hwnd,param):\n p=wintypes.DWORD();u.GetWindowThreadProcessId(hwnd,ctypes.byref(p))\n title=ctypes.create_unicode_buffer(512);u.GetWindowTextW(hwnd,title,512)\n if p.value==int(sys.argv[1]) and title.value=='OpenAgent':handles.append(hwnd)\n return True\nu.EnumWindows(inspect,0)\nassert len(handles)==1, 'Expected this fixture main window'\nprint(handles[0])",
+      String(pid),
+    ],
+    { windowsHide: true, encoding: "utf8" },
+  );
+  assert.equal(native.status, 0, native.stderr || String(native.error));
+  const previous = process.env.BLACKBOX_NATIVE_WINDOW_ID;
+  process.env.BLACKBOX_NATIVE_WINDOW_ID = native.stdout.trim();
+  try {
+    captureBlackboxScreenshot((args) => pilot(args), path.join(directory, `${pass}.png`));
+    await writeFile(
+      path.join(directory, `${pass}-window.json`),
+      JSON.stringify({
+        pid,
+        hwnd: native.stdout.trim(),
+        window: "main",
+        socket: environment.TAURI_PILOT_SOCKET,
+      }),
+    );
+  } finally {
+    if (previous === undefined) delete process.env.BLACKBOX_NATIVE_WINDOW_ID;
+    else process.env.BLACKBOX_NATIVE_WINDOW_ID = previous;
+  }
+}
 /** @param {string} url @param {boolean} [allowRecovery] */
-function assertBootstrapHidden(url, allowRecovery = false) {
+function assertWelcomeHidden(url, allowRecovery = false) {
   if (
     url.includes("/bootstrap") &&
     pilot([
       "eval",
-      `(async () => { const visible = await window.__TAURI_INTERNALS__.invoke('plugin:window|is_visible', {label: 'main'}); const failed = ${allowRecovery} && (await window.__TAURI_INTERNALS__.invoke('shell_resource_status')).phase === 'failed'; return visible && location.pathname === '/bootstrap' && !failed; })()`,
+      `(async () => { const visible = await window.__TAURI_INTERNALS__.invoke('plugin:window|is_visible', {label: 'main'}); const failed = ${allowRecovery} && (await window.__TAURI_INTERNALS__.invoke('shell_resource_status')).phase === 'failed'; return visible && location.pathname === '/bootstrap' && Boolean(document.querySelector('[data-module="shell-resources"]')) && !failed; })()`,
     ]).includes("true")
   )
     throw new Error("Configured startup revealed resource preparation");
@@ -101,6 +166,8 @@ const vite = start(process.execPath, [
 ]);
 /** @type {ReturnType<typeof start> | undefined} */
 let desktop;
+/** @type {ReturnType<typeof start> | undefined} */
+let productVite;
 /** @type {string[]} */
 let desktopArguments;
 try {
@@ -123,7 +190,8 @@ try {
           title: "OpenAgent",
           width: 1040,
           height: 600,
-          visible: true,
+          decorations: false,
+          visible: false,
         },
       ],
     },
@@ -136,7 +204,7 @@ try {
     config,
     "--",
     "--target-dir",
-    path.join(root, "src-tauri/target"),
+    process.env.CARGO_TARGET_DIR || path.join(root, "src-tauri/target"),
   ];
   desktop = start(process.execPath, desktopArguments);
   const readyDeadline = Date.now() + 600000;
@@ -154,6 +222,34 @@ try {
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   if (!ready) throw new Error(`Fixture window did not become ready: ${logs.join("").slice(-6000)}`);
+  // Keep the first resource probe stalled beyond the old ten-second fallback.
+  // This is the release bootstrap path, starting with a genuinely hidden window.
+  const loadingDeadline = Date.now() + 30000;
+  while (
+    !pilot(["eval", "Boolean(document.querySelector('[data-module=startup-loading]'))"]).includes(
+      "true",
+    )
+  ) {
+    if (Date.now() > loadingDeadline) throw new Error("Startup loading shell did not mount");
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  const loadingStarted = Date.now();
+  for (const theme of ["light", "dark"]) {
+    for (const language of ["en", "zh"]) {
+      pilot(["snapshot", "-i"]);
+      pilot([
+        "eval",
+        `(async () => { const {locale} = await import(${JSON.stringify(`/@fs/${root.replaceAll("\\", "/")}src/lib/i18n.ts`)}); locale.set(${JSON.stringify(language)}); document.documentElement.classList.toggle('dark', ${theme === "dark"}); await window.__TAURI_INTERNALS__.invoke('set_shell_setup_appearance', {language: ${JSON.stringify(language)}, theme: ${JSON.stringify(theme)}}); return true; })()`,
+      ]);
+      pilot(["run", path.join(root, "tests/blackbox/startup-loading.toml")]);
+      await captureNative(`startup-${theme}-${language}`);
+    }
+  }
+  while (Date.now() - loadingStarted < 11000) {
+    pilot(["run", path.join(root, "tests/blackbox/startup-loading.toml")]);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  delete environment.OPENAGENT_BOOTSTRAP_TEST_DELAY_MS;
   const hydrationDeadline = Date.now() + 90000;
   let hydrated = false;
   while (Date.now() < hydrationDeadline) {
@@ -428,7 +524,7 @@ try {
   while (Date.now() < restartDeadline) {
     try {
       const url = pilot(["url"]);
-      assertBootstrapHidden(url);
+      assertWelcomeHidden(url);
       if (url.includes("openagent-ui")) {
         const pending = await readFile(path.join(updatesDirectory, "shell-handoff.json"))
           .then(() => true)
@@ -523,7 +619,7 @@ try {
   while (Date.now() < protocolUpgradeDeadline) {
     try {
       const url = pilot(["url"]);
-      assertBootstrapHidden(url);
+      assertWelcomeHidden(url);
       if (url.includes("openagent-ui")) {
         pilot(["run", path.join(root, "tests/blackbox/shell-installed-startup.toml")]);
         protocolUpgraded = true;
@@ -555,13 +651,29 @@ try {
     stdio: "ignore",
   });
   const ordinaryLogStart = logs.length;
+  environment.OPENAGENT_BOOTSTRAP_TEST_DELAY_MS = "15000";
   desktop = start(process.execPath, desktopArguments);
+  const stalledDeadline = Date.now() + 30000;
+  let stalled = false;
+  while (Date.now() < stalledDeadline) {
+    try {
+      pilot(["run", path.join(root, "tests/blackbox/startup-loading.toml")]);
+      stalled = true;
+      break;
+    } catch {
+      /* Wait for this replacement process, whose Runtime is deliberately held. */
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  if (!stalled)
+    throw new Error("Installed startup did not show loading before resource validation");
+  delete environment.OPENAGENT_BOOTSTRAP_TEST_DELAY_MS;
   const ordinaryDeadline = Date.now() + 120000;
   let ordinaryStarted = false;
   while (Date.now() < ordinaryDeadline) {
     try {
       const url = pilot(["url"]);
-      assertBootstrapHidden(url);
+      assertWelcomeHidden(url);
       if (url.includes("openagent-ui")) {
         pilot(["run", path.join(root, "tests/blackbox/shell-installed-startup.toml")]);
         if (
@@ -624,7 +736,7 @@ try {
   while (Date.now() < reusedDeadline) {
     try {
       const url = pilot(["url"]);
-      assertBootstrapHidden(url);
+      assertWelcomeHidden(url);
       if (url.includes("openagent-ui")) {
         pilot(["run", path.join(root, "tests/blackbox/shell-installed-startup.toml")]);
         pilot(["snapshot", "-i"]);
@@ -668,7 +780,7 @@ try {
   while (Date.now() < repairDeadline) {
     try {
       const url = pilot(["url"]);
-      assertBootstrapHidden(url);
+      assertWelcomeHidden(url);
       if (url.includes("openagent-ui")) {
         pilot(["run", path.join(root, "tests/blackbox/shell-installed-startup.toml")]);
         repaired = true;
@@ -701,7 +813,7 @@ try {
     try {
       const url = pilot(["url"]);
       if (url.includes("/bootstrap")) {
-        assertBootstrapHidden(url, true);
+        assertWelcomeHidden(url, true);
         pilot(["snapshot", "-i"]);
         pilot(["run", path.join(root, "tests/blackbox/shell-resources.toml")]);
         recoveryVisible = pilot([
@@ -720,13 +832,114 @@ try {
   if (!recoveryVisible) throw new Error("Invalid configured cache did not reveal recovery");
   if (!(await readFile(configFile, "utf8")).includes("onboarding_completed = true"))
     throw new Error("Resource recovery changed onboarding completion");
+  // The isolated native window also qualifies the history error/retry surface.
+  // Its source-only fixture uses the real MessageList and checkpoint hydration;
+  // transport deadline behavior is exercised by the host's loopback tests.
+  const productPort = await findAvailableLoopbackPort();
+  productVite = start(process.execPath, [
+    path.join(root, "node_modules/vite/bin/vite.js"),
+    "--host",
+    "127.0.0.1",
+    "--port",
+    String(productPort),
+    "--strictPort",
+  ]);
+  const productDeadline = Date.now() + 60000;
+  while (
+    !(await fetch(`http://127.0.0.1:${productPort}`)
+      .then((response) => response.ok)
+      .catch(() => false))
+  ) {
+    if (Date.now() > productDeadline || productVite.exitCode !== null)
+      throw new Error("History fixture frontend unavailable");
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+  spawnSync("taskkill", ["/PID", String(desktop.pid), "/T", "/F"], {
+    windowsHide: true,
+    stdio: "ignore",
+  });
+  delete environment.OPENAGENT_BOOTSTRAP_TEST;
+  delete environment.OPENAGENT_BOOTSTRAP_TEST_URL;
+  delete environment.OPENAGENT_BOOTSTRAP_TEST_KEY;
+  environment.OPENAGENT_HOME = path.join(directory, "history-data");
+  // Give this WebView its actual source origin, preserving Tauri's normal IPC
+  // authority instead of authorizing another loopback origin for the fixture.
+  desktop = start(process.execPath, [
+    path.join(root, "node_modules/@tauri-apps/cli/tauri.js"),
+    "dev",
+    "--no-watch",
+    "--config",
+    JSON.stringify({ build: { beforeDevCommand: "", devUrl: `http://127.0.0.1:${productPort}` } }),
+    "--",
+    "--target-dir",
+    process.env.CARGO_TARGET_DIR || path.join(root, "src-tauri/target"),
+  ]);
+  const historyDeadline = Date.now() + 120000;
+  let historyReady = false;
+  while (Date.now() < historyDeadline) {
+    try {
+      historyReady = pilot(["url"]).includes(`127.0.0.1:${productPort}`);
+      if (historyReady) break;
+    } catch {
+      /* Wait for the fixture with the product source as its configured origin. */
+    }
+    if (desktop.exitCode !== null) throw new Error("History native fixture exited");
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  if (!historyReady) throw new Error("History native fixture did not become ready");
+  for (const theme of ["light", "dark"]) {
+    for (const language of ["en", "zh"]) {
+      const preview = new URL(`http://127.0.0.1:${productPort}`);
+      preview.search = new URLSearchParams({
+        "streaming-transcript-preview": "",
+        "streaming-transcript-preview-performance": "",
+        "streaming-transcript-preview-theme": theme,
+        "streaming-transcript-preview-locale": language,
+        "performance-history-retry": "",
+        "performance-turns": "4",
+        "performance-compact-every": "2",
+        "performance-cycles": "1",
+      }).toString();
+      pilot(["navigate", preview.href]);
+      const mountedDeadline = Date.now() + 60000;
+      let mounted = false;
+      while (Date.now() < mountedDeadline) {
+        try {
+          mounted = pilot([
+            "eval",
+            `(() => {
+            if (!document.querySelector('.checkpoint-load-error')) return false;
+            window.__historyFixtureReadySince ??= performance.now();
+            return performance.now() - window.__historyFixtureReadySince > 2500;
+          })()`,
+          ]).includes("true");
+          if (mounted) break;
+        } catch {
+          // Vite's first dependency optimization can reload this development
+          // page; qualify the mounted surface after that reload settles.
+        }
+        if (desktop.exitCode !== null) throw new Error("History native fixture exited");
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+      if (!mounted)
+        throw new Error("History timeout surface did not mount after source optimization");
+      pilot(["snapshot", "-i"]);
+      await captureNative(`history-timeout-${theme}-${language}`);
+      pilot(["run", path.join(root, "tests/blackbox/startup-history-retry.toml")]);
+      await captureNative(`history-restored-${theme}-${language}`);
+    }
+  }
+  await writeFile(
+    path.join(directory, "history-native-errors.json"),
+    pilot(["logs", "--level", "error"]),
+  );
   console.log(
-    `Shell resource black-box passed: retry, four themes/locales, verified offline install, interrupted installer supersession, hidden continuation with helper repair, protocol upgrade without retry, direct repeat startup, independent shell/product identities, hidden cached repair and invalid-cache recovery. Artifacts: ${directory}`,
+    `Shell resource black-box passed: visible stalled startup before resources, native minimize/restore, four startup themes/locales, history timeout/retry, verified offline install, interrupted installer supersession, continuation with helper repair, protocol upgrade without retry, delayed repeat startup, independent shell/product identities, cached repair and invalid-cache recovery. Artifacts: ${directory}`,
   );
 } finally {
   await writeFile(path.join(directory, "desktop.log"), logs.join(""));
   // Terminate only these child trees; no developer or installed app is touched.
-  for (const child of [desktop, vite]) {
+  for (const child of [desktop, vite, productVite]) {
     if (!child?.pid) continue;
     if (process.platform === "win32")
       spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], {

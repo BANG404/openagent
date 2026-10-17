@@ -54,8 +54,10 @@
   durable onboarding completion and never reopens this window for an embedding
   status query. Native installed-resource failures retain their recovery surface.
   Repeated launch, tray and Dock activation respect the first-reveal flag:
-  until startup reveals setup, recovery or the product, they leave the hidden
-  bootstrap alone. Single-instance activation shares the tray's focus routing.
+  until startup reveals the loading shell, setup, recovery or the product, they
+  leave the hidden bootstrap alone. Once the loading shell is shown, tray
+  activation can restore it while resources and Runtime are still starting.
+  Single-instance activation shares the tray's focus routing.
 - After any successful programmatic `set_focus`, including the first-run
   handoff that reveals the main window, repeated launch, and
   registered-workspace navigation, emit
@@ -83,6 +85,22 @@
   other platforms.
 
 ## Runtime readiness budget
+
+Show the main loading window before shell provisioning, Runtime readiness and
+durable history restoration. The shared startup surface adds localized waiting
+feedback after three seconds and keeps native window controls available. Locale
+IPC in `i18n.ts` uses the native API directly, so this surface remains independent
+of the Runtime/SDK transport in the embedded bootstrap.
+
+The desktop proxy gives bootstrap and whitelisted read-only history operations
+a ten-second deadline covering both headers and streamed response bodies. Keep
+mutating operations and agent execution outside this policy. A checkpoint timeout
+must release loading, expose Retry, and allow navigation to another conversation.
+This is a per-read deadline; provisioning and rendering have separate budgets.
+Shell provisioning reads only `get_settings` (under the same read deadline) to
+choose onboarding or product navigation. The product frontend owns the complete
+startup snapshot; the host must not fetch its active transcript merely to read
+`onboarding_completed`, which duplicates long-history restoration and transfer.
 
 The supervised Runtime has 60 seconds to publish its readiness record. This
 covers cold initialization of persisted resources and primary desktop services;
@@ -128,13 +146,21 @@ resource-repair behavior.
   runtime host. Let the frontend's layout-stable loading state remain visible
   while startup bootstrap restores durable conversation data, including for
   the primary release process whose window is initially hidden in the bundle.
-  Independent release provisioning keeps the embedded bootstrap hidden while
-  verified installed resources start; reveal it only for initial welcome
-  preparation or recovery. Its resource selection and continuation contract
+  Release provisioning reveals the embedded startup loading shell before
+  validating resources or waiting for Runtime. Its native close-to-tray handler
+  is installed before this reveal; window controls remain usable during slow
+  startup. `ProvisioningStatus.presentation` distinguishes neutral startup from
+  welcome/recovery, so configured launches never flash Welcome. Its resource
+  selection and continuation contract
   belongs to the modular-update owner's independent shell provisioning section.
   The ordinary ten-second reveal fallback must not run during shell provisioning:
-  Runtime startup can exceed that delay, and revealing its hidden bootstrap would
-  flash Welcome on configured launches. Provisioning owns failure/recovery reveal.
+  Runtime startup can exceed that delay, and a fallback must not replace the
+  loading shell with Welcome. Provisioning owns failure/recovery presentation.
+  `bun run test:blackbox:shell-resources` covers a stalled first launch and a
+  delayed configured launch through the release bootstrap path. The debug-only,
+  explicitly enabled fixture delay accepts 1–60000ms on the first preparation
+  attempt; retries remain immediate. It asserts native visibility and usable
+  minimize/restore before resources are ready, plus recovery and cached repair.
 - Render Settings management domains and the saved-role editor inside the
   requesting window. Application-menu activation and its shortcuts must not
   construct another WebView; the frontend owns that fullscreen surface, its

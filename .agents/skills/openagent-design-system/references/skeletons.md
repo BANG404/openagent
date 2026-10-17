@@ -1,5 +1,13 @@
 # Loading skeleton contract
 
+The embedded shell's `StartupSurface` renders a neutral desktop scaffold before
+resource validation or Runtime readiness. Reuse the shared title-bar height,
+window controls, sidebar and composer skeletons. Keep Welcome unmounted during
+configured startup; first-use preparation and actionable failures own that
+separate presentation. Loading retains native minimize, restore and close
+controls, localized status and reduced-motion support. The shell-resources
+native runner captures the stalled surface in light/dark and English/Chinese.
+
 Loading skeletons are layout contracts, not decorative approximations. A
 skeleton must preserve the geometry of the destination it replaces: column
 widths, content insets, row heights, control heights, section spacing, and the

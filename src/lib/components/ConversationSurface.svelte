@@ -80,6 +80,7 @@
   }
 
   interface ConversationSurfaceActions {
+    retryCheckpointLoad?: () => void | Promise<void>;
     exportConversationTrace?: () => void | Promise<void>;
     cancelBottomScrollFromUser: () => void;
     cancelUserInput: (requestId: string) => void | Promise<void>;
@@ -317,6 +318,7 @@
               followUpSuggestionsByMessageId={view.followUpSuggestionsByMessageId}
               showNewConversationContext={false}
               checkpointLoadError={view.checkpointLoadError}
+              onRetryCheckpointLoad={actions.retryCheckpointLoad}
               onCommitEdit={actions.commitEdit}
               onAddQuote={addQuote}
               onReExecute={actions.reExecuteMessage}

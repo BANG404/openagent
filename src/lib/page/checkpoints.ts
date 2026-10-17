@@ -121,7 +121,9 @@ export function createCheckpointController(options: CheckpointOptions) {
       const detail = error instanceof Error ? error.message : String(error);
       options.checkpointLoadErrors = {
         ...options.checkpointLoadErrors,
-        [convId]: `${tr("checkpointLoadFailed")} ${detail || "Unknown error"}`,
+        [convId]: detail.includes("Runtime history read timed out")
+          ? tr("historyReadTimedOut")
+          : `${tr("checkpointLoadFailed")} ${detail || "Unknown error"}`,
       };
     } finally {
       if (showLoadingState) {

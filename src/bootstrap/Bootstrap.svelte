@@ -7,14 +7,18 @@
   import { DEFAULT_APP_CONFIG } from "../lib/settingsDefaults";
   import { bootstrapText } from "../lib/bootstrapI18n";
   import appIcon from "../../static/app-icon.png";
+  import StartupSurface from "../lib/components/StartupSurface.svelte";
+  import { locale } from "../lib/i18n";
 
   type Status = {
+    presentation: "startup" | "preparation";
     phase: string;
     error: string | null;
     downloaded_bytes: number;
     total_bytes: number;
   };
   let status = $state<Status>({
+    presentation: "startup",
     phase: "waiting",
     error: null,
     downloaded_bytes: 0,
@@ -28,6 +32,8 @@
   let busy = $state(false);
   $effect(() => {
     document.documentElement.lang = language;
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    locale.set(language);
     void invoke("set_shell_setup_appearance", { language, theme }).catch(console.warn);
   });
 
@@ -38,7 +44,7 @@
     try {
       await invoke("retry_shell_resources", { offlineDirectory: offlineDirectory ?? null });
     } catch (error) {
-      status = { ...status, phase: "failed", error: String(error) };
+      status = { ...status, presentation: "preparation", phase: "failed", error: String(error) };
     } finally {
       busy = false;
     }
@@ -66,7 +72,7 @@
         status = await invoke<Status>("shell_resource_status");
       })
       .catch((error) => {
-        status = { ...status, phase: "failed", error: String(error) };
+        status = { ...status, presentation: "preparation", phase: "failed", error: String(error) };
       });
     return () => {
       disposed = true;
@@ -75,28 +81,32 @@
   });
 </script>
 
-<OnboardingFlow
-  brandIconUrl={appIcon}
-  config={{ ...DEFAULT_APP_CONFIG, language, theme }}
-  workspacePath=""
-  onSave={async (config) => config}
-  onPickWorkspace={async () => {}}
-  onComplete={() => {}}
-  onLanguagePreview={(value) => {
-    language = value;
-  }}
-  onThemePreview={(value) => {
-    if (value === "light" || value === "dark") theme = value;
-    document.documentElement.classList.toggle("dark", value === "dark");
-  }}
-  resourcePreparation={{
-    ...status,
-    busy,
-    onRetry: () => {
-      void retry();
-    },
-    onImport: () => {
-      void importOffline();
-    },
-  }}
-/>
+{#if status.presentation === "startup"}
+  <StartupSurface />
+{:else}
+  <OnboardingFlow
+    brandIconUrl={appIcon}
+    config={{ ...DEFAULT_APP_CONFIG, language, theme }}
+    workspacePath=""
+    onSave={async (config) => config}
+    onPickWorkspace={async () => {}}
+    onComplete={() => {}}
+    onLanguagePreview={(value) => {
+      language = value;
+    }}
+    onThemePreview={(value) => {
+      if (value === "light" || value === "dark") theme = value;
+      document.documentElement.classList.toggle("dark", value === "dark");
+    }}
+    resourcePreparation={{
+      ...status,
+      busy,
+      onRetry: () => {
+        void retry();
+      },
+      onImport: () => {
+        void importOffline();
+      },
+    }}
+  />
+{/if}
