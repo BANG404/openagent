@@ -1,7 +1,7 @@
 import type { ChatMessage, StreamItem, TaskTokenUsage } from "$lib/types";
 import type { MessageRenderEntry } from "$lib/toolCallGroups";
 import { latestTurnMetadata } from "../processRecordState";
-import { summarizeCacheUsages } from "../cacheUsage";
+import { summarizeCacheUsage } from "../cacheUsage";
 
 export function isCompactionReplayUser(msg: ChatMessage) {
   return msg.role === "user" && msg.tags?.includes("context_compaction") === true;
@@ -106,8 +106,10 @@ export function cacheUsageForMessage(
   taskUsagesByCheckpointId: Record<string, TaskTokenUsage[]>,
 ) {
   if (!message.checkpointId) return null;
-  const usages = taskUsagesByCheckpointId[message.checkpointId];
-  return usages?.length ? summarizeCacheUsages(usages) : null;
+  // The projection preserves provider request order within each checkpoint.
+  // A Turn footer describes the latest request, including a zero-cache result.
+  const usage = taskUsagesByCheckpointId[message.checkpointId]?.at(-1);
+  return usage ? summarizeCacheUsage(usage) : null;
 }
 
 export function cacheUsageForTurn(

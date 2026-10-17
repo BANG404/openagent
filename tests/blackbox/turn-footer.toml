@@ -8,7 +8,8 @@ name = "each completed turn owns its cache and timing"
 action = "eval"
 script = '''(() => {
   const cache = [...document.querySelectorAll('.cache-usage')].map(el => el.textContent);
-  if (cache.length !== 3 || !cache[0].includes('70%') || !cache[1].includes('60%') || !cache[2].includes('80%')) throw new Error('turn cache records were reused or lost: ' + JSON.stringify(cache));
+  if (cache.length !== 3 || !cache[0].includes('70%') || !cache[1].includes('60%') || !cache[2].includes('45%')) throw new Error('turn cache records were reused or lost: ' + JSON.stringify(cache));
+  if (!/\b70\s/.test(cache[0]) || !/\b90\s/.test(cache[2]) || !cache[2].includes('10%')) throw new Error('footer did not use the final provider read/write counters: ' + JSON.stringify(cache));
   const headers = [...document.querySelectorAll('.process-record-summary')].map(el => el.textContent);
   for (const duration of ['1.0s', '2.0s', '4.0s', '5.0s']) if (!headers.some(text => text.includes(duration))) throw new Error('missing independent duration ' + duration + ': ' + headers);
   if (!document.body.innerText.includes('200ms') || !document.body.innerText.includes('400ms') || !document.body.innerText.includes('300ms')) throw new Error('first response timings lost');
@@ -25,7 +26,7 @@ name = "restoration preserves each record"
 action = "eval"
 script = '''(() => {
   const cache = [...document.querySelectorAll('.cache-usage')].map(el => el.textContent);
-  if (cache.length !== 3 || !cache[0].includes('70%') || !cache[1].includes('60%') || !cache[2].includes('80%')) throw new Error('reload changed per-turn usage');
+  if (cache.length !== 3 || !cache[0].includes('70%') || !cache[1].includes('60%') || !cache[2].includes('45%')) throw new Error('reload changed per-turn usage');
   return 'restoration verified';
 })()'''
 
@@ -54,6 +55,6 @@ name = "original branch keeps original usage"
 action = "eval"
 script = '''(() => {
   const cache = [...document.querySelectorAll('.cache-usage')].map(el => el.textContent);
-  if (cache.length !== 3 || !cache[1].includes('60%') || !cache[2].includes('80%')) throw new Error('returning to branch changed usage');
+  if (cache.length !== 3 || !cache[1].includes('60%') || !cache[2].includes('45%')) throw new Error('returning to branch changed usage');
   return 'branch return verified';
 })()'''
