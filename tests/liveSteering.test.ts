@@ -3,12 +3,11 @@ import { consumeLiveSteering, projectLiveSteering } from "../src/lib/transcript/
 import { groupAssistantTurns, groupMessageToolCalls } from "../src/lib/toolCallGroups";
 import type { ChatMessage, StreamItem } from "../src/lib/types";
 
-const user = (id: string, steering = false): ChatMessage => ({
+const user = (id: string): ChatMessage => ({
   id,
   role: "user",
   content: id,
   timestamp: 0,
-  ...(steering ? { liveSteering: { assistantMessageId: "run" } } : {}),
 });
 function rows(messages: ChatMessage[], items: StreamItem[]) {
   return projectLiveSteering(
@@ -22,19 +21,17 @@ function rows(messages: ChatMessage[], items: StreamItem[]) {
   );
 }
 
-test("pending steering follows the whole current response as it continues streaming", () => {
-  const messages = [user("initial"), user("correction", true), user("another", true)];
-  expect(rows(messages, [{ type: "text", content: "before complete" }])).toEqual([
+test("without a consumption event the transcript contains no steering bubble", () => {
+  expect(rows([user("initial")], [{ type: "text", content: "before complete" }])).toEqual([
     { user: "initial" },
-    { output: [{ type: "text", content: "before complete" }], settled: false },
-    { user: "correction" },
-    { user: "another" },
+    { output: undefined, settled: false },
   ]);
 });
 
 test("consumption splits a growing text item and preserves multiple user boundaries", () => {
-  let messages = [user("initial"), user("correction", true), user("another", true)];
-  messages = consumeLiveSteering(messages, "run", [{ type: "text", content: "before" }]);
+  const before: StreamItem[] = [{ type: "text", content: "before" }];
+  let messages = consumeLiveSteering([user("initial")], user("correction"), "run", before);
+  messages = consumeLiveSteering(messages, user("another"), "run", before);
   expect(rows(messages, [{ type: "text", content: "beforeafter" }])).toEqual([
     { user: "initial" },
     { output: [{ type: "text", content: "before" }], settled: true },
@@ -42,8 +39,9 @@ test("consumption splits a growing text item and preserves multiple user boundar
     { user: "another" },
     { output: [{ type: "text", content: "after" }], settled: false },
   ]);
-  messages.push(user("third", true));
-  messages = consumeLiveSteering(messages, "run", [{ type: "text", content: "beforeafter" }]);
+  messages = consumeLiveSteering(messages, user("third"), "run", [
+    { type: "text", content: "beforeafter" },
+  ]);
   expect(rows(messages, [{ type: "text", content: "beforeafterthird reply" }]).slice(-3)).toEqual([
     { output: [{ type: "text", content: "after" }], settled: true },
     { user: "third" },
@@ -51,11 +49,11 @@ test("consumption splits a growing text item and preserves multiple user boundar
   ]);
 });
 
-test("a boundary keeps tool results live and ignores unrelated runs", () => {
-  const messages = [user("initial"), user("correction", true)];
-  expect(consumeLiveSteering(messages, "other-run", [])).toBe(messages);
+test("a boundary keeps tool results live and consumption is idempotent", () => {
+  const messages = [user("initial")];
   const tool: StreamItem = { type: "tool_call", name: "read_file", args: "{}" };
-  const consumed = consumeLiveSteering(messages, "run", [tool]);
+  const consumed = consumeLiveSteering(messages, user("correction"), "run", [tool]);
+  expect(consumeLiveSteering(consumed, user("correction"), "run", [])).toBe(consumed);
   expect(
     rows(consumed, [
       { ...tool, result: "done" },

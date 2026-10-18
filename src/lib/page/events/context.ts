@@ -87,6 +87,7 @@ export interface PageEventOptions {
   persistStreamDraft: (convId: string, aborted?: boolean) => Promise<void>;
   applyLiveCheckpointFlow: (convId: string, event: PluginFlowUpdatedEvent) => void;
   applyExternalChatRunStarted: (event: ChatRunStartedEvent) => void;
+  confirmInputConsumed: (convId: string, messageId: string) => void;
   recoverUnannouncedChatStream: (convId: string) => void;
   applyStreamMutation: (convId: string, mutate: (items: StreamItem[]) => StreamItem[]) => void;
   attachApprovedToolResult: (convId: string, result: string, toolUseId?: string) => boolean;

@@ -10,28 +10,21 @@ function streamEnd(items: StreamItem[]): Position {
     : { itemIndex: items.length };
 }
 
-/** A new provider response consumes pending steering after the preceding output. */
+/** Only Runtime's durable consumption event can introduce a steering user row. */
 export function consumeLiveSteering(
   messages: ChatMessage[],
-  assistantMessageId: string | undefined,
+  message: ChatMessage,
+  assistantMessageId: string,
   items: StreamItem[],
 ): ChatMessage[] {
-  if (
-    !assistantMessageId ||
-    !messages.some(
-      (message) =>
-        message.liveSteering?.assistantMessageId === assistantMessageId &&
-        !message.liveSteering.boundary,
-    )
-  )
-    return messages;
-  const boundary = streamEnd(items);
-  return messages.map((message) =>
-    message.liveSteering?.assistantMessageId === assistantMessageId &&
-    !message.liveSteering.boundary
-      ? { ...message, liveSteering: { ...message.liveSteering, boundary } }
-      : message,
-  );
+  if (messages.some((existing) => existing.id === message.id)) return messages;
+  return [
+    ...messages,
+    {
+      ...message,
+      liveSteering: { assistantMessageId, boundary: streamEnd(items) },
+    },
+  ];
 }
 
 function streamRange(items: StreamItem[], start: Position, end: Position): StreamItem[] {
@@ -48,7 +41,7 @@ function streamRange(items: StreamItem[], start: Position, end: Position): Strea
   });
 }
 
-/** Interleave live output and accepted user rows without persisting partial replies. */
+/** Interleave live output and consumed user rows without persisting partial replies. */
 export function projectLiveSteering(
   entries: MessageRenderEntry[],
   assistantMessageId: string | null,
@@ -66,25 +59,22 @@ export function projectLiveSteering(
   const projected: MessageRenderEntry[] = [];
   let start: Position = { itemIndex: 0 };
   let key = assistantMessageId;
-  let pending = false;
   for (const entry of entries) {
     const steering = entry.kind === "message" ? entry.msg.liveSteering : undefined;
     if (steering?.assistantMessageId === assistantMessageId) {
-      const end = steering.boundary ?? streamEnd(items);
+      const end = steering.boundary;
       const segment = streamRange(items, start, end);
-      if (segment.length || (!steering.boundary && !pending))
-        projected.push({ kind: "live_stream", key, items: segment, settled: !!steering.boundary });
+      if (segment.length)
+        projected.push({ kind: "live_stream", key, items: segment, settled: true });
       start = end;
       key = `${assistantMessageId}:after:${entry.key}`;
-      pending = !steering.boundary;
     }
     projected.push(entry);
   }
-  if (!pending)
-    projected.push({
-      kind: "live_stream",
-      key,
-      items: streamRange(items, start, streamEnd(items)),
-    });
+  projected.push({
+    kind: "live_stream",
+    key,
+    items: streamRange(items, start, streamEnd(items)),
+  });
   return projected;
 }

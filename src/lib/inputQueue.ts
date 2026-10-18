@@ -4,8 +4,24 @@ import type {
   InputQueueSnapshot,
   OpenAgentClient,
   SubmitAgentInputRequest,
+  QueuedInput,
 } from "./openagent";
 import { randomUuid } from "./uuid";
+
+/** The idle head is being dispatched; only inputs waiting behind it are inbox rows. */
+export function visibleInputQueueItems(snapshot?: InputQueueSnapshot): QueuedInput[] {
+  const items = snapshot?.items ?? [];
+  const idleHead =
+    snapshot &&
+    !snapshot.activeRunId &&
+    !snapshot.paused &&
+    !items.some((item) => item.delivery === "next_turn" && item.status !== "queued")
+      ? items.find((item) => item.delivery === "next_turn" && item.status === "queued")?.id
+      : undefined;
+  return items.filter(
+    (item) => item.status === "failed" || (item.status === "queued" && item.id !== idleHead),
+  );
+}
 
 /** A projection of Runtime state. This controller never starts or dequeues a turn. */
 export interface InputQueueProjectionState {
@@ -23,11 +39,31 @@ export function createInputQueueProjection(
   const loads = new Set<string>();
   const reloads = new Set<string>();
   const unacknowledged = new Map<string, { userMessageId: string; assistantMessageId: string }>();
+  const consumed = new Map<string, Set<string>>();
+
+  function confirmConsumed(convId: string, messageId: string) {
+    const ids = consumed.get(convId) ?? new Set<string>();
+    ids.add(messageId);
+    consumed.set(convId, ids);
+    const snapshot = state.snapshots[convId];
+    if (snapshot)
+      state.snapshots = {
+        ...state.snapshots,
+        [convId]: { ...snapshot, items: snapshot.items.filter((item) => !ids.has(item.id)) },
+      };
+  }
 
   function accept(snapshot: InputQueueSnapshot) {
     const previous = state.snapshots[snapshot.convId];
     if (previous && previous.revision > snapshot.revision) return;
-    state.snapshots = { ...state.snapshots, [snapshot.convId]: snapshot };
+    const ids = consumed.get(snapshot.convId);
+    state.snapshots = {
+      ...state.snapshots,
+      [snapshot.convId]: {
+        ...snapshot,
+        items: snapshot.items.filter((item) => !ids?.has(item.id)),
+      },
+    };
     state.errors = { ...state.errors, [snapshot.convId]: "" };
   }
 
@@ -110,6 +146,7 @@ export function createInputQueueProjection(
       return state.pending;
     },
     accept,
+    confirmConsumed,
     load,
     mutate,
     submit,

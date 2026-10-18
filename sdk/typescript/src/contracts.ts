@@ -940,6 +940,7 @@ export interface OpenAgentOperationMap {
 }
 
 export interface OpenAgentEventMap {
+  "chat.input_consumed": { conv_id: string; run_id: string; message: CheckpointMessage };
   "chat.input_queue_changed": { conv_id: string };
   "plugin.install_progress": AgentPluginInstallProgress;
   "conversation.state": RemoteConversationState;
@@ -1067,6 +1068,7 @@ export interface McpUiInvocation {
 }
 
 export interface ChatEventHandlers {
+  onInputConsumed: (event: OpenAgentEventMap["chat.input_consumed"]) => void;
   onRunStarted: (event: ChatRunStartedEvent) => void;
   onResponseStarted: (convId: string) => void;
   onModelUsage: (convId: string, usage: TaskTokenUsage, turn: number) => void;

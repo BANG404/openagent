@@ -234,13 +234,19 @@ try {
       );
       await screenshot(`${theme}-${language}-settled-actions.png`);
       await evaluate(
-        `(()=>{const ids=JSON.parse(sessionStorage.getItem('input-queue-live-user-ids'));for(const id of Object.values(ids)){if([...document.querySelectorAll('.user-msg')].filter(row=>row.dataset.messageId===id).length!==1)throw new Error('terminal hydration duplicated or lost a queued user bubble');}return true;})()`,
+        `(()=>{const ids=JSON.parse(sessionStorage.getItem('input-queue-live-user-ids'));for(const id of Object.values(ids)){if([...document.querySelectorAll('.user-msg')].filter(row=>row.dataset.messageId===id).length!==1)throw new Error('terminal hydration duplicated or lost a queued user bubble');}if([...document.querySelectorAll('.user-msg')].some(row=>/clear-before-consume|delete-before-consume/.test(row.textContent)))throw new Error('terminal hydration restored removed steering');return true;})()`,
       );
       const steered = requests.slice(beforeSteer);
       assert.equal(steered.length, 3, "Steering did not remain inside the current run");
       assert(steered[1].content.includes("correction") && steered[2].content.includes("next-turn"));
       const checkpoints = await invoke("get_renderable_checkpoints", { convId: steeringId });
       const messages = checkpoints.at(-1)?.data.messages || [];
+      assert(
+        !messages.some((/** @type {any} */ message) =>
+          /clear-before-consume|delete-before-consume/.test(JSON.stringify(message.content)),
+        ),
+        "Removed steering entered the durable transcript",
+      );
       assert.equal(
         messages.filter(
           (/** @type {any} */ message) =>

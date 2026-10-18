@@ -131,7 +131,7 @@ export interface ChatMessage {
   /** Transient steering placement; checkpoint restoration owns durable order. */
   liveSteering?: {
     assistantMessageId: string;
-    boundary?: { itemIndex: number; textOffset?: number };
+    boundary: { itemIndex: number; textOffset?: number };
   };
   toolCalls?: ToolCallRecord[];
   items?: StreamItem[];

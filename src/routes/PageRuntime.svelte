@@ -2289,6 +2289,7 @@
       persistStreamDraft,
       applyLiveCheckpointFlow,
       applyExternalChatRunStarted,
+      confirmInputConsumed: (convId, messageId) => inputQueue.confirmConsumed(convId, messageId),
       recoverUnannouncedChatStream,
       applyStreamMutation,
       attachApprovedToolResult,
@@ -3373,7 +3374,7 @@
       delivery === "steer" ? null : decodeModelBinding(composerPreferences.selectedModel);
     const branchId = activeBranchIds[convId] ?? null;
     try {
-      const accepted = await inputQueue.submit(
+      await inputQueue.submit(
         {
           convId,
           text,
@@ -3385,25 +3386,6 @@
         delivery,
         delivery === "steer" ? expectedRunId : undefined,
       );
-      if (delivery === "steer") {
-        insertExternalUserMessage(
-          convId,
-          {
-            id: accepted.input.userMessageId,
-            role: "user",
-            content: text,
-            timestamp: Date.now(),
-            liveSteering: {
-              assistantMessageId: chatStreams.assistantMessageIds[convId] ?? "",
-            },
-            items: [
-              ...contexts.map((context) => ({ type: "quote" as const, context })),
-              ...attachments.map((attachment) => ({ type: "attachment" as const, attachment })),
-            ],
-          },
-          "",
-        );
-      }
       if (paused) await setStreamPaused(convId, false);
       if (
         selectedComposerDraftKey === draftKey &&

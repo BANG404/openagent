@@ -2,6 +2,7 @@
   import type { InputQueueAction, InputQueueSnapshot, QueuedInput } from "$lib/openagent";
   import { t } from "$lib/i18n";
   import Tooltip from "./Tooltip.svelte";
+  import { visibleInputQueueItems } from "$lib/inputQueue";
   interface Props {
     snapshot?: InputQueueSnapshot;
     loading?: boolean;
@@ -15,9 +16,7 @@
   let editText = $state("");
   let editRevision = $state(0);
   // Claimed input is already represented by the live transcript, not the inbox.
-  const visibleItems = $derived(
-    snapshot?.items.filter((item) => item.status === "queued" || item.status === "failed") ?? [],
-  );
+  const visibleItems = $derived(visibleInputQueueItems(snapshot));
   const waiting = $derived(
     snapshot?.items.filter((item) => item.status === "queued" && item.delivery === "next_turn") ??
       [],
@@ -65,7 +64,7 @@
   }
 </script>
 
-{#if loading || error || visibleItems.length || snapshot?.paused}
+{#if error || visibleItems.length || snapshot?.paused}
   <section class="chat-queue" aria-label={$t("messageQueue")} aria-busy={loading || busy}>
     <div class="queue-header">
       <span>{$t("messageQueue")} {snapshot ? visibleItems.length : ""}</span>

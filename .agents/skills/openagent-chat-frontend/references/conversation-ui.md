@@ -226,15 +226,17 @@ native queue fixtures must start without pre-creating a branch.
 Ordinary input during execution waits for the next turn. The separate Add to
 current task action targets the displayed active run ID and keeps its model;
 a stale or finishing run rejects that action without moving the draft. The
-accepted steering input immediately renders as an ordinary user bubble using
-the submission's stable user-message ID, text, attachments and quoted context.
-It has no new run-start event, so the submitting surface owns that accepted
-projection; never wait for terminal checkpoint hydration to reveal it. Failed
-acceptance adds no bubble. Checkpoint reconciliation deduplicates by the same
-stable ID. Next-turn inputs remain queued until their run-start event.
-Pending steering bubbles follow the current provider response, including its
-remaining chunks. On the next response-start event, retain the prior output
-before those bubbles and render subsequent output after them. Split text at
+accepted steering input stays exclusively in the queue until Runtime emits
+`chat-input-consumed`. That event carries the owning run and canonical user
+record, including its stable ID, authored timestamp, attachments and quotes.
+Acceptance and provider response-start events never introduce steering bubbles.
+Deleted, cleared and rejected inputs remain outside the transcript. Apply the
+consumption notification to queue projection and transcript in the same update;
+late acceptance/read snapshots cannot resurrect consumed rows. Checkpoint
+reconciliation deduplicates by the same stable ID. Next-turn inputs remain
+queued until their run-start event.
+Consumed steering bubbles follow the preceding provider output. Retain that
+output before the bubbles and render subsequent output after them. Split text at
 the consumed character offset because consecutive provider responses can
 share one text item. Multiple accepted inputs retain submission order; only
 the active segment shows running status. These boundaries are transient UI
@@ -244,8 +246,13 @@ pause/resume, and retry/remove actions. Stop preserves pending inputs. Loading
 and errors retain the queue surface and expose refresh. Attachment references
 and model/branch selections travel with the queued input.
 
-Queue rows and their count include only waiting and failed receipts. Claimed
-inputs belong to the live transcript; a lone running receipt must not open the
+Queue rows and their count include only waiting and failed receipts. An idle,
+unpaused queue's first ordinary input is awaiting immediate dispatch when no
+claimed or failed head blocks it, and does not open the panel; later waiting
+inputs do. Paused heads and failures remain
+visible. An empty queue's initial/background read never mounts the panel or
+skeleton by itself; loading feedback remains inside an already relevant queue.
+Claimed inputs belong to the live transcript; a lone running receipt must not open the
 queue panel. Use the snapshot's active run identity for execution state rather
 than inferring activity from receipt status. A refresh notification during an
 in-flight read schedules one trailing read so terminal state cannot be dropped.
@@ -266,3 +273,7 @@ one of each after terminal hydration.
 Assert DOM order and output on both sides of steering bubbles while the
 original response and its continuation are held, including multiple inputs
 consumed at one boundary; presence alone does not establish correct placement.
+Use a DOM observer to reject any queue-panel flash during ordinary idle sends
+and delayed first-send queue reads. Hold the provider while steering is queued
+and require no user bubble; then check the atomic queue-to-transcript handoff.
+Removed inputs must stay absent after continuation and checkpoint hydration.

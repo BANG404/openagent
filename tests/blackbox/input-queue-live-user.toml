@@ -23,6 +23,8 @@ script = '''(async()=>{
   const precedes=(a,b)=>!!(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING);
   if(!first||!second||!precedes(first,second)||!responses.some(row=>precedes(row,first)&&row.textContent.includes('complete suffix')))throw new Error('consumed steering moved before the preceding complete response');
   if(suffix==='correction'&&!responses.some(row=>precedes(second,row)&&!row.textContent.includes('complete suffix')))throw new Error('steered response is not below both user bubbles');
+  if([...document.querySelectorAll('.user-msg')].some(row=>/clear-before-consume|delete-before-consume/.test(row.textContent)))throw new Error('removed steering became a user bubble after continuation');
+  for(const row of document.querySelectorAll('.user-msg'))if(document.querySelector(`.chat-queue [data-queue-id="${row.dataset.messageId}"]`))throw new Error('an input appears in both queue and transcript');
   if(!document.querySelector('[contenteditable=true][role=textbox]').textContent.includes('unsent-steering-draft'))throw new Error('checkpoint projection overwrote the draft');
   bubble()[0].scrollIntoView({block:'center'});
   return suffix+' user bubble is visible exactly once before provider completion';

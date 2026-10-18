@@ -9,7 +9,8 @@ action = "eval"
 script = '''(async()=>{
   const {desktopOpenAgent:client}=await import('/src/lib/openagent/tauriClient.ts');
   const invoke=client.invokeProduct,read=client.getInputQueue;
-  const marker=crypto.randomUUID();let conversationId,release,reads=0,prematureReads=0,persisted=false;
+  const marker=crypto.randomUUID();let conversationId,release,reads=0,prematureReads=0,persisted=false,queueFlashed=false;
+  const observer=new MutationObserver(()=>{if(document.querySelector('.chat-queue'))queueFlashed=true;});observer.observe(document.body,{childList:true,subtree:true});
   const wait=async(check,why)=>{const end=Date.now()+20000;while(Date.now()<end){if(check())return;await new Promise(r=>setTimeout(r,50));}throw new Error(why);};
   client.invokeProduct=async(operation,args)=>{
     if(operation==='create_conversation'){
@@ -19,7 +20,7 @@ script = '''(async()=>{
     }
     return invoke.call(client,operation,args);
   };
-  client.getInputQueue=async(id)=>{if(id===conversationId){reads++;if(!persisted)prematureReads++;}return read.call(client,id);};
+  client.getInputQueue=async(id)=>{if(id===conversationId){reads++;if(!persisted)prematureReads++;await new Promise(r=>setTimeout(r,500));}return read.call(client,id);};
   try {
     document.querySelector('.sidebar-primary-action').click();
     await new Promise(r=>requestAnimationFrame(r));
@@ -37,6 +38,7 @@ script = '''(async()=>{
     await wait(()=>document.body.textContent.includes(`Queue response ${marker}`),'first provider response did not arrive');
     await wait(()=>reads>0&&!document.querySelector('.stop-btn'),'persisted conversation did not load its queue or complete');
     if(prematureReads||document.querySelector('.queue-error'))throw new Error('first send displayed a queue failure');
+    if(queueFlashed)throw new Error('first send or empty queue loading flashed the queue panel');
     return 'first send waits for persistence, then loads a branchless queue successfully';
-  } finally { if(release)release();client.invokeProduct=invoke;client.getInputQueue=read; }
+  } finally { observer.disconnect();if(release)release();client.invokeProduct=invoke;client.getInputQueue=read; }
 })()'''

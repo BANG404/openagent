@@ -40,6 +40,7 @@ class MockTransport {
 
 function chatHandlers(overrides = {}) {
   return {
+    onInputConsumed() {},
     onRunStarted() {},
     onResponseStarted() {},
     onModelUsage() {},
@@ -72,6 +73,23 @@ describe("Tauri Runtime asset URLs", () => {
 });
 
 describe("OpenAgentClient", () => {
+  test("forwards durable input consumption separately from acceptance", async () => {
+    const transport = new MockTransport();
+    const client = new OpenAgentClient(transport);
+    const consumed = [];
+    const stop = await client.subscribeToChatEvents(
+      chatHandlers({
+        onInputConsumed: (event) => consumed.push(event),
+      }),
+    );
+    transport.emit("chat.input_queue_changed", { conv_id: "one" });
+    expect(consumed).toEqual([]);
+    const event = { conv_id: "one", run_id: "active", message: { id: "steer" } };
+    transport.emit("chat.input_consumed", event);
+    expect(consumed).toEqual([event]);
+    stop();
+    expect(transport.unsubscribed).toContain("chat.input_consumed");
+  });
   test("queue change hints expose only their conversation and detach cleanly", async () => {
     const transport = new MockTransport();
     const client = new OpenAgentClient(transport);
@@ -362,6 +380,6 @@ describe("OpenAgentClient", () => {
     ]);
 
     unsubscribe();
-    expect(transport.unsubscribed).toHaveLength(17);
+    expect(transport.unsubscribed).toHaveLength(18);
   });
 });

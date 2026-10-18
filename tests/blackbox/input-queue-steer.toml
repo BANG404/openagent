@@ -13,6 +13,10 @@ script = '''(async()=>{
   const sent=()=>!document.querySelector('[contenteditable=true][role=textbox]').textContent.trim();
   await fill(`QUEUE_FIXTURE:${probe.marker} steering-initial`);document.querySelector('.send-btn').click();
   await wait(()=>document.body.textContent.includes(`Queue response ${probe.marker}`),'steering target did not start');
+  await fill(`QUEUE_FIXTURE:${probe.marker} clear-before-consume`);document.querySelector('.steer-btn').click();await wait(sent,'clear fixture acceptance failed');
+  await wait(()=>!!document.querySelector('.chat-queue li'),'clear fixture receipt missing');
+  document.querySelector('.queue-header button:last-child').click();await wait(()=>!document.querySelector('.chat-queue li'),'steering clear failed');
+  if([...document.querySelectorAll('.user-msg')].some(row=>row.textContent.includes('clear-before-consume')))throw new Error('cleared steering leaked into transcript');
   await fill(`QUEUE_FIXTURE:${probe.marker} next-turn`);document.querySelector('.send-btn').click();await wait(sent,'next-turn acceptance failed');
   await fill(`QUEUE_FIXTURE:${probe.marker} correction`);
   const {desktopOpenAgent:client}=await import('/src/lib/openagent/tauriClient.ts');
@@ -30,13 +34,13 @@ script = '''(async()=>{
   await fill(`QUEUE_FIXTURE:${probe.marker} correction-two`);document.querySelector('.steer-btn').click();await wait(sent,'second steering acceptance failed');
   sessionStorage.setItem('input-queue-live-user-ids',JSON.stringify(Object.fromEntries(['correction','correction-two','next-turn'].map(suffix=>[suffix,[...document.querySelectorAll('.chat-queue li')].find(row=>row.textContent.includes(suffix)).dataset.queueId]))));
   const correctionId=JSON.parse(sessionStorage.getItem('input-queue-live-user-ids')).correction;
-  await wait(()=>[...document.querySelectorAll('.user-msg')].some(row=>row.dataset.messageId===correctionId),'accepted correction has no user bubble while the original response is still streaming');
-  const first=[...document.querySelectorAll('.user-msg')].find(row=>row.dataset.messageId===correctionId);
+  if([...document.querySelectorAll('.user-msg')].some(row=>row.dataset.messageId===correctionId))throw new Error('queued correction was rendered before consumption');
   const secondId=JSON.parse(sessionStorage.getItem('input-queue-live-user-ids'))['correction-two'];
-  await wait(()=>!!document.querySelector(`.user-msg[data-message-id="${secondId}"]`),'second accepted correction has no bubble');
-  const second=document.querySelector(`.user-msg[data-message-id="${secondId}"]`);
-  const response=document.querySelector('.assistant-msg');
-  if(!response||!(response.compareDocumentPosition(first)&Node.DOCUMENT_POSITION_FOLLOWING)||!(first.compareDocumentPosition(second)&Node.DOCUMENT_POSITION_FOLLOWING))throw new Error('pending steering is before its current response or out of submission order');
+  if(document.querySelector(`.user-msg[data-message-id="${secondId}"]`))throw new Error('second queued correction was rendered before consumption');
+  await fill(`QUEUE_FIXTURE:${probe.marker} delete-before-consume`);document.querySelector('.steer-btn').click();await wait(sent,'delete fixture acceptance failed');
+  const deleted=[...document.querySelectorAll('.chat-queue li')].find(row=>row.textContent.includes('delete-before-consume'));
+  deleted.querySelector('.queue-item button:last-child').click();await wait(()=>!document.querySelector(`[data-queue-id="${deleted.dataset.queueId}"]`),'steering deletion failed');
+  if([...document.querySelectorAll('.user-msg')].some(row=>row.textContent.includes('delete-before-consume')))throw new Error('deleted steering leaked into transcript');
   await fill('unsent-steering-draft');
   return 'correction accepted for the active run with a separate next-turn input';
 })()'''

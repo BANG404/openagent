@@ -11,27 +11,40 @@ import {
 import type { PageEventOptions } from "./context";
 import { toolImageAttachments } from "$lib/toolImageAttachments";
 import { consumeLiveSteering } from "$lib/transcript/liveSteering";
+import { checkpointRecordsToMessages } from "$lib/checkpointTree";
 
 /** Projects the shared SDK chat event stream into the existing page state. */
 export function subscribePageChatEvents(options: PageEventOptions) {
   return openAgent.subscribeToChatEvents({
+    onInputConsumed: (event) => {
+      options.confirmInputConsumed(event.conv_id, event.message.id);
+      const assistantId = options.chatStreams.assistantMessageIds[event.conv_id];
+      if (
+        !assistantId ||
+        (event.run_id !== assistantId &&
+          !options.chatStreams.recoveredConversationIds[event.conv_id])
+      )
+        return;
+      const location = options.findConversationLocation(event.conv_id);
+      const message = checkpointRecordsToMessages([event.message], "", event.conv_id)[0];
+      if (!location || !message) return;
+      const conversation = location.conversations[location.index];
+      location.conversations[location.index] = {
+        ...conversation,
+        messages: consumeLiveSteering(
+          conversation.messages,
+          message,
+          assistantId,
+          options.chatStreams.itemsByConversation[event.conv_id] ?? [],
+        ),
+      };
+    },
     onRunStarted: (event) => {
       options.applyExternalChatRunStarted(event);
     },
     onResponseStarted: (conv_id) => {
       if (!options.chatStreams.streamingConversationIds[conv_id]) {
         options.recoverUnannouncedChatStream(conv_id);
-      }
-      const location = options.findConversationLocation(conv_id);
-      if (location) {
-        const conversation = location.conversations[location.index];
-        const messages = consumeLiveSteering(
-          conversation.messages,
-          options.chatStreams.assistantMessageIds[conv_id],
-          options.chatStreams.itemsByConversation[conv_id] ?? [],
-        );
-        if (messages !== conversation.messages)
-          location.conversations[location.index] = { ...conversation, messages };
       }
       options.chatStreams.clearMemoryRetrieval(conv_id);
       if (options.chatStreams.streamingConversationIds[conv_id]) {

@@ -15,10 +15,14 @@ script = '''(async()=>{
   const {desktopOpenAgent:client}=await import('/src/lib/openagent/tauriClient.ts');
   if((await client.invokeProduct('get_branches',{convId:probe.convId})).length)throw new Error('fixture must begin without a branch');
   if(document.querySelector('.queue-error'))throw new Error('new conversation queue failed before first send');
+  let queueFlashed=false;
+  const observer=new MutationObserver(()=>{if(document.querySelector('.chat-queue'))queueFlashed=true;});
+  observer.observe(document.body,{childList:true,subtree:true});
   await send('first');
   await wait(()=>document.body.textContent.includes(`Queue response ${probe.marker}`),'first provider stream did not start');
   if(document.querySelector('.queue-error'))throw new Error('first send failed to read the queue');
   if(document.querySelector('.chat-queue'))throw new Error('the active input must not appear in the waiting queue');
+  observer.disconnect();if(queueFlashed)throw new Error('ordinary idle send flashed the queue panel');
   await send('second');await send('third');
   await wait(()=>document.querySelectorAll('.chat-queue [data-queue-id]').length===2,'pending inputs missing');
   const row=text=>[...document.querySelectorAll('.chat-queue li')].find(row=>row.textContent.includes(text));

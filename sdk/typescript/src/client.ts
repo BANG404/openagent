@@ -339,6 +339,7 @@ export class OpenAgentClient {
 
   async subscribeToChatEvents(handlers: ChatEventHandlers): Promise<Unsubscribe> {
     const subscriptions = await Promise.all([
+      this.transport.subscribe("chat.input_consumed", (event) => handlers.onInputConsumed(event)),
       this.transport.subscribe("chat.run_started", (event) => handlers.onRunStarted(event)),
       this.transport.subscribe("chat.response_started", ({ conv_id }) =>
         handlers.onResponseStarted(conv_id),
