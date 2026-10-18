@@ -21,6 +21,7 @@ export function createInputQueueProjection(
 ) {
   const generations = new Map<string, number>();
   const loads = new Set<string>();
+  const reloads = new Set<string>();
   const unacknowledged = new Map<string, { userMessageId: string; assistantMessageId: string }>();
 
   function accept(snapshot: InputQueueSnapshot) {
@@ -31,7 +32,10 @@ export function createInputQueueProjection(
   }
 
   async function load(convId: string) {
-    if (loads.has(convId)) return;
+    if (loads.has(convId)) {
+      reloads.add(convId);
+      return;
+    }
     loads.add(convId);
     const generation = (generations.get(convId) ?? 0) + 1;
     generations.set(convId, generation);
@@ -47,6 +51,9 @@ export function createInputQueueProjection(
       loads.delete(convId);
       if (generations.get(convId) === generation)
         state.loading = { ...state.loading, [convId]: false };
+      // A terminal notification may arrive after this read took its snapshot.
+      // Coalesce notifications, but always perform their trailing refresh.
+      if (reloads.delete(convId)) await load(convId);
     }
   }
 

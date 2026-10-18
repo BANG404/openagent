@@ -14,6 +14,10 @@
   let editing = $state<string | null>(null);
   let editText = $state("");
   let editRevision = $state(0);
+  // Claimed input is already represented by the live transcript, not the inbox.
+  const visibleItems = $derived(
+    snapshot?.items.filter((item) => item.status === "queued" || item.status === "failed") ?? [],
+  );
   const waiting = $derived(
     snapshot?.items.filter((item) => item.status === "queued" && item.delivery === "next_turn") ??
       [],
@@ -61,10 +65,10 @@
   }
 </script>
 
-{#if loading || error || snapshot?.items.length || snapshot?.paused}
+{#if loading || error || visibleItems.length || snapshot?.paused}
   <section class="chat-queue" aria-label={$t("messageQueue")} aria-busy={loading || busy}>
     <div class="queue-header">
-      <span>{$t("messageQueue")} {snapshot?.items.length ?? ""}</span>
+      <span>{$t("messageQueue")} {snapshot ? visibleItems.length : ""}</span>
       {#if snapshot}
         <button
           type="button"
@@ -87,7 +91,7 @@
       </div>{/if}
     {#if snapshot?.paused}<p class="queue-notice">{$t("queuePausedNotice")}</p>{/if}
     <ol>
-      {#each snapshot?.items ?? [] as item (item.id)}
+      {#each visibleItems as item (item.id)}
         <li data-queue-id={item.id}>
           <div class="queue-item">
             <Tooltip text={summary(item)}>

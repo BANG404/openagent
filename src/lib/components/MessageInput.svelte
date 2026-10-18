@@ -362,7 +362,12 @@
   });
 </script>
 
-<div class="input-wrapper" class:input-wrapper-streaming={isStreaming}>
+<div
+  class="input-wrapper"
+  class:input-wrapper-streaming={isStreaming}
+  class:input-wrapper-stop={isStreaming && showStopButton}
+  class:input-wrapper-context={!!contextUsageTooltip}
+>
   {#if (!tauriAvailable || onUploadAttachments) && showAttachments}
     <input
       class="browser-file-input"
@@ -439,7 +444,7 @@
         {/if}
       </div>
     </div>
-    {#if showFormatting || showAttachments || showModelSelector || showReasoningEffort || showApprovalMode || showWorkspaceSwitcher || toolbarContent}
+    {#if showFormatting || showAttachments || showModelSelector || showReasoningEffort || showApprovalMode || showWorkspaceSwitcher || toolbarContent || (isStreaming && onSteer && hasComposerContent)}
       <div class="composer-toolbar">
         <Tooltip text={formatToolbarOpen ? $t("composerFormattingHide") : $t("composerFormatting")}>
           {#snippet trigger(props)}
@@ -620,6 +625,14 @@
             onSelect={onSelectWorkspace}
           />
         {/if}
+        {#if isStreaming && onSteer && hasComposerContent}
+          <button
+            class="steer-btn"
+            type="button"
+            disabled={sendDisabled || disabled}
+            onclick={() => onSteer?.()}>{$t("steerCurrentTask")}</button
+          >
+        {/if}
       </div>
     {/if}
   </div>
@@ -639,14 +652,6 @@
     </Tooltip>
   {/if}
   {#if isStreaming}
-    {#if onSteer && hasComposerContent}
-      <button
-        class="steer-btn"
-        type="button"
-        disabled={sendDisabled || disabled}
-        onclick={() => onSteer?.()}>{$t("steerCurrentTask")}</button
-      >
-    {/if}
     <Tooltip text={streamingPrimaryTitle}>
       {#snippet trigger(props)}
         <button
@@ -723,6 +728,7 @@
 
 <style>
   .steer-btn {
+    margin-left: auto;
     border: 0;
     border-radius: calc(var(--radius) * 0.5);
     background: var(--secondary);
@@ -780,7 +786,7 @@
 
   .context-usage-trigger {
     position: absolute;
-    right: 45px;
+    right: calc(var(--composer-send-inset) + var(--composer-control-size) + 6px);
     bottom: 12px;
     z-index: 4;
     display: inline-grid;
@@ -914,6 +920,22 @@
     align-items: center;
     gap: 6px;
     padding: 0 48px 6px 9px;
+  }
+
+  .input-wrapper-stop .composer-toolbar {
+    padding-right: calc(2 * var(--composer-control-size) + 24px);
+  }
+
+  .input-wrapper-context .composer-toolbar {
+    padding-right: calc(var(--composer-control-size) + 48px);
+  }
+
+  .input-wrapper-stop.input-wrapper-context .composer-toolbar {
+    padding-right: calc(2 * var(--composer-control-size) + 54px);
+  }
+
+  .input-wrapper-stop .context-usage-trigger {
+    right: calc(var(--composer-send-inset) + 2 * var(--composer-control-size) + 12px);
   }
 
   .attach-btn {

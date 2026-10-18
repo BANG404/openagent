@@ -26,6 +26,30 @@ test("a late read cannot replace an accepted mutation or another conversation", 
   expect(projection.loading.one).toBe(false);
 });
 
+test("terminal notifications during a read trigger one trailing refresh", async () => {
+  let release!: (value: InputQueueSnapshot) => void;
+  let reads = 0;
+  const projection = createInputQueueProjection({
+    getInputQueue: async () => {
+      reads++;
+      return reads === 1
+        ? new Promise((resolve) => {
+            release = resolve;
+          })
+        : snapshot(4);
+    },
+    mutateInputQueue: async () => snapshot(0),
+  });
+  const reading = projection.load("one");
+  await projection.load("one");
+  await projection.load("one");
+  release({ ...snapshot(3), activeRunId: "finishing-run" });
+  await reading;
+  expect(reads).toBe(2);
+  expect(projection.snapshots.one).toEqual(snapshot(4));
+  expect(projection.loading.one).toBe(false);
+});
+
 test("uncertain acceptance reuses identities and keeps attachments, context and model", async () => {
   const attempts: InputQueueAction[] = [];
   const projection = createInputQueueProjection({

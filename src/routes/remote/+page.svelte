@@ -264,9 +264,7 @@
   const running = $derived(
     conversation?.phase === "before_completion" ||
       (!!conversation &&
-        remoteExecution.inputQueue.snapshots[conversation.conv_id]?.items.some(
-          (item) => item.status === "starting" || item.status === "running",
-        )) ||
+        !!remoteExecution.inputQueue.snapshots[conversation.conv_id]?.activeRunId) ||
       remoteExecution.pendingAssistantMessageId !== null ||
       Object.keys(remoteExecution.resolvingInterrupts).length > 0,
   );

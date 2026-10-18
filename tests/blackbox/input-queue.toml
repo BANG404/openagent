@@ -18,8 +18,9 @@ script = '''(async()=>{
   await send('first');
   await wait(()=>document.body.textContent.includes(`Queue response ${probe.marker}`),'first provider stream did not start');
   if(document.querySelector('.queue-error'))throw new Error('first send failed to read the queue');
+  if(document.querySelector('.chat-queue'))throw new Error('the active input must not appear in the waiting queue');
   await send('second');await send('third');
-  await wait(()=>document.querySelectorAll('.chat-queue [data-queue-id]').length===3,'pending inputs missing');
+  await wait(()=>document.querySelectorAll('.chat-queue [data-queue-id]').length===2,'pending inputs missing');
   const row=text=>[...document.querySelectorAll('.chat-queue li')].find(row=>row.textContent.includes(text));
   row('third').querySelector(`button[aria-label="${tr('moveQueueUp')}"]`).click();
   await wait(()=>[...document.querySelectorAll('.chat-queue li')].findIndex(r=>r.textContent.includes('third'))<[...document.querySelectorAll('.chat-queue li')].findIndex(r=>r.textContent.includes('second')),'reorder was not accepted');

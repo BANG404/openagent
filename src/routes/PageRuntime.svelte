@@ -796,9 +796,7 @@
   let isCurrentStreaming = $derived(
     activeConvId
       ? !!chatStreams.streamingConversationIds[activeConvId] ||
-          !!inputQueue.snapshots[activeConvId]?.items.some(
-            (item) => item.status === "starting" || item.status === "running",
-          )
+          !!inputQueue.snapshots[activeConvId]?.activeRunId
       : false,
   );
   let isCurrentStreamPaused = $derived(

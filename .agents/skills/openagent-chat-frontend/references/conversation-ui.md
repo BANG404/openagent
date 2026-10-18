@@ -231,6 +231,17 @@ pause/resume, and retry/remove actions. Stop preserves pending inputs. Loading
 and errors retain the queue surface and expose refresh. Attachment references
 and model/branch selections travel with the queued input.
 
+Queue rows and their count include only waiting and failed receipts. Claimed
+inputs belong to the live transcript; a lone running receipt must not open the
+queue panel. Use the snapshot's active run identity for execution state rather
+than inferring activity from receipt status. A refresh notification during an
+in-flight read schedules one trailing read so terminal state cannot be dropped.
+Keep Add to current task inside the composer's wrapping toolbar. Reserve room
+for send, Stop and context usage together; toolbar actions must never increase
+the outer positioning container below the input surface. Native queue coverage
+asserts containment and non-overlap with a draft during execution, including a
+narrow composer, then ordinary send controls after completion.
+
 Verify branchless reads, first send with delayed conversation persistence,
 queue editing, ordering, failed acceptance with a newer draft, pause,
 Stop, reload and explicit steering using `bun run test:blackbox:input-queue`
