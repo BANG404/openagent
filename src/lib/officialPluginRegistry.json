@@ -449,7 +449,7 @@
     },
     {
       "id": "context7",
-      "category": "data",
+      "category": "development",
       "display_name": "Context7 Docs",
       "description": "Look up library documentation and code examples with Context7 while writing code.",
       "repository": "https://github.com/BANG404/openagent-context7",
@@ -476,7 +476,7 @@
     },
     {
       "id": "fakechat",
-      "category": "communication",
+      "category": "development",
       "display_name": "Local Channel Test",
       "description": "Use a local web chat to test incoming messages, agent replies, and message-channel access rules.",
       "repository": "https://github.com/BANG404/openagent-fakechat",
@@ -777,7 +777,7 @@
     },
     {
       "id": "playwright",
-      "category": "development",
+      "category": "automation",
       "display_name": "Playwright Browser Automation",
       "description": "Let an agent open web pages, click, fill forms, and take browser screenshots with Playwright.",
       "repository": "https://github.com/BANG404/openagent-playwright",
