@@ -19,7 +19,7 @@ on:
       - "scripts/publish-plugin-release-index.test.mjs"
       - ".github/workflows/plugin-release-index.yml"
   schedule:
-    - cron: "13,43 * * * *"
+    - cron: "3,13,23,33,43,53 * * * *"
   workflow_dispatch:
 
 permissions:

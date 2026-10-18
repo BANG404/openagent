@@ -101,7 +101,7 @@ staging, then atomically activates the candidate while preserving
 `plugin-data`; activation failures restore the previous package. A check never
 downloads or executes a release.
 
-The check is cheap by design. Results are cached per repository for ten minutes
+The check is cheap by design. Results are cached per repository for two minutes
 and revalidated with a conditional request afterwards, so repeated loads and
 repeated clicks normally cost nothing. When the public quota is exhausted or
 the network is unreachable, OpenAgent says so once at the top of the Plugins
