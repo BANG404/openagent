@@ -1,5 +1,5 @@
 [scenario]
-name = "sidebar selected colors are independent and Rhea retains its hover pair"
+name = "sidebar selection uses theme tokens across project and conversation navigation"
 fail_fast = true
 global_timeout_ms = 60000
 
@@ -16,7 +16,7 @@ script = '''(() => {
     const background = color('var(--sidebar-selected)');
     const foreground = color('var(--sidebar-selected-foreground)');
     if (sameAsHover && (background !== color('var(--sidebar-accent)') || foreground !== color('var(--sidebar-accent-foreground)')))
-      throw new Error('Rhea or default selection diverged from hover');
+      throw new Error('Theme or default selection diverged from hover');
     const rows = sidebar.querySelectorAll('.project-row-shell.active, .conv-item.active, .sub-conv-item.active, .recent-row.active');
     if (!rows.length) throw new Error('No selected rows');
     for (const row of rows) {

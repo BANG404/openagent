@@ -14,6 +14,20 @@ use `--sidebar-selected` / `--sidebar-selected-foreground`, including while hove
 or focused. These default to the hover pair; packages may override either selected
 token independently. Rhea explicitly references the hover pair in both modes,
 retaining the same colors for hover and selection.
+The other nine published collection packages strengthen their sidebar hover
+and selected fill together: OKLCH lightness 0.90 in light mode and 0.36 in dark
+mode, retaining each palette's chroma and hue. These are package-owned overrides
+documented in their READMEs; the upstream snapshot and generic composition
+remain exact upstream values. Keep explicit selected-token aliases in packages
+that intentionally share hover and selection colors.
+Run `bun run test:blackbox:sidebar-selection --collection` to apply all ten
+source manifests to the native desktop sidebar fixture in light/dark and
+English/Chinese. It checks project/root/child/recent selection, focused hover,
+equal hover/selected colors, and captures each combination. For the nine adjusted
+packages it also checks highlight/background contrast of at least 1.25:1 light
+and 1.45:1 dark, and foreground/fill contrast of at least 7:1. These highlight
+bounds are collection regression guards, not accessibility conformance claims.
+The default command retains the Rhea and independent-selection override checks.
 Native material, composer geometry and motion remain OpenAgent extensions.
 Desktop workspace cards retain their own 12px radius (`--workspace-card-radius`)
 and 8px gutters when a theme changes control radius, density or typography.
