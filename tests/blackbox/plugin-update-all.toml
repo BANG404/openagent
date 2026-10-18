@@ -1,0 +1,122 @@
+[scenario]
+name = "update all installed plugins with independent failure and retry"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "bulk updates ignore catalog filters, protect duplicates and survive reopening"
+action = "eval"
+script = '''(async () => {
+  const {desktopOpenAgent: client} = await import('/src/lib/openagent/tauriClient.ts');
+  const {desktopPluginInstallQueue: queue} = await import('/src/lib/agentPluginInstallQueue.ts');
+  const probe = window.__pluginSettingsProbe;
+  const original = {list:client.listAgentPlugins, check:client.checkAgentPluginUpdates, update:client.updateAgentPlugin, invoke:client.invokeProduct};
+  const installed = await client.listAgentPlugins();
+  const fixture = installed.find(plugin => plugin.id === 'openagent-settings-probe');
+  const packages = [
+    {...fixture, id:'graph', name:'Graph', version:'1.0.0', capabilities:[]},
+    {...fixture, id:'bulk-third-party', name:'Goal', version:'1.0.0', capabilities:[]},
+    {...fixture, id:'bulk-current', version:'2.0.0', capabilities:[]},
+    {...fixture, id:'bulk-no-release', version:'1.0.0', capabilities:[]},
+  ];
+  const calls = [];
+  const pending = new Map();
+  let stage = 'initial inventory';
+  const tick = () => new Promise(resolve => setTimeout(resolve, 30));
+  const wait = async (check) => {
+    for (let i=0;i<150;i++) {if (check()) return; await tick();}
+    throw new Error('bulk update UI timed out: ' + stage + '; calls=' + calls.join(',') + '; button=' + button()?.outerHTML);
+  };
+  const close = () => document.querySelector('[role=dialog] button[aria-label="Close"], [role=dialog] button[aria-label="关闭"]')?.click();
+  const button = () => document.querySelector('.plugin-update-all button');
+  const open = async () => {
+    document.querySelector('#application-integrations-menu').click();
+    await tick();
+    [...document.querySelectorAll('[role=menuitem]')].find(item => /Plugins|插件/.test(item.textContent)).click();
+    await wait(() => document.querySelector('.plugin-management-tabs'));
+  };
+  const label = count => probe.updateAll.replace('{count}', String(count));
+  const toast = title => [...document.querySelectorAll('.toast')].find(item => item.querySelector('.toast-title')?.textContent.trim() === title);
+  const finish = (id, error) => {
+    const work = pending.get(id);
+    if (!work) throw new Error('missing update request: ' + id);
+    pending.delete(id);
+    if (error) work.reject(new Error(error));
+    else {const plugin = packages.find(item => item.id === id);plugin.version = '2.0.0';work.resolve({...plugin});}
+  };
+  try {
+    client.listAgentPlugins = async () => [...installed.filter(plugin => !packages.some(item => item.id === plugin.id)), ...packages];
+    client.checkAgentPluginUpdates = async () => ({
+      check:{status:'ok',checked:packages.length,cached:0,rate_limit_reset:null},
+      updates:[...packages, {...fixture,id:'bulk-uninstalled',version:'1.0.0'}].map(plugin => ({
+        id:plugin.id,current_version:plugin.version,latest_version:plugin.id === 'bulk-no-release' ? null : '2.0.0',
+        update_available:plugin.version !== '2.0.0',error:null,error_kind:null,stale:false,
+      })),
+    });
+    // Shell refreshes share the coalesced check via the generic typed route.
+    client.invokeProduct = (command,args) => command === 'check_agent_plugin_updates'
+      ? client.checkAgentPluginUpdates()
+      : command === 'list_agent_plugins' ? client.listAgentPlugins() : original.invoke.call(client,command,args);
+    client.updateAgentPlugin = id => {
+      calls.push(id);
+      return new Promise((resolve,reject) => pending.set(id,{resolve,reject}));
+    };
+    close();await tick();await open();
+    await wait(() => button()?.textContent.trim() === label(2) && !button().disabled);
+    stage = 'filtered start';
+    const search = document.querySelector('.official-plugin-search input');
+    search.value = 'no-matching-bulk-plugin';
+    search.dispatchEvent(new Event('input', {bubbles:true}));
+    await tick();
+    if (document.querySelector('.official-plugin-card') || button().textContent.trim() !== label(2)) throw new Error('bulk selection follows marketplace filtering');
+    button().click();button().click();
+    await wait(() => calls.length === 2);
+    if (calls.join(',') !== 'graph,bulk-third-party' || !button().disabled || button().textContent.trim() !== probe.updating) throw new Error('bulk selection, duplicate protection or localized busy label failed');
+    await wait(() => queue.isInstalling('graph') && queue.isInstalling('bulk-third-party'));
+    if (document.querySelectorAll('.plugin-install-progress[data-install-status="running"]').length !== 2) throw new Error('filtered bulk tasks lost progress');
+    close();await tick();await open();
+    stage = 'reopening';
+    await wait(() => button()?.disabled);
+    document.querySelector('.plugin-management-tabs button:nth-of-type(2)').click();
+    await tick();
+    if (!button().disabled || calls.length !== 2) throw new Error('installed view lost bulk state');
+    finish('graph','bulk fixture download failed');
+    stage = 'partial failure';
+    await wait(() => toast('Graph · ' + probe.failed));
+    if (!queue.isInstalling('bulk-third-party') || !button().disabled) throw new Error('one failure stopped the other package');
+    finish('bulk-third-party');
+    stage = 'remaining retry';
+    await wait(() => toast(probe.updatedGoal) && button()?.textContent.trim() === label(1) && !button().disabled);
+    if (!toast('Graph · ' + probe.failed)?.textContent.includes('bulk fixture download failed')) throw new Error('bulk failure details are missing');
+    button().click();
+    stage = 'retry request';
+    await wait(() => calls.length === 3);
+    if (calls[2] !== 'graph') throw new Error('retry updated an already current package');
+    close();finish('graph');
+    stage = 'retry completion';
+    await wait(() => toast(probe.updated));
+    await open();
+    await wait(() => !queue.isInstalling('graph'));
+    await tick();
+    if (button()) throw new Error('completed updates remain offered');
+    // Leave a deterministic available-update surface for the runner's capture.
+    packages[0].version = '1.0.0';packages[1].version = '1.0.0';
+    stage = 'capture inventory';
+    close();await tick();await open();
+    await wait(() => button()?.textContent.trim() === label(2) && !button().disabled);
+    const bounds = button().getBoundingClientRect();
+    const header = document.querySelector('.plugin-management-header').getBoundingClientRect();
+    if (bounds.width <= 0 || bounds.right > header.right + 1 || bounds.bottom > header.bottom + 1) throw new Error('bulk action is clipped');
+    return 'bulk count, filtering, selection, duplicate protection, reopening, partial failure and retry passed';
+  } finally {
+    for (const [id,work] of pending) work.reject(new Error('bulk fixture cleanup: ' + id));
+    await tick();
+    for (const plugin of packages) queue.dismiss(plugin.id);
+    client.listAgentPlugins = original.list;
+    client.checkAgentPluginUpdates = original.check;
+    client.updateAgentPlugin = original.update;
+    client.invokeProduct = original.invoke;
+    const {toasts,dismissToast} = await import('/src/lib/toast.ts');
+    let notices=[];toasts.subscribe(items=>notices=items)();notices.forEach(item=>dismissToast(item.id));
+  }
+})()'''

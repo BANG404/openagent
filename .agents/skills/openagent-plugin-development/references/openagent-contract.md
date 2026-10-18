@@ -115,6 +115,17 @@ only the target package's running task or pending removal blocks its actions.
 Verify notification dismissal, concurrent updates, failure/retry, and reopening
 with `test:blackbox:plugin-settings`.
 
+The Plugins header offers Update all in both Marketplace and Installed views
+when installed packages have available release versions. Its count covers the
+whole installed inventory, independent of marketplace search/category filters.
+One click snapshots unique installed IDs and starts ordinary per-package updates
+concurrently through that same window queue. Loading/checking, pending removal
+and running updates disable the bulk action; per-package install protection
+still applies. A failed package cannot stop another update, and only failed or
+still-outdated packages remain eligible for retry after refreshed metadata.
+Verify bulk selection, double-click protection, independent failure/retry and
+closing/reopening through `plugin-update-all.toml` in the settings runner.
+
 Runtime hosts that need to emit a plugin message resolve its namespaced tag
 through the installed-plugin policy resolver. The resolver checks the plugin
 root and namespace before returning the audience rule; raw tags and tags owned

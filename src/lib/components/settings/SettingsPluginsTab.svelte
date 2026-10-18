@@ -43,6 +43,13 @@
     const tasks = plugins.agentPluginInstallTasks;
     const active = panelElement?.ownerDocument.activeElement;
     if (!(active instanceof HTMLButtonElement)) return;
+    if (
+      active.closest(".plugin-update-all") &&
+      (plugins.agentPluginsUpdating || plugins.agentPluginUpdateCount === 0)
+    ) {
+      panelElement?.focus({ preventScroll: true });
+      return;
+    }
     const card = active.closest<HTMLElement>(".official-plugin-card");
     if (!card || !panelElement?.contains(card)) return;
     const next = cards.find((plugin) => plugin.id === card.dataset.pluginId);
@@ -75,6 +82,22 @@
         ]}
         onValueChange={(value) => (plugins.pluginManagementView = value)}
       />
+      {#if plugins.agentPluginUpdateCount > 0 || plugins.agentPluginsUpdating}
+        <div class="plugin-update-all">
+          <SettingsActionButton
+            label={plugins.agentPluginsUpdating
+              ? $t("pluginUpdating")
+              : $t("pluginUpdateAll").replace("{count}", String(plugins.agentPluginUpdateCount))}
+            icon="download"
+            tone="primary"
+            onclick={() => plugins.updateAllAgentPlugins()}
+            disabled={plugins.agentPluginsLoading ||
+              plugins.agentPluginUpdatesLoading ||
+              plugins.agentPluginsUpdating ||
+              plugins.agentPluginRemoveDialogOpen}
+          />
+        </div>
+      {/if}
     </header>
     {#each plugins.agentPluginInstallTasks as task (task.key)}
       {#if task.status === "running" && (plugins.pluginManagementView !== "marketplace" || !plugins.officialPluginCards.some((plugin: OfficialPluginCatalogItem) => plugin.id === task.pluginId))}
