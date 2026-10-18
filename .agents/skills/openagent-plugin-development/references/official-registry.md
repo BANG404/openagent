@@ -67,6 +67,38 @@ endpoint without exposing a GitHub token to the client. When archive digests are
 published, the Runtime installer integration must verify them before activation;
 the current projection preserves the field for that adapter.
 
+### Classify by the primary user task
+
+Review each package's README, commands, skills and MCP capabilities before assigning
+its discovery category. Use the task a user installs the plugin to accomplish;
+implementation language, MCP transport, provider name and incidental capabilities
+do not determine the category. Keep these stable IDs and localized client labels:
+
+| Category | Primary purpose | Official packages |
+| --- | --- | --- |
+| `development` | Create, understand, debug, test or operate software and infrastructure | Plugin Developer, Context7, Fakechat, Firebase, GitHub, GitLab, Laravel Boost, Langfuse, Serena, Terraform |
+| `productivity` | Manage work items and projects | Asana, Linear |
+| `communication` | Exchange messages with people or collaborating agents | Chat Groups, Message Board, iMessage |
+| `automation` | Execute ongoing or dependent work, or operate browsers and desktop apps | Goal, Graph, Cua Driver, Playwright |
+| `design` | Customize appearance and typography | All ten official theme packages |
+| `data` | General data analysis, retrieval or knowledge management | No current official package |
+| `other` | A reviewed purpose outside the categories above | No current official package |
+
+Context7 supplies library documentation and code examples for programming, so it
+belongs with development tools. Fakechat's local channel exists to test inbound
+dispatch, replies and access rules, so discovery places it with development tools.
+Playwright exposes general browser actions, so it belongs with desktop control in
+automation even though it can also test websites. Goal and Graph execute work;
+Asana and Linear manage work records. Message Board's persistence and search serve
+agent communication rather than general data analysis.
+
+Registry discovery categories do not override installed manifest metadata or the
+manifest-based integration inventory contract in [package format](package-format.md).
+The website and desktop marketplace consume the same registry category. Verify
+category selection combined with localized search and availability through
+`tests/blackbox/plugin-categories.toml` and the plugin catalog runner in all four
+theme/language combinations.
+
 The Settings Plugins surface projects the remotely fetched registry into the official
 plugin marketplace. Search and availability filters are pure client-side
 projections. The marketplace starts with search, category and availability filters, followed
