@@ -83,13 +83,8 @@
   import { ONBOARDING_COMPLETE_EVENT } from "$lib/onboarding";
   import { NEW_CONVERSATION_GREETING } from "$lib/newConversation";
   import { durableFollowUpSuggestionsByMessageId } from "$lib/followUpSuggestions";
-  import {
-    clearQueuedChatMessages,
-    dequeueChatMessage,
-    enqueueChatMessage,
-    removeQueuedChatMessage,
-    type QueuedChatMessage,
-  } from "$lib/chatQueue";
+  import { createInputQueueController } from "$lib/inputQueue.svelte";
+  import type { InputQueueAction, InputDelivery } from "$lib/openagent";
   import OnboardingFlow from "$lib/components/OnboardingFlow.svelte";
   import type { SlashCommand } from "$lib/composer/types";
   import QuickChatSurface from "$lib/components/QuickChatSurface.svelte";
@@ -724,28 +719,35 @@
     saveSettings,
     tauriAvailable,
   });
-  // Keep pending submissions scoped to their conversation so switching chats while
-  // a response is streaming never sends a message to the wrong conversation.
-  let queuedChatMessages = $state<Record<string, QueuedChatMessage[]>>({});
-
-  async function syncChatQueuePending(convId: string) {
+  const inputQueue = createInputQueueController(openAgent);
+  $effect(() => {
+    const convId = activeConvId;
+    if (convId && tauriAvailable) untrack(() => void inputQueue.load(convId));
+  });
+  onMount(() => {
     if (!tauriAvailable) return;
-    await openAgent
-      .invokeProduct("set_chat_queue_pending", {
-        convId,
-        pending: (queuedChatMessages[convId]?.length ?? 0) > 0,
-      })
-      .catch(() => {});
-  }
-
-  function removeQueuedMessage(convId: string, index: number) {
-    queuedChatMessages = removeQueuedChatMessage(queuedChatMessages, convId, index);
-    void syncChatQueuePending(convId);
-  }
-
-  function clearQueuedMessages(convId: string) {
-    queuedChatMessages = clearQueuedChatMessages(queuedChatMessages, convId);
-    void syncChatQueuePending(convId);
+    let disposed = false;
+    let unsubscribe: (() => void) | undefined;
+    void openAgent
+      .onInputQueueChanged((convId) => void inputQueue.load(convId))
+      .then((stop) => {
+        if (disposed) stop();
+        else unsubscribe = stop;
+      });
+    const refresh = () => {
+      if (activeConvId) void inputQueue.load(activeConvId);
+    };
+    const timer = window.setInterval(refresh, 2000);
+    window.addEventListener("focus", refresh);
+    return () => {
+      disposed = true;
+      unsubscribe?.();
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+    };
+  });
+  async function mutateInputQueue(convId: string, action: InputQueueAction) {
+    return inputQueue.mutate(convId, action);
   }
 
   let currentNavigationLocation = $derived.by<AppNavigationLocation>(() => ({
@@ -789,7 +791,12 @@
 
   // Streaming state for the currently visible conversation
   let isCurrentStreaming = $derived(
-    activeConvId ? !!chatStreams.streamingConversationIds[activeConvId] : false,
+    activeConvId
+      ? !!chatStreams.streamingConversationIds[activeConvId] ||
+          !!inputQueue.snapshots[activeConvId]?.items.some(
+            (item) => item.status === "starting" || item.status === "running",
+          )
+      : false,
   );
   let isCurrentStreamPaused = $derived(
     activeConvId ? !!chatStreams.pausedConversationIds[activeConvId] : false,
@@ -2474,7 +2481,7 @@
       // otherwise it is incorrectly submitted as another sibling branch.
       clearPendingForkState(conv_id);
       chatStreams.cleanup(conv_id);
-      void dispatchNextQueuedMessage(conv_id);
+      void inputQueue.load(conv_id);
       return true;
     }
 
@@ -2566,7 +2573,7 @@
     clearPendingForkState(conv_id);
 
     chatStreams.cleanup(conv_id);
-    void dispatchNextQueuedMessage(conv_id);
+    void inputQueue.load(conv_id);
     return true;
   }
 
@@ -2985,10 +2992,6 @@
         cacheRestoreSurface("new-conversation", null);
       }
     }
-    if (id in queuedChatMessages) {
-      const { [id]: _, ...rest } = queuedChatMessages;
-      queuedChatMessages = rest;
-    }
     composerDrafts.delete(conversationComposerDraftKey(id));
   }
 
@@ -3218,24 +3221,33 @@
             assistantMessageId: assistantMsgId,
           });
     submission
-      .then(() => {
+      .then((outcome) => {
         // Events are the live path, but the completed checkpoint is authoritative.
         // If a terminal event was lost, reconcile instead of leaving a permanent
         // streaming row and sidebar dot.
-        if (!chatStreams.streamingConversationIds[convId]) return;
+        if (
+          outcome.type === "run_accepted" ||
+          chatStreams.assistantMessageIds[convId] !== assistantMsgId ||
+          !chatStreams.streamingConversationIds[convId]
+        )
+          return;
         const latestLocation = findConversationLocation(convId);
         if (latestLocation && !latestLocation.isCurrentWorkspace) {
           notifyInactiveWindowOfAgentCompletion(assistantMsgId, "completed", true);
           chatStreams.cleanup(convId);
-          void dispatchNextQueuedMessage(convId);
+          void inputQueue.load(convId);
           return;
         }
         loadedConvIds.delete(convId);
         void loadMessagesForConv(convId, false).finally(() => {
-          if (!chatStreams.streamingConversationIds[convId]) return;
+          if (
+            chatStreams.assistantMessageIds[convId] !== assistantMsgId ||
+            !chatStreams.streamingConversationIds[convId]
+          )
+            return;
           notifyInactiveWindowOfAgentCompletion(assistantMsgId, "completed", true);
           chatStreams.cleanup(convId);
-          void dispatchNextQueuedMessage(convId);
+          void inputQueue.load(convId);
         });
       })
       .catch((err: unknown) => {
@@ -3275,17 +3287,8 @@
       return;
     }
 
-    if (activeConvId && chatStreams.streamingConversationIds[activeConvId]) {
-      const paused = !!chatStreams.pausedConversationIds[activeConvId];
-      queuedChatMessages = enqueueChatMessage(queuedChatMessages, activeConvId, {
-        text,
-        attachments,
-        contexts,
-        model: composerPreferences.selectedModel,
-      });
-      await syncChatQueuePending(activeConvId);
-      clearComposerDraft();
-      if (paused) await setStreamPaused(activeConvId, false);
+    if (activeConvId && !(activeConvId in pendingParentCk)) {
+      await submitComposerToQueue("next_turn");
       return;
     }
 
@@ -3349,28 +3352,53 @@
     await dispatchChatMessage(text, convId, clearInput, attachments, contexts, model);
   }
 
-  async function dispatchNextQueuedMessage(convId: string) {
-    if (chatStreams.streamingConversationIds[convId]) return;
-    const { next, queue } = dequeueChatMessage(queuedChatMessages, convId);
-    if (!next) return;
-    queuedChatMessages = queue;
-    await syncChatQueuePending(convId);
-    await dispatchQueuedOrImmediateMessage(
-      next.text,
-      convId,
-      next.attachments,
-      next.contexts,
-      next.model,
-      false,
-    );
+  async function submitComposerToQueue(delivery: InputDelivery) {
+    const convId = activeConvId;
+    if (!convId || inputQueue.pending[convId]) return;
+    const draftKey = selectedComposerDraftKey;
+    const paused = !!chatStreams.pausedConversationIds[convId];
+    const draft = activeComposerDraft;
+    const text = draft.text;
+    const attachments = [...draft.attachments];
+    const contexts = [...draft.contexts];
+    if (!text.trim() && !attachments.length && !contexts.length) return;
+    const expectedRunId = inputQueue.snapshots[convId]?.activeRunId;
+    const modelBinding =
+      delivery === "steer" ? null : decodeModelBinding(composerPreferences.selectedModel);
+    const branchId = activeBranchIds[convId] ?? null;
+    try {
+      await inputQueue.submit(
+        {
+          convId,
+          text,
+          branchId,
+          attachments: attachments.map((attachment) => attachment.path),
+          contexts,
+          modelBinding,
+        },
+        delivery,
+        delivery === "steer" ? expectedRunId : undefined,
+      );
+      if (paused) await setStreamPaused(convId, false);
+      if (
+        selectedComposerDraftKey === draftKey &&
+        activeComposerDraft === draft &&
+        draft.text === text &&
+        draft.attachments.length === attachments.length &&
+        draft.attachments.every((attachment, index) => attachment === attachments[index]) &&
+        draft.contexts.length === contexts.length &&
+        draft.contexts.every((context, index) => context === contexts[index])
+      )
+        clearComposerDraft(draftKey);
+    } catch (error) {
+      showToast({ title: String(error), variant: "error" });
+    }
   }
 
   async function stopMessage() {
     if (!tauriAvailable) return;
     if (!activeConvId || !isCurrentStreaming) return;
     const convId = activeConvId;
-    clearQueuedMessages(convId);
-    await syncChatQueuePending(convId);
     // Saving the partial response can be queued behind earlier stream writes.
     // Do not make that queue delay the cancellation signal.
     void persistStreamDraft(activeConvId, true).catch(() => {});
@@ -4090,7 +4118,10 @@
     newConversationLayout,
     newConversationGreeting,
     newConversationSuggestions,
-    queuedMessages: activeConvId ? (queuedChatMessages[activeConvId] ?? []) : [],
+    inputQueue: activeConvId ? inputQueue.snapshots[activeConvId] : undefined,
+    inputQueueLoading: activeConvId ? !!inputQueue.loading[activeConvId] : false,
+    inputQueueBusy: activeConvId ? !!inputQueue.pending[activeConvId] : false,
+    inputQueueError: activeConvId ? (inputQueue.errors[activeConvId] ?? "") : "",
     pluginSidebarViews,
     restoringSurface,
     shikiTheme,
@@ -4111,7 +4142,9 @@
     exportConversationTrace: exportCurrentConversationTrace,
     cancelBottomScrollFromUser,
     cancelUserInput,
-    clearQueuedMessages,
+    mutateInputQueue,
+    reloadInputQueue: (convId: string) => void inputQueue.load(convId),
+    steerMessage: () => submitComposerToQueue("steer"),
     commitEdit,
     configureModels: () => openManagementSurface("models", "providers"),
     finishStreamCompletionTailAnchor,
@@ -4120,7 +4153,6 @@
     pauseCurrentStream,
     pickWorkspace: pickNewConversationWorkspace,
     pickWslWorkspace: () => pickWslWorkspace(true),
-    removeQueuedMessage,
     resumeCurrentStream,
     reExecuteMessage: reExecuteMsg,
     sendMessage,

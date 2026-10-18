@@ -17,3 +17,11 @@ Root type, lint, format, and Bun test commands cover this package without
 private source access; trusted preflight also verifies the Runtime pin.
 The package remains private to prevent accidental npm
 publication; its source is public under MIT.
+
+`getInputQueue` and `mutateInputQueue` expose the Runtime-owned conversation
+inbox over the same HTTP API in browser and Tauri transports. Additions carry
+stable user and assistant message IDs; reuse them when retrying an uncertain
+acceptance. Edits and reordering include the observed revision. Steering carries
+an expected active run ID and cannot override its model. Queue snapshots and
+`onInputQueueChanged` are projections; SDK clients never dispatch pending items.
+The paired conversation-state stream also includes its input queue.

@@ -7,7 +7,7 @@
   import type { ComposerDraft } from "$lib/composerDrafts";
   import type { MermaidConfig } from "$lib/mermaidTheme";
   import { providerRequiresApiKey } from "$lib/providerCatalog";
-  import type { QueuedChatMessage } from "$lib/chatQueue";
+  import type { InputQueueAction, InputQueueSnapshot } from "$lib/openagent";
   import type { CachedRestoreSurface } from "$lib/startupRestoreCache";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
   import { ckIdsAlongActivePath } from "$lib/checkpointTree";
@@ -66,7 +66,10 @@
     followUpSuggestionsByMessageId: Record<string, string[]>;
     newConversationGreeting: string;
     newConversationSuggestions: string[];
-    queuedMessages: QueuedChatMessage[];
+    inputQueue?: InputQueueSnapshot;
+    inputQueueLoading: boolean;
+    inputQueueBusy: boolean;
+    inputQueueError: string;
     restoringSurface: CachedRestoreSurface;
     shikiTheme: string;
     slashCommands: SlashCommand[];
@@ -84,7 +87,9 @@
     exportConversationTrace?: () => void | Promise<void>;
     cancelBottomScrollFromUser: () => void;
     cancelUserInput: (requestId: string) => void | Promise<void>;
-    clearQueuedMessages: (convId: string) => void;
+    mutateInputQueue: (convId: string, action: InputQueueAction) => Promise<unknown>;
+    reloadInputQueue: (convId: string) => void;
+    steerMessage: () => void | Promise<void>;
     commitEdit: (
       convId: string,
       userMsgIdx: number,
@@ -97,7 +102,6 @@
     handleMessagesScroll: () => void;
     markProgrammaticTailPin: () => void;
     pauseCurrentStream: () => void | Promise<void>;
-    removeQueuedMessage: (convId: string, index: number) => void;
     resumeCurrentStream: () => void | Promise<void>;
     reExecuteMessage: (convId: string, assistantMsgIdx: number) => void | Promise<void>;
     sendMessage: () => void | Promise<void>;
@@ -383,9 +387,12 @@
         {:else}
           {#if view.activeConvId}
             <ChatQueue
-              items={view.queuedMessages}
-              onRemove={(index) => actions.removeQueuedMessage(view.activeConvId!, index)}
-              onClear={() => actions.clearQueuedMessages(view.activeConvId!)}
+              snapshot={view.inputQueue}
+              loading={view.inputQueueLoading}
+              busy={view.inputQueueBusy}
+              error={view.inputQueueError}
+              onAction={(action) => actions.mutateInputQueue(view.activeConvId!, action)}
+              onReload={() => actions.reloadInputQueue(view.activeConvId!)}
             />
           {/if}
           <MessageInput
@@ -402,12 +409,13 @@
             disabled={!view.tauriAvailable}
             isStreaming={view.isStreaming}
             isPaused={view.isPaused}
-            sendDisabled={(!composerDraft.text.trim() &&
-              composerDraft.attachments.length === 0 &&
-              composerDraft.contexts.length === 0) ||
+            sendDisabled={view.inputQueueBusy ||
+              (!composerDraft.text.trim() &&
+                composerDraft.attachments.length === 0 &&
+                composerDraft.contexts.length === 0) ||
               !view.tauriAvailable ||
               composerPreferences.modelOptions.length === 0}
-            sendTitle={$t("send")}
+            sendTitle={view.isStreaming ? $t("remoteQueueInstruction") : $t("send")}
             pauseTitle={$t("pauseOutput")}
             resumeTitle={$t("resumeOutput")}
             stopTitle={$t("stopOutput")}
@@ -437,6 +445,7 @@
             onSelectWorkspace={(path) => void actions.selectWorkspace(path)}
             focusRequest={focusRequest + localComposerFocusRequest}
             onSend={actions.sendMessage}
+            onSteer={view.inputQueue?.activeRunId ? actions.steerMessage : undefined}
             onStop={actions.stopMessage}
             onPause={actions.pauseCurrentStream}
             onResume={actions.resumeCurrentStream}

@@ -1,6 +1,6 @@
 // @ts-check
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
+import { execFile, spawnSync } from "node:child_process";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -8,10 +8,20 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { serve } from "bun";
 import { OPENAGENT_PROTOCOL_VERSION } from "../sdk/typescript/src/contracts.ts";
+import { captureBlackboxScreenshot } from "./blackbox-screenshot.mjs";
 
 const artifacts = mkdtempSync(join(tmpdir(), "openagent-remote-page-"));
 const scenario = fileURLToPath(new URL("../tests/blackbox/remote-page.toml", import.meta.url));
 const execute = promisify(execFile);
+/** @type {Map<string, import('../sdk/typescript/src/contracts.ts').InputQueueSnapshot>} */
+const queues = new Map();
+
+/** @param {string} id */
+function queueState(id) {
+  if (!queues.has(id))
+    queues.set(id, { convId: id, revision: 0, paused: true, activeRunId: null, items: [] });
+  return queues.get(id);
+}
 
 /** @param {string[]} args */
 async function pilot(args) {
@@ -56,6 +66,7 @@ function conversationState(id) {
       },
     ],
     interrupts: [],
+    input_queue: queueState(id),
   };
 }
 
@@ -166,6 +177,36 @@ async function fixtureResponse(request) {
   if (/^\/api\/workspaces\/[^/]+\/files$/.test(path)) return Response.json(["README.md"]);
   const list = /^\/api\/workspaces\/([^/]+)\/conversations$/.exec(path);
   if (list) return Response.json(lists.get(list[1]) || []);
+  const queueRoute = /^\/api\/conversations\/([^/]+)\/input-queue$/.exec(path);
+  if (queueRoute) {
+    const id = queueRoute[1];
+    const queue = queueState(id);
+    assert(queue);
+    if (request.method === "POST") {
+      const action = await request.json();
+      if (action.type === "add") {
+        assert.equal(action.input.convId, id);
+        assert.equal(action.delivery, "next_turn");
+        if (!queue.items.some((item) => item.id === action.input.userMessageId))
+          queue.items.push({
+            id: action.input.userMessageId,
+            input: action.input,
+            delivery: action.delivery,
+            status: "queued",
+            runId: null,
+            error: null,
+          });
+      } else if (action.type === "set_paused") queue.paused = action.paused;
+      else if (action.type === "clear") queue.items = [];
+      else throw new Error(`Unhandled queue action ${action.type}`);
+      queue.revision += 1;
+      for (const controller of streams.get(id) || [])
+        controller.enqueue(
+          encoder.encode(`event: state\ndata: ${JSON.stringify(conversationState(id))}\n\n`),
+        );
+    }
+    return Response.json(queue);
+  }
   const conversation = /^\/api\/conversations\/([^/]+)(?:\/(history|events))?$/.exec(path);
   if (conversation) {
     const [, id, surface] = conversation;
@@ -245,6 +286,7 @@ try {
       offline = false;
       reads = 0;
       uploads = 0;
+      queues.clear();
       lists = new Map([
         ["one", [meta("one-a"), meta("one-b")]],
         ["two", [meta("two-a")]],
@@ -278,7 +320,13 @@ try {
       await pilot(["wait", "#pairing-code"]);
       await pilot(["snapshot", "-i"]);
       await pilot(["run", scenario]);
-      await pilot(["screenshot", join(artifacts, `${theme}-${locale}.png`)]);
+      const screenshot = join(artifacts, `${theme}-${locale}.png`);
+      if (process.env.BLACKBOX_NATIVE_WINDOW_ID)
+        captureBlackboxScreenshot(
+          (args) => spawnSync("tauri-pilot", args, { env: process.env, windowsHide: true }),
+          screenshot,
+        );
+      else await pilot(["screenshot", screenshot]);
     }
   }
 } finally {

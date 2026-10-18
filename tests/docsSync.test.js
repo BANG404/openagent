@@ -33,6 +33,9 @@ describe("agent-facing documentation synchronization", () => {
     expect(errors).toEqual([
       "Chat frontend logic changed without Markdown under .agents/skills/openagent-chat-frontend/. Update the skill's current invariant in the same change.",
     ]);
+    for (const queueModule of ["src/lib/inputQueue.ts", "src/lib/inputQueue.svelte.ts"]) {
+      expect(documentationSyncErrors([queueModule, "sdk/typescript/README.md"])).toHaveLength(1);
+    }
   });
 
   test("accepts chat behavior and skill changes together", () => {

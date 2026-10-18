@@ -108,6 +108,16 @@ export class HttpTransport implements OpenAgentTransport {
           request as OpenAgentOperationMap["conversation.get_remote_state"]["request"];
         return this.read(`/api/conversations/${encodeURIComponent(convId)}`);
       }
+      case "conversation.get_input_queue": {
+        const { convId } =
+          request as OpenAgentOperationMap["conversation.get_input_queue"]["request"];
+        return this.read(`/api/conversations/${encodeURIComponent(convId)}/input-queue`);
+      }
+      case "conversation.mutate_input_queue": {
+        const { convId, action } =
+          request as OpenAgentOperationMap["conversation.mutate_input_queue"]["request"];
+        return this.write(`/api/conversations/${encodeURIComponent(convId)}/input-queue`, action);
+      }
       case "conversation.get_remote_history": {
         const { convId } =
           request as OpenAgentOperationMap["conversation.get_remote_history"]["request"];

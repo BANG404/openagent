@@ -19,6 +19,12 @@ fn interactive_read_timeout(request: &RuntimeProxyRequest) -> Option<std::time::
     if request.method == "GET" && request.path == "/api/desktop/bootstrap" {
         return Some(HISTORY_READ_TIMEOUT);
     }
+    if request.method == "GET"
+        && request.path.starts_with("/api/conversations/")
+        && request.path.ends_with("/input-queue")
+    {
+        return Some(HISTORY_READ_TIMEOUT);
+    }
     if request.method != "POST" || request.path != "/api/desktop/operations" {
         return None;
     }
@@ -261,6 +267,7 @@ fn is_static_route_segment(segment: &str) -> bool {
             | "files"
             | "conversations"
             | "history"
+            | "input-queue"
             | "attachments"
             | "pair"
             | "operations"
@@ -426,6 +433,8 @@ fn validate_webview_product_request(request: &RuntimeProxyRequest) -> Result<(),
             | (Method::GET, ["api", "workspaces", _, "conversations"])
             | (Method::GET, ["api", "conversations", _])
             | (Method::GET, ["api", "conversations", _, "history"])
+            | (Method::GET, ["api", "conversations", _, "input-queue"])
+            | (Method::POST, ["api", "conversations", _, "input-queue"])
             | (Method::GET, ["api", "attachments", _])
             | (Method::POST, ["api", "pair"])
             | (Method::POST, ["api", "desktop", "operations"])
@@ -729,6 +738,13 @@ mod tests {
                 Some(HISTORY_READ_TIMEOUT),
             ),
             ("POST", "/api/conversations/c/runs", None, None),
+            (
+                "GET",
+                "/api/conversations/c/input-queue",
+                None,
+                Some(HISTORY_READ_TIMEOUT),
+            ),
+            ("POST", "/api/conversations/c/input-queue", None, None),
             ("GET", "/api/events", None, None),
             ("POST", "/api/desktop/operations", Some("invalid"), None),
             ("POST", "/api/desktop/operations", Some("{}"), None),
@@ -824,6 +840,8 @@ mod tests {
             ("GET", "/api/desktop/bootstrap"),
             ("GET", "/api/workspaces/workspace-1/files?query=src"),
             ("POST", "/api/conversations/conv-1/runs"),
+            ("GET", "/api/conversations/conv-1/input-queue"),
+            ("POST", "/api/conversations/conv-1/input-queue"),
             ("POST", "/api/desktop/operations"),
             ("PATCH", "/api/conversations/conv-1"),
         ] {

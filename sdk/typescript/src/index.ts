@@ -1,6 +1,10 @@
 export { OpenAgentClient } from "./client";
 export type {
   AgentCommandSpec,
+  InputDelivery,
+  InputQueueAction,
+  InputQueueSnapshot,
+  QueuedInput,
   AttachmentPreviewPayload,
   BackgroundTerminalKillResult,
   BackgroundTerminalReadResult,

@@ -1,0 +1,23 @@
+[scenario]
+name = "explicit steering remains separate from the next-turn queue"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "add a correction to the active task and retain an ordinary follow-up"
+action = "eval"
+script = '''(async()=>{
+  const probe=JSON.parse(sessionStorage.getItem('input-queue-fixture'));
+  const wait=async(read,why)=>{const end=Date.now()+15000;while(Date.now()<end){if(read())return;await new Promise(r=>setTimeout(r,50));}throw new Error(why);};
+  const fill=async(text)=>{const e=document.querySelector('[contenteditable=true][role=textbox]');e.focus();const range=document.createRange();range.selectNodeContents(e);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);e.dispatchEvent(new InputEvent('beforeinput',{bubbles:true,cancelable:true,inputType:'insertText',data:text}));await new Promise(r=>requestAnimationFrame(r));};
+  const sent=()=>!document.querySelector('[contenteditable=true][role=textbox]').textContent.trim();
+  await fill(`QUEUE_FIXTURE:${probe.marker} steering-initial`);document.querySelector('.send-btn').click();
+  await wait(()=>document.body.textContent.includes(`Queue response ${probe.marker}`),'steering target did not start');
+  await fill(`QUEUE_FIXTURE:${probe.marker} next-turn`);document.querySelector('.send-btn').click();await wait(sent,'next-turn acceptance failed');
+  await fill(`QUEUE_FIXTURE:${probe.marker} correction`);
+  const steer=document.querySelector('.steer-btn');if(!steer||steer.disabled)throw new Error('explicit steering action missing');steer.click();
+  await wait(sent,'steering acceptance failed');
+  await wait(()=>[...document.querySelectorAll('.chat-queue li')].some(row=>row.textContent.includes('correction')),'steering receipt missing');
+  await fill('unsent-steering-draft');
+  return 'correction accepted for the active run with a separate next-turn input';
+})()'''

@@ -199,3 +199,25 @@ source/version admission.
 Skill discovery is Runtime-owned. Frontend configuration snapshots and Flash
 settings omit skill-classification controls, and static tool labels follow the
 current built-in registry. Discovery diagnostics remain outside the transcript UI.
+
+## Conversation input queue
+
+`createInputQueueController` projects the shared Runtime queue for desktop and
+remote composers. Runtime owns acceptance, dispatch, ordering and receipts;
+terminal events only refresh the projection. Never dequeue in a frontend or
+write queued input into the composer's current draft. Clear only the unchanged
+submitted draft after acceptance; preserve newer edits and drafts in another
+conversation. Reuse submission identities after an unacknowledged request.
+
+Ordinary input during execution waits for the next turn. The separate Add to
+current task action targets the displayed active run ID and keeps its model;
+a stale or finishing run rejects that action without moving the draft. The
+queue uses stable message IDs, revision-checked editing/reordering, explicit
+pause/resume, and retry/remove actions. Stop preserves pending inputs. Loading
+and errors retain the queue surface and expose refresh. Attachment references
+and model/branch selections travel with the queued input.
+
+Verify queue editing, ordering, failed acceptance with a newer draft, pause,
+Stop, reload and explicit steering using `bun run test:blackbox:input-queue`
+in an isolated Tauri instance, in light/dark and English/Chinese. Runtime
+persistence and dispatch invariants are owned by the private conversation skill.

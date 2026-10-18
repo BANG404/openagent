@@ -27,6 +27,11 @@ directories.
 
 ## Module-level acceptance
 
+Conversation inbox reads and writes pass only the exact `/input-queue` product
+route through the desktop proxy; read deadlines apply to snapshots, while
+accepted writes retain their ordinary completion semantics. Run
+`test:blackbox:input-queue` for this adapter and the shared queue controls.
+
 `bun run test:blackbox:desktop-exit` starts its own isolated Windows Tauri
 fixtures against the product Vite frontend. Four light/dark and English/Chinese
 passes use shell-install preparation to retain the final status for inspection:

@@ -24,6 +24,7 @@ const commandNames = {
 } as const satisfies Partial<Record<OpenAgentOperation, string>>;
 
 const eventNames = {
+  "chat.input_queue_changed": "chat-input-queue-changed",
   "plugin.install_progress": "agent-plugin-install-progress",
   "chat.run_started": "chat-run-started",
   "chat.response_started": "chat-response-started",

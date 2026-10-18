@@ -1,0 +1,54 @@
+[scenario]
+name = "durable queue controls and Stop preserve pending inputs"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "queue, reorder, edit and stop through the native composer"
+action = "eval"
+script = '''(async()=>{
+  const probe=JSON.parse(sessionStorage.getItem('input-queue-fixture'));
+  const {en}=await import('/src/lib/i18n.en.ts');const {zh}=await import('/src/lib/i18n.zh.ts');const tr=key=>(JSON.parse(sessionStorage.getItem('input-queue-fixture')).language==='en'?en:zh)[key];
+  const wait=async(read,why)=>{const end=Date.now()+20000;while(Date.now()<end){if(read())return;await new Promise(r=>setTimeout(r,50));}throw new Error(why);};
+  const fill=async(text)=>{const e=document.querySelector('[contenteditable=true][role=textbox]');e.focus();const range=document.createRange();range.selectNodeContents(e);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);e.dispatchEvent(new InputEvent('beforeinput',{bubbles:true,cancelable:true,inputType:'insertText',data:text}));await new Promise(r=>requestAnimationFrame(r));};
+  const send=async(text)=>{await fill(`QUEUE_FIXTURE:${probe.marker} ${text}`);const b=document.querySelector('.send-btn');if(b.disabled)throw new Error('composer send disabled');b.click();await wait(()=>!document.querySelector('[contenteditable=true][role=textbox]').textContent.trim(),'accepted draft was not cleared');};
+  await send('first');
+  await wait(()=>document.body.textContent.includes(`Queue response ${probe.marker}`),'first provider stream did not start');
+  await send('second');await send('third');
+  await wait(()=>document.querySelectorAll('.chat-queue [data-queue-id]').length===3,'pending inputs missing');
+  const row=text=>[...document.querySelectorAll('.chat-queue li')].find(row=>row.textContent.includes(text));
+  row('third').querySelector(`button[aria-label="${tr('moveQueueUp')}"]`).click();
+  await wait(()=>[...document.querySelectorAll('.chat-queue li')].findIndex(r=>r.textContent.includes('third'))<[...document.querySelectorAll('.chat-queue li')].findIndex(r=>r.textContent.includes('second')),'reorder was not accepted');
+  [...row('second').querySelectorAll('button')].find(b=>b.textContent===tr('editQueuedMessage')).click();
+  await wait(()=>!!row('second').querySelector('textarea'),'queue editor missing');
+  const editor=row('second').querySelector('textarea');editor.value=`QUEUE_FIXTURE:${probe.marker} edited-second`;editor.dispatchEvent(new Event('input',{bubbles:true}));
+  await new Promise(r=>requestAnimationFrame(r));
+  [...row('second').querySelectorAll('button')].find(b=>b.textContent===tr('saveQueuedMessage')).click();
+  await wait(()=>!!row('edited-second')&&!document.querySelector('.queue-edit'),'queue edit did not persist');
+  await fill('unsent-stop-draft');
+  document.querySelector('.stop-btn').click();
+  await wait(()=>document.querySelectorAll('.chat-queue [data-queue-id]').length===2&&!document.querySelector('.stop-btn'),'Stop did not preserve pending messages');
+  if(!document.querySelector('.queue-notice')||!document.querySelector('[contenteditable=true][role=textbox]').textContent.includes('unsent-stop-draft'))throw new Error('Stop erased the queue or composer');
+  return 'waiting messages remain paused and editable after Stop';
+})()'''
+
+[[step]]
+name = "a failed acceptance preserves edits made while the request is pending"
+action = "eval"
+script = '''(async()=>{
+  const {desktopOpenAgent:client}=await import('/src/lib/openagent/tauriClient.ts');
+  const original=client.mutateInputQueue;
+  const wait=async(read,why)=>{const end=Date.now()+10000;while(Date.now()<end){if(read())return;await new Promise(r=>setTimeout(r,50));}throw new Error(why);};
+  const fill=async(text)=>{const e=document.querySelector('[contenteditable=true][role=textbox]');e.focus();const range=document.createRange();range.selectNodeContents(e);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);e.dispatchEvent(new InputEvent('beforeinput',{bubbles:true,cancelable:true,inputType:'insertText',data:text}));await new Promise(r=>requestAnimationFrame(r));};
+  let reject;
+  client.mutateInputQueue=()=>new Promise((_,fail)=>{reject=fail;});
+  try {
+    await fill('acceptance-will-fail');document.querySelector('.send-btn').click();
+    await wait(()=>!!reject,'submission did not reach the transport');
+    await fill('newer-unsent-draft');reject(new Error('Fixture transport unavailable'));
+    await wait(()=>!document.querySelector('.send-btn').disabled,'failed acceptance left controls busy');
+    if(!document.querySelector('[contenteditable=true][role=textbox]').textContent.includes('newer-unsent-draft')||document.querySelectorAll('.chat-queue [data-queue-id]').length!==2)throw new Error('failed acceptance erased newer edits or changed the durable queue');
+    await fill('unsent-stop-draft');
+    return 'failed acceptance preserved the newer draft and pending inputs';
+  } finally { client.mutateInputQueue=original; }
+})()'''

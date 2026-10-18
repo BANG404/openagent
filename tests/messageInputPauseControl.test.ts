@@ -21,9 +21,11 @@ describe("stream pause control", () => {
       Bun.file(new URL("../src/lib/devPreview.ts", import.meta.url)).text(),
     ]);
 
-    expect(desktop).toMatch(/if \(paused\) await setStreamPaused\(activeConvId, false\);/);
+    expect(desktop).toMatch(/if \(paused\) await setStreamPaused\(convId, false\);/);
     expect(previews).toContain('["pause-control-preview", "pause-control"]');
-    expect(remote).toMatch(/if \(streamPaused\) await setStreamPaused\(false\);/);
+    expect(remote).toMatch(
+      /if \(paused && options\.conversation\?\.conv_id === convId\) await setStreamPaused\(false\);/,
+    );
   });
 
   test("sizes the contenteditable composer from CSS rather than measured height", async () => {

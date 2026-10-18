@@ -92,12 +92,14 @@ preserves the pending turn and resets backoff after a received state.
 `attachments.ts` owns browser file capabilities and preview URL cleanup,
 including uploads that complete after unmount. The page retains the canonical
 conversation projection and submits ordinary input through the shared client.
-`execution.svelte.ts` owns optimistic turn IDs and messages, queued input,
-pause state, fork submission, and interrupt resolution tracking. It receives
+`execution.svelte.ts` owns fork submission, stream pause state and interrupt
+resolution tracking, and uses the shared Runtime input-queue projection. It receives
 the canonical conversation and composer draft through a typed writable facade;
 reconnect and durable state reconciliation use that same controller state.
-Submission failure restores the submitted draft and attachments. A terminal
-state drains the next queued input through the ordinary submission method.
+Queue acceptance clears only the unchanged submitted draft. Failed acceptance
+preserves newer edits. SSE state includes the durable queue projection, so a
+reconnect restores pending items without client dispatch. The conversation UI
+owner documents queue controls and native acceptance.
 `catalog.svelte.ts` owns workspace roles, list loading, metadata, and list
 actions with request generations. `history.svelte.ts` owns the selected branch
 tree and file changes; reset retires outstanding history requests. These

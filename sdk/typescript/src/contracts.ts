@@ -60,6 +60,39 @@ export interface SubmitAgentInputRequest {
   assistantMessageId?: string | null;
 }
 
+export type InputDelivery = "next_turn" | "steer";
+
+export interface QueuedInput {
+  id: string;
+  input: SubmitAgentInputRequest;
+  delivery: InputDelivery;
+  status: "queued" | "starting" | "running" | "completed" | "failed" | "cancelled";
+  runId: string | null;
+  error: string | null;
+}
+
+export interface InputQueueSnapshot {
+  convId: string;
+  revision: number;
+  paused: boolean;
+  activeRunId: string | null;
+  items: QueuedInput[];
+}
+
+export type InputQueueAction =
+  | {
+      type: "add";
+      input: SubmitAgentInputRequest;
+      delivery: InputDelivery;
+      expectedRunId?: string | null;
+    }
+  | { type: "update"; id: string; input: SubmitAgentInputRequest; expectedRevision: number }
+  | { type: "delete"; id: string }
+  | { type: "clear" }
+  | { type: "reorder"; ids: string[]; expectedRevision: number }
+  | { type: "set_paused"; paused: boolean }
+  | { type: "retry"; id: string };
+
 export type SubmitAgentInputOutcome =
   | { type: "run_completed" }
   | { type: "run_accepted" }
@@ -109,6 +142,7 @@ export interface RemoteInterrupt {
 }
 
 export interface RemoteConversationState {
+  input_queue?: InputQueueSnapshot | null;
   conv_id: string;
   title: string | null;
   phase:
@@ -377,10 +411,6 @@ export interface DesktopProductCommandMap {
   };
   get_file_changes: { request: { convId: string }; response: FileChange[] };
   cancel_chat_message: { request: { convId: string }; response: void };
-  set_chat_queue_pending: {
-    request: { convId: string; pending: boolean };
-    response: void;
-  };
   save_workspace_prefs: {
     request: { workspace: string; recentWorkspaces: unknown[] };
     response: void;
@@ -675,7 +705,6 @@ export const DESKTOP_PRODUCT_COMMANDS = [
   "restore_agent_history",
   "get_file_changes",
   "cancel_chat_message",
-  "set_chat_queue_pending",
   "save_workspace_prefs",
   "set_active_conversation",
   "get_active_conv_id",
@@ -767,6 +796,14 @@ export function isDesktopProductCommand(command: string): command is DesktopProd
 }
 
 export interface OpenAgentOperationMap {
+  "conversation.get_input_queue": {
+    request: { convId: string };
+    response: InputQueueSnapshot;
+  };
+  "conversation.mutate_input_queue": {
+    request: { convId: string; action: InputQueueAction };
+    response: InputQueueSnapshot;
+  };
   "product.get_startup_bootstrap": {
     request: Record<string, never>;
     response: unknown;
@@ -903,6 +940,7 @@ export interface OpenAgentOperationMap {
 }
 
 export interface OpenAgentEventMap {
+  "chat.input_queue_changed": { conv_id: string };
   "plugin.install_progress": AgentPluginInstallProgress;
   "conversation.state": RemoteConversationState;
   "chat.run_started": ChatRunStartedEvent;

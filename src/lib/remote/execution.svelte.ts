@@ -6,13 +6,8 @@ import {
   getActiveTipNode,
   findUserMessageIndexForAssistant,
 } from "$lib/checkpointTree";
-import {
-  enqueueChatMessage,
-  dequeueChatMessage,
-  removeQueuedChatMessage,
-  clearQueuedChatMessages,
-  type QueuedChatMessages,
-} from "$lib/chatQueue";
+import { createInputQueueController } from "$lib/inputQueue.svelte";
+import type { InputDelivery } from "$lib/openagent";
 import { decodeModelBinding } from "$lib/modelBinding";
 import { tr } from "$lib/i18n";
 import { randomUuid } from "$lib/uuid";
@@ -45,116 +40,60 @@ export function createRemoteExecutionController(options: ExecutionOptions) {
   let pendingAssistantMessageId = $state<string | null>(null);
   let streamPaused = $state(false);
   let forkDisplayMessages = $state<ChatMessage[] | null>(null);
-  let queuedChatMessages = $state<QueuedChatMessages>({});
+  const inputQueue = createInputQueueController(options.client);
   let resolvingInterrupts = $state<Record<string, OptimisticInterruptResolution>>({});
   const interruptResolutions = new InterruptResolutionTracker();
   function selectedModelBinding() {
     return options.selectedModel ? decodeModelBinding(options.selectedModel) : null;
   }
-  async function sendInstruction() {
+  async function submitInstruction(delivery: InputDelivery) {
     const text =
       options.instruction.trim() ||
-      (options.attachments.length > 0
+      (options.attachments.length
         ? tr("attachmentOnlyPrompt")
-        : options.contexts.length > 0
+        : options.contexts.length
           ? tr("quoteOnlyPrompt")
           : "");
-    if (
-      (!text && options.attachments.length === 0 && options.contexts.length === 0) ||
-      options.activeInterrupt ||
-      options.busy
-    )
-      return;
-    if (options.running) {
-      if (!options.conversation) return;
-      queuedChatMessages = enqueueChatMessage(queuedChatMessages, options.conversation.conv_id, {
-        text,
-        attachments: options.attachments,
-        contexts: options.contexts,
-        model: options.selectedModel,
-      });
-      options.instruction = "";
-      options.attachments = [];
-      options.contexts = [];
-      if (streamPaused) await setStreamPaused(false);
-      return;
-    }
-    options.busy = true;
-    options.error = "";
-    options.commandNotice = "";
+    if (!text || options.busy || options.activeInterrupt) return;
+    const sourceConvId = options.conversation?.conv_id;
+    if (sourceConvId && inputQueue.pending[sourceConvId]) return;
+    const paused = streamPaused;
+    const submittedInstruction = options.instruction;
     const submittedAttachments = options.attachments;
     const submittedContexts = options.contexts;
-    const submittedText = text;
+    const modelBinding = delivery === "steer" ? null : selectedModelBinding();
+    const expectedRunId = sourceConvId ? inputQueue.snapshots[sourceConvId]?.activeRunId : null;
+    options.busy = true;
+    options.error = "";
     try {
-      const convId = options.conversation?.conv_id ?? (await options.createConversation());
-      const userMessageId = randomUuid();
-      const assistantMessageId = randomUuid();
-      optimisticUser = {
-        id: userMessageId,
-        role: "user",
-        content: text,
-        timestamp: Date.now(),
-        items: [
-          ...(text ? [{ type: "text" as const, content: text }] : []),
-          ...submittedContexts.map((context) => ({ type: "quote" as const, context })),
-          ...submittedAttachments.map((attachment) => ({
-            type: "attachment" as const,
-            attachment,
-          })),
-        ],
-      };
-      pendingAssistantMessageId = assistantMessageId;
-      options.instruction = "";
-      options.attachments = [];
-      options.contexts = [];
-      const outcome = await options.client.submitInput({
-        convId,
-        text,
-        attachments: submittedAttachments.map((attachment) => attachment.path),
-        contexts: submittedContexts,
-        modelBinding: selectedModelBinding(),
-        userMessageId,
-        assistantMessageId,
-      });
-      if (outcome.type === "immediate_command") {
-        optimisticUser = null;
-        pendingAssistantMessageId = null;
-        options.commandNotice = outcome.changed
-          ? tr("compactionCompleted")
-          : tr("compactConversationSkipped");
-        options.conversation = await options.client.getRemoteConversationState(convId);
-        await options.loadConversationHistory(convId);
+      const convId = sourceConvId ?? (await options.createConversation());
+      await inputQueue.submit(
+        {
+          convId,
+          text,
+          attachments: submittedAttachments.map((attachment) => attachment.path),
+          contexts: submittedContexts,
+          modelBinding,
+        },
+        delivery,
+        delivery === "steer" ? expectedRunId : undefined,
+      );
+      if (paused && options.conversation?.conv_id === convId) await setStreamPaused(false);
+      if (
+        options.conversation?.conv_id === convId &&
+        options.instruction === submittedInstruction &&
+        options.attachments === submittedAttachments &&
+        options.contexts === submittedContexts
+      ) {
+        options.instruction = "";
+        options.attachments = [];
+        options.contexts = [];
       }
     } catch (cause) {
-      optimisticUser = null;
-      pendingAssistantMessageId = null;
-      options.instruction = submittedText;
-      options.attachments = submittedAttachments;
-      options.contexts = submittedContexts;
       options.error = cause instanceof Error ? cause.message : String(cause);
     } finally {
       options.busy = false;
     }
-  }
-
-  async function sendNextQueuedMessage(convId: string) {
-    if (options.conversation?.conv_id !== convId || options.activeInterrupt) return;
-    const dequeued = dequeueChatMessage(queuedChatMessages, convId);
-    queuedChatMessages = dequeued.queue;
-    if (!dequeued.next) return;
-    options.instruction = dequeued.next.text;
-    options.attachments = dequeued.next.attachments;
-    options.contexts = dequeued.next.contexts;
-    options.selectedModel = dequeued.next.model;
-    await sendInstruction();
-  }
-
-  function removeQueuedMessage(convId: string, index: number) {
-    queuedChatMessages = removeQueuedChatMessage(queuedChatMessages, convId, index);
-  }
-
-  function clearQueuedMessages(convId: string) {
-    queuedChatMessages = clearQueuedChatMessages(queuedChatMessages, convId);
   }
 
   async function forkConversationRun(
@@ -258,8 +197,6 @@ export function createRemoteExecutionController(options: ExecutionOptions) {
 
   async function stopMessage() {
     if (!options.conversation || !options.running) return;
-    const convId = options.conversation.conv_id;
-    clearQueuedMessages(convId);
     await options.perform(() =>
       options.client.cancelRemoteConversation(options.conversation!.conv_id),
     );
@@ -353,22 +290,15 @@ export function createRemoteExecutionController(options: ExecutionOptions) {
     set forkDisplayMessages(next) {
       forkDisplayMessages = next;
     },
-    get queuedChatMessages() {
-      return queuedChatMessages;
-    },
-    set queuedChatMessages(next) {
-      queuedChatMessages = next;
-    },
+    inputQueue,
     get resolvingInterrupts() {
       return resolvingInterrupts;
     },
     set resolvingInterrupts(next) {
       resolvingInterrupts = next;
     },
-    sendInstruction,
-    sendNextQueuedMessage,
-    removeQueuedMessage,
-    clearQueuedMessages,
+    sendInstruction: () => submitInstruction("next_turn"),
+    steerInstruction: () => submitInstruction("steer"),
     commitEdit,
     reExecute,
     stopMessage,

@@ -11,6 +11,38 @@ function json(value, status = 200) {
 }
 
 describe("HttpTransport", () => {
+  test("input queue reads and mutations use the same scoped authenticated resource", async () => {
+    const calls = [];
+    const snapshot = {
+      convId: "conv/queue",
+      revision: 4,
+      paused: false,
+      activeRunId: null,
+      items: [],
+    };
+    const client = new OpenAgentClient(
+      new HttpTransport({
+        baseUrl: "https://agent.test",
+        fetch: async (url, init = {}) => {
+          calls.push({ url, init });
+          if (url.endsWith("/api/session"))
+            return json({ csrf: "queue-csrf", protocol_version: 3 });
+          return json(snapshot);
+        },
+      }),
+    );
+    await client.restoreRemoteSession();
+    expect(await client.getInputQueue("conv/queue")).toEqual(snapshot);
+    const action = { type: "reorder", ids: ["second", "first"], expectedRevision: 3 };
+    expect(await client.mutateInputQueue("conv/queue", action)).toEqual(snapshot);
+    expect(calls.slice(1).map((call) => call.url)).toEqual([
+      "https://agent.test/api/conversations/conv%2Fqueue/input-queue",
+      "https://agent.test/api/conversations/conv%2Fqueue/input-queue",
+    ]);
+    expect(calls[2].init.method).toBe("POST");
+    expect(calls[2].init.headers["x-openagent-csrf"]).toBe("queue-csrf");
+    expect(JSON.parse(calls[2].init.body)).toEqual(action);
+  });
   test("conversation UI uses scoped routes with paired-session CSRF rather than desktop operations", async () => {
     const calls = [];
     const fetch = async (url, init = {}) => {

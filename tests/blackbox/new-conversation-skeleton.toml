@@ -42,7 +42,7 @@ script = '''(async () => {
         streamStartedAt:null, isPaused:false, isStreaming:false, mainContentLoading:loading,
         memoryRetrievalCanSkip:false, memoryRetrievalStage:null, mermaidConfig:{}, messages:[],
         newConversationLayout:true, followUpSuggestionsByMessageId:{}, newConversationGreeting:'',
-        newConversationSuggestions:suggestions, queuedMessages:[], restoringSurface:'new-conversation',
+        newConversationSuggestions:suggestions, inputQueueLoading:false, inputQueueBusy:false, inputQueueError:'', restoringSurface:'new-conversation',
         shikiTheme:'github-light', slashCommands:[], taskUsagesByCheckpointId:{}, liveContextUsage:null,
         tailAnchorToken:null, tauriAvailable:true, workspace:null, workspacePath:'', recentWorkspaces:[],
       },

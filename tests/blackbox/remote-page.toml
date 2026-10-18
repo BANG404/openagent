@@ -207,3 +207,31 @@ script = '''(async () => {
   await wait(() => !document.querySelector('.agent-book-page'), 'book reader did not close');
   return 'book import, content and close action passed';
 })()'''
+
+[[step]]
+name = "shared queue acceptance retains quotes, attachments and unrelated drafts"
+action = "eval"
+script = '''(async()=>{
+  const language=(await (await fetch('/api/preferences')).json()).language;
+  const {en}=await import('/src/lib/i18n.en.ts');const {zh}=await import('/src/lib/i18n.zh.ts');const tr=key=>(language==='en'?en:zh)[key];
+  const wait=async(read,why)=>{const end=Date.now()+10000;while(Date.now()<end){if(await read())return;await new Promise(r=>setTimeout(r,50));}throw new Error(why);};
+  const fill=async(text)=>{const editor=document.querySelector('[contenteditable=true][role=textbox]');editor.focus();const range=document.createRange();range.selectNodeContents(editor);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);editor.dispatchEvent(new InputEvent('beforeinput',{bubbles:true,cancelable:true,inputType:'insertText',data:text}));await new Promise(r=>requestAnimationFrame(r));};
+  await fill('remote durable follow-up');
+  const clipboard=new DataTransfer();clipboard.items.add(new File(['queue attachment'],'queue.txt',{type:'text/plain'}));
+  document.querySelector('[contenteditable=true][role=textbox]').dispatchEvent(new ClipboardEvent('paste',{clipboardData:clipboard,bubbles:true,cancelable:true}));
+  await wait(()=>document.querySelector('.attachment-preview.composer-card')?.textContent.includes('queue.txt'),'queue attachment missing');
+  document.querySelector('.send-btn').click();
+  await wait(()=>document.querySelectorAll('.chat-queue [data-queue-id]').length===1&&!document.querySelector('[contenteditable=true][role=textbox]').textContent.trim(),'queue acceptance did not clear exactly the submitted draft');
+  const queue=await (await fetch('/api/conversations/two-a/input-queue')).json();
+  if(queue.items.length!==1||queue.items[0].input.attachments[0]!=='fixture-blob'||!queue.items[0].input.contexts.some(context=>context.text.includes('Durable answer two-a')))throw new Error('remote queue dropped attachment or quote: '+JSON.stringify(queue.items));
+  await fill('unsent remote queue draft');
+  const buttons=()=>[...document.querySelectorAll('.chat-queue .queue-header button')];
+  buttons().find(button=>button.textContent===tr('resumeQueue')).click();
+  await wait(()=>buttons().some(button=>button.textContent===tr('pauseQueue')),'queue resume was not projected');
+  buttons().find(button=>button.textContent===tr('pauseQueue')).click();
+  await wait(()=>!!document.querySelector('.queue-notice'),'queue pause was not projected');
+  buttons().find(button=>button.textContent===tr('clearQueue')).click();
+  await wait(()=>!document.querySelector('.chat-queue [data-queue-id]'),'queue clear was not projected');
+  if(!document.querySelector('[contenteditable=true][role=textbox]').textContent.includes('unsent remote queue draft'))throw new Error('queue controls erased the composer');
+  return 'scoped queue acceptance and controls retained the untouched composer';
+})()'''

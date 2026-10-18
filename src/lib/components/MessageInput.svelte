@@ -80,6 +80,7 @@
       name: string,
     ) => Promise<{ kind: "image" | "text" | "file"; data_url?: string; text?: string }>;
     onSend: () => void;
+    onSteer?: () => void | Promise<void>;
     onStop: () => void;
     onPause?: () => void;
     onResume?: () => void;
@@ -134,6 +135,7 @@
     focusRequest = 0,
     attachmentPreviewLoader,
     onSend,
+    onSteer,
     onStop,
     onPause = () => {},
     onResume = () => {},
@@ -634,6 +636,14 @@
     </Tooltip>
   {/if}
   {#if isStreaming}
+    {#if onSteer && hasComposerContent}
+      <button
+        class="steer-btn"
+        type="button"
+        disabled={sendDisabled || disabled}
+        onclick={() => onSteer?.()}>{$t("steerCurrentTask")}</button
+      >
+    {/if}
     <Tooltip text={streamingPrimaryTitle}>
       {#snippet trigger(props)}
         <button
@@ -709,6 +719,24 @@
 </div>
 
 <style>
+  .steer-btn {
+    border: 0;
+    border-radius: calc(var(--radius) * 0.5);
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+    padding: 5px 8px;
+    font: inherit;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .steer-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+  .steer-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
   .browser-file-input {
     display: none;
   }

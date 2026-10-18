@@ -1,0 +1,20 @@
+[scenario]
+name = "reload and resume the durable queue without touching the draft"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "pending inputs survive reload and drain in the saved order"
+action = "eval"
+script = '''(async()=>{
+  const {en}=await import('/src/lib/i18n.en.ts');const {zh}=await import('/src/lib/i18n.zh.ts');const tr=key=>(JSON.parse(sessionStorage.getItem('input-queue-fixture')).language==='en'?en:zh)[key];
+  if(document.querySelectorAll('.chat-queue [data-queue-id]').length!==2||!document.querySelector('.queue-notice'))throw new Error('reloaded queue lost its paused inputs');
+  const e=document.querySelector('[contenteditable=true][role=textbox]');e.focus();const range=document.createRange();range.selectNodeContents(e);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);e.dispatchEvent(new InputEvent('beforeinput',{bubbles:true,cancelable:true,inputType:'insertText',data:'unsent-draining-draft'}));
+  await new Promise(r=>requestAnimationFrame(r));
+  [...document.querySelectorAll('.queue-header button')].find(b=>b.textContent===tr('resumeQueue')).click();
+  const end=Date.now()+25000;
+  while(Date.now()<end&&document.querySelector('.chat-queue'))await new Promise(r=>setTimeout(r,50));
+  if(document.querySelector('.chat-queue'))throw new Error('resumed queue did not finish');
+  if(!e.textContent.includes('unsent-draining-draft'))throw new Error('automatic dispatch overwrote the draft');
+  return 'reloaded queue completed while the composer draft remained untouched';
+})()'''

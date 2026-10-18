@@ -59,6 +59,9 @@ update the manifest or entrypoint and run `bun run check:skills`. Product logic
 changes still require the relevant behavior documentation through
 `bun run check:docs` and `bun run preflight`.
 
+The chat documentation gate covers both the plain input-queue projection and
+its Svelte state wrapper; changes to either require the chat owner's reference.
+
 Prompt behavior should be verified with stable metadata or snapshots that show
 which layers were selected, not by exposing raw system prompts, provider
 secrets, or model-context diagnostics in normal product UI.

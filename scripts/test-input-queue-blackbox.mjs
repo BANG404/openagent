@@ -1,0 +1,261 @@
+// @ts-check
+import assert from "node:assert/strict";
+import { execFile, spawnSync } from "node:child_process";
+import { createServer } from "node:http";
+import { mkdtempSync, existsSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { promisify } from "node:util";
+import { captureBlackboxScreenshot } from "./blackbox-screenshot.mjs";
+
+const root = resolve(import.meta.dirname, "..");
+const home = resolve(process.env.OPENAGENT_HOME || "");
+assert(
+  process.env.OPENAGENT_HOME && process.env.TAURI_PILOT_SOCKET,
+  "Select this fixture's isolated home and Pilot socket",
+);
+assert(
+  ![".openagent", ".openagent-dev"].some((name) => home === resolve(homedir(), name)),
+  "Preserve developer and release state",
+);
+const artifacts = mkdtempSync(join(tmpdir(), "openagent-input-queue-native-"));
+const execute = promisify(execFile);
+/** @param {string[]} args */
+async function pilot(args) {
+  const { stdout } = await execute("tauri-pilot", [...args, "--window", "main"], {
+    cwd: artifacts,
+    env: process.env,
+    windowsHide: true,
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  return stdout.trim();
+}
+/** @param {string} script */
+const evaluate = (script) => pilot(["eval", script]);
+/** @param {string} operation @param {unknown} args @returns {Promise<any>} */
+async function invoke(operation, args) {
+  return JSON.parse(
+    await evaluate(
+      `(async()=>{const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');return JSON.stringify(await c.invokeProduct(${JSON.stringify(operation)},${JSON.stringify(args)}));})()`,
+    ),
+  );
+}
+/** @param {string} expression */
+async function until(expression) {
+  const deadline = Date.now() + 30000;
+  while (Date.now() < deadline) {
+    if ((await evaluate(expression)) === "true") return;
+    await new Promise((done) => setTimeout(done, 100));
+  }
+  throw new Error(`Input queue assertion timed out: ${expression}`);
+}
+/** @type {Array<{ marker: string; content: string }>} */
+const requests = [];
+/** @type {Array<() => void>} */
+const releases = [];
+let hold = true;
+const model = createServer(async (request, response) => {
+  let raw = "";
+  for await (const chunk of request) raw += chunk;
+  const body = JSON.parse(raw);
+  const content = JSON.stringify(
+    body.messages?.findLast((/** @type {any} */ item) => item.role === "user")?.content ?? "",
+  );
+  const marker = content.match(/QUEUE_FIXTURE:([a-f0-9-]+)/)?.[1];
+  if (!marker) {
+    response.writeHead(400);
+    response.end("Unrelated fixture input");
+    return;
+  }
+  requests.push({ marker, content });
+  response.writeHead(200, { "content-type": "application/x-ndjson" });
+  const chunk = (/** @type {string} */ text, done = false) =>
+    response.write(
+      JSON.stringify({
+        model: "queue-model",
+        created_at: new Date().toISOString(),
+        message: { role: "assistant", content: text },
+        done,
+        ...(done ? { done_reason: "stop", prompt_eval_count: 40, eval_count: 12 } : {}),
+      }) + "\n",
+    );
+  chunk(`Queue response ${marker}: `);
+  const finish = () => {
+    if (!response.destroyed) {
+      chunk("complete suffix", true);
+      response.end();
+    }
+  };
+  if (hold) releases.push(finish);
+  else finish();
+});
+await new Promise((done) => model.listen(0, "127.0.0.1", () => done(null)));
+const address = model.address();
+assert(address && typeof address !== "string");
+await pilot(["ping"]);
+await pilot(["snapshot", "-i"]);
+const original = await invoke("get_settings", {});
+assert(
+  existsSync(original.workspace) &&
+    resolve(original.workspace) === resolve(join(home, "workspace")),
+  "The socket must belong to the isolated queue fixture",
+);
+/** @type {string[]} */
+const conversations = [];
+try {
+  const config = structuredClone(original);
+  config.onboarding_completed = true;
+  config.providers = [
+    {
+      id: "queue-fixture",
+      name: "Local queue fixture",
+      provider: "ollama",
+      api_key: "",
+      base_url: `http://127.0.0.1:${address.port}`,
+      enabled: true,
+      models: ["queue-model"],
+      model_context_compaction_thresholds: {},
+      model_reasoning_efforts: {},
+      model_reasoning_effort_enabled: {},
+      model_vision_enabled: {},
+    },
+  ];
+  config.defaults.chat_model = config.defaults.flash_model = {
+    provider_id: "queue-fixture",
+    model: "queue-model",
+  };
+  config.memory_retrieval_enabled = false;
+  config.context_compaction_enabled = false;
+  config.approval_mode = "off";
+  for (const agent of Object.values(config.flash_agents))
+    if (agent && typeof agent === "object" && "enabled" in agent) agent.enabled = false;
+  for (const theme of ["light", "dark"])
+    for (const language of ["en", "zh"]) {
+      await invoke("save_settings", { config: { ...config, theme, language } });
+      const marker = crypto.randomUUID();
+      /** @param {string} suffix */
+      async function openConversation(suffix) {
+        const id = `${marker}-${suffix}`;
+        conversations.push(id);
+        await invoke("create_conversation", {
+          id,
+          title: `Queue ${theme}/${language} ${suffix}`,
+          workspace: original.workspace,
+        });
+        await invoke("create_branch", { id: `${id}-branch`, convId: id });
+        await evaluate(
+          `sessionStorage.setItem('input-queue-fixture',${JSON.stringify(JSON.stringify({ marker, convId: id, language }))}); setTimeout(()=>location.reload(),100); true`,
+        );
+        await new Promise((done) => setTimeout(done, 500));
+        await until("!!document.querySelector('[contenteditable=true][role=textbox]')");
+        await evaluate(
+          `(async()=>{const {emitTo}=await import('/node_modules/@tauri-apps/api/event.js');await emitTo('main','settings-open-conversation',{conversationId:${JSON.stringify(id)}});return true;})()`,
+        );
+        await until(
+          `document.body.textContent.includes(${JSON.stringify(`Queue ${theme}/${language} ${suffix}`)}) && !!document.querySelector('[contenteditable=true][role=textbox]')`,
+        );
+        return id;
+      }
+      hold = true;
+      await openConversation("stop");
+      await pilot(["snapshot", "-i"]);
+      await pilot([
+        "run",
+        join(root, "tests/blackbox/input-queue.toml"),
+        "--junit",
+        join(artifacts, `${theme}-${language}-queue.xml`),
+      ]);
+      if (process.env.BLACKBOX_NATIVE_WINDOW_ID)
+        captureBlackboxScreenshot(
+          (args) => spawnSync("tauri-pilot", args, { env: process.env, windowsHide: true }),
+          join(artifacts, `${theme}-${language}.png`),
+        );
+      else await pilot(["screenshot", join(artifacts, `${theme}-${language}.png`)]);
+      hold = false;
+      releases.splice(0).forEach((release) => release());
+      await evaluate("setTimeout(()=>location.reload(),100); true");
+      await new Promise((done) => setTimeout(done, 500));
+      await until("document.querySelectorAll('.chat-queue [data-queue-id]').length === 2");
+      await pilot(["snapshot", "-i"]);
+      await pilot(["run", join(root, "tests/blackbox/input-queue-resume.toml")]);
+      const ordered = requests.filter((request) => request.marker === marker);
+      assert.equal(ordered.length, 3, "Stop or reload dispatched an extra input");
+      assert(
+        ordered[1].content.includes("third") && ordered[2].content.includes("edited-second"),
+        "Runtime ignored native edit or ordering",
+      );
+      hold = true;
+      const steeringId = await openConversation("steer");
+      const beforeSteer = requests.length;
+      await pilot(["snapshot", "-i"]);
+      await pilot(["run", join(root, "tests/blackbox/input-queue-steer.toml")]);
+      hold = false;
+      releases.splice(0).forEach((release) => release());
+      await until(
+        "!document.querySelector('.chat-queue') && document.querySelector('[contenteditable=true][role=textbox]')?.textContent.includes('unsent-steering-draft')",
+      );
+      const steered = requests.slice(beforeSteer);
+      assert.equal(steered.length, 3, "Steering did not remain inside the current run");
+      assert(steered[1].content.includes("correction") && steered[2].content.includes("next-turn"));
+      const checkpoints = await invoke("get_renderable_checkpoints", { convId: steeringId });
+      const messages = checkpoints.at(-1)?.data.messages || [];
+      assert.equal(
+        messages.filter(
+          (/** @type {any} */ message) =>
+            message.role === "user" && JSON.stringify(message.content).includes("correction"),
+        ).length,
+        1,
+      );
+      const { stdout: records } = await execute(
+        process.execPath,
+        [
+          join(
+            root,
+            "runtime/.agents/skills/inspect-conversation-checkpoints/scripts/inspect-conversation-records.ts",
+          ),
+          "--db",
+          join(home, "messages.db"),
+          "--conversation",
+          steeringId,
+          "--json",
+        ],
+        { cwd: join(root, "runtime"), env: process.env, windowsHide: true },
+      );
+      writeFileSync(join(artifacts, `${theme}-${language}-checkpoints.json`), records);
+      for (const command of ["renderability", "diagnose"]) {
+        const { stdout } = await execute(
+          "python",
+          [
+            join(root, "runtime/.agents/skills/openagent-dev-chat/scripts/openagent_dev.py"),
+            command,
+            steeringId,
+          ],
+          {
+            cwd: join(root, "runtime"),
+            env: { ...process.env, OPENAGENT_CONFIG_DIR: home },
+            windowsHide: true,
+          },
+        );
+        const result = JSON.parse(stdout);
+        assert(
+          !(result.renderability ?? result).errors?.length,
+          `${command} reported checkpoint rendering errors`,
+        );
+        writeFileSync(join(artifacts, `${theme}-${language}-${command}.json`), stdout);
+      }
+      await pilot(["logs", "--level", "error"]);
+    }
+} finally {
+  hold = false;
+  releases.splice(0).forEach((release) => release());
+  for (const id of conversations) {
+    await invoke("cancel_chat_message", { convId: id }).catch(() => {});
+    await invoke("delete_conversation", { convId: id }).catch(() => {});
+  }
+  await invoke("save_settings", { config: original });
+  model.closeAllConnections();
+  model.close();
+}
+console.log(
+  `Native input queue: ordering, editing, Stop/reload/resume and steering passed in four theme/locale combinations. Artifacts: ${artifacts}`,
+);

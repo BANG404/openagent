@@ -72,6 +72,16 @@ describe("Tauri Runtime asset URLs", () => {
 });
 
 describe("OpenAgentClient", () => {
+  test("queue change hints expose only their conversation and detach cleanly", async () => {
+    const transport = new MockTransport();
+    const client = new OpenAgentClient(transport);
+    const conversations = [];
+    const stop = await client.onInputQueueChanged((convId) => conversations.push(convId));
+    transport.emit("chat.input_queue_changed", { conv_id: "queue-conversation" });
+    expect(conversations).toEqual(["queue-conversation"]);
+    stop();
+    expect(transport.unsubscribed).toContain("chat.input_queue_changed");
+  });
   test("publishes the current transport contract version", () => {
     expect(OPENAGENT_PROTOCOL_VERSION).toBe(3);
   });

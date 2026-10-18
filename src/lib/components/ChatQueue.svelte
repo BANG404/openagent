@@ -1,76 +1,156 @@
 <script lang="ts">
-  import { slide } from "svelte/transition";
-  import type { ChatAttachment, UserMessageContext } from "$lib/types";
+  import type { InputQueueAction, InputQueueSnapshot, QueuedInput } from "$lib/openagent";
   import { t } from "$lib/i18n";
-  import { motionDuration } from "$lib/motion";
   import Tooltip from "./Tooltip.svelte";
-
-  interface QueueItem {
-    text: string;
-    attachments: ChatAttachment[];
-    contexts: UserMessageContext[];
-  }
-
   interface Props {
-    items: QueueItem[];
-    onRemove: (index: number) => void;
-    onClear: () => void;
+    snapshot?: InputQueueSnapshot;
+    loading?: boolean;
+    busy?: boolean;
+    error?: string;
+    onAction: (action: InputQueueAction) => Promise<unknown>;
+    onReload: () => void;
   }
-
-  let { items, onRemove, onClear }: Props = $props();
-
-  function itemSummary(item: QueueItem): string {
-    const text = item.text.trim();
-    if (text) return text;
-    if (item.contexts.length > 0) return item.contexts[0].text;
-    return item.attachments.map((attachment) => attachment.name).join(", ");
+  let { snapshot, loading = false, busy = false, error = "", onAction, onReload }: Props = $props();
+  let editing = $state<string | null>(null);
+  let editText = $state("");
+  let editRevision = $state(0);
+  const waiting = $derived(
+    snapshot?.items.filter((item) => item.status === "queued" && item.delivery === "next_turn") ??
+      [],
+  );
+  function summary(item: QueuedInput) {
+    return (
+      item.input.text.trim() ||
+      item.input.contexts?.[0]?.text ||
+      item.input.attachments
+        ?.map((path) =>
+          path
+            .split(/[\\/]/)
+            .at(-1)
+            ?.replace(/^queue-blob:[^:]+:/, ""),
+        )
+        .join(", ") ||
+      ""
+    );
+  }
+  async function act(action: InputQueueAction) {
+    try {
+      await onAction(action);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  function move(id: string, offset: number) {
+    const ids = waiting.map((item) => item.id);
+    const index = ids.indexOf(id);
+    if (index + offset < 0 || index + offset >= ids.length) return;
+    [ids[index], ids[index + offset]] = [ids[index + offset], ids[index]];
+    void act({ type: "reorder", ids, expectedRevision: snapshot!.revision });
+  }
+  async function save(item: QueuedInput) {
+    if (
+      await act({
+        type: "update",
+        id: item.id,
+        input: { ...item.input, text: editText },
+        expectedRevision: editRevision,
+      })
+    )
+      editing = null;
   }
 </script>
 
-{#if items.length > 0}
-  <section
-    class="chat-queue"
-    aria-label={$t("messageQueue")}
-    transition:slide={{ duration: motionDuration(180) }}
-  >
+{#if loading || error || snapshot?.items.length || snapshot?.paused}
+  <section class="chat-queue" aria-label={$t("messageQueue")} aria-busy={loading || busy}>
     <div class="queue-header">
-      <span class="queue-title"
-        >{$t("messageQueue")} <span class="queue-count">{items.length}</span></span
-      >
-      <button class="clear-btn" type="button" onclick={onClear}>{$t("clearQueue")}</button>
+      <span>{$t("messageQueue")} {snapshot?.items.length ?? ""}</span>
+      {#if snapshot}
+        <button
+          type="button"
+          disabled={busy}
+          onclick={() => act({ type: "set_paused", paused: !snapshot!.paused })}
+          >{snapshot.paused ? $t("resumeQueue") : $t("pauseQueue")}</button
+        >
+        <button
+          type="button"
+          disabled={busy ||
+            !snapshot.items.some((item) => item.status === "queued" || item.status === "failed")}
+          onclick={() => act({ type: "clear" })}>{$t("clearQueue")}</button
+        >
+      {/if}
     </div>
-    <ol class="queue-items">
-      {#each items as item, index (index)}
-        <li class="queue-item">
-          <span class="queue-index">{index + 1}</span>
-          <Tooltip text={itemSummary(item)}>
-            {#snippet trigger(props)}
-              <span {...props} class="queue-summary">{itemSummary(item)}</span>
-            {/snippet}
-          </Tooltip>
-          {#if item.attachments.length > 0}
-            <Tooltip text={item.attachments.map((attachment) => attachment.name).join(", ")}>
+    {#if loading}<div class="queue-skeleton" aria-label={$t("loadingContent")}></div>{/if}
+    {#if error}<div class="queue-error" role="alert">
+        {$t("queueUpdateFailed")}
+        <button type="button" disabled={busy} onclick={onReload}>{$t("retryQueue")}</button>
+      </div>{/if}
+    {#if snapshot?.paused}<p class="queue-notice">{$t("queuePausedNotice")}</p>{/if}
+    <ol>
+      {#each snapshot?.items ?? [] as item (item.id)}
+        <li data-queue-id={item.id}>
+          <div class="queue-item">
+            <Tooltip text={summary(item)}>
               {#snippet trigger(props)}
-                <span {...props} class="attachment-count">📎 {item.attachments.length}</span>
+                <span class="queue-summary" {...props}>{summary(item)}</span>
               {/snippet}
             </Tooltip>
-          {/if}
-          {#if item.contexts.length > 0}
-            <span class="context-count">{$t("quotedContext")} {item.contexts.length}</span>
-          {/if}
-          <Tooltip text={$t("removeQueuedMessage")}>
-            {#snippet trigger(props)}
+            <span class="queue-status"
+              >{item.delivery === "steer" && item.status === "queued"
+                ? $t("queueSteering")
+                : item.status === "failed"
+                  ? $t("queueRunFailed")
+                  : item.status === "queued"
+                    ? $t("queueWaiting")
+                    : $t("queueRunning")}</span
+            >
+            {#if item.status === "queued" && item.delivery === "next_turn"}
               <button
-                {...props}
-                class="remove-btn"
                 type="button"
-                aria-label={$t("removeQueuedMessage")}
-                onclick={() => onRemove(index)}
+                disabled={busy || waiting[0]?.id === item.id}
+                aria-label={$t("moveQueueUp")}
+                onclick={() => move(item.id, -1)}>↑</button
               >
-                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8" /></svg>
-              </button>
-            {/snippet}
-          </Tooltip>
+              <button
+                type="button"
+                disabled={busy || waiting.at(-1)?.id === item.id}
+                aria-label={$t("moveQueueDown")}
+                onclick={() => move(item.id, 1)}>↓</button
+              >
+              <button
+                type="button"
+                disabled={busy}
+                onclick={() => {
+                  editing = item.id;
+                  editText = item.input.text;
+                  editRevision = snapshot!.revision;
+                }}>{$t("editQueuedMessage")}</button
+              >
+            {/if}
+            {#if item.status === "failed"}<button
+                type="button"
+                disabled={busy}
+                onclick={() => act({ type: "retry", id: item.id })}>{$t("retryQueue")}</button
+              >{/if}
+            {#if item.status === "queued" || item.status === "failed"}<button
+                type="button"
+                disabled={busy}
+                aria-label={$t("removeQueuedMessage")}
+                onclick={() => act({ type: "delete", id: item.id })}>×</button
+              >{/if}
+          </div>
+          {#if editing === item.id}
+            <div class="queue-edit">
+              <textarea aria-label={$t("editQueuedMessage")} bind:value={editText} disabled={busy}
+              ></textarea>
+              <button type="button" disabled={busy} onclick={() => save(item)}
+                >{$t("saveQueuedMessage")}</button
+              >
+              <button type="button" disabled={busy} onclick={() => (editing = null)}
+                >{$t("cancelQueueEdit")}</button
+              >
+            </div>
+          {/if}
         </li>
       {/each}
     </ol>
@@ -79,122 +159,104 @@
 
 <style>
   .chat-queue {
-    margin: 0 0 8px;
+    margin-bottom: 8px;
     overflow: hidden;
-    border: 0;
     border-radius: var(--radius);
-    background: color-mix(in srgb, var(--card) 92%, transparent);
+    background: var(--card);
+    color: var(--card-foreground);
     box-shadow: var(--control-shadow);
+    font-size: 12px;
   }
-
   .queue-header,
   .queue-item {
     display: flex;
     align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
   }
-
   .queue-header {
-    justify-content: space-between;
-    min-height: 32px;
-    padding: 0 10px 0 12px;
-    border-bottom: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
-    color: var(--muted-foreground);
-    font-size: 11px;
-  }
-
-  .queue-title {
+    border-bottom: 1px solid var(--border);
     font-weight: 600;
   }
-  .queue-count {
-    display: inline-flex;
-    min-width: 16px;
-    justify-content: center;
-    margin-left: 4px;
-    padding: 1px 4px;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--primary) 14%, transparent);
-    color: var(--primary);
-  }
-
-  .clear-btn,
-  .remove-btn {
-    border: 0;
-    background: transparent;
-    color: var(--muted-foreground);
-    cursor: pointer;
-  }
-  .clear-btn {
-    padding: 3px 5px;
-    font: inherit;
-  }
-  .clear-btn:hover,
-  .clear-btn:focus-visible,
-  .remove-btn:hover,
-  .remove-btn:focus-visible {
-    background: var(--interactive-state-bg);
-    color: var(--accent-foreground);
-  }
-  .clear-btn:focus-visible,
-  .remove-btn:focus-visible {
-    box-shadow: var(--focus-ring);
-    outline: none;
-  }
-
-  .queue-items {
-    display: flex;
-    flex-direction: column;
-    gap: var(--list-item-stack-gap);
-    margin: 0;
-    padding: 4px;
-    list-style: none;
-  }
-  .queue-item {
+  .queue-header > span,
+  .queue-summary {
+    flex: 1;
     min-width: 0;
-    gap: 8px;
-    padding: 5px 6px;
-    border-radius: calc(var(--radius) * 0.666667);
-    font-size: 12px;
-  }
-  .queue-item:hover {
-    background: var(--interactive-state-bg);
-  }
-  .queue-index {
-    width: 15px;
-    flex: none;
-    color: var(--muted-foreground);
-    text-align: center;
-    font-variant-numeric: tabular-nums;
   }
   .queue-summary {
-    min-width: 0;
-    flex: 1;
     overflow: hidden;
-    color: var(--foreground);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .attachment-count,
-  .context-count {
-    flex: none;
+  .queue-status,
+  .queue-notice {
     color: var(--muted-foreground);
     font-size: 11px;
-    white-space: nowrap;
   }
-  .remove-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
+  .queue-notice,
+  .queue-error {
+    margin: 0;
+    padding: 6px 10px;
+  }
+  .queue-error {
+    color: var(--destructive);
+  }
+  ol {
+    list-style: none;
+    padding: 4px;
+    margin: 0;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+  button {
+    border: 0;
+    border-radius: calc(var(--radius) * 0.5);
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    padding: 3px 5px;
     flex: none;
-    border-radius: calc(var(--radius) * 0.416667);
   }
-  .remove-btn svg {
-    width: 13px;
-    height: 13px;
-    fill: none;
-    stroke: currentColor;
-    stroke-linecap: round;
-    stroke-width: 1.5;
+  button:hover:not(:disabled) {
+    background: var(--interactive-state-bg);
+  }
+  button:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+  button:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+  .queue-edit {
+    padding: 4px 10px 8px;
+  }
+  textarea {
+    display: block;
+    width: 100%;
+    min-height: 60px;
+    resize: vertical;
+    border: 1px solid var(--input);
+    border-radius: calc(var(--radius) * 0.5);
+    background: var(--background);
+    color: var(--foreground);
+    padding: 6px;
+    font: inherit;
+  }
+  .queue-skeleton {
+    height: 32px;
+    margin: 6px 10px;
+    border-radius: calc(var(--radius) * 0.5);
+    background: var(--muted);
+  }
+  @media (max-width: 600px) {
+    .queue-item {
+      flex-wrap: wrap;
+    }
+    .queue-summary {
+      flex-basis: 60%;
+    }
   }
 </style>

@@ -168,9 +168,6 @@
     perform: (action) => perform(action),
   });
   const sendInstruction = remoteExecution.sendInstruction;
-  const sendNextQueuedMessage = remoteExecution.sendNextQueuedMessage;
-  const removeQueuedMessage = remoteExecution.removeQueuedMessage;
-  const clearQueuedMessages = remoteExecution.clearQueuedMessages;
   const commitEdit = remoteExecution.commitEdit;
   const reExecute = remoteExecution.reExecute;
   const stopMessage = remoteExecution.stopMessage;
@@ -266,6 +263,10 @@
   const activeInterrupt = $derived(conversation?.interrupts[0] ?? null);
   const running = $derived(
     conversation?.phase === "before_completion" ||
+      (!!conversation &&
+        remoteExecution.inputQueue.snapshots[conversation.conv_id]?.items.some(
+          (item) => item.status === "starting" || item.status === "running",
+        )) ||
       remoteExecution.pendingAssistantMessageId !== null ||
       Object.keys(remoteExecution.resolvingInterrupts).length > 0,
   );
@@ -575,6 +576,7 @@
     const previousPhase = conversation.phase;
     const previousCheckpointId = conversation.checkpoint_id;
     conversation = state;
+    if (state.input_queue) remoteExecution.inputQueue.accept(state.input_queue);
     remoteCatalog.updateTitle(convId, state.title);
     const stillPending = Object.fromEntries(
       Object.entries(remoteExecution.resolvingInterrupts).filter(([requestId]) =>
@@ -603,14 +605,6 @@
       remoteExecution.streamPaused = false;
       void refreshConversations();
       void loadConversationHistory(convId);
-      if (
-        previousPhase === "before_completion" &&
-        (state.phase === "final_completed" ||
-          state.phase === "final_cancelled" ||
-          state.phase === "final_failed")
-      ) {
-        queueMicrotask(() => void sendNextQueuedMessage(convId));
-      }
     }
     error = "";
   }
@@ -630,6 +624,8 @@
     loadHistory: loadConversationHistory,
     applyInitialState(state) {
       conversation = state;
+      if (state.input_queue) remoteExecution.inputQueue.accept(state.input_queue);
+      else void remoteExecution.inputQueue.load(state.conv_id);
     },
     applyState: applyConversationState,
     onConnected() {
@@ -903,9 +899,13 @@
               {/if}
               {#if conversation}
                 <ChatQueue
-                  items={remoteExecution.queuedChatMessages[conversation.conv_id] ?? []}
-                  onRemove={(index) => removeQueuedMessage(conversation!.conv_id, index)}
-                  onClear={() => clearQueuedMessages(conversation!.conv_id)}
+                  snapshot={remoteExecution.inputQueue.snapshots[conversation.conv_id]}
+                  loading={remoteExecution.inputQueue.loading[conversation.conv_id]}
+                  busy={!!remoteExecution.inputQueue.pending[conversation.conv_id]}
+                  error={remoteExecution.inputQueue.errors[conversation.conv_id]}
+                  onAction={(action) =>
+                    remoteExecution.inputQueue.mutate(conversation!.conv_id, action)}
+                  onReload={() => void remoteExecution.inputQueue.load(conversation!.conv_id)}
                 />
               {/if}
               {#if activeInterrupt && hasInlineInterrupt}
@@ -965,6 +965,10 @@
                     client.getRemoteAttachmentPreview(locator, name)}
                   focusRequest={composerFocusRequest}
                   onSend={sendInstruction}
+                  onSteer={conversation &&
+                  remoteExecution.inputQueue.snapshots[conversation.conv_id]?.activeRunId
+                    ? remoteExecution.steerInstruction
+                    : undefined}
                   onStop={stopMessage}
                   onPause={() => setStreamPaused(true)}
                   onResume={() => setStreamPaused(false)}

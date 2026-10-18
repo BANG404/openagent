@@ -1,5 +1,7 @@
 import type {
   AgentCommandSpec,
+  InputQueueAction,
+  InputQueueSnapshot,
   BackgroundTerminalKillResult,
   BackgroundTerminalReadResult,
   BackgroundTerminalSession,
@@ -78,6 +80,18 @@ export class OpenAgentClient {
 
   submitInput(request: SubmitAgentInputRequest): Promise<SubmitAgentInputOutcome> {
     return this.transport.request("agent.submit_input", request);
+  }
+
+  getInputQueue(convId: string): Promise<InputQueueSnapshot> {
+    return this.transport.request("conversation.get_input_queue", { convId });
+  }
+
+  onInputQueueChanged(handler: (convId: string) => void): Promise<Unsubscribe> {
+    return this.transport.subscribe("chat.input_queue_changed", ({ conv_id }) => handler(conv_id));
+  }
+
+  mutateInputQueue(convId: string, action: InputQueueAction): Promise<InputQueueSnapshot> {
+    return this.transport.request("conversation.mutate_input_queue", { convId, action });
   }
 
   invokeLocal<Response>(command: string, args?: Record<string, unknown>): Promise<Response> {
