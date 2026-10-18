@@ -152,4 +152,8 @@ export default defineConfig(async () => ({
   build: {
     chunkSizeWarningLimit: 1400,
   },
+  // Syntax workers load grammars on demand, including in production bundles.
+  worker: {
+    format: /** @type {const} */ ("es"),
+  },
 }));

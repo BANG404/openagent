@@ -1,6 +1,7 @@
 import type { HighlighterCore, ThemedToken } from "shiki/core";
 import { bundledLanguagesInfo } from "shiki/langs";
 import { diffCodeText, type FileChangeDiffLine } from "$lib/fileChangeDiff";
+import { canHighlightDiff, MAX_DIFF_TOKENS } from "./diffHighlightLimits";
 
 const extensions: Record<string, string> = {
   js: "javascript",
@@ -89,7 +90,7 @@ export async function highlightDiffLines(
 ): Promise<ThemedToken[][]> {
   const plain = () => lines.map((line) => [{ content: diffCodeText(line), offset: 0 }]);
   const language = fileCodeLanguage(path);
-  if (!language || lines.length === 0) return plain();
+  if (!language || !canHighlightDiff(lines)) return plain();
   try {
     const core = await loadHighlighter();
     let loading = languageLoads.get(language);
@@ -134,6 +135,7 @@ export async function highlightDiffLines(
       });
       flush();
     }
+    if (result.reduce((count, row) => count + row.length, 0) > MAX_DIFF_TOKENS) return plain();
     return result;
   } catch {
     return plain();

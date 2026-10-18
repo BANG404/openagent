@@ -75,6 +75,18 @@ hits. Real-provider cache measurement remains an explicit SDK opt-in probe.
 
 ## Background resource usage
 
+FileDiffView displays literal source immediately and tokenizes each mounted
+file in a disposable module Worker. Never run Shiki grammar compilation or
+tokenization on the UI thread. Abort and terminate the worker on source/path
+changes or unmount; errors and the four-second deadline retain literal source.
+Files above 2,000 rows, 100,000 source characters (including row separators),
+or 2,000 characters in one row bypass highlighting. Results above 12,000 tokens
+also fall back to literal text to bound syntax-span creation. These budgets
+affect coloring only: preserve source, line numbers, edit markers and scrolling.
+Run `bun run test:blackbox:file-diff` for normal syntax and minified HTML,
+collapse/reopen, file switching and worker-failure recovery in both themes and
+locales. The synthetic HTML includes long embedded CSS/JavaScript lines.
+
 Memory-sync status polling is owned by `page/memoryStatusPolling.ts`. Run only
 one request at a time: active synchronization refreshes after two seconds;
 idle or failed reads back off to fifteen seconds. Hidden documents cancel the

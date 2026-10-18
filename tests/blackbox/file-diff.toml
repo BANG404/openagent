@@ -15,7 +15,7 @@ script = '''(async () => {
   const panel = document.querySelector('#checkpoint-flow-panel .file-panel');
   if (document.querySelector('#checkpoint-flow-panel').classList.contains('collapsed') || panel.getBoundingClientRect().height <= 0) throw new Error('Files sidebar is not visible');
   const rows = [...panel.querySelectorAll('.file-row')];
-  const paths = ['sample.ts', 'sample.py', 'sample.ps1', 'sample.unknown', 'long.txt', 'recorded.txt', 'empty.txt', 'deleted.txt', 'unavailable.txt', 'fragment.txt'];
+  const paths = ['sample.ts', 'sample.py', 'sample.ps1', 'sample.unknown', 'long.txt', 'recorded.txt', 'empty.txt', 'deleted.txt', 'unavailable.txt', 'fragment.txt', 'index.html'];
   if (rows.length !== paths.length || panel.querySelector('.file-tabs, .file-view-controls, [role="tablist"]')) throw new Error('Files must be a vertical collapsible list');
   window.__fileDiffVerify = async index => {
     const path = paths[index];
@@ -76,6 +76,20 @@ script = '''(async () => {
       if (![...panel.querySelectorAll('.diff-row code')].map(row => row.textContent).join('\n').includes('new fragment')) throw new Error('fragment inference missing');
       if (!panel.textContent.includes('unknown') && !panel.textContent.includes('未知')) throw new Error('fragment uncertainty missing');
     }
+    if (index === 10) {
+      const source = content.map(row => row.querySelector('code').textContent).join('\n');
+      if (content.length !== 6 || !source.includes('.car{color:red;transform:translateX(10px)}'.repeat(1000)) || !source.endsWith('</script></body></html>')) throw new Error('minified HTML source was truncated');
+      if (panel.querySelector('.diff-token')) throw new Error('oversized HTML should bypass syntax spans');
+      if (panel.querySelectorAll('.diff-row.add').length !== 6) throw new Error('minified HTML lost added-line markers');
+      const viewport = panel.querySelector('.file-content-scroll .ui-scroll-area-viewport');
+      viewport.scrollLeft = viewport.scrollWidth;
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      if (viewport.scrollLeft <= 0) throw new Error('minified source cannot scroll horizontally');
+      rows[index].click(); await new Promise(resolve => setTimeout(resolve, 50));
+      if (panel.querySelector('.diff-table')) throw new Error('minified file did not collapse');
+      rows[index].click(); await new Promise(resolve => setTimeout(resolve, 50));
+      if (panel.querySelectorAll('.diff-row.add').length !== 6) throw new Error('minified file did not reopen');
+    }
     return 'inferred file verified: ' + path;
   };
   return 'file assertions ready';
@@ -132,13 +146,38 @@ action = "eval"
 script = "window.__fileDiffVerify(9)"
 
 [[step]]
+name = "minified HTML keeps complete source, scrolling and responsive disclosure"
+action = "eval"
+script = "window.__fileDiffVerify(10)"
+
+[[step]]
+name = "worker failure retains literal source and switching files recovers syntax"
+action = "eval"
+script = '''(async () => {
+  const panel = document.querySelector('#checkpoint-flow-panel .file-panel');
+  const rows = [...panel.querySelectorAll('.file-row')];
+  const OriginalWorker = window.Worker;
+  try {
+    window.Worker = class { constructor() { throw new Error('fixture worker unavailable'); } };
+    rows[0].click();
+    await new Promise(resolve => setTimeout(resolve, 100));
+    if (!panel.querySelector('code')?.textContent.includes('old value') || panel.querySelector('.diff-token')) throw new Error('worker failure hid literal source');
+  } finally { window.Worker = OriginalWorker; }
+  await window.__fileDiffVerify(1);
+  // Switch while a new worker is loading; a cancelled result must not repaint the next file.
+  rows[0].click(); await new Promise(resolve => setTimeout(resolve, 0));
+  await window.__fileDiffVerify(10);
+  return 'worker failure and file-switch recovery verified';
+})()'''
+
+[[step]]
 name = "collapse, keyboard navigation and narrow layout"
 action = "eval"
 script = '''(async () => {
   const panel = document.querySelector('#checkpoint-flow-panel .file-panel');
   if (document.querySelector('#checkpoint-flow-panel').classList.contains('collapsed') || panel.getBoundingClientRect().height <= 0) throw new Error('Files sidebar is not visible');
   const rows = [...panel.querySelectorAll('.file-row')];
-  const paths = ['sample.ts', 'sample.py', 'sample.ps1', 'sample.unknown', 'long.txt', 'recorded.txt', 'empty.txt', 'deleted.txt', 'unavailable.txt', 'fragment.txt'];
+  const paths = ['sample.ts', 'sample.py', 'sample.ps1', 'sample.unknown', 'long.txt', 'recorded.txt', 'empty.txt', 'deleted.txt', 'unavailable.txt', 'fragment.txt', 'index.html'];
   if (rows.length !== paths.length || panel.querySelector('.file-tabs, .file-view-controls, [role="tablist"]')) throw new Error('Files must be a vertical collapsible list');
   if (panel.querySelector('.revert-button')) throw new Error('undo control remains');
   rows[0].click(); await new Promise(resolve => setTimeout(resolve, 200));

@@ -2,6 +2,7 @@
   import { t } from "$lib/i18n";
   import { diffCodeText, type FileChangeDiffLine } from "$lib/fileChangeDiff";
   import type { ThemedToken } from "shiki/core";
+  import { highlightDiffInWorker } from "$lib/streamdown/diffHighlightClient";
 
   let {
     lines,
@@ -36,18 +37,12 @@
   $effect(() => {
     const source = lines;
     const filename = path;
-    let cancelled = false;
-    void import("$lib/streamdown/diffHighlight")
-      .then(({ highlightDiffLines }) => highlightDiffLines(source, filename))
-      .then((tokens) => {
-        if (!cancelled) highlighted = { lines: source, path: filename, tokens };
-      })
-      .catch(() => {
-        /* Keep source text visible if the syntax chunk cannot load. */
-      });
-    return () => {
-      cancelled = true;
-    };
+    const controller = new AbortController();
+    void highlightDiffInWorker(source, filename, controller.signal).then((tokens) => {
+      if (!controller.signal.aborted && tokens)
+        highlighted = { lines: source, path: filename, tokens };
+    });
+    return () => controller.abort();
   });
 
   function tokenStyle(token: ThemedToken): string {

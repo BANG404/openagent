@@ -105,8 +105,32 @@ export function fileDiffPreviewChanges(base: FileChange): FileChange[] {
         diff: "@@ -1 +1 @@\n-old fragment\n+new fragment\n",
       },
     },
+    {
+      ...base,
+      id: "minified-html",
+      path: "index.html",
+      projection: {
+        kind: "created",
+        available: true,
+        change_ids: ["minified-html"],
+        content: minifiedHtml,
+        diff: `@@ -0,0 +1,${minifiedHtml.split("\n").length} @@\n${minifiedHtml
+          .split("\n")
+          .map((line) => `+${line}`)
+          .join("\n")}\n`,
+      },
+    },
   ];
 }
+
+const minifiedHtml = [
+  "<!doctype html>",
+  '<html lang="zh-CN"><head><meta charset="utf-8"><title>APEX RUN</title>',
+  "<style>" + ".car{color:red;transform:translateX(10px)}".repeat(1_000) + "</style>",
+  '</head><body><canvas id="stage"></canvas><script>',
+  "const track = [" + "Math.sin(1),".repeat(1_000) + "0];",
+  "</script></body></html>",
+].join("\n");
 
 export const checkpointPanelChanges: FileChange[] = [
   {

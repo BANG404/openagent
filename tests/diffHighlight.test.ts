@@ -41,4 +41,25 @@ describe("file diff syntax", () => {
     );
     expect(tokens[0]).toEqual([{ content: text, offset: 0 }]);
   });
+  test("minified HTML and oversized files retain complete source without syntax spans", async () => {
+    for (const source of [
+      [
+        "<!doctype html>",
+        "<style>" + ".car{color:red}".repeat(500) + "</style>",
+        "<script>" + "move();".repeat(500) + "</script>",
+      ],
+      Array.from({ length: 2_001 }, () => "<p>你好</p>"),
+      Array.from({ length: 100 }, () => "x".repeat(1_001)),
+      Array.from({ length: 40 }, () => '<div a="b">x</div>'.repeat(100)),
+    ]) {
+      const lines: FileChangeDiffLine[] = source.map((text, index) => ({
+        type: "add",
+        text: `+${text}`,
+        newLine: index + 1,
+      }));
+      const tokens = await highlightDiffLines(lines, "index.html");
+      expect(tokens.map((row) => row.map((token) => token.content).join(""))).toEqual(source);
+      expect(tokens.every((row) => row.length === 1 && !row[0].htmlStyle)).toBe(true);
+    }
+  });
 });
