@@ -1,5 +1,16 @@
 # Conversation components
 
+ConversationSurface shows Scroll to bottom only for a measurable viewport with
+more than 24px of vertical overflow and more than 24px remaining below it.
+Observe both the viewport and messages-content sizes: streaming, tool disclosure,
+history replacement and loading transitions can change content height without
+resizing or scrolling the viewport. Clear stale visibility when content fits or
+the viewport is hidden. Verify short content, growth, collapse, viewport resizing,
+scrolling and the button action in light/dark and English/Chinese with
+`bun run test:blackbox:scroll-to-bottom` against an isolated Tauri instance and
+explicit `TAURI_PILOT_SOCKET`; the scenario mounts the real surface without saved
+conversation data.
+
 ConversationSurface and the right-sidebar surface share the desktop workspace
 card contract owned by the design system's [semantic themes](../../openagent-design-system/references/semantic-themes.md).
 Keep their outer shell stable across installed themes; verify both together
@@ -176,6 +187,7 @@ custom frame isolation, state save/reload, unavailable fallback and light/dark,
 Chinese/English combinations. Unit coverage lives in `conversationUi.test.ts`.
 Standalone developer previews load on demand so fixture code stays outside the
 production route's initial import graph.
+
 # Client source selection
 
 Frontend imports use `@openagent/client` through the public client facade;

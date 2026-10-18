@@ -159,6 +159,7 @@
   let localComposerFocusRequest = $state(0);
   let wasNewConversationLayout = $state<boolean | null>(null);
   let showScrollToBottom = $state(false);
+  let messagesContent = $state<HTMLElement | null>(null);
   let pluginSidebarContext = $derived({
     workspacePath: view.workspacePath || null,
     conversationId: view.activeConvId,
@@ -177,7 +178,10 @@
       showScrollToBottom = false;
       return;
     }
-    showScrollToBottom = element.scrollHeight - element.scrollTop - element.clientHeight > 24;
+    showScrollToBottom =
+      element.clientHeight > 0 &&
+      element.scrollHeight - element.clientHeight > 24 &&
+      element.scrollHeight - element.scrollTop - element.clientHeight > 24;
   }
 
   function handleMessagesScroll(): void {
@@ -187,13 +191,14 @@
 
   $effect(() => {
     const element = messagesElement;
-    if (!element) return;
+    const content = messagesContent;
     updateScrollToBottomVisibility();
-    element.addEventListener("scroll", updateScrollToBottomVisibility, { passive: true });
+    if (!element || !content) return;
     const observer = new ResizeObserver(updateScrollToBottomVisibility);
     observer.observe(element);
+    // Content can grow or collapse without resizing or scrolling the viewport.
+    observer.observe(content);
     return () => {
-      element.removeEventListener("scroll", updateScrollToBottomVisibility);
       observer.disconnect();
     };
   });
@@ -271,7 +276,7 @@
       ontouchstart={actions.cancelBottomScrollFromUser}
       onpointerdown={actions.cancelBottomScrollFromUser}
     >
-      <main class="messages-content">
+      <main class="messages-content" bind:this={messagesContent}>
         {#if view.mainContentLoading && view.restoringSurface !== "new-conversation"}
           <div
             class="conversation-state-transition"

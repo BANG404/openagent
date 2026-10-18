@@ -1,0 +1,99 @@
+[scenario]
+name = "scroll to bottom tracks content overflow without stale visibility"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+action = "eval"
+script = '''(async () => {
+  const compiled = await (await fetch('/src/routes/remote/+page.svelte')).text();
+  const runtime = /import \{ onMount \} from "([^"]+)"/.exec(compiled)?.[1];
+  if (!runtime) throw new Error('Svelte runtime module missing');
+  const {mount, unmount} = await import(runtime);
+  const {default: Surface} = await import('/src/lib/devFixtures/NewConversationSkeleton.svelte');
+  const host = document.createElement('div');
+  host.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;background:var(--background)';
+  document.body.append(host);
+  const noop = () => {};
+  let clicks = 0;
+  const viewport = () => host.querySelector('.messages .ui-scroll-area-viewport');
+  const button = () => host.querySelector('.scroll-to-bottom');
+  const assert = (value, message) => {if (!value) throw new Error(message);};
+  const settle = () => new Promise(resolve => setTimeout(resolve, 150));
+  const actions = new Proxy({scrollToBottom: behavior => {
+    clicks++;
+    viewport().scrollTo({top:viewport().scrollHeight, behavior});
+  }}, {get:(target, key) => target[key] ?? noop});
+  const instance = mount(Surface, {target:host, props:{
+    view:{
+      activeBranchId:null, activeConvId:'scroll-fixture', activeTree:undefined,
+      browserModeNotice:'', checkpointFlow:null, checkpointLoadError:null, config:null,
+      currentStreamItems:[], currentStreamMessageId:null, pendingCheckpointId:null,
+      debugMode:false, fileChanges:[], followTail:false, isAwaitingStreamOutput:false,
+      streamStartedAt:null, isPaused:false, isStreaming:false, mainContentLoading:false,
+      memoryRetrievalCanSkip:false, memoryRetrievalStage:null, mermaidConfig:{}, messages:[],
+      newConversationLayout:false, followUpSuggestionsByMessageId:{}, newConversationGreeting:'',
+      newConversationSuggestions:[], queuedMessages:[], restoringSurface:'conversation',
+      shikiTheme:'github-light', slashCommands:[], taskUsagesByCheckpointId:{}, liveContextUsage:null,
+      tailAnchorToken:null, tauriAvailable:true, workspace:null, workspacePath:'', recentWorkspaces:[],
+    },
+    actions, composerPreferences:{
+      selectedModel:'fixture', modelOptions:[{value:'fixture', label:'Fixture model'}],
+      selectedModelSupportsReasoning:false, selectedModelSupportsVision:false,
+      selectedContextCompactionThreshold:0, selectedReasoningEffort:'medium',
+      handleModelChange:noop, handleReasoningEffortChange:noop, handleApprovalModeChange:noop,
+    },
+    messagesElement:null, inputAreaHeight:120, checkpointFlowPanelCollapsed:true,
+    conversationPanelCollapsed:false, rightSidebarPanel:'status', terminalSessionCount:0,
+    onTerminalSummaryChange:noop, composerDraft:{text:'', attachments:[], contexts:[]}, focusRequest:0,
+  }});
+  try {
+    await settle();
+    const content = host.querySelector('.transcript-list');
+    const response = document.createElement('div');
+    response.textContent = 'Scroll fixture / 滚动验证';
+    response.style.height = '80px';
+    content.append(response);
+    await settle();
+    assert(viewport().scrollHeight <= viewport().clientHeight + 1, 'short transcript must fit');
+    assert(!button(), 'short transcript shows a scroll button');
+    response.style.height = '1800px';
+    await settle();
+    assert(viewport().scrollTop === 0 && button(), 'content growth must show button without scrolling');
+    button().click();
+    for (let frame = 0; frame < 20 && button(); frame++) await settle();
+    assert(clicks === 1 && !button(), 'button must navigate to bottom and hide');
+    assert(viewport().scrollHeight - viewport().scrollTop - viewport().clientHeight <= 24, 'button missed bottom');
+    viewport().scrollTop = 0;
+    await settle();
+    assert(button(), 'scrolling up must reveal button');
+    // Collapse at scrollTop=0: no scroll event can refresh stale visibility.
+    response.style.height = '80px';
+    await settle();
+    assert(!button(), 'content collapse left a stale scroll button');
+    const normalHeight = host.clientHeight;
+    response.style.height = `${normalHeight + 200}px`;
+    await settle();
+    assert(button(), 'growing transcript must restore button');
+    host.style.bottom = 'auto';
+    host.style.height = `${normalHeight + 600}px`;
+    await settle();
+    assert(!button(), 'enlarging viewport left a stale scroll button');
+    host.style.height = `${normalHeight}px`;
+    await settle();
+    assert(button(), 'shrinking viewport must reveal remaining content');
+    host.style.display = 'none';
+    await settle();
+    assert(!button(), 'hidden viewport shows a scroll button');
+    host.style.display = 'flex';
+    response.style.height = '80px';
+    await settle();
+    assert(!button(), 'restoring short content shows a scroll button');
+    window.__scrollToBottomCleanup = async () => {await unmount(instance); host.remove();};
+    return true;
+  } catch (error) {
+    await unmount(instance);
+    host.remove();
+    throw error;
+  }
+})()'''
