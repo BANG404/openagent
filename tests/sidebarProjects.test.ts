@@ -159,10 +159,12 @@ describe("sidebar project order", () => {
     expect(projectMarkup).toContain("loading={projectSnapshotLoading(project.path)}");
     expect(source).toContain("padding: 4px 62px 4px var(--list-item-compact-padding-inline)");
     expect(source).toMatch(
-      /\.project-row-shell:hover,\s*\.project-row-shell:focus-within,\s*\.project-row-shell\.active\s*{[^}]*background: var\(--interactive-state-bg\);/s,
+      /\.project-row-shell:hover,\s*\.project-row-shell:focus-within\s*{[^}]*background: var\(--interactive-state-bg\);/s,
     );
     expect(source).not.toContain(".project-row:hover,");
-    expect(source).not.toContain(".project-row-shell.active .project-row {");
+    expect(source).toMatch(
+      /\.project-row-shell\.active\s*{[^}]*background: var\(--sidebar-selected\);/s,
+    );
   });
 
   test("loads visible inactive projects independently from the global recent projection", async () => {

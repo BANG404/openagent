@@ -39,6 +39,13 @@ against a task-owned Tauri instance selected by `TAURI_PILOT_SOCKET`. The
 scenario mounts the real ConversationList with synthetic data and touches no
 saved conversations.
 
+Sidebar row selection follows the design system's
+[semantic theme contract](../../openagent-design-system/references/semantic-themes.md).
+Run `bun run test:blackbox:sidebar-selection` against an explicitly selected,
+isolated debug window to verify selected projects, root/child conversations and
+Recents, independent overrides, removal fallback and Rhea's unchanged hover pair
+in light/dark and English/Chinese. The runner uses synthetic desktop-shell data.
+
 Production Help -> Debug mode exposes Export complete conversation trace in the
 current conversation's debug context bar. The page container calls the scoped
 SDK diagnostic operation only on an explicit click, then saves its UTF-8 JSON

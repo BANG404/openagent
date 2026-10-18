@@ -8,6 +8,12 @@ Components consume these names; never add new uses of legacy bg/text/surface
 names. Filled primary actions use primary-foreground, and themed surfaces use
 their matching foreground. Focus uses ring. Shape dimensions derive from radius;
 circles, pills, zero and native window geometry retain their own constraints.
+Sidebar hover uses `--sidebar-accent` / `--sidebar-accent-foreground`.
+Selected projects, conversations, child conversations and recent conversations
+use `--sidebar-selected` / `--sidebar-selected-foreground`, including while hovered
+or focused. These default to the hover pair; packages may override either selected
+token independently. Rhea explicitly references the hover pair in both modes,
+retaining the same colors for hover and selection.
 Native material, composer geometry and motion remain OpenAgent extensions.
 Desktop workspace cards retain their own 12px radius (`--workspace-card-radius`)
 and 8px gutters when a theme changes control radius, density or typography.

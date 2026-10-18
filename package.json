@@ -92,6 +92,7 @@
     "theme:create": "bun scripts/create-theme-plugin.ts",
     "theme:collection": "bun scripts/create-theme-collection.ts",
     "test:blackbox:semantic-themes": "bun scripts/test-semantic-themes-blackbox.ts",
+    "test:blackbox:sidebar-selection": "bun scripts/test-sidebar-selection-blackbox.mjs",
     "plugin:sync": "bun scripts/prepare-plugin-sources.mjs --update",
     "test:blackbox:goal-scroll": "bun scripts/test-goal-scroll-blackbox.mjs",
     "test:blackbox:goal-controls": "bun scripts/test-goal-controls-blackbox.mjs",

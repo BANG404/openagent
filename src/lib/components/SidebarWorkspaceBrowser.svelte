@@ -706,10 +706,22 @@
   }
 
   .project-row-shell:hover,
-  .project-row-shell:focus-within,
-  .project-row-shell.active {
+  .project-row-shell:focus-within {
     background: var(--interactive-state-bg);
     outline: none;
+  }
+
+  .project-row-shell.active {
+    background: var(--sidebar-selected);
+  }
+
+  .project-row-shell:hover:not(.active) .project-row,
+  .project-row-shell:focus-within:not(.active) .project-row {
+    color: var(--accent-foreground);
+  }
+
+  .project-row-shell.active .project-row {
+    color: var(--sidebar-selected-foreground);
   }
 
   .project-row-shell {
@@ -835,10 +847,14 @@
   }
 
   .workspace-conversation-row:hover,
-  .workspace-conversation-row:focus-visible,
-  .workspace-conversation-row.active {
+  .workspace-conversation-row:focus-visible {
     background: var(--interactive-state-bg);
     color: var(--accent-foreground);
+  }
+
+  .workspace-conversation-row.active {
+    background: var(--sidebar-selected);
+    color: var(--sidebar-selected-foreground);
   }
 
   .workspace-conversation-row:focus-visible {

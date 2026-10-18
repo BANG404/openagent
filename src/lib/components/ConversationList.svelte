@@ -583,8 +583,8 @@
   }
 
   .conv-item.active {
-    background: var(--interactive-state-bg);
-    color: var(--accent-foreground);
+    background: var(--sidebar-selected);
+    color: var(--sidebar-selected-foreground);
     font-weight: 500;
   }
 
@@ -705,8 +705,8 @@
   }
 
   .sub-conv-item.active {
-    background: var(--interactive-state-bg);
-    color: var(--accent-foreground);
+    background: var(--sidebar-selected);
+    color: var(--sidebar-selected-foreground);
     font-weight: 500;
   }
 

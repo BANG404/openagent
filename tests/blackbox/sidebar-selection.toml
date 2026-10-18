@@ -1,0 +1,80 @@
+[scenario]
+name = "sidebar selected colors are independent and Rhea retains its hover pair"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+action = "eval"
+script = '''(() => {
+  window.__assertSidebarSelection = async (sameAsHover = false) => {
+    await new Promise(resolve => setTimeout(resolve, 200));
+    const sidebar = document.querySelector('.desktop-shell-preview .sidebar');
+    if (!sidebar) throw new Error('Desktop sidebar missing');
+    const probe = document.createElement('div');
+    sidebar.append(probe);
+    const color = (value) => {probe.style.color = value;return getComputedStyle(probe).color;};
+    const background = color('var(--sidebar-selected)');
+    const foreground = color('var(--sidebar-selected-foreground)');
+    if (sameAsHover && (background !== color('var(--sidebar-accent)') || foreground !== color('var(--sidebar-accent-foreground)')))
+      throw new Error('Rhea or default selection diverged from hover');
+    const rows = sidebar.querySelectorAll('.project-row-shell.active, .conv-item.active, .sub-conv-item.active, .recent-row.active');
+    if (!rows.length) throw new Error('No selected rows');
+    for (const row of rows) {
+      if (getComputedStyle(row).backgroundColor !== background) throw new Error('Selected background mismatch: ' + row.className);
+      const label = row.querySelector('.project-row') ?? row;
+      if (getComputedStyle(label).color !== foreground) throw new Error('Selected foreground mismatch: ' + row.className);
+    }
+    probe.remove();
+    return true;
+  };
+  return window.__assertSidebarSelection();
+})()'''
+
+[[step]]
+action = "click"
+target = ".project-group:first-child .conv-item"
+
+[[step]]
+action = "wait"
+target = ".project-group:first-child .conv-item.active"
+
+[[step]]
+action = "eval"
+script = "window.__assertSidebarSelection()"
+
+[[step]]
+action = "click"
+target = ".project-group:first-child .sub-conv-item"
+
+[[step]]
+action = "wait"
+target = ".project-group:first-child .sub-conv-item.active"
+
+[[step]]
+action = "eval"
+script = "window.__assertSidebarSelection()"
+
+[[step]]
+action = "click"
+target = ".recent-row:not(.active)"
+
+[[step]]
+action = "wait"
+target = ".recent-row.active"
+
+[[step]]
+action = "eval"
+script = '''(async () => {
+  await window.__assertSidebarSelection();
+  const unselectedProject = document.querySelector('.project-row-shell:not(.active) .project-row');
+  unselectedProject.focus();
+  await new Promise(resolve => setTimeout(resolve, 200));
+  const shell = unselectedProject.closest('.project-row-shell');
+  if (!shell.matches(':focus-within')) throw new Error('Project focus missing');
+  const probe = document.createElement('div');
+  shell.append(probe);probe.style.backgroundColor = 'var(--sidebar-accent)';
+  if (getComputedStyle(shell).backgroundColor !== getComputedStyle(probe).backgroundColor)
+    throw new Error('Selected override leaked into project interaction fill');
+  probe.remove();unselectedProject.blur();
+  return true;
+})()'''
