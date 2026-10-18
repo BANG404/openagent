@@ -1,14 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import {
-  insertSoftLineBreak,
   parseBlocks,
   parseInline,
   protectedSpans,
-  removeLineMarker,
   serializeBlocks,
   serializeInline,
-  wordBoundaryAfter,
-  wordBoundaryBefore,
 } from "../src/lib/composerMarkdown";
 
 const references = new Map([["[Image #1]", "C:/screenshots/example.png"]]);
@@ -124,86 +120,15 @@ describe("composer markdown inline", () => {
   });
 });
 
-describe("composer markdown line edits", () => {
-  test("continues lists and quotes on a soft line break", () => {
-    expect(insertSoftLineBreak("- a", 3)).toEqual({ value: "- a\n- ", caret: 6 });
-    expect(insertSoftLineBreak("3) a", 4)).toEqual({ value: "3) a\n4) ", caret: 8 });
-    expect(insertSoftLineBreak("> q", 3)).toEqual({ value: "> q\n> ", caret: 6 });
-  });
-
-  test("drops an empty marker instead of carrying it forward", () => {
-    expect(insertSoftLineBreak("- ", 2)).toEqual({ value: "", caret: 0 });
-    expect(insertSoftLineBreak("> ", 2)).toEqual({ value: "", caret: 0 });
-  });
-
-  test("starts a fresh unchecked task item", () => {
-    expect(insertSoftLineBreak("- [x] done", 10)).toEqual({
-      value: "- [x] done\n- [ ] ",
-      caret: 17,
-    });
-  });
-
-  test("inserts a plain newline outside any marker", () => {
-    expect(insertSoftLineBreak("plain", 5)).toEqual({ value: "plain\n", caret: 6 });
-  });
-
-  test("keeps soft breaks outside inline formatting delimiters", () => {
-    expect(insertSoftLineBreak("撤**地方**", 7)).toEqual({
-      value: "撤**地方**\n",
-      caret: 8,
-    });
-    expect(insertSoftLineBreak("撤**地方**", 3, 5)).toEqual({
-      value: "撤\n",
-      caret: 2,
-    });
-  });
-
-  test("splits nested formatting into balanced spans and continues its list", () => {
-    expect(insertSoftLineBreak("- **ab**", 5)).toEqual({ value: "- **a**\n- **b**", caret: 12 });
-    expect(insertSoftLineBreak("**a *bc* d**", 6)).toEqual({
-      value: "**a *b***\n***c* d**",
-      caret: 13,
-    });
-  });
-
-  test("preserves indented tasks and nested quotes on the next line", () => {
-    expect(insertSoftLineBreak("  - [x] a", 9)).toEqual({
-      value: "  - [x] a\n  - [ ] ",
-      caret: 18,
-    });
-    expect(insertSoftLineBreak("> > q", 5)).toEqual({ value: "> > q\n> > ", caret: 10 });
-  });
-
-  test("treats fenced code literally and never continues its apparent list", () => {
-    const source = "```md\n- **text**\n```\n# title";
-    expect(parseBlocks(source).map((block) => block.kind)).toEqual([
-      "codeBlock",
-      "codeBlock",
-      "codeBlock",
-      "heading",
-    ]);
-    expect(parseBlocks(source)[1].inline[0].text).toBe("- **text**");
-    expect(insertSoftLineBreak("```\n- a", 7)).toEqual({ value: "```\n- a\n", caret: 8 });
-    expect(serializeBlocks(parseBlocks(source))).toBe(source);
-  });
-
-  test("never carries a heading marker onto the next line", () => {
-    expect(insertSoftLineBreak("## Title", 8)).toEqual({ value: "## Title\n", caret: 9 });
-    expect(insertSoftLineBreak("## ", 3)).toEqual({ value: "", caret: 0 });
-  });
-
-  test("clears a line marker on backspace at the content start", () => {
-    expect(removeLineMarker("- a", 2)).toEqual({ value: "a", caret: 0 });
-    expect(removeLineMarker("# T", 2)).toEqual({ value: "T", caret: 0 });
-    expect(removeLineMarker("> q", 2)).toEqual({ value: "q", caret: 0 });
-    expect(removeLineMarker("- a", 3)).toBeNull();
-    expect(removeLineMarker("plain", 2)).toBeNull();
-  });
-
-  test("finds word boundaries for keyboard deletion", () => {
-    expect(wordBoundaryBefore("hello world", 11)).toBe(6);
-    expect(wordBoundaryBefore("hello world", 5)).toBe(0);
-    expect(wordBoundaryAfter("hello world", 0)).toBe(5);
-    expect(wordBoundaryAfter("hello world", 6)).toBe(11);
-  });
+test("read-only fenced code stays literal and round-trips", () => {
+  const source = "```md\n- **text**\n```\n# title";
+  const blocks = parseBlocks(source);
+  expect(blocks.map((block) => block.kind)).toEqual([
+    "codeBlock",
+    "codeBlock",
+    "codeBlock",
+    "heading",
+  ]);
+  expect(blocks[1].inline[0].text).toBe("- **text**");
+  expect(serializeBlocks(blocks)).toBe(source);
 });

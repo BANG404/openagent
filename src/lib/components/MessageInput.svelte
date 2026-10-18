@@ -4,7 +4,6 @@
   import { createAttachmentController } from "$lib/composer/attachments.svelte";
   import { onMount, tick, type Snippet } from "svelte";
   import { createEditorController } from "$lib/composer/editor.svelte";
-  import { getMarkdownSelection } from "$lib/composerDom";
   import type {
     ApprovalMode,
     ChatAttachment,
@@ -221,6 +220,9 @@
     get disabled() {
       return disabled;
     },
+    get placeholder() {
+      return placeholder;
+    },
     get focusRequest() {
       return focusRequest;
     },
@@ -228,6 +230,7 @@
       return paletteController;
     },
     runPrimaryAction,
+    handlePaste: (event) => void attachmentController.handlePaste(event),
   });
 
   const attachmentController = createAttachmentController({
@@ -266,11 +269,12 @@
       return tauriAvailable && !onUploadAttachments;
     },
     insertPastedText: editorController.insertPastedText,
+    focusEnd: editorController.focusEnd,
   });
 
   const paletteController = createPaletteController({
     get value() {
-      return value;
+      return editorController.paletteText;
     },
     get editorEl() {
       return editorController.editorEl;
@@ -290,6 +294,7 @@
     tauriAvailable,
     client: desktopOpenAgent,
     commit: editorController.commit,
+    textSelection: editorController.textSelection,
     syncPaletteAvailableHeight,
     refocusEditor: editorController.refocusEditor,
   });
@@ -341,7 +346,7 @@
     window.visualViewport?.addEventListener("scroll", syncOpenPalette);
     // `select` does not fire on a contenteditable, so track caret moves centrally.
     const handleSelectionChange = () => {
-      if (editorController.editorEl && getMarkdownSelection(editorController.editorEl))
+      if (editorController.editorEl?.contains(window.getSelection()?.anchorNode ?? null))
         paletteController.syncPaletteFromCaret();
     };
     document.addEventListener("selectionchange", handleSelectionChange);
@@ -411,34 +416,28 @@
       </div>
     {/if}
     <div class="composer-input-stack">
-      <!-- Markers are hidden: this editor is a projection of the markdown model. -->
       <div
-        class="input input-editor composer-md"
-        class:input-editor-empty={value.length === 0 && !editorController.composing}
-        role="textbox"
-        aria-multiline="true"
-        aria-label={placeholder}
-        contenteditable={disabled ? "false" : "true"}
-        tabindex="0"
-        spellcheck="false"
-        bind:this={editorController.editorEl}
-        onkeydown={editorController.handleKeydown}
-        onbeforeinput={editorController.handleBeforeInput}
-        oninput={editorController.handleInput}
-        onpaste={attachmentController.handlePaste}
-        oncut={editorController.handleCut}
-        oncopy={editorController.handleCopy}
-        ondrop={editorController.handleDrop}
-        ondragover={editorController.handleDragOver}
-        oncompositionstart={editorController.handleCompositionStart}
-        oncompositionend={editorController.handleCompositionEnd}
-        onblur={() => {
-          editorController.rememberSelection();
-          // Defer so the mousedown on a palette row still fires.
-          setTimeout(() => paletteController.closePalette(), 100);
-        }}
+        class="input-editor-host"
+        class:input-editor-empty={editorController.ready &&
+          editorController.isEmpty &&
+          !editorController.composing}
+        bind:this={editorController.mountEl}
         data-placeholder={placeholder}
-      ></div>
+      >
+        {#if !editorController.ready}
+          {#if editorController.loadFailed}
+            <button
+              class="input composer-editor-retry"
+              type="button"
+              onclick={editorController.retry}
+            >
+              {$t("mdEditorLoadFailed")} · {$t("retry")}
+            </button>
+          {:else}
+            <div class="input" role="status" aria-busy="true">{$t("loadingContent")}</div>
+          {/if}
+        {/if}
+      </div>
     </div>
     {#if showFormatting || showAttachments || showModelSelector || showReasoningEffort || showApprovalMode || showWorkspaceSwitcher || toolbarContent}
       <div class="composer-toolbar">
@@ -477,6 +476,7 @@
                   class="format-btn"
                   type="button"
                   aria-label={$t("mdEditorBold")}
+                  aria-pressed={editorController.isActive("**")}
                   {...props}
                   {disabled}
                   onclick={() => editorController.applyFormat({ prefix: "**" })}
@@ -491,6 +491,7 @@
                   class="format-btn"
                   type="button"
                   aria-label={$t("mdEditorItalic")}
+                  aria-pressed={editorController.isActive("*")}
                   {...props}
                   {disabled}
                   onclick={() => editorController.applyFormat({ prefix: "*" })}
@@ -505,6 +506,7 @@
                   class="format-btn"
                   type="button"
                   aria-label={$t("mdEditorStrikethrough")}
+                  aria-pressed={editorController.isActive("~~")}
                   {...props}
                   {disabled}
                   onclick={() => editorController.applyFormat({ prefix: "~~" })}
@@ -519,6 +521,7 @@
                   class="format-btn format-code-btn"
                   type="button"
                   aria-label={$t("mdEditorInlineCode")}
+                  aria-pressed={editorController.isActive("`")}
                   {...props}
                   {disabled}
                   onclick={() => editorController.applyFormat({ prefix: "`" })}
@@ -758,7 +761,7 @@
 
   /* Keep wrapped placeholder text clear of the send control in narrow panes. */
   @container (max-width: 280px) {
-    .composer .input {
+    .composer :global(.input) {
       min-height: var(--composer-input-narrow-min-height) !important;
     }
 
@@ -811,7 +814,7 @@
     mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 0);
   }
 
-  .composer-compact .input {
+  .composer-compact :global(.input) {
     min-height: 54px;
     padding-bottom: 12px;
     padding-right: 54px;
@@ -838,7 +841,7 @@
     z-index: 50;
   }
 
-  .input {
+  .input-editor-host :global(.input) {
     display: block;
     width: 100%;
     box-sizing: border-box;
@@ -858,7 +861,7 @@
     overflow-y: auto;
   }
 
-  .input-editor {
+  .input-editor-host :global(.input-editor) {
     position: relative;
     z-index: 1;
     caret-color: var(--foreground);
@@ -866,17 +869,24 @@
     overflow-wrap: anywhere;
   }
 
-  .input-editor.input-editor-empty::before {
+  .input-editor-host {
+    position: relative;
+  }
+
+  .input-editor-host.input-editor-empty::before {
+    position: absolute;
+    padding: var(--composer-input-padding);
+    line-height: 1.47;
     color: var(--muted-foreground);
     content: attr(data-placeholder);
     pointer-events: none;
   }
 
-  .input:focus {
+  .input-editor-host :global(.input:focus) {
     border-color: transparent;
   }
 
-  .input:disabled {
+  .input-editor-host :global(.input:disabled) {
     opacity: 1;
   }
 
@@ -940,6 +950,11 @@
   .format-toggle-active,
   .format-btn:hover:not(:disabled) {
     background: var(--interactive-state-bg);
+    color: var(--accent-foreground);
+  }
+
+  .format-btn[aria-pressed="true"] {
+    background: var(--accent);
     color: var(--accent-foreground);
   }
 

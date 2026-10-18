@@ -9,7 +9,7 @@ action = "eval"
 script = '''(() => {
   const editor = document.querySelector('.quick-chat [contenteditable=true]');
   editor.focus();
-  editor.dispatchEvent(new InputEvent('beforeinput', {inputType:'insertText', data:window.__quickChatSubmissionText, bubbles:true, cancelable:true}));
+  (() => { document.dispatchEvent(new Event('selectionchange')); const clipboard = new DataTransfer(); clipboard.setData('text/plain', ({inputType:'insertText', data:window.__quickChatSubmissionText, bubbles:true, cancelable:true}).data); editor.dispatchEvent(new ClipboardEvent('paste', {clipboardData:clipboard,bubbles:true,cancelable:true})); })();
   return true;
 })()'''
 

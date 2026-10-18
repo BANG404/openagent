@@ -8,7 +8,7 @@ name = "submit through the native composer"
 action = "eval"
 script = '''(async()=>{
   const e=document.querySelector('[contenteditable=true][role=textbox]');
-  e.focus();e.dispatchEvent(new InputEvent('beforeinput',{bubbles:true,cancelable:true,inputType:'insertText',data:window.__sidebarActivationInput}));
+  e.focus();(() => { document.dispatchEvent(new Event('selectionchange')); const clipboard = new DataTransfer(); clipboard.setData('text/plain', ({bubbles:true,cancelable:true,inputType:'insertText',data:window.__sidebarActivationInput}).data); e.dispatchEvent(new ClipboardEvent('paste', {clipboardData:clipboard,bubbles:true,cancelable:true})); })();
   await new Promise(r=>setTimeout(r,100));
   const send=document.querySelector('.send-btn');
   if(!e.textContent.includes(window.__sidebarActivationInput)||send.disabled)throw new Error('input did not reach composer');

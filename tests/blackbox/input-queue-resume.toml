@@ -9,7 +9,7 @@ action = "eval"
 script = '''(async()=>{
   const {en}=await import('/src/lib/i18n.en.ts');const {zh}=await import('/src/lib/i18n.zh.ts');const tr=key=>(JSON.parse(sessionStorage.getItem('input-queue-fixture')).language==='en'?en:zh)[key];
   if(document.querySelectorAll('.chat-queue [data-queue-id]').length!==2||!document.querySelector('.queue-notice'))throw new Error('reloaded queue lost its paused inputs');
-  const e=document.querySelector('[contenteditable=true][role=textbox]');e.focus();const range=document.createRange();range.selectNodeContents(e);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);e.dispatchEvent(new InputEvent('beforeinput',{bubbles:true,cancelable:true,inputType:'insertText',data:'unsent-draining-draft'}));
+  const e=document.querySelector('[contenteditable=true][role=textbox]');e.focus();const range=document.createRange();range.selectNodeContents(e);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);(() => { document.dispatchEvent(new Event('selectionchange')); const clipboard = new DataTransfer(); clipboard.setData('text/plain', ({bubbles:true,cancelable:true,inputType:'insertText',data:'unsent-draining-draft'}).data); e.dispatchEvent(new ClipboardEvent('paste', {clipboardData:clipboard,bubbles:true,cancelable:true})); })();
   await new Promise(r=>requestAnimationFrame(r));
   [...document.querySelectorAll('.queue-header button')].find(b=>b.textContent===tr('resumeQueue')).click();
   const end=Date.now()+25000;

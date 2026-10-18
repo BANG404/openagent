@@ -5,6 +5,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { captureBlackboxScreenshot } from "./blackbox-screenshot.mjs";
 
 const artifacts = mkdtempSync(join(tmpdir(), "openagent-composer-editor-"));
 const scenario = fileURLToPath(new URL("../tests/blackbox/composer-editor.toml", import.meta.url));
@@ -37,7 +38,7 @@ try {
       pilot(["wait", ".command-palette-preview-stage [contenteditable=true]"]);
       pilot(["snapshot", "-i"]);
       pilot(["run", scenario]);
-      pilot(["screenshot", join(artifacts, `${theme}-${locale}.png`)]);
+      captureBlackboxScreenshot(pilot, join(artifacts, `${theme}-${locale}.png`));
     }
   }
   pilot(["logs", "--level", "error"]);

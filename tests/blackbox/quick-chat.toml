@@ -32,16 +32,16 @@ action = "eval"
 script = '''(async () => {
   const editor = document.querySelector('.quick-chat [contenteditable="true"]');
   if (document.activeElement !== editor) throw new Error('clicking the editor after the toolbar did not recover focus');
-  editor.dispatchEvent(new InputEvent('beforeinput', {inputType: 'insertText', data: '**focus recovered**', bubbles: true, cancelable: true}));
+  (() => { document.dispatchEvent(new Event('selectionchange')); const clipboard = new DataTransfer(); clipboard.setData('text/plain', ({inputType: 'insertText', data: '**focus recovered**', bubbles: true, cancelable: true}).data); editor.dispatchEvent(new ClipboardEvent('paste', {clipboardData:clipboard,bubbles:true,cancelable:true})); })();
   await new Promise(resolve => setTimeout(resolve, 100));
-  const text = editor.querySelector('strong span');
+  const text = editor.querySelector('strong');
   if (!text || !editor.textContent.includes('focus recovered')) throw new Error('focused editor did not accept typing');
   const down = new PointerEvent('pointerdown', {button: 0, pointerType: 'mouse', bubbles: true, cancelable: true});
   text.dispatchEvent(down);
   if (down.defaultPrevented) throw new Error('nested formatted text was consumed by native window dragging');
   const range = document.createRange(); range.selectNodeContents(editor);
   const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
-  editor.dispatchEvent(new InputEvent('beforeinput', {inputType: 'deleteContentBackward', bubbles: true, cancelable: true}));
+  document.execCommand('delete');
   return true;
 })()'''
 
@@ -74,9 +74,11 @@ script = '''(async () => {
   };
   const fill = async text => {
     editor.focus();
-    const range = document.createRange(); range.selectNodeContents(editor);
-    const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
-    editor.dispatchEvent(new InputEvent('beforeinput', {inputType: text ? 'insertText' : 'deleteContentBackward', data: text || null, bubbles: true, cancelable: true}));
+    editor.dispatchEvent(new KeyboardEvent('keydown', {key:'a',ctrlKey:true,bubbles:true,cancelable:true}));
+    if (text) {
+      const clipboard = new DataTransfer(); clipboard.setData('text/plain', text);
+      editor.dispatchEvent(new ClipboardEvent('paste', {clipboardData:clipboard,bubbles:true,cancelable:true}));
+    } else document.execCommand('delete');
     await settle();
   };
   check();
@@ -159,11 +161,11 @@ action = "eval"
 script = '''(async () => {
   const editor = document.querySelector('.quick-chat [contenteditable="true"]');
   if (document.activeElement !== editor) throw new Error('model menu prevented editor focus recovery');
-  editor.dispatchEvent(new InputEvent('beforeinput', {inputType: 'insertText', data: 'selector recovery', bubbles: true, cancelable: true}));
+  (() => { document.dispatchEvent(new Event('selectionchange')); const clipboard = new DataTransfer(); clipboard.setData('text/plain', ({inputType: 'insertText', data: 'selector recovery', bubbles: true, cancelable: true}).data); editor.dispatchEvent(new ClipboardEvent('paste', {clipboardData:clipboard,bubbles:true,cancelable:true})); })();
   await new Promise(resolve => setTimeout(resolve, 100));
   if (!editor.textContent.includes('selector recovery')) throw new Error('editor did not accept typing after model selection');
   const range = document.createRange(); range.selectNodeContents(editor);
   const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
-  editor.dispatchEvent(new InputEvent('beforeinput', {inputType: 'deleteContentBackward', bubbles: true, cancelable: true}));
+  document.execCommand('delete');
   return true;
 })()'''

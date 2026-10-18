@@ -33,41 +33,12 @@ describe("stream pause control", () => {
       new URL("../src/lib/components/MessageInput.svelte", import.meta.url),
     ).text();
 
-    expect(source).toMatch(/<div\s+class="input input-editor composer-md"/);
-    expect(source).toContain('contenteditable={disabled ? "false" : "true"}');
+    expect(source).toContain('class="input-editor-host"');
     // No JS height measurement survives; the CSS clamp owns the editor size.
     expect(source).not.toContain("resizeTextarea");
     expect(source).not.toContain("scrollHeight");
     expect(source).toMatch(
-      /\n {2}\.input \{[^}]*min-height: var\(--composer-input-min-height\);[^}]*max-height: 200px;[^}]*overflow-y: auto;/s,
-    );
-  });
-
-  test("gates re-projection behind IME composition", async () => {
-    const [source, editor] = await Promise.all([
-      Bun.file(new URL("../src/lib/components/MessageInput.svelte", import.meta.url)).text(),
-      Bun.file(new URL("../src/lib/composer/editor.svelte.ts", import.meta.url)).text(),
-    ]);
-
-    expect(editor).toMatch(
-      /if \(!editorEl \|\| composing \|\| nextValue === lastProjected\) return;/,
-    );
-    expect(source).toContain("oncompositionstart={editorController.handleCompositionStart}");
-    expect(source).toContain("oncompositionend={editorController.handleCompositionEnd}");
-    expect(editor).toMatch(/if \(composing \|\| event\.isComposing\) return;/);
-  });
-
-  test("replaces a selected range on backward deletion and hides the placeholder during IME", async () => {
-    const [source, editor] = await Promise.all([
-      Bun.file(new URL("../src/lib/components/MessageInput.svelte", import.meta.url)).text(),
-      Bun.file(new URL("../src/lib/composer/editor.svelte.ts", import.meta.url)).text(),
-    ]);
-
-    expect(editor).toMatch(
-      /case "deleteContentBackward":\s+if \(start !== end\) \{\s+replay\(start, end, ""\);/s,
-    );
-    expect(source).toContain(
-      "class:input-editor-empty={value.length === 0 && !editorController.composing}",
+      /\n {2}\.input-editor-host :global\(\.input\) \{[^}]*min-height: var\(--composer-input-min-height\);[^}]*max-height: 200px;[^}]*overflow-y: auto;/s,
     );
   });
 });

@@ -5,7 +5,6 @@ import { t } from "$lib/i18n";
 import { showToast } from "$lib/toast";
 import type { ChatAttachment } from "$lib/types";
 import type { OpenAgentClient } from "$lib/openagent/client";
-import { setMarkdownSelection } from "$lib/composerDom";
 import { attachmentNameSupported, selectableAttachmentExtensions } from "$lib/attachmentPolicy";
 import {
   attachmentsReferencedByText,
@@ -25,6 +24,7 @@ interface AttachmentOptions {
   readonly onUploadAttachments?: (files: File[]) => Promise<ChatAttachment[]>;
   readonly onAttachmentPickerOpenChange?: (open: boolean) => void | Promise<void>;
   insertPastedText(event: ClipboardEvent): void;
+  focusEnd(): void;
 }
 
 /** Own file selection, uploads, and synchronization with canonical Markdown. */
@@ -75,11 +75,8 @@ export function createAttachmentController(options: AttachmentOptions) {
     const synchronized = synchronizeAttachmentReferences(options.value, nextAttachments);
     options.attachments = synchronized.attachments;
     options.value = synchronized.value;
-    const limit = synchronized.value.length;
     void tick().then(() => {
-      if (!options.editorEl) return;
-      options.editorEl.focus();
-      setMarkdownSelection(options.editorEl, limit);
+      options.focusEnd();
     });
   }
 
@@ -201,8 +198,8 @@ export function createAttachmentController(options: AttachmentOptions) {
       options.insertPastedText(event);
       return;
     }
-    if (!options.showAttachments) return;
     event.preventDefault();
+    if (!options.showAttachments) return;
     if (options.disabled) return;
 
     if (!options.tauriAvailable) {

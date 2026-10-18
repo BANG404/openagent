@@ -207,6 +207,7 @@
     },
   ]);
   let commandValue = $state("");
+  let commandSubmitted = $state("");
   let commandAttachments = $state<ChatAttachment[]>([]);
   let suggestionValue = $state("");
   let selectedSuggestion = $state("");
@@ -1346,7 +1347,7 @@
       placeholder={$t("inputPlaceholder")}
       disabled={false}
       isStreaming={false}
-      sendDisabled={true}
+      sendDisabled={!commandValue.trim()}
       sendTitle={$t("send")}
       {slashCommands}
       loadMentionItems={async (query) => previewMentionItems(query, locale)}
@@ -1354,9 +1355,13 @@
       showAttachments={false}
       showModelSelector={false}
       showStopButton={false}
-      onSend={() => {}}
+      onSend={() => {
+        commandSubmitted = commandValue;
+        commandValue = "";
+      }}
       onStop={() => {}}
     />
+    <output data-composer-submitted hidden>{commandSubmitted}</output>
   </main>
 {:else if preview === "reasoning-effort"}
   <main class="reasoning-effort-preview-stage">

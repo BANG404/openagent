@@ -14,7 +14,7 @@ script = '''(async () => {
   const editor = document.querySelector('[contenteditable=true][role=textbox]');
   if (!editor) throw new Error('composer is missing');
   editor.focus();
-  editor.dispatchEvent(new InputEvent('beforeinput', {bubbles:true, cancelable:true, inputType:'insertText', data:'/goal Native approval ' + window.__goalApprovalProbe.marker}));
+  (() => { document.dispatchEvent(new Event('selectionchange')); const clipboard = new DataTransfer(); clipboard.setData('text/plain', ({bubbles:true, cancelable:true, inputType:'insertText', data:'/goal Native approval ' + window.__goalApprovalProbe.marker}).data); editor.dispatchEvent(new ClipboardEvent('paste', {clipboardData:clipboard,bubbles:true,cancelable:true})); })();
   await new Promise(resolve => setTimeout(resolve, 100));
   document.querySelector('.send-btn')?.click();
   const deadline = Date.now() + 15000;
@@ -47,7 +47,7 @@ action = "eval"
 script = '''(async () => {
   const editor = document.querySelector('[contenteditable=true][role=textbox]');
   editor.focus();
-  editor.dispatchEvent(new InputEvent('beforeinput', {bubbles:true, cancelable:true, inputType:'insertText', data:'/goal:cancel'}));
+  (() => { document.dispatchEvent(new Event('selectionchange')); const clipboard = new DataTransfer(); clipboard.setData('text/plain', ({bubbles:true, cancelable:true, inputType:'insertText', data:'/goal:cancel'}).data); editor.dispatchEvent(new ClipboardEvent('paste', {clipboardData:clipboard,bubbles:true,cancelable:true})); })();
   await new Promise(resolve => setTimeout(resolve, 100));
   document.querySelector('.send-btn')?.click();
   await new Promise(resolve => setTimeout(resolve, 1200));
@@ -65,7 +65,7 @@ script = '''(async () => {
   await new Promise(resolve => setTimeout(resolve, 200));
   const editor = document.querySelector('[contenteditable=true][role=textbox]');
   editor.focus();
-  editor.dispatchEvent(new InputEvent('beforeinput', {bubbles:true, cancelable:true, inputType:'insertText', data:'/goal Stop the active Goal ' + window.__goalApprovalProbe.marker}));
+  (() => { document.dispatchEvent(new Event('selectionchange')); const clipboard = new DataTransfer(); clipboard.setData('text/plain', ({bubbles:true, cancelable:true, inputType:'insertText', data:'/goal Stop the active Goal ' + window.__goalApprovalProbe.marker}).data); editor.dispatchEvent(new ClipboardEvent('paste', {clipboardData:clipboard,bubbles:true,cancelable:true})); })();
   await new Promise(resolve => setTimeout(resolve, 100));
   document.querySelector('.send-btn')?.click();
   const started = Date.now() + 5000;

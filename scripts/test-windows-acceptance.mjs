@@ -447,7 +447,7 @@ fs.writeFileSync('acceptance-tool-success.txt', 'sandbox and bundled tools verif
     // Send via the real composer, whose normal handler uses the shared SDK.
     pilot(["snapshot", "-i"]);
     evaluate(
-      "(()=>{const e=document.querySelector('[contenteditable=true][role=textbox]'); e.focus(); e.dispatchEvent(new InputEvent('beforeinput',{bubbles:true,cancelable:true,inputType:'insertText',data:'Verify the installed application.'})); return true;})()",
+      "(()=>{const e=document.querySelector('[contenteditable=true][role=textbox]'); e.focus(); (() => { document.dispatchEvent(new Event('selectionchange')); const clipboard = new DataTransfer(); clipboard.setData('text/plain', ({bubbles:true,cancelable:true,inputType:'insertText',data:'Verify the installed application.'}).data); e.dispatchEvent(new ClipboardEvent('paste', {clipboardData:clipboard,bubbles:true,cancelable:true})); })(); return true;})()",
     );
     await until(
       () => evaluate("!document.querySelector('button.send-btn').disabled"),

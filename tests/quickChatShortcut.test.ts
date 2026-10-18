@@ -26,9 +26,7 @@ describe("quick chat shortcut", () => {
     expect(surfaceSource).toMatch(
       /if \(focused\) \{\s+focusArmed = true;\s+inputFocusRequest \+= 1;/,
     );
-    expect(inputSource).toContain(
-      "if (options.focusRequest > 0) void focusInputAfterWindowActivation(options.focusRequest);",
-    );
+    expect(inputSource).toContain("if (options.focusRequest === request) void refocusEditor();");
   });
 
   test("records from the window instead of relying on button focus", async () => {

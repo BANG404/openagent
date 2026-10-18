@@ -209,65 +209,50 @@ preview query routing and book-open actions load the same checked components.
 - Keep the localized shared-composer placeholder concise while advertising the
   Enter and Shift+Enter keyboard behavior plus the `/` command and `@` mention
   palette triggers.
-- The composer's Markdown string is the single source of truth and the
-  contenteditable editor (`src/lib/components/MessageInput.svelte` +
-  `src/lib/composerMarkdown.ts` + `src/lib/composerDom.ts`) is only its
-  projection over that string. Render formatting with the markup markers
-  hidden, map DOM selection back to Markdown offsets for the palette,
-  formatting, and attachment-reference synchronization, and never re-render
-  during IME composition. Rebuild the projection from the model for every edit
-  instead of trusting the browser's DOM mutation, so `/command`, `@"path"`, and
-  `[Image #N]` survive byte-for-byte.
-- Compose the shared input with `src/lib/composer/attachments.svelte.ts` and
-  `palette.svelte.ts`: attachments own selection/upload and reference cleanup;
-  the palette owns catalogs, trigger replacement, and request-generation guards.
-  Both read the same canonical Markdown through typed getters and use its setter
-  or editor commit action. Keep IME, DOM projection, selection, and undo together
-  in `editor.svelte.ts`. It receives the canonical value through a writable
-  dependency and exposes the editor element through a getter and setter for
-  `bind:this`. Shared command types live in `composer/types.ts`.
-  An explicit `onUploadAttachments` capability selects browser file input and
-  upload even inside a native WebView, so the active remote transport keeps
-  ownership of attachment storage.
-  Run `bun run test:blackbox:composer-editor` against the isolated native debug
-  window for selection, undo/redo, formatting, clipboard, and IME commits in
-  both themes and locales; run `test:blackbox:slash-command-matching` for
-  palette matching and keyboard selection.
-- Keep the shared composer text-formatting group backed by Markdown so the
-  existing plain-text message contract remains unchanged. The group exposes
-  bold, italic, strikethrough, and inline-code actions, keeps the wrapped
-  Markdown range selected after each action, and supports the matching
-  `Ctrl`/`Cmd` shortcuts. Formatting stays available in compact composer
-  variants unless a caller explicitly sets `showFormatting={false}`.
-- Never let the browser edit the projected DOM directly. Handle `beforeinput`,
-  `paste`, `cut`, and `drop`, cancel the native edit, and replay it as a
-  Markdown splice; keep a Markdown-level undo/redo stack with `Ctrl`/`Cmd+Z`
-  and `Ctrl`/`Cmd+Shift+Z` (native undo cannot survive re-projection). Paste
-  takes `text/plain` only, so rich clipboard HTML cannot desynchronize the
-  model.
-- Editing operations live in `composerEditing.ts`: delete visible graphemes
-  (including complete emoji sequences), skip hidden delimiters, and delete chips
-  atomically. Range replacement prunes only formatting emptied or crossed by
-  that edit; never run global empty-marker cleanup on typed or pasted source.
-  Copy/cut produce self-contained Markdown fragments. Shift+Enter replaces the
-  selected text, balances split inline spans, and continues indented lists/tasks
-  or nested quotes. Fenced code stays literal, including apparent list markers.
-- DOM bookmarks preserve exact source positions that share a hidden-marker
-  boundary. Nested spans map beside their own element. Toolbar pointer actions
-  preserve the editor selection, and keyboard actions reuse its saved range.
-  History stores both selection endpoints and resets on externally replaced
-  drafts. IME captures the initial value and full replacement range, commits
-  once, and restores the projection even when canceled; an external draft
-  replacement wins over an old composition. Disabled controls accept no edits.
-  Extend `tests/blackbox/composer-editor.toml` for these edit invariants and run
-  its native runner in all light/dark and English/Chinese combinations.
-  Formatting toggles recognize both visible-content selections and select-all
-  ranges that include the complete source delimiters of one inline span.
-  Multiline formatting wraps each nonempty line independently while preserving
-  block markers, surrounding whitespace, blank lines, and literal fenced code.
-- Support only closed, non-empty markup pairs. A half-typed marker such as
-  `**bo` stays literal until its closing delimiter is typed, so the text does
-  not jitter mid-keystroke.
+- The shared composer uses Tiptap 3 (`@tiptap/core`, StarterKit and the official
+  Markdown extension). `composer/editor.svelte.ts` owns the live ProseMirror
+  document, selection, input rules, IME and undo. Publish Markdown to the existing
+  writable value boundary; never feed each published value back through
+  `setContent`. Only external draft replacement imports Markdown and resets
+  editor history. Load the editor engine on mount with a stable loading surface
+  and localized retry on failure; discard late loads after unmount. Destroy the
+  editor on unmount. Transcript rendering remains
+  the read-only `composerMarkdown.ts` / `composerDom.ts` projection.
+- `composer/tiptap.ts` owns the enabled schema, literal-HTML import, protocol
+  token serialization and suggestion text-position mapping. Preserve `/command`
+  identifiers, quoted mentions and attachment labels byte-for-byte rather than
+  letting Markdown escaping rewrite Runtime input. Completed mentions/references
+  are atomic nodes; unfinished mention queries remain editable text. Do not
+  tokenize inline or fenced code. Raw HTML stays visible literal text.
+- `composer/attachments.svelte.ts` owns upload, selection and reference cleanup;
+  `palette.svelte.ts` owns catalogs, filtering and request-generation guards.
+  Suggestions operate on visible text offsets mapped to ProseMirror positions,
+  not Markdown source offsets. Apply suggestion replacements as one document
+  transaction, preserving surrounding formatting and undo. File attachments
+  focus the document end through the editor controller. Explicit
+  `onUploadAttachments` selects the active browser/remote upload transport even
+  inside a native WebView.
+- The existing toolbar uses Tiptap mark commands for bold, italic, strike and
+  inline code, reports active marks through `aria-pressed`, and preserves
+  selection on pointer actions. An empty selection changes the pending typing
+  format without inserting placeholder text. Tiptap input rules hide completed
+  Markdown syntax; spaces inside active marks must not expose raw delimiters or
+  rebuild the DOM. The Markdown serializer moves boundary whitespace outside
+  delimiters without changing the live mark or caret.
+- Enter submits or selects an open suggestion; Shift+Enter inserts a line break,
+  continues lists/tasks/quotes and stays literal in code blocks. ProseMirror owns
+  native editing, clipboard cuts, selection, drop and undo/redo. Clipboard text
+  imports Markdown explicitly; clipboard HTML is ignored. During IME, defer
+  Markdown publication and external replacement until composition finishes;
+  an externally replaced draft wins. Disabled inputs cannot edit or submit.
+- Run `bun run test:blackbox:composer-editor` in an isolated native debug window
+  for whitespace stability, toolbar selection, clipboard, history, list/code
+  handling, IME and draft replacement in both themes/locales. Run
+  `test:blackbox:composer-palette` and `test:blackbox:slash-command-matching` for
+  filtering, placement and keyboard selection. Black-box input must use native
+  DOM edits or clipboard events; synthetic `beforeinput` alone does not edit a
+  ProseMirror document. `tests/composerTiptap.test.ts` covers Markdown/protocol
+  round trips and position mapping without depending on editor DOM internals.
 - Keep the shared composer send, queue, and stop actions at a stable 30px square
   geometry with an 8px corner radius so the primary actions read as compact
   rounded-square controls across streaming and idle states.

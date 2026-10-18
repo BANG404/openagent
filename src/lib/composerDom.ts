@@ -1,39 +1,15 @@
 import type { BlockNode, InlineNode } from "./composerMarkdown";
 
 /**
- * Projects `composerMarkdown` blocks into a contenteditable view and maps DOM
- * carets back to markdown offsets.
+ * Projects read-only `composerMarkdown` blocks into authored transcript DOM.
  *
- * Markup markers are not rendered; every innermost rendered element carries the
- * markdown offsets of the text it shows, so a caret inside it maps to
- * `srcContentStart + renderedOffset`. Chips are atomic (`contenteditable=false`).
+ * Markup markers are hidden and token spans are display-only.
  */
 
 const SRC_START = "srcStart";
 const SRC_END = "srcEnd";
 const SRC_CONTENT_START = "srcContentStart";
 const SRC_CONTENT_END = "srcContentEnd";
-
-export interface Point {
-  node: Node;
-  offset: number;
-}
-
-// Several hidden source positions share one DOM boundary. Retain the precise
-// source selection until the user actually moves the DOM selection.
-const bookmarks = new WeakMap<
-  HTMLElement,
-  { start: number; end: number; from: Point; to: Point }
->();
-
-interface Leaf {
-  el: HTMLElement;
-  chip: boolean;
-  start: number;
-  end: number;
-  contentStart: number;
-  contentEnd: number;
-}
 
 function applySrc(element: HTMLElement, node: InlineNode): void {
   element.dataset[SRC_START] = String(node.start);
@@ -55,7 +31,18 @@ export function renderInlineNodes(parent: Node, nodes: InlineNode[]): void {
       if (!node.text) continue;
       const span = document.createElement("span");
       applySrc(span, node);
-      span.textContent = node.text;
+      const literal =
+        parent instanceof HTMLElement && parent.closest("code, [data-block-kind=codeBlock]");
+      // Decode Markdown exports only in text; code and protocol tokens stay literal.
+      span.textContent = literal
+        ? node.text
+        : node.text
+            .replace(/\\([\\`*_[\]~])/gu, "$1")
+            .replace(/&(?:#[0-9]+|#x[0-9a-f]+|[a-z]+);/giu, (entity) => {
+              const decoder = document.createElement("textarea");
+              decoder.innerHTML = entity;
+              return decoder.value;
+            });
       parent.appendChild(span);
       continue;
     }
@@ -121,183 +108,4 @@ export function renderBlocks(root: HTMLElement, blocks: BlockNode[]): void {
   const fragment = document.createDocumentFragment();
   for (const block of blocks) fragment.appendChild(renderBlock(block));
   root.replaceChildren(fragment);
-}
-
-/** Empty projection, so an editor with no markdown shows only its placeholder. */
-export function clearBlocks(root: HTMLElement): void {
-  root.replaceChildren();
-}
-
-/** Innermost elements that carry rendered text, in document order. Decorations
- * such as list glyphs hold a source range but are not text leaves. */
-function collectLeaves(scope: Node): HTMLElement[] {
-  const leaves: HTMLElement[] = [];
-  const walker = document.createTreeWalker(scope, NodeFilter.SHOW_ELEMENT);
-  let node = walker.nextNode() as HTMLElement | null;
-  while (node) {
-    if (
-      node.dataset[SRC_CONTENT_START] !== undefined &&
-      !node.querySelector(`[data-src-content-start]`)
-    ) {
-      leaves.push(node);
-    }
-    node = walker.nextNode() as HTMLElement | null;
-  }
-  return leaves;
-}
-
-function toLeaf(element: HTMLElement): Leaf {
-  return {
-    el: element,
-    chip: element.classList.contains("composer-chip"),
-    start: Number(element.dataset[SRC_START]),
-    end: Number(element.dataset[SRC_END]),
-    contentStart: Number(element.dataset[SRC_CONTENT_START]),
-    contentEnd: Number(element.dataset[SRC_CONTENT_END]),
-  };
-}
-
-function boundary(el: Node, after: boolean): Point {
-  const parent = el.parentNode;
-  if (!parent) return { node: el, offset: 0 };
-  const index = Array.prototype.indexOf.call(parent.childNodes, el as ChildNode);
-  return { node: parent, offset: after ? index + 1 : index };
-}
-
-/** Markdown offset for a DOM point inside `root`. */
-export function markdownOffset(root: HTMLElement, node: Node, offset: number): number {
-  if (node.nodeType === Node.TEXT_NODE) {
-    const parent = (node as Text).parentElement;
-    if (parent && parent.dataset[SRC_CONTENT_START] !== undefined) {
-      const start = Number(parent.dataset[SRC_CONTENT_START]);
-      const end = Number(parent.dataset[SRC_CONTENT_END]);
-      return Math.min(end, Math.max(start, start + offset));
-    }
-    return blockStartFor(parent ?? root);
-  }
-  if (node.nodeType === Node.ELEMENT_NODE) {
-    const element = node as HTMLElement;
-    const children = Array.from(element.childNodes);
-    const next = children[offset] as HTMLElement | undefined;
-    const previous = children[offset - 1] as HTMLElement | undefined;
-    const scope = next ?? previous;
-    if (scope instanceof HTMLElement) {
-      const edge = sourceEdge(scope, Boolean(next));
-      if (edge !== null) return edge;
-    }
-    if (element.dataset[SRC_CONTENT_START] !== undefined) {
-      return Number(element.dataset[offset === 0 ? SRC_CONTENT_START : SRC_CONTENT_END]);
-    }
-    const block = element.closest<HTMLElement>("[data-block-start]");
-    // Nothing mapped in reach: an empty line projects only a `<br>`, so its one
-    // caret position is the end of the block's source text.
-    if (block) return Number(block.dataset.blockEnd ?? block.dataset.blockStart);
-  }
-  const first = root.querySelector<HTMLElement>("[data-block-start]");
-  return first ? Number(first.dataset.blockStart) : 0;
-}
-
-function blockStartFor(element: HTMLElement | null): number {
-  const block = element?.closest?.<HTMLElement>("[data-block-start]");
-  return block ? Number(block.dataset.blockStart) : 0;
-}
-
-/**
- * Source offset of a mapped edge at or below `element`. Leading edges take the
- * node's own source start and trailing edges its own source end, not the inner
- * text range, so the caret can rest *after* a closing marker (`**bold**|`) as
- * well as inside its content.
- */
-function sourceEdge(element: HTMLElement, leading: boolean): number | null {
-  const blockEdge = element.dataset[leading ? "blockStart" : "blockEnd"];
-  if (blockEdge !== undefined) return Number(blockEdge);
-  const own = element.dataset[leading ? SRC_START : SRC_END];
-  if (own !== undefined) return Number(own);
-  const leaves = collectLeaves(element);
-  if (leaves.length === 0) return null;
-  const leaf = leading ? leaves[0] : leaves[leaves.length - 1];
-  return leading ? toLeaf(leaf).start : toLeaf(leaf).end;
-}
-
-/**
- * DOM point for a markdown offset. Offsets inside a leaf's rendered text map to
- * a caret in that text node; offsets in the hidden marker margins around it map
- * to a boundary beside the matching element; a source bookmark retains the
- * precise position when several hidden offsets share that DOM boundary.
- */
-export function domPoint(root: HTMLElement, markdownOffsetValue: number): Point {
-  const blocks = Array.from(root.querySelectorAll<HTMLElement>("[data-block-start]"));
-  if (blocks.length === 0) return { node: root, offset: 0 };
-  // Resolve the block first: an empty line has no leaves, and the caret must
-  // still land in *that* block rather than at the end of the previous one.
-  let block = blocks[blocks.length - 1];
-  for (const candidate of blocks) {
-    if (markdownOffsetValue <= Number(candidate.dataset.blockEnd)) {
-      block = candidate;
-      break;
-    }
-  }
-  const leaves = collectLeaves(block).map(toLeaf);
-  if (leaves.length === 0) return { node: block, offset: block.childNodes.length };
-  // Resolve nested marker margins beside their own element, not the entire
-  // outer span; otherwise a caret in nested bold/italic jumps to the start.
-  const formatted = Array.from(block.querySelectorAll<HTMLElement>("[data-inline-kind]"));
-  for (const element of formatted.reverse()) {
-    const start = Number(element.dataset[SRC_START]);
-    const end = Number(element.dataset[SRC_END]);
-    const contentStart = Number(element.dataset[SRC_CONTENT_START]);
-    const contentEnd = Number(element.dataset[SRC_CONTENT_END]);
-    if (markdownOffsetValue >= start && markdownOffsetValue < contentStart)
-      return boundary(element, false);
-    if (markdownOffsetValue > contentEnd && markdownOffsetValue <= end)
-      return boundary(element, true);
-  }
-  for (const leaf of leaves) {
-    if (markdownOffsetValue > leaf.contentEnd) continue;
-    if (markdownOffsetValue < leaf.contentStart) return boundary(leaf.el, false);
-    if (leaf.chip) return boundary(leaf.el, markdownOffsetValue > leaf.start);
-    const text = leaf.el.firstChild;
-    if (!text || text.nodeType !== Node.TEXT_NODE) return boundary(leaf.el, false);
-    return { node: text, offset: markdownOffsetValue - leaf.contentStart };
-  }
-  return boundary(leaves[leaves.length - 1].el, true);
-}
-
-/** Current markdown selection, or `null` when the selection is outside `root`. */
-export function getMarkdownSelection(root: HTMLElement): { start: number; end: number } | null {
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) return null;
-  const range = selection.getRangeAt(0);
-  if (!root.contains(range.startContainer) || !root.contains(range.endContainer)) return null;
-  const bookmark = bookmarks.get(root);
-  if (
-    bookmark &&
-    range.startContainer === bookmark.from.node &&
-    range.startOffset === bookmark.from.offset &&
-    range.endContainer === bookmark.to.node &&
-    range.endOffset === bookmark.to.offset
-  ) {
-    return { start: bookmark.start, end: bookmark.end };
-  }
-  bookmarks.delete(root);
-  const from = markdownOffset(root, range.startContainer, range.startOffset);
-  const to = markdownOffset(root, range.endContainer, range.endOffset);
-  return from <= to ? { start: from, end: to } : { start: to, end: from };
-}
-
-export function setMarkdownSelection(root: HTMLElement, start: number, end = start): void {
-  const from = domPoint(root, Math.min(start, end));
-  const to = domPoint(root, Math.max(start, end));
-  const range = document.createRange();
-  try {
-    range.setStart(from.node, from.offset);
-    range.setEnd(to.node, to.offset);
-  } catch {
-    return;
-  }
-  const selection = window.getSelection();
-  if (!selection) return;
-  selection.removeAllRanges();
-  selection.addRange(range);
-  bookmarks.set(root, { start: Math.min(start, end), end: Math.max(start, end), from, to });
 }
