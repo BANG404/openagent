@@ -1,8 +1,9 @@
 # Rolling plugin release index
 
 `.github/workflows/plugin-release-index.yml` owns public plugin update metadata,
-independently of Pages and application releases. Refresh at minutes 13 and 43 of
-every UTC hour, relevant `main` pushes and manual dispatches. GitHub may delay
+independently of Pages and application releases. Refresh every ten minutes at
+minutes 3, 13, 23, 33, 43 and 53 of every UTC hour, on relevant `main` pushes,
+and on manual dispatches. GitHub may delay
 schedules; this is a freshness target, not a deadline. Do not cancel an active
 publication halfway through replacement. PRs run deterministic tests with read-only
 permissions and never collect authenticated metadata or publish.
@@ -32,7 +33,7 @@ If restoration also fails, publication remains failed and requires an operator r
 A download during the short replacement window can fail. Runtime retains its last
 validated snapshot as stale, cannot install from stale metadata, and never fans out
 to per-package API requests on index failure. Both checks and explicit updates use
-the same fixed credential-free download and ten-minute derived cache; covered
+the same fixed credential-free download and two-minute derived cache; covered
 repositories never use API discovery. Unlisted repositories retain their resolver.
 
 Only the publication job receives `contents: write`. Use server credentials only

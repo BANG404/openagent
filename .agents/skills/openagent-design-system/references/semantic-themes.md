@@ -110,7 +110,29 @@ Pass `--release` to install the public repository releases instead of local
 source directories and repeat the same actual selection/rendering assertions.
 The runner warms optional dependencies before fixture changes so the initial
 Vite dependency reload cannot erase its saved settings or cleanup state.
-Wait for font registration when checking body and heading families: settings
-updates can retire the current faces before their replacements finish loading.
+Opening/closing a management surface publishes an appearance preview, but an
+equivalent preview must retain the exact registered and pending theme fonts.
+The font effect depends on selected enabled package identity/path, version and
+font descriptors, not the settings object's identity, color mode or unrelated edits.
+Explicit `agent-plugins-changed` asset refreshes also retire faces, since local
+source refresh can replace bytes at the same manifest path/version.
+Retire faces when that selection changes, assets refresh or its owner unmounts.
+Native theme synchronization likewise skips an already applied native mode; system
+mode still resolves current OS colors without reapplying the window material.
+Verify real settings open/close with font-face identities and native theme call
+counts, alongside the geometry scenario; a static surface fixture cannot cover
+appearance preview lifecycle regressions.
+Run `bun run test:blackbox:topbar-stability` against an isolated `topbar-*` home
+with an explicit Pilot socket. It installs a temporary licensed font theme and
+drives Settings, Models and About through the product menus in all four
+theme/locale combinations, asserting loaded face identity and zero redundant
+native theme calls while sampling conversation geometry on animation frames.
+It also verifies that an explicit package asset refresh replaces the old faces.
+On Windows run the fixture and screenshot runner in the signed-in desktop
+session and supply its verified main HWND as `BLACKBOX_NATIVE_WINDOW_ID`.
+Pause geometry frame sampling only around native screenshot capture, then resume
+it before closing the surface: the PrintWindow fallback temporarily changes and
+restores window size to refresh composited pixels. Keep interaction sampling and
+font/native-theme assertions enabled for the open/close transitions.
 For independent native fixtures, select one appearance with `--mode=light|dark`
 and `--language=en|zh`. Run all four combinations to retain full coverage.

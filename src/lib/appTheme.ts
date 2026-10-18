@@ -11,11 +11,11 @@ type NativeThemeSynchronizerOptions = {
 };
 
 export function applyDocumentTheme(theme: string): boolean {
-  document.documentElement.classList.remove("dark", "light");
   const dark =
     theme === "dark" ||
     (theme !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-  document.documentElement.classList.add(dark ? "dark" : "light");
+  document.documentElement.classList.toggle("dark", dark);
+  document.documentElement.classList.toggle("light", !dark);
   return dark;
 }
 
@@ -28,6 +28,7 @@ export function createNativeThemeSynchronizer({
 }: NativeThemeSynchronizerOptions) {
   let revision = 0;
   let queue = Promise.resolve();
+  let appliedNativeTheme: NativeAppTheme | undefined;
 
   return (theme: AppTheme): Promise<void> => {
     const requestRevision = ++revision;
@@ -40,8 +41,13 @@ export function createNativeThemeSynchronizer({
       try {
         let nativeTheme: "dark" | "light" | null = null;
         if (theme !== "system") nativeTheme = explicitDark ? "dark" : "light";
-        await setNativeTheme(nativeTheme);
-        if (theme === "system") await afterNativeThemeChange();
+        // Settings previews may publish an equivalent appearance on mount and
+        // teardown. Reapplying the native material repaints the whole window.
+        if (nativeTheme !== appliedNativeTheme) {
+          await setNativeTheme(nativeTheme);
+          appliedNativeTheme = nativeTheme;
+          if (theme === "system") await afterNativeThemeChange();
+        }
       } catch (error) {
         onError(error);
         return;

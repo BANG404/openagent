@@ -35,7 +35,7 @@
     usesNativeBackground,
   } from "$lib/pluginPresentation";
   import { appearancePreview } from "$lib/appearancePreview";
-  import { applyPluginThemeFonts } from "$lib/pluginThemeFonts";
+  import { applyPluginThemeFonts, pluginThemeFontKey } from "$lib/pluginThemeFonts";
   import { get } from "svelte/store";
   import { applyDocumentTheme, createNativeThemeSynchronizer, type AppTheme } from "$lib/appTheme";
   import { ComposerPreferences } from "$lib/composerPreferences.svelte";
@@ -437,6 +437,7 @@
   let agentPlugins = $state<AgentPluginSummary[]>([]);
   let pluginThemeDark = $state(false);
   let pluginAppearanceConfig = $state<AppConfig | null>(null);
+  let config = $state<AppConfig | null>(null);
   onMount(() => {
     const root = document.documentElement;
     const resolve = () => (pluginThemeDark = root.classList.contains("dark"));
@@ -445,24 +446,46 @@
     observer.observe(root, { attributes: true, attributeFilter: ["class"] });
     return () => observer.disconnect();
   });
-  $effect(() => {
-    return applyPluginThemeTokens(
-      document.documentElement,
+  const appearanceTokenKey = $derived(
+    JSON.stringify(
       appearanceTokens(
         agentPlugins,
         $appearancePreview ?? config ?? pluginAppearanceConfig,
         pluginThemeDark,
       ),
-    );
-  });
-  let config = $state<AppConfig | null>(null);
-  $effect(() =>
-    applyPluginThemeFonts(
-      agentPlugins,
-      $appearancePreview ?? config ?? pluginAppearanceConfig,
-      (pluginId, entry) => openAgent.readAgentPluginAsset(pluginId, entry),
     ),
   );
+  $effect(() =>
+    applyPluginThemeTokens(
+      document.documentElement,
+      JSON.parse(appearanceTokenKey) as Record<string, string>,
+    ),
+  );
+  const themeFontKey = $derived(
+    pluginThemeFontKey(agentPlugins, $appearancePreview ?? config ?? pluginAppearanceConfig),
+  );
+  let themeFontAssetRevision = $state(0);
+  onMount(() => {
+    if (!tauriAvailable) return;
+    // A source refresh can replace font bytes without changing its manifest.
+    const stop = listen("agent-plugins-changed", () => themeFontAssetRevision++);
+    return () => {
+      void stop.then((dispose) => dispose());
+    };
+  });
+  $effect(() => {
+    // Keep registered and pending faces across equivalent saved/preview drafts.
+    // Cleanup runs only when font identity or installed assets change.
+    themeFontKey;
+    themeFontAssetRevision;
+    return untrack(() =>
+      applyPluginThemeFonts(
+        agentPlugins,
+        $appearancePreview ?? config ?? pluginAppearanceConfig,
+        (pluginId, entry) => openAgent.readAgentPluginAsset(pluginId, entry),
+      ),
+    );
+  });
   const settingsRequests = new LatestRequest();
   let isMemorySyncing = $state(false);
   type SettingsSurfaceDestination = {
@@ -1688,14 +1711,14 @@
     }
   }
 
-  $effect(() => {
+  const nativeBackgroundEnabled = $derived.by(() => {
     const appearance = $appearancePreview ?? config ?? pluginAppearanceConfig;
-    const tokens = appearanceTokens(agentPlugins, appearance, pluginThemeDark);
+    const tokens = JSON.parse(appearanceTokenKey) as Record<string, string>;
+    return usesNativeWindowMaterial && usesNativeBackground(appearance?.theme_overrides, tokens);
+  });
+  $effect(() => {
     const root = document.documentElement;
-    root.classList.toggle(
-      "native-window-material",
-      usesNativeWindowMaterial && usesNativeBackground(appearance?.theme_overrides, tokens),
-    );
+    root.classList.toggle("native-window-material", nativeBackgroundEnabled);
     return () => root.classList.remove("native-window-material");
   });
 

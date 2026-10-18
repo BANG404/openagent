@@ -32,6 +32,10 @@ debug window on `?desktop-shell-preview`, selecting each appearance with
 `desktop-shell-preview-theme` and `desktop-shell-preview-locale`. The scenario
 mounts the real management surface without settings or conversation persistence;
 call `window.__topbarSurfaceCleanup()` after capturing the open surface.
+Also run `bun run test:blackbox:topbar-stability` on the ordinary product shell
+for appearance lifecycle changes. The semantic-theme reference owns that
+scenario: mounting a bare dialog does not exercise SettingsView's preview or
+font/native-theme updates.
 Keep menu cycles in separate eval steps: a background WebView can throttle
 timers enough for a combined pass to exceed Pilot's per-eval deadline.
 

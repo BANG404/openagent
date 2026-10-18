@@ -1,0 +1,81 @@
+[scenario]
+name = "real management previews retain fonts and native material"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+action = "eval"
+script = '''(() => {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const faces = [...document.fonts];
+  assert(faces.some(face => face.family.includes('OpenAgent Stability Probe')), 'Theme font fixture not loaded');
+  const originalInvoke = window.__TAURI_INTERNALS__.invoke;
+  const nativeCalls = [];
+  window.__TAURI_INTERNALS__.invoke = function(command, ...args) {
+    if (command === 'plugin:window|set_theme') nativeCalls.push(command);
+    return originalInvoke.call(this, command, ...args);
+  };
+  let running = true;
+  let failure = '';
+  let frames = 0;
+  const rect = () => {
+    const {x,y,width,height} = document.querySelector('#conversation-stage').getBoundingClientRect();
+    return JSON.stringify({x,y,width,height});
+  };
+  const baseline = rect();
+  const check = () => {
+    assert([...document.fonts].length === faces.length && faces.every(face => document.fonts.has(face)), 'Opening a management preview replaced loaded theme fonts');
+    assert(nativeCalls.length === 0, 'Equivalent management preview reapplied the native theme');
+    assert(rect() === baseline, 'Underlying conversation moved during the transition');
+    assert(!failure, failure);
+  };
+  const frame = () => {
+    if (!running) return;
+    try { check(); frames++; } catch (error) { if (!failure) failure = String(error); }
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+  const settle = () => new Promise(resolve => setTimeout(resolve, 300));
+  const open = async (menu, label) => {
+    document.getElementById(`application-${menu}-menu`).click();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    const item = [...document.querySelectorAll('[role=menuitem]')].find(node => label.test(node.textContent));
+    assert(item, 'Management menu item missing'); item.click();
+    const deadline = Date.now() + 6000;
+    while (!document.querySelector('.fullscreen-surface[data-state=open] .settings-panel') && Date.now() < deadline)
+      await new Promise(resolve => setTimeout(resolve, 100));
+    await settle();
+    assert(document.querySelector('.fullscreen-surface[data-state=open] .settings-panel'), 'Real SettingsView did not open');
+    check();
+  };
+  const close = async () => {
+    document.querySelector('.fullscreen-surface-close').click();
+    await settle();
+    assert(!document.querySelector('.fullscreen-surface[data-state=open]'), 'Management surface stayed open');
+    check();
+  };
+  window.__topbarAppearanceProbe = {
+    open, close, check,
+    pauseFrames: () => { running = false; },
+    resumeFrames: () => { running = true; requestAnimationFrame(frame); },
+    cleanup: () => { running = false; window.__TAURI_INTERNALS__.invoke = originalInvoke; },
+    result: () => ({frames, fontFaces:faces.length, nativeThemeCalls:nativeCalls.length}),
+  };
+  return true;
+})()'''
+
+[[step]]
+action = "eval"
+script = "(async()=>{const p=window.__topbarAppearanceProbe;await p.open('edit',/Settings|设置/);await p.close();return p.result();})()"
+
+[[step]]
+action = "eval"
+script = "(async()=>{const p=window.__topbarAppearanceProbe;await p.open('role',/Models|模型/);await p.close();return p.result();})()"
+
+[[step]]
+action = "eval"
+script = "(async()=>{const p=window.__topbarAppearanceProbe;await p.open('help',/About|关于/);await p.close();return p.result();})()"
+
+[[step]]
+action = "eval"
+script = "(async()=>{const p=window.__topbarAppearanceProbe;await p.open('edit',/Settings|设置/);p.check();return p.result();})()"

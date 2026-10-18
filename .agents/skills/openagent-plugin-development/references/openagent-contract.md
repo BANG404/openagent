@@ -526,7 +526,7 @@ activates that candidate without executing it during validation.
 
 For repositories covered by the official store, checks and explicit updates
 read the static Release asset described in [official-registry.md](official-registry.md).
-Runtime caches a complete feed for ten minutes in the derived
+Runtime caches a complete feed for two minutes in the derived
 `<OPENAGENT_HOME>/plugin-release-index-cache.json`. A feed generated more than
 48 hours ago fails refresh; the last complete snapshot may still show reminders
 marked stale for up to seven days, but cannot authorize installation. Invalid or
@@ -541,7 +541,7 @@ allows only 60 requests per hour for the whole originating IP — a quota every
 other program on that connection also spends. A check therefore does not
 request per plugin every time. It answers from
 `<OPENAGENT_HOME>/plugin-update-cache.json`, a derived file keyed by
-`owner/repo`, while an entry is inside a ten-minute freshness window; past that
+`owner/repo`, while an entry is inside a two-minute freshness window; past that
 window each repository is revalidated conditionally with the `ETag` it stored,
 so a `304` reuses the cached release and only changed or never-validated
 repositories pay for new metadata. One check runs at a time, and the cache is

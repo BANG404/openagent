@@ -170,8 +170,11 @@ The shared `read_agent_plugin_asset` operation accepts only declared entries
 from installed, valid, enabled plugins. Font responses contain `content` as
 base64, `encoding: "base64"` and the matching `font/*` MIME; HTML responses
 retain ordinary text content. Clients register only the selected theme with
-FontFace, remove its faces on switch/disable/uninstall/refresh, and retire late
-async loads. Decode/read failures retain system fallbacks. No local filesystem
+FontFace, retain those faces across equivalent catalog/settings previews, and
+remove them on switch/disable/uninstall, an explicit package asset refresh, or a
+changed package path/version/font descriptor. Retire late async loads after that
+selection changes or the owner unmounts. Decode/read failures retain system
+fallbacks. No local filesystem
 path or remote font URL is passed to the WebView.
 The design-system
 [semantic theme contract](../../openagent-design-system/references/semantic-themes.md)

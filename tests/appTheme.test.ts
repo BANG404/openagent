@@ -2,6 +2,49 @@ import { describe, expect, test } from "bun:test";
 import { createNativeThemeSynchronizer } from "../src/lib/appTheme";
 
 describe("native theme synchronization", () => {
+  test("equivalent previews preserve native material while system colors still refresh", async () => {
+    const nativeThemes: Array<string | null> = [];
+    const resolved: boolean[] = [];
+    let systemDark = false;
+    const synchronize = createNativeThemeSynchronizer({
+      applyWebTheme: (theme) => (theme === "system" ? systemDark : theme === "dark"),
+      setNativeTheme: async (theme) => {
+        nativeThemes.push(theme);
+      },
+      onResolvedTheme: (dark) => resolved.push(dark),
+    });
+    await synchronize("dark");
+    await synchronize("dark");
+    await synchronize("system");
+    systemDark = true;
+    await synchronize("system");
+    expect(nativeThemes).toEqual(["dark", null]);
+    expect(resolved).toEqual([true, true, false, true]);
+  });
+
+  test("an equivalent in-flight request shares the applied native theme and a failure retries", async () => {
+    let release!: () => void;
+    let attempts = 0;
+    const synchronize = createNativeThemeSynchronizer({
+      applyWebTheme: (theme) => theme === "dark",
+      setNativeTheme: async () => {
+        attempts++;
+        if (attempts === 1) throw new Error("retry");
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+      },
+      onResolvedTheme: () => {},
+    });
+    await synchronize("dark");
+    const first = synchronize("dark");
+    await Promise.resolve();
+    const equivalent = synchronize("dark");
+    release();
+    await Promise.all([first, equivalent]);
+    expect(attempts).toBe(2);
+  });
+
   test("restores the native system theme before resolving the WebView theme", async () => {
     let nativeTheme = "dark";
     const events: string[] = [];
