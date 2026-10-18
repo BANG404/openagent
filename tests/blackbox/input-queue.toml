@@ -12,8 +12,12 @@ script = '''(async()=>{
   const wait=async(read,why)=>{const end=Date.now()+20000;while(Date.now()<end){if(read())return;await new Promise(r=>setTimeout(r,50));}throw new Error(why);};
   const fill=async(text)=>{const e=document.querySelector('[contenteditable=true][role=textbox]');e.focus();const range=document.createRange();range.selectNodeContents(e);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);(() => { document.dispatchEvent(new Event('selectionchange')); const clipboard = new DataTransfer(); clipboard.setData('text/plain', ({bubbles:true,cancelable:true,inputType:'insertText',data:text}).data); e.dispatchEvent(new ClipboardEvent('paste', {clipboardData:clipboard,bubbles:true,cancelable:true})); })();await new Promise(r=>requestAnimationFrame(r));};
   const send=async(text)=>{await fill(`QUEUE_FIXTURE:${probe.marker} ${text}`);const b=document.querySelector('.send-btn');if(b.disabled)throw new Error('composer send disabled');b.click();await wait(()=>!document.querySelector('[contenteditable=true][role=textbox]').textContent.trim(),'accepted draft was not cleared');};
+  const {desktopOpenAgent:client}=await import('/src/lib/openagent/tauriClient.ts');
+  if((await client.invokeProduct('get_branches',{convId:probe.convId})).length)throw new Error('fixture must begin without a branch');
+  if(document.querySelector('.queue-error'))throw new Error('new conversation queue failed before first send');
   await send('first');
   await wait(()=>document.body.textContent.includes(`Queue response ${probe.marker}`),'first provider stream did not start');
+  if(document.querySelector('.queue-error'))throw new Error('first send failed to read the queue');
   await send('second');await send('third');
   await wait(()=>document.querySelectorAll('.chat-queue [data-queue-id]').length===3,'pending inputs missing');
   const row=text=>[...document.querySelectorAll('.chat-queue li')].find(row=>row.textContent.includes(text));

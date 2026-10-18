@@ -219,6 +219,9 @@ terminal events only refresh the projection. Never dequeue in a frontend or
 write queued input into the composer's current draft. Clear only the unchanged
 submitted draft after acceptance; preserve newer edits and drafts in another
 conversation. Reuse submission identities after an unacknowledged request.
+Wait for a newly created desktop conversation to finish persistence before
+loading its queue. An existing conversation without branches has an empty queue;
+native queue fixtures must start without pre-creating a branch.
 
 Ordinary input during execution waits for the next turn. The separate Add to
 current task action targets the displayed active run ID and keeps its model;
@@ -228,7 +231,8 @@ pause/resume, and retry/remove actions. Stop preserves pending inputs. Loading
 and errors retain the queue surface and expose refresh. Attachment references
 and model/branch selections travel with the queued input.
 
-Verify queue editing, ordering, failed acceptance with a newer draft, pause,
+Verify branchless reads, first send with delayed conversation persistence,
+queue editing, ordering, failed acceptance with a newer draft, pause,
 Stop, reload and explicit steering using `bun run test:blackbox:input-queue`
 in an isolated Tauri instance, in light/dark and English/Chinese. Runtime
 persistence and dispatch invariants are owned by the private conversation skill.

@@ -32,6 +32,16 @@ async function pilot(args) {
 }
 /** @param {string} script */
 const evaluate = (script) => pilot(["eval", script]);
+/** @param {string} name */
+async function screenshot(name) {
+  const path = join(artifacts, name);
+  if (process.env.BLACKBOX_NATIVE_WINDOW_ID)
+    captureBlackboxScreenshot(
+      (args) => spawnSync("tauri-pilot", args, { env: process.env, windowsHide: true }),
+      path,
+    );
+  else await pilot(["screenshot", path]);
+}
 /** @param {string} operation @param {unknown} args @returns {Promise<any>} */
 async function invoke(operation, args) {
   return JSON.parse(
@@ -61,7 +71,7 @@ const model = createServer(async (request, response) => {
   const content = JSON.stringify(
     body.messages?.findLast((/** @type {any} */ item) => item.role === "user")?.content ?? "",
   );
-  const marker = content.match(/QUEUE_FIXTURE:([a-f0-9-]+)/)?.[1];
+  const marker = content.match(/QUEUE(?:\\+)?_FIXTURE:([a-f0-9-]+)/)?.[1];
   if (!marker) {
     response.writeHead(400);
     response.end("Unrelated fixture input");
@@ -100,6 +110,7 @@ assert(
     resolve(original.workspace) === resolve(join(home, "workspace")),
   "The socket must belong to the isolated queue fixture",
 );
+await screenshot("before.png");
 /** @type {string[]} */
 const conversations = [];
 try {
@@ -142,7 +153,16 @@ try {
           title: `Queue ${theme}/${language} ${suffix}`,
           workspace: original.workspace,
         });
-        await invoke("create_branch", { id: `${id}-branch`, convId: id });
+        const emptyQueue = JSON.parse(
+          await evaluate(
+            `(async()=>{const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');return JSON.stringify(await c.getInputQueue(${JSON.stringify(id)}));})()`,
+          ),
+        );
+        assert.deepEqual(
+          emptyQueue.items,
+          [],
+          "A conversation without branches has an empty queue",
+        );
         await evaluate(
           `sessionStorage.setItem('input-queue-fixture',${JSON.stringify(JSON.stringify({ marker, convId: id, language }))}); setTimeout(()=>location.reload(),100); true`,
         );
@@ -165,12 +185,7 @@ try {
         "--junit",
         join(artifacts, `${theme}-${language}-queue.xml`),
       ]);
-      if (process.env.BLACKBOX_NATIVE_WINDOW_ID)
-        captureBlackboxScreenshot(
-          (args) => spawnSync("tauri-pilot", args, { env: process.env, windowsHide: true }),
-          join(artifacts, `${theme}-${language}.png`),
-        );
-      else await pilot(["screenshot", join(artifacts, `${theme}-${language}.png`)]);
+      await screenshot(`${theme}-${language}.png`);
       hold = false;
       releases.splice(0).forEach((release) => release());
       await evaluate("setTimeout(()=>location.reload(),100); true");
@@ -243,6 +258,19 @@ try {
         );
         writeFileSync(join(artifacts, `${theme}-${language}-${command}.json`), stdout);
       }
+      try {
+        await pilot([
+          "run",
+          join(root, "tests/blackbox/input-queue-first-send.toml"),
+          "--junit",
+          join(artifacts, `${theme}-${language}-first-send.xml`),
+        ]);
+        await screenshot(`${theme}-${language}-first-send.png`);
+      } finally {
+        const firstSendId = await evaluate("sessionStorage.getItem('input-queue-first-send-id')");
+        if (firstSendId && firstSendId !== "null") conversations.push(firstSendId);
+        await evaluate("sessionStorage.removeItem('input-queue-first-send-id'); true");
+      }
       await pilot(["logs", "--level", "error"]);
     }
 } finally {
@@ -257,5 +285,5 @@ try {
   model.close();
 }
 console.log(
-  `Native input queue: ordering, editing, Stop/reload/resume and steering passed in four theme/locale combinations. Artifacts: ${artifacts}`,
+  `Native input queue: branchless reads, slow first send, ordering, editing, Stop/reload/resume and steering passed in four theme/locale combinations. Artifacts: ${artifacts}`,
 );

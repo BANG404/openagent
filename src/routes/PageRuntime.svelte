@@ -720,9 +720,11 @@
     tauriAvailable,
   });
   const inputQueue = createInputQueueController(openAgent);
+  let creatingConversationIds = $state<Record<string, boolean>>({});
   $effect(() => {
     const convId = activeConvId;
-    if (convId && tauriAvailable) untrack(() => void inputQueue.load(convId));
+    if (convId && tauriAvailable && !creatingConversationIds[convId])
+      untrack(() => void inputQueue.load(convId));
   });
   onMount(() => {
     if (!tauriAvailable) return;
@@ -735,7 +737,8 @@
         else unsubscribe = stop;
       });
     const refresh = () => {
-      if (activeConvId) void inputQueue.load(activeConvId);
+      if (activeConvId && !creatingConversationIds[activeConvId])
+        void inputQueue.load(activeConvId);
     };
     const timer = window.setInterval(refresh, 2000);
     window.addEventListener("focus", refresh);
@@ -3059,6 +3062,7 @@
         roleId: roleController.selectedRoleId ?? undefined,
       };
       conversations = [conv, ...conversations];
+      creatingConversationIds[conv.id] = true;
       activeConvId = conv.id;
       restoringSurface = "conversation";
       cacheRestoreSurface("conversation", conv.id);
@@ -3114,9 +3118,13 @@
     // active-but-empty conversation would otherwise render the new-conversation
     // prompt between the centered composer and the live transcript.
     if (pendingConversationCreation) {
+      const createdConversationId = pendingConversationCreation.id;
       await openAgent
         .invokeProduct("create_conversation", pendingConversationCreation)
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => {
+          delete creatingConversationIds[createdConversationId];
+        });
     }
 
     // The user message is persisted atomically in the resulting checkpoint.
