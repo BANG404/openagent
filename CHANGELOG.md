@@ -10,6 +10,33 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.86.0-beta.1] - 2026-10-17
+
+### Features
+- **mcp**: Select routed or direct tool availability
+- **themes**: Load fonts from plugin packages
+- **theme**: Standardize semantic tokens and publishable shadcn recipes
+- **integrations**: Expose plugin sources and skill directories
+
+### Bug Fixes
+- **channels**: Classify messaging plugins and bound navigation scrolling
+- **plugins**: Clarify names and descriptions by function
+- **theme**: Inherit sidebar canvas for plugin themes
+- **theme**: Use sidebar color for dark workspace canvas
+- **themes**: Preserve desktop workspace card surfaces
+- **desktop**: Unify plugin theme title bar and sidebar
+- **chat**: Match footer timestamp to metadata typography
+- **settings**: Restore skill detail spacing
+- **desktop**: Keep title bar and sidebar canvas continuous
+- **chat**: Show latest provider cache usage per turn
+- **integrations**: Improve skill browsing and plugin shortcuts
+- **skills**: Distinguish inventory entries by scope and directory
+- **theme**: Apply semantic tokens to merged integration views
+
+### Refactoring
+- **plugins**: Route CUA through standard package MCP
+- **ui**: Simplify repetitive settings guidance
+
 ## [0.85.0-beta.1] - 2026-10-17
 
 ### Features
