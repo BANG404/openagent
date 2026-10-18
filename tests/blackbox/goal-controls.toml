@@ -17,7 +17,7 @@ script = '''(async () => {
   const editor = document.querySelector('[contenteditable=true][role=textbox]');
   if (!editor) throw new Error('composer is missing');
   editor.focus();
-  editor.dispatchEvent(new InputEvent('beforeinput', {bubbles:true, cancelable:true, inputType:'insertText', data:probe.command}));
+  (() => { document.dispatchEvent(new Event('selectionchange')); const clipboard = new DataTransfer(); clipboard.setData('text/plain', ({bubbles:true, cancelable:true, inputType:'insertText', data:probe.command}).data); editor.dispatchEvent(new ClipboardEvent('paste', {clipboardData:clipboard,bubbles:true,cancelable:true})); })();
   await new Promise(resolve => setTimeout(resolve, 100));
   const send = document.querySelector('.send-btn');
   if (!send || send.disabled) throw new Error('Goal command cannot be submitted');

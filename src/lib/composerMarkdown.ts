@@ -1,11 +1,11 @@
 import { segmentComposerTokens } from "./components/composerTokenHighlights";
 
 /**
- * Pure markdown model for the composer and the user transcript bubble.
+ * Read-only Markdown projection for authored user transcript bubbles.
  *
  * The markdown string is canonical. This module projects it into blocks and
- * inline nodes carrying exact source offsets, so a contenteditable view can hide
- * markup markers while still mapping DOM carets back to markdown offsets.
+ * inline nodes carrying exact source offsets, so transcript rendering can hide markup markers without changing stored source.
+ * The live composer is owned by Tiptap and does not use this parser.
  */
 
 export type InlineKind = "text" | "strong" | "em" | "del" | "code" | "link" | "chip";
@@ -46,11 +46,6 @@ export interface BlockNode {
   inline: InlineNode[];
 }
 
-export interface ComposerEdit {
-  value: string;
-  caret: number;
-}
-
 const HEADING = /^(#{1,6})[ \t]+/;
 const QUOTE = /^(?:>[ \t]?)+/;
 const TASK = /^(\s*)([-*+])[ \t]+\[([ xX])\][ \t]+/;
@@ -59,7 +54,6 @@ const ORDERED = /^(\s*)(\d{1,9})([.)])[ \t]+/;
 
 const MAX_INLINE_DEPTH = 6;
 const WHITESPACE = /\s/u;
-const WORD_BREAK = /[\s,，。;；：!?！？、()[\]{}<>《》]/u;
 
 interface Delimited {
   contentStart: number;
@@ -373,117 +367,4 @@ export function serializeInline(nodes: InlineNode[]): string {
 
 export function serializeBlocks(blocks: BlockNode[]): string {
   return blocks.map((block) => block.raw).join("\n");
-}
-
-export function lineBoundsAt(
-  value: string,
-  offset: number,
-): { start: number; end: number; text: string } {
-  const start = offset === 0 ? 0 : value.lastIndexOf("\n", offset - 1) + 1;
-  const newline = value.indexOf("\n", offset);
-  const end = newline === -1 ? value.length : newline;
-  return { start, end, text: value.slice(start, end) };
-}
-
-function lineMarker(text: string): string | null {
-  for (const pattern of [TASK, ORDERED, UNORDERED, QUOTE, HEADING]) {
-    const match = pattern.exec(text);
-    if (match) return match[0];
-  }
-  return null;
-}
-
-/** Marker that continues the current line's list or quote, or `null`. */
-export function continuationMarker(text: string): string | null {
-  const task = TASK.exec(text);
-  if (task) return `${task[1]}${task[2]} [ ] `;
-  const ordered = ORDERED.exec(text);
-  if (ordered) return `${ordered[1]}${Number.parseInt(ordered[2], 10) + 1}${ordered[3]} `;
-  const unordered = UNORDERED.exec(text);
-  if (unordered) return `${unordered[1]}${unordered[2]} `;
-  const quote = QUOTE.exec(text);
-  if (quote) return quote[0];
-  return null;
-}
-
-/** Previous word boundary for ctrl/alt+backspace style deletion. */
-export function wordBoundaryBefore(value: string, offset: number): number {
-  let index = offset;
-  while (index > 0 && WORD_BREAK.test(value[index - 1])) index -= 1;
-  while (index > 0 && !WORD_BREAK.test(value[index - 1])) index -= 1;
-  return index;
-}
-
-/** Next word boundary for ctrl+delete style deletion. */
-export function wordBoundaryAfter(value: string, offset: number): number {
-  let index = offset;
-  while (index < value.length && WORD_BREAK.test(value[index])) index += 1;
-  while (index < value.length && !WORD_BREAK.test(value[index])) index += 1;
-  return index;
-}
-
-export function splice(value: string, start: number, end: number, insertion: string): ComposerEdit {
-  return {
-    value: `${value.slice(0, start)}${insertion}${value.slice(end)}`,
-    caret: start + insertion.length,
-  };
-}
-
-/** Shift+Enter replaces the selection and splits nested formats into closed spans. */
-export function insertSoftLineBreak(value: string, offset: number, end = offset): ComposerEdit {
-  let start = Math.min(offset, end);
-  let selectionEnd = Math.max(offset, end);
-  const blocks = parseBlocks(value);
-  const spans: InlineNode[] = [];
-  const visit = (nodes: InlineNode[]) => {
-    for (const node of nodes) {
-      if (node.kind !== "text" && node.kind !== "chip") spans.push(node);
-      visit(node.children ?? []);
-    }
-  };
-  for (const block of blocks) visit(block.inline);
-  if (start !== selectionEnd) {
-    // A selected formatted phrase is replaced, never silently retained.
-    for (const node of spans) {
-      if (start <= node.contentStart && selectionEnd >= node.contentEnd) {
-        start = Math.min(start, node.start);
-        selectionEnd = Math.max(selectionEnd, node.end);
-      }
-    }
-    const edit = splice(value, start, selectionEnd, "");
-    return insertSoftLineBreak(edit.value, edit.caret);
-  }
-  // At an inline edge the new line belongs outside that span.
-  for (const node of spans) {
-    if (start === node.contentStart) start = node.start;
-    else if (start === node.contentEnd) start = node.end;
-  }
-  const line = lineBoundsAt(value, start);
-  const block = blocks.find((item) => item.start === line.start);
-  const marker = block?.kind === "codeBlock" ? null : lineMarker(line.text);
-  if (marker && line.text.slice(marker.length).trim().length === 0) {
-    return { value: `${value.slice(0, line.start)}${value.slice(line.end)}`, caret: line.start };
-  }
-  const continuation = marker ? (continuationMarker(line.text) ?? "") : "";
-  const active = spans.filter((node) => node.contentStart < start && start < node.contentEnd);
-  const closing = [...active]
-    .reverse()
-    .map((node) => value.slice(node.contentEnd, node.end))
-    .join("");
-  const opening = active.map((node) => value.slice(node.start, node.contentStart)).join("");
-  return splice(value, start, start, `${closing}\n${continuation}${opening}`);
-}
-
-/** Backspace at the start of a marked line clears the marker instead of merging. */
-export function removeLineMarker(value: string, offset: number): ComposerEdit | null {
-  const line = lineBoundsAt(value, offset);
-  if (parseBlocks(value).find((block) => block.start === line.start)?.kind === "codeBlock")
-    return null;
-  const marker = lineMarker(line.text);
-  if (!marker) return null;
-  if (offset > line.start + marker.length) return null;
-  return {
-    value: `${value.slice(0, line.start)}${value.slice(line.start + marker.length)}`,
-    caret: line.start,
-  };
 }

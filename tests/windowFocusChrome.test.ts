@@ -66,13 +66,9 @@ describe("window focus chrome", () => {
     expect(conversationSurface).toMatch(
       /wasNewConversationLayout === false && isNewConversationLayout[\s\S]*?localComposerFocusRequest \+= 1/,
     );
-    expect(input).toContain(
-      "if (options.focusRequest > 0) void focusInputAfterWindowActivation(options.focusRequest);",
-    );
-    expect(input).toMatch(
-      /focusInputAfterWindowActivation[\s\S]*?setTimeout\(resolve, 100\)[\s\S]*?focusRequest !== request[\s\S]*?editorEl\.focus/,
-    );
-    expect(input).toContain("editorEl.focus({ preventScroll: true });");
+    expect(input).toContain("if (request <= 0) return;");
+    expect(input).toContain("if (options.focusRequest === request) void refocusEditor();");
+    expect(input).toContain("editor?.commands.focus(undefined, { scrollIntoView: false })");
     expect(nativeHost).toMatch(
       /tauri_plugin_single_instance::init[\s\S]*?show_desktop_window\(app\)/,
     );

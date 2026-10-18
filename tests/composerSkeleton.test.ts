@@ -27,7 +27,7 @@ describe("composer loading skeleton", () => {
     }
 
     expect(composer).toMatch(
-      /\.input \{[^}]*padding: var\(--composer-input-padding\);[^}]*min-height: var\(--composer-input-min-height\);/s,
+      /\.input-editor-host :global\(\.input\) \{[^}]*padding: var\(--composer-input-padding\);[^}]*min-height: var\(--composer-input-min-height\);/s,
     );
     expect(composer).toMatch(
       /\.composer-toolbar \{[^}]*min-height: var\(--composer-toolbar-min-height\);/s,
@@ -36,7 +36,7 @@ describe("composer loading skeleton", () => {
       /\.send-btn \{[^}]*right: var\(--composer-send-inset\);[^}]*bottom: var\(--composer-send-inset\);[^}]*width: var\(--composer-control-size\);[^}]*height: var\(--composer-control-size\);[^}]*border-radius: var\(--composer-control-radius\);/s,
     );
     expect(composer).toMatch(
-      /@container \(max-width: 280px\) \{\s*\.composer \.input \{\s*min-height: var\(--composer-input-narrow-min-height\) !important;/,
+      /@container \(max-width: 280px\) \{\s*\.composer :global\(\.input\) \{\s*min-height: var\(--composer-input-narrow-min-height\) !important;/,
     );
 
     expect(skeleton).toMatch(

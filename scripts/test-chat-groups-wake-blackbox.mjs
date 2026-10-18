@@ -219,7 +219,7 @@ try {
         `document.body.textContent.includes('GROUP_MANUAL_REPLY_${id}') && !document.querySelector('.stop-btn')`,
       );
       await evaluate(
-        `(()=>{const e=document.querySelector('[contenteditable=true][role=textbox]');e.focus();e.dispatchEvent(new InputEvent('beforeinput',{bubbles:true,cancelable:true,inputType:'insertText',data:window.__groupWakeProbe.draft}));return true;})()`,
+        `(()=>{const e=document.querySelector('[contenteditable=true][role=textbox]');e.focus();(() => { document.dispatchEvent(new Event('selectionchange')); const clipboard = new DataTransfer(); clipboard.setData('text/plain', ({bubbles:true,cancelable:true,inputType:'insertText',data:window.__groupWakeProbe.draft}).data); e.dispatchEvent(new ClipboardEvent('paste', {clipboardData:clipboard,bubbles:true,cancelable:true})); })();return true;})()`,
       );
       /** @param {string} tool @param {Record<string, unknown>} args @param {string} [sender] */
       async function call(tool, args, sender) {

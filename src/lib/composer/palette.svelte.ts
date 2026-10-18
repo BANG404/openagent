@@ -1,6 +1,5 @@
 import { fromStore } from "svelte/store";
 import { t } from "$lib/i18n";
-import { getMarkdownSelection } from "$lib/composerDom";
 import { filterSlashCommands } from "$lib/components/slashCommandMatching";
 import { applySlashCommandSelection } from "$lib/components/slashCommandSelection";
 import type { PaletteItem } from "$lib/components/MentionPalette.svelte";
@@ -10,6 +9,7 @@ import type { SlashCommand, MentionCatalog, DraftCategoryEntry } from "./types";
 interface PaletteOptions {
   readonly value: string;
   readonly editorEl: HTMLDivElement | null;
+  textSelection(): { start: number; end: number } | null;
   readonly slashCommands: SlashCommand[];
   readonly enableMentions: boolean;
   readonly showGlobalDraftsInMentions: boolean;
@@ -206,7 +206,7 @@ export function createPaletteController(options: PaletteOptions) {
   }
 
   async function syncPaletteFromCaret() {
-    const selection = options.editorEl ? getMarkdownSelection(options.editorEl) : null;
+    const selection = options.textSelection();
     if (!selection) return;
     const trigger = detectTrigger(options.value, selection.start);
     if (!trigger) {
@@ -225,7 +225,7 @@ export function createPaletteController(options: PaletteOptions) {
   }
 
   function applySelection(item: PaletteItem) {
-    const selection = options.editorEl ? getMarkdownSelection(options.editorEl) : null;
+    const selection = options.textSelection();
     const caret = selection?.start ?? options.value.length;
     if (paletteMode === "slash") {
       const cmd = options.slashCommands.find((c) => c.id === item.id);

@@ -9,7 +9,7 @@ action = "eval"
 script = '''(async()=>{
   const e=document.querySelector('[contenteditable=true][role=textbox]');
   e.focus();
-  e.dispatchEvent(new InputEvent('beforeinput',{bubbles:true,cancelable:true,inputType:'insertText',data:window.__groupWakeProbe.marker}));
+  (() => { document.dispatchEvent(new Event('selectionchange')); const clipboard = new DataTransfer(); clipboard.setData('text/plain', ({bubbles:true,cancelable:true,inputType:'insertText',data:window.__groupWakeProbe.marker}).data); e.dispatchEvent(new ClipboardEvent('paste', {clipboardData:clipboard,bubbles:true,cancelable:true})); })();
   await new Promise(r=>setTimeout(r,100));
   const send=document.querySelector('.send-btn');
   if(!e.textContent.includes(window.__groupWakeProbe.marker)||send.disabled)throw new Error('ordinary input did not reach the composer');

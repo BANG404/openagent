@@ -1212,6 +1212,7 @@ const en: Record<TranslationKeys, string> = {
   mdEditorSelectBlockType: "Select block type",
   mdEditorBlockType: "Block type",
   mdEditorBold: "Bold",
+  mdEditorLoadFailed: "Could not load the editor",
   mdEditorRemoveBold: "Remove bold",
   mdEditorStrikethrough: "Strikethrough",
   mdEditorItalic: "Italic",

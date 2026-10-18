@@ -10,7 +10,7 @@ script = '''(async () => {
   const editor = document.querySelector('[contenteditable=true][role=textbox]');
   if (!editor) throw new Error('composer missing');
   editor.focus();
-  editor.dispatchEvent(new InputEvent('beforeinput', {bubbles:true, cancelable:true, inputType:'insertText', data:window.__terminalHookProbe.marker}));
+  (() => { document.dispatchEvent(new Event('selectionchange')); const clipboard = new DataTransfer(); clipboard.setData('text/plain', ({bubbles:true, cancelable:true, inputType:'insertText', data:window.__terminalHookProbe.marker}).data); editor.dispatchEvent(new ClipboardEvent('paste', {clipboardData:clipboard,bubbles:true,cancelable:true})); })();
   await new Promise(resolve => setTimeout(resolve, 100));
   if (!editor.textContent.includes(window.__terminalHookProbe.marker)) throw new Error('composer did not retain the fixture input');
   if (document.querySelector('.send-btn').disabled) throw new Error('Send is still disabled');

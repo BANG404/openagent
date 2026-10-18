@@ -21,8 +21,8 @@ export function attachmentReferenceMap(attachments: ChatAttachment[]): ReadonlyM
 }
 
 /**
- * Uses the composer's block and inline projection so sending a message keeps
- * its formatting. The bubble clips long content by height, retaining blocks.
+ * Read-only Markdown projection for authored messages, including Markdown
+ * exported by Tiptap. The bubble clips long content by height, retaining blocks.
  */
 export function renderUserContent(
   node: HTMLElement,

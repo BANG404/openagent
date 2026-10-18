@@ -1171,6 +1171,7 @@ export const zh = {
   mdEditorSelectBlockType: "选择块类型",
   mdEditorBlockType: "块类型",
   mdEditorBold: "加粗",
+  mdEditorLoadFailed: "编辑器加载失败",
   mdEditorRemoveBold: "取消加粗",
   mdEditorStrikethrough: "删除线",
   mdEditorItalic: "斜体",

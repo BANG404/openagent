@@ -30,7 +30,7 @@ script = '''(async () => {
     range.selectNodeContents(editor);
     const selection = window.getSelection();
     selection.removeAllRanges(); selection.addRange(range);
-    editor.dispatchEvent(new InputEvent('beforeinput', { inputType:'insertText', data:value, bubbles:true, cancelable:true }));
+    (() => { document.dispatchEvent(new Event('selectionchange')); const clipboard = new DataTransfer(); clipboard.setData('text/plain', ({ inputType:'insertText', data:value, bubbles:true, cancelable:true }).data); editor.dispatchEvent(new ClipboardEvent('paste', {clipboardData:clipboard,bubbles:true,cancelable:true})); })();
     await settle();
   };
   const labels = () => [...stage.querySelectorAll('.palette-label')];
