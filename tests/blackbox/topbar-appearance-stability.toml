@@ -31,7 +31,7 @@ script = '''(() => {
   };
   const frame = () => {
     if (!running) return;
-    try { check(); frames++; } catch (error) { failure = String(error); }
+    try { check(); frames++; } catch (error) { if (!failure) failure = String(error); }
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
@@ -56,6 +56,8 @@ script = '''(() => {
   };
   window.__topbarAppearanceProbe = {
     open, close, check,
+    pauseFrames: () => { running = false; },
+    resumeFrames: () => { running = true; requestAnimationFrame(frame); },
     cleanup: () => { running = false; window.__TAURI_INTERNALS__.invoke = originalInvoke; },
     result: () => ({frames, fontFaces:faces.length, nativeThemeCalls:nativeCalls.length}),
   };

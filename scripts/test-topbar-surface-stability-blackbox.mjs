@@ -123,9 +123,12 @@ try {
       pilot(["run", join(repo, "tests/blackbox/topbar-appearance-stability.toml")]);
       const result = evaluate("window.__topbarAppearanceProbe.result()");
       writeFileSync(join(artifacts, `${theme}-${language}.json`), result);
+      // Native PrintWindow fallback briefly resizes and restores the window.
+      // Sample product transitions, not that capture helper's geometry change.
+      evaluate("window.__topbarAppearanceProbe.pauseFrames();true");
       captureBlackboxScreenshot(pilot, join(artifacts, `${theme}-${language}-open.png`));
       evaluate(
-        "window.__topbarAppearanceProbe.close().then(()=>{window.__topbarAppearanceProbe.cleanup();return true;})",
+        "window.__topbarAppearanceProbe.resumeFrames();window.__topbarAppearanceProbe.close().then(()=>{window.__topbarAppearanceProbe.cleanup();return true;})",
       );
       captureBlackboxScreenshot(pilot, join(artifacts, `${theme}-${language}-closed.png`));
       console.log(`Topbar appearance passed: ${theme}/${language} ${result}`);

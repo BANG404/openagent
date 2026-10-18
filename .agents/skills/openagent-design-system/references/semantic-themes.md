@@ -130,5 +130,9 @@ native theme calls while sampling conversation geometry on animation frames.
 It also verifies that an explicit package asset refresh replaces the old faces.
 On Windows run the fixture and screenshot runner in the signed-in desktop
 session and supply its verified main HWND as `BLACKBOX_NATIVE_WINDOW_ID`.
+Pause geometry frame sampling only around native screenshot capture, then resume
+it before closing the surface: the PrintWindow fallback temporarily changes and
+restores window size to refresh composited pixels. Keep interaction sampling and
+font/native-theme assertions enabled for the open/close transitions.
 For independent native fixtures, select one appearance with `--mode=light|dark`
 and `--language=en|zh`. Run all four combinations to retain full coverage.
