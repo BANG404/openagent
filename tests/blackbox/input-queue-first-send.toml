@@ -1,0 +1,40 @@
+[scenario]
+name = "first send waits for durable conversation creation"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "slow conversation creation never causes a premature queue read"
+action = "eval"
+script = '''(async()=>{
+  const {desktopOpenAgent:client}=await import('/src/lib/openagent/tauriClient.ts');
+  const invoke=client.invokeProduct,read=client.getInputQueue;
+  const marker=crypto.randomUUID();let conversationId,release,reads=0,prematureReads=0,persisted=false;
+  const wait=async(check,why)=>{const end=Date.now()+20000;while(Date.now()<end){if(check())return;await new Promise(r=>setTimeout(r,50));}throw new Error(why);};
+  client.invokeProduct=async(operation,args)=>{
+    if(operation==='create_conversation'){
+      conversationId=args.id;sessionStorage.setItem('input-queue-first-send-id',conversationId);
+      await new Promise(resolve=>{release=resolve;});
+      const result=await invoke.call(client,operation,args);persisted=true;return result;
+    }
+    return invoke.call(client,operation,args);
+  };
+  client.getInputQueue=async(id)=>{if(id===conversationId){reads++;if(!persisted)prematureReads++;}return read.call(client,id);};
+  try {
+    document.querySelector('.sidebar-primary-action').click();
+    await new Promise(r=>requestAnimationFrame(r));
+    const editor=document.querySelector('[contenteditable=true][role=textbox]');editor.focus();
+    const range=document.createRange();range.selectNodeContents(editor);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);
+    editor.dispatchEvent(new InputEvent('beforeinput',{bubbles:true,cancelable:true,inputType:'insertText',data:`QUEUE_FIXTURE:${marker} first-new-conversation`}));
+    await new Promise(r=>requestAnimationFrame(r));document.querySelector('.send-btn').click();
+    await wait(()=>!!release,'first send did not create a conversation');
+    window.dispatchEvent(new Event('focus'));
+    await new Promise(r=>setTimeout(r,2200));
+    if(reads||document.querySelector('.queue-error'))throw new Error('queue was read before the conversation was persisted');
+    release();
+    await wait(()=>document.body.textContent.includes(`Queue response ${marker}`),'first provider response did not arrive');
+    await wait(()=>reads>0&&!document.querySelector('.stop-btn'),'persisted conversation did not load its queue or complete');
+    if(prematureReads||document.querySelector('.queue-error'))throw new Error('first send displayed a queue failure');
+    return 'first send waits for persistence, then loads a branchless queue successfully';
+  } finally { if(release)release();client.invokeProduct=invoke;client.getInputQueue=read; }
+})()'''
