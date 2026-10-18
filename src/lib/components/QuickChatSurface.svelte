@@ -11,7 +11,7 @@
   import { LatestRequest } from "$lib/latestRequest";
   import { decodeModelBinding, encodeModelBinding } from "$lib/modelBinding";
   import { modelSupportsVision } from "$lib/modelCapabilities";
-  import { desktopOpenAgent, emit, listen } from "$lib/openagent/tauriClient";
+  import { desktopOpenAgent, emit, invoke, listen } from "$lib/openagent/tauriClient";
   import {
     loadQuickChatPreferences,
     resolveQuickChatModel,
@@ -231,10 +231,7 @@
           roleId: selectedRole === defaultRoleKey ? null : selectedRole,
         },
       });
-      // The backend also asks the registered workspace window to activate,
-      // but that registration can race launcher startup. Notify the main
-      // frontend directly after the durable conversation exists so the
-      // workspace shell always selects the new conversation branch.
+      // Select the accepted conversation in this desktop's existing shell.
       await emit("workspace-window-open-request", {
         workspace: selectedWorkspace,
         conversation_id: conversationId,
@@ -244,6 +241,7 @@
       inputText = "";
       inputAttachments = [];
       await close();
+      await invoke("reveal_main_window");
     } catch (error) {
       showToast({ title: String(error), variant: "error" });
       await appWindow?.setFocus().catch(() => {});

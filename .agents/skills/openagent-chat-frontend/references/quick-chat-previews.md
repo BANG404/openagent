@@ -56,9 +56,10 @@
   before that handoff, switching to the new conversation must still hydrate its
   persisted checkpoints and branch metadata; an optimistic loaded marker must
   not suppress this first branch projection.
-  After the submission returns its durable conversation ID, the launcher also
-  emits the workspace-window activation request so the main frontend can select
-  the new conversation even if native workspace registration raced the submit.
+  After the submission returns its durable conversation ID, the launcher emits
+  the workspace-window activation request so the main frontend selects the new
+  conversation, hides the launcher, and explicitly reveals the existing main
+  window through the native command. Submission never launches a workspace process.
   Reload launcher settings when configuration changes so enabled model options
   and the selected model's image-attachment capability stay current. Preserve
   the launcher's model while it remains available; if it becomes unavailable,
@@ -148,6 +149,14 @@
   the editor and its formatted descendants, then drive an editor click and typing
   without explicitly focusing it. The runner restores settings
   and launcher visibility; it never submits a provider turn.
+- Verify submission with `bun run test:blackbox:quick-chat-submission` against
+  a fresh isolated `quick-chat` native instance and explicit `OPENAGENT_HOME`
+  and `TAURI_PILOT_SOCKET`. Its loopback provider checks a nondefault model,
+  first submission into an unregistered workspace, missing-directory failure
+  with the draft retained, successful retry, hidden-main reveal and transcript
+  restoration after reload in light/dark and English/Chinese. It sends no live
+  provider traffic and leaves its synthetic conversations in the fixture for
+  checkpoint/renderability inspection.
 - General settings owns the persisted quick-chat accelerator. Capturing a new
   accelerator requires at least one modifier and stores the portable Tauri
   representation. Capture keydown events at the window level while recording;

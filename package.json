@@ -53,6 +53,7 @@
     "test:blackbox:scroll-to-bottom": "bun scripts/test-scroll-to-bottom-blackbox.mjs",
     "test:blackbox:conversation-tree": "bun scripts/test-conversation-tree-blackbox.mjs",
     "test:blackbox:quick-chat": "bun scripts/test-quick-chat-blackbox.mjs",
+    "test:blackbox:quick-chat-submission": "bun scripts/test-quick-chat-submission-blackbox.mjs",
     "test:blackbox:user-message-markdown": "bun scripts/test-user-message-markdown-blackbox.mjs",
     "test:blackbox:book-reader": "bun scripts/test-book-reader-blackbox.mjs",
     "test:blackbox:conversation-trace-export": "bun scripts/test-conversation-trace-export-blackbox.mjs",

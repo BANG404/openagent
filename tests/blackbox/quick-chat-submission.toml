@@ -1,0 +1,19 @@
+[scenario]
+name = "quick chat sends through the current Runtime and retains failed drafts"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "enter the launcher draft"
+action = "eval"
+script = '''(() => {
+  const editor = document.querySelector('.quick-chat [contenteditable=true]');
+  editor.focus();
+  editor.dispatchEvent(new InputEvent('beforeinput', {inputType:'insertText', data:window.__quickChatSubmissionText, bubbles:true, cancelable:true}));
+  return true;
+})()'''
+
+[[step]]
+name = "send to the selected workspace"
+action = "click"
+target = ".quick-chat .send-btn"
