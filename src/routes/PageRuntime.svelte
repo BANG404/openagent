@@ -3393,12 +3393,15 @@
             role: "user",
             content: text,
             timestamp: Date.now(),
+            liveSteering: {
+              assistantMessageId: chatStreams.assistantMessageIds[convId] ?? "",
+            },
             items: [
               ...contexts.map((context) => ({ type: "quote" as const, context })),
               ...attachments.map((attachment) => ({ type: "attachment" as const, attachment })),
             ],
           },
-          chatStreams.assistantMessageIds[convId] ?? "",
+          "",
         );
       }
       if (paused) await setStreamPaused(convId, false);

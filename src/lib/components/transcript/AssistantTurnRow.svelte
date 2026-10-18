@@ -92,7 +92,7 @@
   let liveNow = $state(Date.now());
   let liveStart = $state(Date.now());
   $effect(() => {
-    if (entry.kind !== "live_stream") return;
+    if (entry.kind !== "live_stream" || entry.settled) return;
     // The transport's clock survives switching conversations and model rounds.
     // Paired clients can instead recover the logical Turn clock from history.
     liveStart =
@@ -140,13 +140,14 @@
     activeBranchId,
   )}
   {@const assistantIsStreaming = entry.kind === "live_stream"}
+  {@const activeStream = assistantIsStreaming && !entry.settled}
   {@const hasModelResponse = renderedAssistantItems.some(
     (item) =>
       item.type === "tool_call" ||
       ((item.type === "text" || item.type === "thinking") && item.content.length > 0),
   )}
   {@const showRunningStatus =
-    assistantIsStreaming && !memoryRetrievalStage && (!isAwaitingStreamOutput || hasModelResponse)}
+    activeStream && !memoryRetrievalStage && (!isAwaitingStreamOutput || hasModelResponse)}
   {@const turnMetadata = latestTurnMetadata(turnMessages)}
   {@const turnStatus = assistantTurnStatus(turnMessages, assistantIsStreaming)}
   {@const turnSuggestionHostMessageId =
@@ -186,7 +187,7 @@
         >
           <ToolCallGroup
             items={segment.items}
-            isStreaming={assistantIsStreaming}
+            isStreaming={activeStream}
             {onSubmitUserInput}
             {onCancelUserInput}
           />
@@ -203,7 +204,7 @@
               : !renderedAssistantItems
                   .slice(segment.startIndex + 1)
                   .some((next) => next.type === "text"))}
-          isStreaming={assistantIsStreaming}
+          isStreaming={activeStream}
           debugCheckpointId={debugMode
             ? (assistantMsg?.checkpointId ??
               (assistantIsStreaming ? (pendingCheckpointId ?? undefined) : undefined))
@@ -225,7 +226,7 @@
     {@render renderAssistantSegments(processSegments)}
   </ProcessRecordGroup>
   {@render renderAssistantSegments(finalSegments)}
-  {#if assistantIsStreaming && memoryRetrievalStage}
+  {#if activeStream && memoryRetrievalStage}
     <div class="thinking-status memory-retrieval-status" role="status" aria-live="polite">
       <span class="thinking-dot"></span>
       <span>{memoryRetrievalLabel(memoryRetrievalStage)}</span>
@@ -235,7 +236,7 @@
         >
       {/if}
     </div>
-  {:else if assistantIsStreaming && isAwaitingStreamOutput && !hasModelResponse}
+  {:else if activeStream && isAwaitingStreamOutput && !hasModelResponse}
     <div class="thinking-status" role="status" aria-live="polite">
       <span class="thinking-dot"></span>
       <span>{$t("awaitingStreamOutput")}</span>

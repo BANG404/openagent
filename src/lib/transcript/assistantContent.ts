@@ -20,7 +20,7 @@ export function assistantItems(
   activeConvId: string | null,
   activeBranchId: string | null,
 ): StreamItem[] {
-  if (entry.kind === "live_stream") return currentStreamItems;
+  if (entry.kind === "live_stream") return entry.items ?? currentStreamItems;
   if (entry.kind === "assistant_turn") {
     return entry.messages.flatMap((message) => {
       // A durable turn is grouped with the replay that opens it, so its

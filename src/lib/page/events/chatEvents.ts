@@ -10,6 +10,7 @@ import {
 } from "$lib/chatStream";
 import type { PageEventOptions } from "./context";
 import { toolImageAttachments } from "$lib/toolImageAttachments";
+import { consumeLiveSteering } from "$lib/transcript/liveSteering";
 
 /** Projects the shared SDK chat event stream into the existing page state. */
 export function subscribePageChatEvents(options: PageEventOptions) {
@@ -20,6 +21,17 @@ export function subscribePageChatEvents(options: PageEventOptions) {
     onResponseStarted: (conv_id) => {
       if (!options.chatStreams.streamingConversationIds[conv_id]) {
         options.recoverUnannouncedChatStream(conv_id);
+      }
+      const location = options.findConversationLocation(conv_id);
+      if (location) {
+        const conversation = location.conversations[location.index];
+        const messages = consumeLiveSteering(
+          conversation.messages,
+          options.chatStreams.assistantMessageIds[conv_id],
+          options.chatStreams.itemsByConversation[conv_id] ?? [],
+        );
+        if (messages !== conversation.messages)
+          location.conversations[location.index] = { ...conversation, messages };
       }
       options.chatStreams.clearMemoryRetrieval(conv_id);
       if (options.chatStreams.streamingConversationIds[conv_id]) {

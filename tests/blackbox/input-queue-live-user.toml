@@ -16,6 +16,13 @@ script = '''(async()=>{
   if(bubble().length!==1||!bubble()[0].textContent.includes(suffix))throw new Error('queued input is missing or duplicated during streaming: '+suffix);
   if(!document.querySelector('.stop-btn')||!document.querySelector('.input-wrapper-streaming'))throw new Error('provider stream finished before the user bubble appeared');
   if(document.querySelector(`.chat-queue [data-queue-id="${id}"]`))throw new Error('consumed input remains in the waiting queue');
+  const ids=JSON.parse(sessionStorage.getItem('input-queue-live-user-ids'));
+  const first=document.querySelector(`.user-msg[data-message-id="${ids.correction}"]`);
+  const second=document.querySelector(`.user-msg[data-message-id="${ids['correction-two']}"]`);
+  const responses=[...document.querySelectorAll('.assistant-msg')];
+  const precedes=(a,b)=>!!(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING);
+  if(!first||!second||!precedes(first,second)||!responses.some(row=>precedes(row,first)&&row.textContent.includes('complete suffix')))throw new Error('consumed steering moved before the preceding complete response');
+  if(suffix==='correction'&&!responses.some(row=>precedes(second,row)&&!row.textContent.includes('complete suffix')))throw new Error('steered response is not below both user bubbles');
   if(!document.querySelector('[contenteditable=true][role=textbox]').textContent.includes('unsent-steering-draft'))throw new Error('checkpoint projection overwrote the draft');
   bubble()[0].scrollIntoView({block:'center'});
   return suffix+' user bubble is visible exactly once before provider completion';

@@ -34,11 +34,11 @@
   import { createTranscriptSelection } from "$lib/transcript/selection.svelte";
   import { motionDuration } from "$lib/motion";
   import {
-    appendLiveStreamEntry,
     groupAssistantTurns,
     groupMessageToolCalls,
     isAssistantTurnEntry,
   } from "$lib/toolCallGroups";
+  import { projectLiveSteering } from "$lib/transcript/liveSteering";
 
   interface Props {
     messages: ChatMessage[];
@@ -203,7 +203,11 @@
     ),
   );
   let transcriptEntries = $derived(
-    appendLiveStreamEntry(renderEntries, isStreaming ? currentStreamMessageId : null),
+    projectLiveSteering(
+      renderEntries,
+      isStreaming ? currentStreamMessageId : null,
+      currentStreamItems,
+    ),
   );
   // The live row carries its own divider while the running stream reports
   // compaction. A replay that reaches the transcript without a durable

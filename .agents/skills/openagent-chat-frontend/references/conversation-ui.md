@@ -232,6 +232,13 @@ It has no new run-start event, so the submitting surface owns that accepted
 projection; never wait for terminal checkpoint hydration to reveal it. Failed
 acceptance adds no bubble. Checkpoint reconciliation deduplicates by the same
 stable ID. Next-turn inputs remain queued until their run-start event.
+Pending steering bubbles follow the current provider response, including its
+remaining chunks. On the next response-start event, retain the prior output
+before those bubbles and render subsequent output after them. Split text at
+the consumed character offset because consecutive provider responses can
+share one text item. Multiple accepted inputs retain submission order; only
+the active segment shows running status. These boundaries are transient UI
+metadata and never replace checkpoint order or create persisted assistant rows.
 The queue uses stable message IDs, revision-checked editing/reordering, explicit
 pause/resume, and retry/remove actions. Stop preserves pending inputs. Loading
 and errors retain the queue surface and expose refresh. Attachment references
@@ -256,3 +263,6 @@ persistence and dispatch invariants are owned by the private conversation skill.
 The native fixture holds the model after consuming steering and after starting
 the next queued turn, asserting both user bubbles before completion and exactly
 one of each after terminal hydration.
+Assert DOM order and output on both sides of steering bubbles while the
+original response and its continuation are held, including multiple inputs
+consumed at one boundary; presence alone does not establish correct placement.
