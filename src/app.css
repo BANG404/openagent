@@ -405,12 +405,12 @@
   .conversation-input-surface {
     border: 1px solid var(--mica-border);
     border-radius: var(--radius);
-    -webkit-backdrop-filter: blur(24px) saturate(1.28);
-    backdrop-filter: blur(24px) saturate(1.28);
     box-shadow: var(--mica-shadow);
   }
 
   .conversation-input-surface {
+    -webkit-backdrop-filter: blur(24px) saturate(1.28);
+    backdrop-filter: blur(24px) saturate(1.28);
     background: var(--mica-surface);
     box-shadow: var(--conversation-input-shadow);
   }

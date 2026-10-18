@@ -208,7 +208,7 @@ describe("desktop navigation chrome", () => {
     expect(settings).toMatch(/\.settings-panel\s*{[^}]*background: transparent;/s);
     const fullscreenSurface = await readFile(fullscreenSurfaceUrl, "utf8");
     expect(fullscreenSurface).toMatch(/\.fullscreen-surface\)\s*{[^}]*background: var\(--card\);/s);
-    expect(fullscreenSurface).toContain("backdrop-filter: blur(2px)");
+    expect(fullscreenSurface).not.toContain("backdrop-filter:");
     expect(onboarding).toContain('class="application-settings-surface step-content"');
     expect(onboarding).toMatch(/\.step-content\s*{[^}]*background: var\(--mica-surface\);/s);
 

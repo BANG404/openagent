@@ -128,7 +128,6 @@
     inset: 0;
     z-index: 80;
     background: color-mix(in srgb, var(--background) 42%, transparent);
-    backdrop-filter: blur(2px);
   }
 
   :global(.fullscreen-surface) {

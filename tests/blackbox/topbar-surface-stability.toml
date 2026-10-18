@@ -1,0 +1,102 @@
+[scenario]
+name = "topbar surfaces preserve underlying text and composer geometry"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+action = "eval"
+script = '''(async () => {
+  const assert = (condition, message) => { if (!condition) throw new Error(message); };
+  const settle = () => new Promise(resolve => setTimeout(resolve, 240));
+  const selectors = ['.desktop-shell-content h1', '.desktop-shell-content p', '.composer'];
+  const bounds = () => selectors.map(selector => {
+    const node = document.querySelector(selector);
+    assert(node, `Missing underlying content: ${selector}`);
+    const {x,y,width,height} = node.getBoundingClientRect();
+    return {x,y,width,height};
+  });
+  const baseline = bounds();
+  const check = () => bounds().forEach((rect, index) => {
+    for (const field of ['x','y','width','height'])
+      assert(Math.abs(rect[field] - baseline[index][field]) < 0.1, `${selectors[index]} ${field} moved`);
+  });
+  const noFilter = node => {
+    const style = getComputedStyle(node);
+    assert(style.backdropFilter === 'none', 'Transient surface filters underlying text');
+  };
+  const menu = async id => {
+    const trigger = document.getElementById(`application-${id}-menu`);
+    for (let cycle = 0; cycle < 2; cycle++) {
+      trigger.focus({preventScroll:true});
+      trigger.click();
+      await settle();
+      const menu = document.querySelector('.application-menu-content[data-state="open"]');
+      assert(menu, 'Menu did not open');
+      noFilter(menu);
+      check();
+      menu.dispatchEvent(new KeyboardEvent('keydown', {key:'Escape', bubbles:true}));
+      await settle();
+      assert(!document.querySelector('.application-menu-content[data-state="open"]'), 'Menu did not close');
+      assert(document.activeElement === trigger, 'Menu did not restore focus');
+      check();
+    }
+  };
+  window.__topbarSurfaceProbe = {assert, settle, check, noFilter, menu};
+  return true;
+})()'''
+
+[[step]]
+action = "eval"
+script = "window.__topbarSurfaceProbe.menu('file').then(() => true)"
+
+[[step]]
+action = "eval"
+script = "window.__topbarSurfaceProbe.menu('edit').then(() => true)"
+
+[[step]]
+action = "eval"
+script = "window.__topbarSurfaceProbe.menu('role').then(() => true)"
+
+[[step]]
+action = "eval"
+script = "window.__topbarSurfaceProbe.menu('integrations').then(() => true)"
+
+[[step]]
+action = "eval"
+script = "window.__topbarSurfaceProbe.menu('help').then(() => true)"
+
+[[step]]
+action = "eval"
+script = '''(async () => {
+  const {assert, settle, check, noFilter} = window.__topbarSurfaceProbe;
+  const compiled = await (await fetch('/src/routes/remote/+page.svelte')).text();
+  const runtime = /import \{ onMount \} from "([^"]+)"/.exec(compiled)?.[1];
+  assert(runtime, 'Svelte runtime missing');
+  const {mount, unmount} = await import(runtime);
+  const {default: Surface} = await import('/src/lib/devFixtures/TopbarSurfaceStability.svelte');
+  const host = document.createElement('div');
+  document.body.append(host);
+  let instance;
+  const close = () => { if (instance) {unmount(instance); instance = null;} };
+  const open = () => {instance = mount(Surface, {target:host, props:{onClose:close}});};
+  try {
+    for (let cycle = 0; cycle < 2; cycle++) {
+      open();
+      await settle();
+      noFilter(document.querySelector('.fullscreen-surface-backdrop'));
+      check();
+      document.querySelector('.fullscreen-surface-close').click();
+      await settle();
+      assert(!document.querySelector('.fullscreen-surface'), 'Management surface did not close');
+      check();
+    }
+    open();
+    await settle();
+    window.__topbarSurfaceCleanup = async () => {
+      close(); await settle(); host.remove(); delete window.__topbarSurfaceProbe;
+    };
+    return {menus:5, menuCycles:2, managementCycles:2, geometryStable:true, backdropFilter:'none'};
+  } catch (error) {
+    close(); host.remove(); throw error;
+  }
+})()'''
