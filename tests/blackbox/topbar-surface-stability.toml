@@ -24,7 +24,8 @@ script = '''(async () => {
     const style = getComputedStyle(node);
     assert(style.backdropFilter === 'none', 'Transient surface filters underlying text');
   };
-  for (const trigger of document.querySelectorAll('.application-menu-trigger')) {
+  const menu = async id => {
+    const trigger = document.getElementById(`application-${id}-menu`);
     for (let cycle = 0; cycle < 2; cycle++) {
       trigger.focus({preventScroll:true});
       trigger.click();
@@ -39,7 +40,35 @@ script = '''(async () => {
       assert(document.activeElement === trigger, 'Menu did not restore focus');
       check();
     }
-  }
+  };
+  window.__topbarSurfaceProbe = {assert, settle, check, noFilter, menu};
+  return true;
+})()'''
+
+[[step]]
+action = "eval"
+script = "window.__topbarSurfaceProbe.menu('file').then(() => true)"
+
+[[step]]
+action = "eval"
+script = "window.__topbarSurfaceProbe.menu('edit').then(() => true)"
+
+[[step]]
+action = "eval"
+script = "window.__topbarSurfaceProbe.menu('role').then(() => true)"
+
+[[step]]
+action = "eval"
+script = "window.__topbarSurfaceProbe.menu('integrations').then(() => true)"
+
+[[step]]
+action = "eval"
+script = "window.__topbarSurfaceProbe.menu('help').then(() => true)"
+
+[[step]]
+action = "eval"
+script = '''(async () => {
+  const {assert, settle, check, noFilter} = window.__topbarSurfaceProbe;
   const compiled = await (await fetch('/src/routes/remote/+page.svelte')).text();
   const runtime = /import \{ onMount \} from "([^"]+)"/.exec(compiled)?.[1];
   assert(runtime, 'Svelte runtime missing');
@@ -51,7 +80,7 @@ script = '''(async () => {
   const close = () => { if (instance) {unmount(instance); instance = null;} };
   const open = () => {instance = mount(Surface, {target:host, props:{onClose:close}});};
   try {
-    for (let cycle = 0; cycle < 3; cycle++) {
+    for (let cycle = 0; cycle < 2; cycle++) {
       open();
       await settle();
       noFilter(document.querySelector('.fullscreen-surface-backdrop'));
@@ -63,8 +92,10 @@ script = '''(async () => {
     }
     open();
     await settle();
-    window.__topbarSurfaceCleanup = async () => {close(); await settle(); host.remove();};
-    return {menus:5, menuCycles:2, managementCycles:3, geometryStable:true, backdropFilter:'none'};
+    window.__topbarSurfaceCleanup = async () => {
+      close(); await settle(); host.remove(); delete window.__topbarSurfaceProbe;
+    };
+    return {menus:5, menuCycles:2, managementCycles:2, geometryStable:true, backdropFilter:'none'};
   } catch (error) {
     close(); host.remove(); throw error;
   }

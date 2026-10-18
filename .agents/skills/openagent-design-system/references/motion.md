@@ -32,6 +32,8 @@ debug window on `?desktop-shell-preview`, selecting each appearance with
 `desktop-shell-preview-theme` and `desktop-shell-preview-locale`. The scenario
 mounts the real management surface without settings or conversation persistence;
 call `window.__topbarSurfaceCleanup()` after capturing the open surface.
+Keep menu cycles in separate eval steps: a background WebView can throttle
+timers enough for a combined pass to exceed Pilot's per-eval deadline.
 
 ## Interaction rules
 
