@@ -71,7 +71,7 @@ const model = createServer(async (request, response) => {
   const content = JSON.stringify(
     body.messages?.findLast((/** @type {any} */ item) => item.role === "user")?.content ?? "",
   );
-  const marker = content.match(/QUEUE_FIXTURE:([a-f0-9-]+)/)?.[1];
+  const marker = content.match(/QUEUE(?:\\+)?_FIXTURE:([a-f0-9-]+)/)?.[1];
   if (!marker) {
     response.writeHead(400);
     response.end("Unrelated fixture input");

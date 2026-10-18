@@ -25,7 +25,9 @@ script = '''(async()=>{
     await new Promise(r=>requestAnimationFrame(r));
     const editor=document.querySelector('[contenteditable=true][role=textbox]');editor.focus();
     const range=document.createRange();range.selectNodeContents(editor);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);
-    editor.dispatchEvent(new InputEvent('beforeinput',{bubbles:true,cancelable:true,inputType:'insertText',data:`QUEUE_FIXTURE:${marker} first-new-conversation`}));
+    document.dispatchEvent(new Event('selectionchange'));
+    const clipboard=new DataTransfer();clipboard.setData('text/plain',`QUEUE_FIXTURE:${marker} first-new-conversation`);
+    editor.dispatchEvent(new ClipboardEvent('paste',{clipboardData:clipboard,bubbles:true,cancelable:true}));
     await new Promise(r=>requestAnimationFrame(r));document.querySelector('.send-btn').click();
     await wait(()=>!!release,'first send did not create a conversation');
     window.dispatchEvent(new Event('focus'));
