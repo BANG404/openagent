@@ -3373,7 +3373,7 @@
       delivery === "steer" ? null : decodeModelBinding(composerPreferences.selectedModel);
     const branchId = activeBranchIds[convId] ?? null;
     try {
-      await inputQueue.submit(
+      const accepted = await inputQueue.submit(
         {
           convId,
           text,
@@ -3385,6 +3385,22 @@
         delivery,
         delivery === "steer" ? expectedRunId : undefined,
       );
+      if (delivery === "steer") {
+        insertExternalUserMessage(
+          convId,
+          {
+            id: accepted.input.userMessageId,
+            role: "user",
+            content: text,
+            timestamp: Date.now(),
+            items: [
+              ...contexts.map((context) => ({ type: "quote" as const, context })),
+              ...attachments.map((attachment) => ({ type: "attachment" as const, attachment })),
+            ],
+          },
+          chatStreams.assistantMessageIds[convId] ?? "",
+        );
+      }
       if (paused) await setStreamPaused(convId, false);
       if (
         selectedComposerDraftKey === draftKey &&

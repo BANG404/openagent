@@ -91,7 +91,9 @@ export function createInputQueueProjection(
       expectedRunId,
     });
     unacknowledged.delete(key);
-    return result;
+    // A fast consumer can already have removed this receipt from the snapshot.
+    // Return the acknowledged identity so the submitting surface can render it.
+    return { snapshot: result, input: { ...input, ...identity } };
   }
 
   return {

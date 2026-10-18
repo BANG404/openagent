@@ -1,0 +1,22 @@
+[scenario]
+name = "consumed queued input has a user bubble before streaming completes"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "the durable input identity is visible while the provider stream is held"
+action = "eval"
+script = '''(async()=>{
+  const suffix=sessionStorage.getItem('input-queue-live-input');
+  const id=JSON.parse(sessionStorage.getItem('input-queue-live-user-ids'))[suffix];
+  if(!id)throw new Error('missing queued input identity');
+  const bubble=()=>[...document.querySelectorAll('.user-msg')].filter(row=>row.dataset.messageId===id);
+  const end=Date.now()+15000;
+  while(Date.now()<end&&!bubble().length)await new Promise(r=>setTimeout(r,50));
+  if(bubble().length!==1||!bubble()[0].textContent.includes(suffix))throw new Error('queued input is missing or duplicated during streaming: '+suffix);
+  if(!document.querySelector('.stop-btn')||!document.querySelector('.input-wrapper-streaming'))throw new Error('provider stream finished before the user bubble appeared');
+  if(document.querySelector(`.chat-queue [data-queue-id="${id}"]`))throw new Error('consumed input remains in the waiting queue');
+  if(!document.querySelector('[contenteditable=true][role=textbox]').textContent.includes('unsent-steering-draft'))throw new Error('checkpoint projection overwrote the draft');
+  bubble()[0].scrollIntoView({block:'center'});
+  return suffix+' user bubble is visible exactly once before provider completion';
+})()'''

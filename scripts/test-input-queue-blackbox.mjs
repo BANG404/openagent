@@ -208,12 +208,34 @@ try {
       await evaluate("document.querySelector('.input-wrapper').style.width='280px'; true");
       await screenshot(`${theme}-${language}-streaming-actions-narrow.png`);
       await evaluate("document.querySelector('.input-wrapper').style.width=''; true");
-      hold = false;
       releases.splice(0).forEach((release) => release());
+      for (const suffix of ["correction", "next-turn"]) {
+        const expected = beforeSteer + (suffix === "correction" ? 2 : 3);
+        const deadline = Date.now() + 15000;
+        while (requests.length < expected && Date.now() < deadline)
+          await new Promise((done) => setTimeout(done, 50));
+        assert.equal(requests.length, expected, "The next provider stream did not start");
+        await evaluate(
+          `sessionStorage.setItem('input-queue-live-input',${JSON.stringify(suffix)}); true`,
+        );
+        await pilot(["snapshot", "-i"]);
+        await pilot([
+          "run",
+          join(root, "tests/blackbox/input-queue-live-user.toml"),
+          "--junit",
+          join(artifacts, `${theme}-${language}-${suffix}-live-user.xml`),
+        ]);
+        await screenshot(`${theme}-${language}-${suffix}-live-user.png`);
+        if (suffix === "next-turn") hold = false;
+        releases.splice(0).forEach((release) => release());
+      }
       await until(
         "!document.querySelector('.chat-queue') && !document.querySelector('.input-wrapper-streaming') && !document.querySelector('.stop-btn') && !document.querySelector('.steer-btn') && document.querySelector('[contenteditable=true][role=textbox]')?.textContent.includes('unsent-steering-draft')",
       );
       await screenshot(`${theme}-${language}-settled-actions.png`);
+      await evaluate(
+        `(()=>{const ids=JSON.parse(sessionStorage.getItem('input-queue-live-user-ids'));for(const id of Object.values(ids)){if([...document.querySelectorAll('.user-msg')].filter(row=>row.dataset.messageId===id).length!==1)throw new Error('terminal hydration duplicated or lost a queued user bubble');}return true;})()`,
+      );
       const steered = requests.slice(beforeSteer);
       assert.equal(steered.length, 3, "Steering did not remain inside the current run");
       assert(steered[1].content.includes("correction") && steered[2].content.includes("next-turn"));

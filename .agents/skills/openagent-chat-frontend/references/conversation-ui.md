@@ -226,7 +226,13 @@ native queue fixtures must start without pre-creating a branch.
 Ordinary input during execution waits for the next turn. The separate Add to
 current task action targets the displayed active run ID and keeps its model;
 a stale or finishing run rejects that action without moving the draft. The
-queue uses stable message IDs, revision-checked editing/reordering, explicit
+accepted steering input immediately renders as an ordinary user bubble using
+the submission's stable user-message ID, text, attachments and quoted context.
+It has no new run-start event, so the submitting surface owns that accepted
+projection; never wait for terminal checkpoint hydration to reveal it. Failed
+acceptance adds no bubble. Checkpoint reconciliation deduplicates by the same
+stable ID. Next-turn inputs remain queued until their run-start event.
+The queue uses stable message IDs, revision-checked editing/reordering, explicit
 pause/resume, and retry/remove actions. Stop preserves pending inputs. Loading
 and errors retain the queue surface and expose refresh. Attachment references
 and model/branch selections travel with the queued input.
@@ -247,3 +253,6 @@ queue editing, ordering, failed acceptance with a newer draft, pause,
 Stop, reload and explicit steering using `bun run test:blackbox:input-queue`
 in an isolated Tauri instance, in light/dark and English/Chinese. Runtime
 persistence and dispatch invariants are owned by the private conversation skill.
+The native fixture holds the model after consuming steering and after starting
+the next queued turn, asserting both user bubbles before completion and exactly
+one of each after terminal hydration.

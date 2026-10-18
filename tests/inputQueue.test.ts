@@ -71,9 +71,11 @@ test("uncertain acceptance reuses identities and keeps attachments, context and 
   await expect(projection.submit(input, "next_turn")).rejects.toThrow("response lost");
   expect(projection.pending.one).toBe(0);
   expect(projection.errors.one).toContain("response lost");
-  await projection.submit(input, "next_turn");
+  const accepted = await projection.submit(input, "next_turn");
   expect(attempts[1]).toEqual(attempts[0]);
   expect(attempts[1]).toMatchObject({ type: "add", input });
+  expect(accepted.snapshot).toEqual(snapshot(2));
+  expect((attempts[1] as Extract<InputQueueAction, { type: "add" }>).input).toEqual(accepted.input);
   await projection.submit(input, "next_turn");
   expect(attempts[2]).not.toEqual(attempts[1]);
 });
@@ -87,7 +89,7 @@ test("steering includes its observed run and never starts a turn in the client",
       return snapshot(1);
     },
   });
-  await projection.submit(
+  const accepted = await projection.submit(
     { convId: "one", text: "adjust", modelBinding: null },
     "steer",
     "observed-run",
@@ -98,4 +100,6 @@ test("steering includes its observed run and never starts a turn in the client",
     delivery: "steer",
     expectedRunId: "observed-run",
   });
+  expect(accepted.input.userMessageId).toBeTruthy();
+  expect((attempts[0] as Extract<InputQueueAction, { type: "add" }>).input).toEqual(accepted.input);
 });

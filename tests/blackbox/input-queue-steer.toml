@@ -15,9 +15,21 @@ script = '''(async()=>{
   await wait(()=>document.body.textContent.includes(`Queue response ${probe.marker}`),'steering target did not start');
   await fill(`QUEUE_FIXTURE:${probe.marker} next-turn`);document.querySelector('.send-btn').click();await wait(sent,'next-turn acceptance failed');
   await fill(`QUEUE_FIXTURE:${probe.marker} correction`);
+  const {desktopOpenAgent:client}=await import('/src/lib/openagent/tauriClient.ts');
+  const mutate=client.mutateInputQueue;
+  const beforeFailure=document.querySelectorAll('.user-msg').length;
+  client.mutateInputQueue=async()=>{throw new Error('Fixture steering acceptance rejected');};
+  try{
+    document.querySelector('.steer-btn').click();
+    await wait(()=>!!document.querySelector('.queue-error')&&!document.querySelector('.send-btn').disabled,'failed steering remained busy');
+    if(document.querySelectorAll('.user-msg').length!==beforeFailure||sent())throw new Error('rejected steering added a bubble or erased its draft');
+  }finally{client.mutateInputQueue=mutate;}
   const steer=document.querySelector('.steer-btn');if(!steer||steer.disabled)throw new Error('explicit steering action missing');steer.click();
   await wait(sent,'steering acceptance failed');
   await wait(()=>[...document.querySelectorAll('.chat-queue li')].some(row=>row.textContent.includes('correction')),'steering receipt missing');
+  sessionStorage.setItem('input-queue-live-user-ids',JSON.stringify(Object.fromEntries(['correction','next-turn'].map(suffix=>[suffix,[...document.querySelectorAll('.chat-queue li')].find(row=>row.textContent.includes(suffix)).dataset.queueId]))));
+  const correctionId=JSON.parse(sessionStorage.getItem('input-queue-live-user-ids')).correction;
+  await wait(()=>[...document.querySelectorAll('.user-msg')].some(row=>row.dataset.messageId===correctionId),'accepted correction has no user bubble while the original response is still streaming');
   await fill('unsent-steering-draft');
   return 'correction accepted for the active run with a separate next-turn input';
 })()'''
