@@ -204,11 +204,16 @@ try {
       const beforeSteer = requests.length;
       await pilot(["snapshot", "-i"]);
       await pilot(["run", join(root, "tests/blackbox/input-queue-steer.toml")]);
+      await screenshot(`${theme}-${language}-streaming-actions.png`);
+      await evaluate("document.querySelector('.input-wrapper').style.width='280px'; true");
+      await screenshot(`${theme}-${language}-streaming-actions-narrow.png`);
+      await evaluate("document.querySelector('.input-wrapper').style.width=''; true");
       hold = false;
       releases.splice(0).forEach((release) => release());
       await until(
-        "!document.querySelector('.chat-queue') && document.querySelector('[contenteditable=true][role=textbox]')?.textContent.includes('unsent-steering-draft')",
+        "!document.querySelector('.chat-queue') && !document.querySelector('.input-wrapper-streaming') && !document.querySelector('.stop-btn') && !document.querySelector('.steer-btn') && document.querySelector('[contenteditable=true][role=textbox]')?.textContent.includes('unsent-steering-draft')",
       );
+      await screenshot(`${theme}-${language}-settled-actions.png`);
       const steered = requests.slice(beforeSteer);
       assert.equal(steered.length, 3, "Steering did not remain inside the current run");
       assert(steered[1].content.includes("correction") && steered[2].content.includes("next-turn"));

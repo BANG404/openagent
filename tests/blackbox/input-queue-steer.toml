@@ -21,3 +21,27 @@ script = '''(async()=>{
   await fill('unsent-steering-draft');
   return 'correction accepted for the active run with a separate next-turn input';
 })()'''
+
+[[step]]
+name = "streaming actions stay inside the composer at wide and narrow widths"
+action = "eval"
+script = '''(async()=>{
+  const wrapper=document.querySelector('.input-wrapper');
+  const original=wrapper.style.width;
+  const frame=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+  const check=()=>{
+    const surface=wrapper.querySelector('.composer').getBoundingClientRect();
+    const buttons=[...wrapper.querySelectorAll('.steer-btn,.send-btn,.stop-btn,.context-usage-trigger')];
+    if(!wrapper.querySelector('.composer-toolbar .steer-btn')||!wrapper.querySelector('.stop-btn'))throw new Error('streaming actions missing');
+    const all=[...wrapper.querySelectorAll('.composer-toolbar button,.send-btn,.stop-btn,.context-usage-trigger')].map(e=>({e,r:e.getBoundingClientRect()})).filter(({r})=>r.width&&r.height);
+    for(const button of buttons){
+      const r=button.getBoundingClientRect();
+      if(r.left<surface.left-1||r.right>surface.right+1||r.top<surface.top-1||r.bottom>surface.bottom+1)throw new Error('action escaped composer: '+button.className);
+      for(const {e,r:other} of all){if(e!==button&&Math.min(r.right,other.right)-Math.max(r.left,other.left)>1&&Math.min(r.bottom,other.bottom)-Math.max(r.top,other.top)>1)throw new Error('composer actions overlap: '+button.className+' / '+e.className);}
+    }
+    if(wrapper.getBoundingClientRect().bottom>surface.bottom+1)throw new Error('steering created a row outside the composer');
+  };
+  try{await frame();check();wrapper.style.width='280px';await frame();check();}
+  finally{wrapper.style.width=original;await frame();}
+  return 'send, Stop and steering remain contained and separate at both widths';
+})()'''
