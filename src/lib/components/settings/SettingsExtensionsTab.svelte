@@ -51,7 +51,6 @@
                     mcp.selectedMcpId = server.id;
                   }}
                 >
-                  <div class="provider-item-icon mcp-icon">M</div>
                   <div class="provider-item-info">
                     <span class="provider-item-name">{server.name || "Unnamed"}</span>
                     <span class="provider-item-url"
@@ -91,7 +90,6 @@
             data-plugin-mcp={entry.key}
             onclick={() => (selectedPluginKey = entry.key)}
           >
-            <div class="provider-item-icon mcp-icon">M</div>
             <div class="provider-item-info">
               <span class="provider-item-name">{entry.server.name}</span>
               <span class="provider-item-url"

@@ -258,11 +258,6 @@
   object-fit: contain;
 }
 
-.mcp-icon {
-  background: #4f46e5;
-  color: #fff;
-}
-
 .env-row {
   display: flex;
   gap: 6px;
