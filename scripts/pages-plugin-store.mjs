@@ -1,4 +1,6 @@
-/** @typedef {{ id: string; category?: string; display_name: string; description?: string; repository: string; i18n?: { translations?: Record<string, Record<string, string>> } }} StorePlugin */
+import { isPluginDiscoveryCategory } from "../src/lib/pluginDiscoveryCategories.ts";
+
+/** @typedef {{ id: string; category?: string; discovery_category?: string; display_name: string; description?: string; repository: string; i18n?: { translations?: Record<string, Record<string, string>> } }} StorePlugin */
 
 /** @param {string} value */
 function escapeHtml(value) {
@@ -33,8 +35,12 @@ export function renderPluginStore(registry) {
       ) {
         throw new Error(`Invalid plugin repository: ${plugin.id}`);
       }
-      const category = plugin.category ?? "uncategorized";
-      if (!/^[a-z]+$/.test(category)) throw new Error(`Invalid plugin category: ${plugin.id}`);
+      const category = plugin.discovery_category ?? "uncategorized";
+      if (
+        plugin.discovery_category !== undefined &&
+        !isPluginDiscoveryCategory(plugin.discovery_category)
+      )
+        throw new Error(`Invalid plugin discovery category: ${plugin.id}`);
       /** @param {string} field @param {string} fallback */
       const localized = (field, fallback) => {
         const en = plugin.i18n?.translations?.en?.[field] || fallback;

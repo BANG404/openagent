@@ -1,5 +1,13 @@
 # Shared Runtime Types
 
+Plugin store filters and both marketplace/installed discovery badges use the
+catalog's `discoveryCategory`, independently of the Runtime manifest `category`.
+The controller owns the bound filter setter and resolves installed classification
+from the complete fetched registry, not the filtered card list. Catalog failure
+must not disable installed management or channel configuration. The plugin owner's
+[registry contract](../../openagent-plugin-development/references/official-registry.md)
+owns the taxonomy and native verification scenarios.
+
 Chat styles consume the design system's semantic CSS tokens and matching
 foreground pairs. Shared primary actions never fix their foreground to white.
 Theme changes must repaint mounted charts and diagrams as well as DOM surfaces;
@@ -153,8 +161,10 @@ locale store, rather than the raw configuration preference (`system` or a stale
 saved snapshot). Sidebar titles and first/live context must follow the same locale
 while preserving the mounted iframe and its draft.
 
-Plugin summary types carry optional discovery category metadata. Read the category
-IDs and validation rules in [package format](../../openagent-plugin-development/references/package-format.md#discovery-categories); consume them through the shared SDK descriptor and keep display labels localized.
+Plugin summary types carry optional manifest category metadata. Read those IDs and
+validation rules in [package format](../../openagent-plugin-development/references/package-format.md#manifest-categories).
+Marketplace discovery purposes follow the catalog contract linked above and keep
+display labels localized.
 
 Installed plugin summaries carry `plugin_type` and validated theme token maps.
 The page applies the overlay from saved lifecycle state and resolved appearance

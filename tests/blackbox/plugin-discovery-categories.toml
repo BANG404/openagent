@@ -1,0 +1,99 @@
+[scenario]
+name = "Store purposes separate messaging, collaboration, orchestration and automation"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "reviewed purposes and translated labels match every card"
+action = "eval"
+script = '''(async () => {
+  const {tr} = await import('/src/lib/i18n.ts');
+  const {pluginDiscoveryCategoryKeys} = await import('/src/lib/pluginDiscoveryCategories.ts');
+  for (const entry of window.__reviewedPluginCatalog.plugins) {
+    const badge = document.querySelector(`.official-plugin-card[data-plugin-id="${entry.id}"] [data-category]`);
+    if (badge?.dataset.category !== entry.discovery_category) throw new Error(`wrong discovery category: ${entry.id}`);
+    if (badge.textContent.trim() !== tr(pluginDiscoveryCategoryKeys[entry.discovery_category])) throw new Error(`untranslated category: ${entry.id}`);
+  }
+  return true;
+})()'''
+
+[[step]]
+name = "choose messaging channels through the user control"
+action = "click"
+target = "#official-plugin-category"
+
+[[step]]
+name = "category menu shows complete translated names"
+action = "eval"
+script = '''(() => {
+  const labels=[...document.querySelectorAll('.official-plugin-category-menu .ui-select-item-label')];
+  if (!labels.length || labels.some(label=>label.scrollWidth>label.clientWidth+1)) throw new Error('category menu truncates purpose labels');
+  return true;
+})()'''
+
+[[step]]
+action = "click"
+target = '[role="option"][data-value="channels"]'
+
+[[step]]
+action = "eval"
+script = '''(async () => {
+  await new Promise(resolve => setTimeout(resolve, 50));
+  const ids = [...document.querySelectorAll('.official-plugin-card')].map(card=>card.dataset.pluginId);
+  if (JSON.stringify(ids)!==JSON.stringify(['imessage'])) throw new Error(`messaging channels: ${ids}`);
+  return true;
+})()'''
+
+[[step]]
+name = "next category contains agent collaboration rather than external channels"
+action = "click"
+target = "#official-plugin-category"
+
+[[step]]
+action = "click"
+target = '[role="option"][data-value="collaboration"]'
+
+[[step]]
+action = "eval"
+script = '''(async () => {
+  await new Promise(resolve => setTimeout(resolve, 50));
+  const ids = [...document.querySelectorAll('.official-plugin-card')].map(card=>card.dataset.pluginId);
+  if (JSON.stringify(ids)!==JSON.stringify(['chat-groups','message-board'])) throw new Error(`agent collaboration: ${ids}`);
+  return true;
+})()'''
+
+[[step]]
+name = "collaboration and search intersect"
+action = "fill"
+target = ".official-plugin-search input"
+value = "message-board"
+
+[[step]]
+action = "eval"
+script = '''(async () => {
+  await new Promise(resolve=>setTimeout(resolve,50));
+  const cards=[...document.querySelectorAll('.official-plugin-card')];
+  if(cards.length!==1 || cards[0].dataset.pluginId!=='message-board') throw new Error('collaboration search did not select message-board');
+  return true;
+})()'''
+
+[[step]]
+name = "search clearing preserves the collaboration category"
+action = "click"
+target = ".official-plugin-clear"
+
+[[step]]
+action = "click"
+target = "#official-plugin-category"
+
+[[step]]
+action = "click"
+target = '[role="option"][data-value="all"]'
+
+[[step]]
+action = "eval"
+script = '''(async () => {
+  await new Promise(resolve => setTimeout(resolve,50));
+  if (document.querySelectorAll('.official-plugin-card').length!==window.__reviewedPluginCatalog.plugins.length) throw new Error('category reset did not restore the catalog');
+  return true;
+})()'''

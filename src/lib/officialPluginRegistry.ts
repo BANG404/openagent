@@ -8,6 +8,11 @@
 
 import { parsePluginI18n, pluginText, type AgentPluginI18n } from "./pluginI18n";
 import { isPluginCategory, type PluginCategory } from "./pluginCategories";
+import {
+  isPluginDiscoveryCategory,
+  type PluginDiscoveryCategoryFilter,
+  type PluginDiscoveryCategory,
+} from "./pluginDiscoveryCategories";
 
 export const OFFICIAL_PLUGIN_REGISTRY_SCHEMA =
   "https://openagent.dev/schemas/plugin-registry/v1" as const;
@@ -22,6 +27,7 @@ const MAX_REGISTRY_ENTRIES = 256;
 
 export interface OfficialPluginRegistryEntry {
   category?: PluginCategory;
+  discoveryCategory?: PluginDiscoveryCategory;
   i18n?: AgentPluginI18n;
   id: string;
   displayName: string;
@@ -132,12 +138,17 @@ function parseEntry(value: unknown, index: number): OfficialPluginRegistryEntry 
   if (value.category !== undefined && !isPluginCategory(value.category)) {
     throw new Error(`official plugin '${id}' has an invalid category`);
   }
+  const discoveryCategory = value.discovery_category;
+  if (discoveryCategory !== undefined && !isPluginDiscoveryCategory(discoveryCategory)) {
+    throw new Error(`official plugin '${id}' has an invalid discovery_category`);
+  }
   if (sha256 && !SHA256_PATTERN.test(sha256)) {
     throw new Error(`official plugin '${id}' has an invalid sha256 digest`);
   }
   return {
     id,
     category: value.category,
+    discoveryCategory,
     i18n: parsePluginI18n(
       value.i18n,
       value.description === undefined ? ["display_name"] : ["display_name", "description"],
@@ -203,7 +214,7 @@ export function projectOfficialPluginCatalog(
     filter?: OfficialPluginCatalogFilter;
     locale?: string;
     installedI18n?: ReadonlyMap<string, AgentPluginI18n | null | undefined>;
-    category?: PluginCategory | "all" | "uncategorized";
+    category?: PluginDiscoveryCategoryFilter;
   },
 ): OfficialPluginCatalogItem[] {
   const query = options.query?.trim().toLocaleLowerCase() ?? "";
@@ -235,12 +246,12 @@ export function projectOfficialPluginCatalog(
       };
     })
     .filter((plugin) => {
-      if (options.category === "uncategorized" && plugin.category) return false;
+      if (options.category === "uncategorized" && plugin.discoveryCategory) return false;
       if (
         options.category &&
         options.category !== "all" &&
         options.category !== "uncategorized" &&
-        plugin.category !== options.category
+        plugin.discoveryCategory !== options.category
       )
         return false;
       if (filter === "installed" && !plugin.installed) return false;

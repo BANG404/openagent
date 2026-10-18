@@ -52,6 +52,7 @@ const plugin = {
   description: "Tools & workflows",
   repository: "https://github.com/Example/plugin",
   category: "development",
+  discovery_category: "development",
   i18n: { translations: { zh: { display_name: "示例插件", description: "开发工具" } } },
 };
 
@@ -68,10 +69,28 @@ test("store publishes escaped bilingual discovery and repository releases withou
 test("store uses English when a translation is missing and keeps uncategorized entries", () => {
   const html = renderPluginStore({
     schema_version: 1,
-    plugins: [{ ...plugin, category: undefined, i18n: undefined }],
+    plugins: [{ ...plugin, discovery_category: undefined, i18n: undefined }],
   });
   expect(html).toContain('data-plugin-zh="Tools &amp; workflows"');
   expect(html).toContain('data-plugin-category="uncategorized"');
+});
+
+test("store discovery separates channel access and agent collaboration despite their shared manifest category", () => {
+  const html = renderPluginStore({
+    schema_version: 1,
+    plugins: [
+      { ...plugin, id: "channel", category: "communication", discovery_category: "channels" },
+      { ...plugin, id: "agents", category: "communication", discovery_category: "collaboration" },
+    ],
+  });
+  expect(html).toContain('data-plugin-category="channels"');
+  expect(html).toContain('data-plugin-category="collaboration"');
+  expect(html).not.toContain('data-plugin-category="communication"');
+  for (const discovery_category of ["communication", "unknown", "uncategorized", "<script>"]) {
+    expect(() =>
+      renderPluginStore({ schema_version: 1, plugins: [{ ...plugin, discovery_category }] }),
+    ).toThrow("discovery category");
+  }
 });
 
 test("store rejects unsupported schemas, duplicate identities, and unsafe repository links", () => {
