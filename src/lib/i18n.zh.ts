@@ -182,7 +182,6 @@ export const zh = {
   fileChangeViewMode: "文件视图",
   fileChangeFragmentScope: "推算修改片段 · 文件行号未知",
   toolCreateFile: "创建文件",
-  fileChangeBranchScope: "所选分支 · 根据工具记录推算",
   fileChangeContentUnavailable: "无法推算完整文件内容",
   fileChangeDeletedContent: "此文件已删除",
   fileChangeEmptyContent: "此文件为空",
