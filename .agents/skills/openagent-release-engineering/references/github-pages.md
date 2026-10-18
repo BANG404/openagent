@@ -51,7 +51,9 @@ or publish it.
 
 The landing page's `#plugins` official store is rendered at build time from
 `src/lib/officialPluginRegistry.json` through `scripts/pages-plugin-store.mjs`.
-Registry changes trigger Pages deployment. Keep this reviewed directory as the
+Registry and shared `src/lib/pluginDiscoveryCategories.ts` changes trigger Pages
+deployment. The website uses reviewed `discovery_category` purposes independently
+of manifest categories, matching desktop discovery. Keep this reviewed directory as the
 single discovery source; do not initialize independent plugin checkouts, request
 per-plugin release APIs, or present discovery entries as installed/compatible
 versions. Cards contain escaped English/Chinese metadata and source/Release links,

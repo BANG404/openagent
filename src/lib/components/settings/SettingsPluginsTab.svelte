@@ -7,7 +7,10 @@
   import PluginMarketplaceSkeleton from "../PluginMarketplaceSkeleton.svelte";
   import { pluginText } from "$lib/pluginI18n";
   import { displayPath } from "$lib/workspacePath";
-  import { PLUGIN_CATEGORIES, pluginCategoryKeys, isPluginCategory } from "$lib/pluginCategories";
+  import {
+    PLUGIN_DISCOVERY_CATEGORIES,
+    pluginDiscoveryCategoryKeys,
+  } from "$lib/pluginDiscoveryCategories";
   import type { OfficialPluginCatalogItem } from "$lib/officialPluginRegistry";
   import { t, locale } from "$lib/i18n";
   import Select from "../ui/Select.svelte";
@@ -121,13 +124,14 @@
           <Select
             id="official-plugin-category"
             triggerClass="official-plugin-category-filter"
+            contentClass="official-plugin-category-menu"
             ariaLabel={$t("pluginCategoryFilter")}
             bind:value={plugins.officialPluginCategory}
             items={[
               { value: "all", label: $t("pluginCategoryAll") },
-              ...PLUGIN_CATEGORIES.map((value) => ({
+              ...PLUGIN_DISCOVERY_CATEGORIES.map((value) => ({
                 value,
-                label: $t(pluginCategoryKeys[value]),
+                label: $t(pluginDiscoveryCategoryKeys[value]),
               })),
               { value: "uncategorized", label: $t("pluginMarketplaceUncategorized") },
             ]}
@@ -193,10 +197,10 @@
                 <div class="official-plugin-meta">
                   <span
                     class="official-plugin-category"
-                    data-category={plugin.category ?? "uncategorized"}
+                    data-category={plugin.discoveryCategory ?? "uncategorized"}
                   >
-                    {plugin.category
-                      ? $t(pluginCategoryKeys[plugin.category])
+                    {plugin.discoveryCategory
+                      ? $t(pluginDiscoveryCategoryKeys[plugin.discoveryCategory])
                       : $t("pluginMarketplaceUncategorized")}
                   </span>
                   <span>
@@ -379,6 +383,7 @@
         bind:value={plugins.expandedPluginIds}
       >
         {#each plugins.agentPlugins as plugin (plugin.id)}
+          {@const discoveryCategory = plugins.agentPluginDiscoveryCategory(plugin.id)}
           <Accordion.Item
             value={`plugin-${plugin.id}`}
             class="application-settings-surface plugin-accordion-item"
@@ -414,9 +419,9 @@
                     )}</span
                   >
                   <span class="plugin-card-meta">
-                    <span class="detail-hint" data-category={plugin.category ?? "uncategorized"}>
-                      {isPluginCategory(plugin.category)
-                        ? $t(pluginCategoryKeys[plugin.category])
+                    <span class="detail-hint" data-category={discoveryCategory ?? "uncategorized"}>
+                      {discoveryCategory
+                        ? $t(pluginDiscoveryCategoryKeys[discoveryCategory])
                         : $t("pluginMarketplaceUncategorized")}
                     </span>
                     <PluginLanguageSupport i18n={plugin.i18n} />

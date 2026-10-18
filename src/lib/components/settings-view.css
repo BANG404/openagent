@@ -1252,6 +1252,10 @@
   flex-wrap: wrap;
 }
 
+.official-plugin-category-menu {
+  width: min(310px, calc(100vw - 24px));
+}
+
 .official-plugin-category-filter {
   width: 150px;
   flex: 0 0 150px;

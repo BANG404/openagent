@@ -9,16 +9,8 @@ action = "click"
 target = "#official-plugin-category"
 
 [[step]]
-action = "press"
-key = "Home"
-
-[[step]]
-action = "press"
-key = "ArrowDown"
-
-[[step]]
-action = "press"
-key = "Enter"
+action = "click"
+target = '[role="option"][data-value="development"]'
 
 [[step]]
 action = "eval"
@@ -55,7 +47,7 @@ target = ".official-plugin-clear"
 action = "eval"
 script = '''(() => {
   if (!document.querySelector('.official-plugin-filters [data-filter="installed"].active')) throw new Error('clearing search changed availability');
-  if (!document.querySelector('#official-plugin-category').textContent.match(/Development|开发工具/)) throw new Error('clearing search changed category');
+  if (!document.querySelector('#official-plugin-category').textContent.match(/Programming|编程与开发/)) throw new Error('clearing search changed category');
   return true;
 })()'''
 
@@ -68,12 +60,8 @@ action = "click"
 target = "#official-plugin-category"
 
 [[step]]
-action = "press"
-key = "End"
-
-[[step]]
-action = "press"
-key = "Enter"
+action = "click"
+target = '[role="option"][data-value="uncategorized"]'
 
 [[step]]
 action = "eval"
@@ -84,12 +72,8 @@ action = "click"
 target = "#official-plugin-category"
 
 [[step]]
-action = "press"
-key = "Home"
-
-[[step]]
-action = "press"
-key = "Enter"
+action = "click"
+target = '[role="option"][data-value="all"]'
 
 [[step]]
 action = "eval"

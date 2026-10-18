@@ -197,6 +197,8 @@ An integration declares `type: "integration"` and lists `integration-v1` in
 `compatibility.features`. Messaging integrations additionally declare
 `category: "communication"`; only these packages appear under Integrations →
 Channels, including disabled packages so users can enable them there.
+This installed-package declaration is independent of the catalog's
+`discovery_category`; marketplace classification never determines channel membership.
 Development integrations such as Langfuse remain configurable in Installed plugins.
 Do not infer channel membership from names, keywords, commands, or MCP tools. Selecting
 an entry uses the package's localized name and description, ordinary lifecycle
@@ -518,7 +520,7 @@ and a generic real-computer-access switch for plugins whose declared
 capabilities request it. The switch is persisted per plugin and is the user
 authorization boundary.
 
-## Discovery categories
+## Manifest categories
 
 `extensions.openagent.category` is optional presentation metadata with one stable
 ID: `development`, `productivity`, `communication`, `automation`, `data`, `design`
@@ -527,6 +529,8 @@ IDs reject the manifest with a category diagnostic. Keep names localized in the
 client; IDs never change with locale. Category grants no permissions and changes
 no component loading or process policy. Older Runtimes ignore the optional
 metadata and continue loading the package, so plugin protocol 1 is unchanged.
+Store purposes use the independent catalog field described in
+[official registry](official-registry.md#classify-by-the-primary-user-task).
 
 Declare it inside the OpenAgent extension, for example:
 

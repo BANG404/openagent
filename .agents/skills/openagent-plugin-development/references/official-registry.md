@@ -72,31 +72,48 @@ the current projection preserves the field for that adapter.
 Review each package's README, commands, skills and MCP capabilities before assigning
 its discovery category. Use the task a user installs the plugin to accomplish;
 implementation language, MCP transport, provider name and incidental capabilities
-do not determine the category. Keep these stable IDs and localized client labels:
+do not determine the category. The optional catalog field `discovery_category`
+(client `discoveryCategory`) owns this classification, with these stable IDs:
 
 | Category | Primary purpose | Official packages |
 | --- | --- | --- |
 | `development` | Create, understand, debug, test or operate software and infrastructure | Plugin Developer, Context7, Fakechat, Firebase, GitHub, GitLab, Laravel Boost, Langfuse, Serena, Terraform |
-| `productivity` | Manage work items and projects | Asana, Linear |
-| `communication` | Exchange messages with people or collaborating agents | Chat Groups, Message Board, iMessage |
-| `automation` | Execute ongoing or dependent work, or operate browsers and desktop apps | Goal, Graph, Cua Driver, Playwright |
-| `design` | Customize appearance and typography | All ten official theme packages |
-| `data` | General data analysis, retrieval or knowledge management | No current official package |
+| `projects` | Manage task and project records | Asana, Linear |
+| `channels` | Connect external messaging services to OpenAgent | iMessage |
+| `collaboration` | Multi-agent discussion, shared messages and handoffs | Chat Groups, Message Board |
+| `orchestration` | Execute persistent goals and dependency-aware task graphs | Goal, Graph |
+| `automation` | Operate browsers and desktop applications | Cua Driver, Playwright |
+| `themes` | Customize interface appearance and typography | All ten official theme packages |
 | `other` | A reviewed purpose outside the categories above | No current official package |
 
 Context7 supplies library documentation and code examples for programming, so it
 belongs with development tools. Fakechat's local channel exists to test inbound
 dispatch, replies and access rules, so discovery places it with development tools.
 Playwright exposes general browser actions, so it belongs with desktop control in
-automation even though it can also test websites. Goal and Graph execute work;
+automation even though it can also test websites. Goal and Graph orchestrate execution;
 Asana and Linear manage work records. Message Board's persistence and search serve
-agent communication rather than general data analysis.
+agent collaboration rather than general data analysis. External messaging connects
+people or services to OpenAgent; groups and message boards coordinate agents
+already working inside it. Do not combine these purposes just because both exchange
+messages.
 
-Registry discovery categories do not override installed manifest metadata or the
-manifest-based integration inventory contract in [package format](package-format.md).
-The website and desktop marketplace consume the same registry category. Verify
-category selection combined with localized search and availability through
-`tests/blackbox/plugin-categories.toml` and the plugin catalog runner in all four
+`discovery_category` is independent of the published `category` wire field,
+installed manifest metadata and the integration inventory contract in
+[package format](package-format.md). Retain schema 1's published `category` IDs so
+clients that strictly validate them can still load the complete catalog. Store
+purposes never enter the Runtime installer interface or grant channel membership.
+New official entries require an explicit reviewed discovery category. Missing
+discovery metadata displays as uncategorized; null, invalid or unknown IDs reject
+the catalog. Do not infer missing purposes from IDs, names or manifest categories.
+
+The website, desktop marketplace and installed official cards use the same discovery
+classification. Installed cards resolve it from the fetched registry independently
+of search and availability filters. If discovery is unavailable, installed packages
+remain manageable and show uncategorized instead of a misleading manifest label.
+Channel inventory uses installed integration declarations independently of catalog
+loading or classification. Verify classification and translated labels, search,
+availability and recovery through `bun run test:blackbox:plugin-catalog`, which runs
+`plugin-categories.toml` and `plugin-discovery-categories.toml` in all four
 theme/language combinations.
 
 The Settings Plugins surface projects the remotely fetched registry into the official
@@ -300,15 +317,15 @@ The same scenario mounts a real sidebar fixture and asserts its first/live local
 translated title, stable iframe identity, and retained entered draft.
 The runner verifies both switch directions in all theme/language combinations.
 
-Catalog entries may carry an optional `category` matching the package discovery
-IDs in [package format](package-format.md#discovery-categories). Missing values
-remain uncategorized; invalid values reject the catalog. The marketplace
-projection retains the category as `interface.category`. Categories have localized
-labels on store and installed cards. The category selector combines with search
+Catalog entries may carry an optional legacy `category` matching the manifest
+IDs in [package format](package-format.md#manifest-categories). The installer
+projection retains it as `interface.category`. Store and installed official cards
+use the reviewed discovery purposes above. The category selector combines with search
 and availability using intersection; clearing search retains both selected filters.
 Keep all choices available even when a combination has no matches so users can
-recover using the same controls. Installed cards use the installed manifest's
-category; catalog cards use reviewed discovery metadata independently of archives.
+recover using the same controls.
+The category menu has its own bounded width so complete purpose names remain
+readable in both locales even when the compact toolbar trigger truncates them.
 
 `PluginMarketplaceSkeleton.svelte` supplies the Plugins loading silhouette: page
 heading and right-aligned tab switch, search/category/status controls, and a

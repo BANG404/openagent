@@ -12,6 +12,59 @@ import {
 } from "../src/lib/officialPluginRegistry";
 
 describe("official plugin registry", () => {
+  test("discovery separates channels, agent collaboration and orchestration without changing installation metadata", () => {
+    const registry = parseOfficialPluginRegistry(bundledRegistry);
+    const members = (
+      category: "channels" | "collaboration" | "orchestration" | "automation" | "projects",
+    ) =>
+      projectOfficialPluginCatalog(registry, { installed: new Map(), category }).map(
+        (plugin) => plugin.id,
+      );
+    expect(members("channels")).toEqual(["imessage"]);
+    expect(members("collaboration")).toEqual(["chat-groups", "message-board"]);
+    expect(members("orchestration")).toEqual(["goal", "graph"]);
+    expect(members("automation")).toEqual(["cua-driver", "playwright"]);
+    expect(members("projects")).toEqual(["asana", "linear"]);
+    expect(registry.plugins.every((plugin) => plugin.discoveryCategory)).toBe(true);
+
+    const imessage = findOfficialPlugin(registry, "imessage")!;
+    const collaboration = findOfficialPlugin(registry, "chat-groups")!;
+    expect(imessage.category).toBe("communication");
+    expect(collaboration.category).toBe("communication");
+    const transport = toOfficialMarketplaceDocument(registry);
+    expect(transport.plugins.find((plugin) => plugin.name === "imessage")?.interface.category).toBe(
+      "communication",
+    );
+    expect(JSON.stringify(transport)).not.toContain("discoveryCategory");
+  });
+
+  test("missing discovery metadata stays unclassified rather than guessing from a manifest category", () => {
+    const entry = { ...bundledRegistry.plugins[0], discovery_category: undefined };
+    const registry = parseOfficialPluginRegistry({ schema_version: 1, plugins: [entry] });
+    expect(registry.plugins[0].category).toBe("communication");
+    expect(
+      projectOfficialPluginCatalog(registry, { installed: new Map(), category: "uncategorized" }),
+    ).toHaveLength(1);
+    expect(
+      projectOfficialPluginCatalog(registry, { installed: new Map(), category: "channels" }),
+    ).toEqual([]);
+    expect(
+      projectOfficialPluginCatalog(registry, { installed: new Map(), category: "collaboration" }),
+    ).toEqual([]);
+  });
+
+  test.each([[null], [""], ["communication"], ["unknown"], [["channels"]], [1]])(
+    "rejects invalid discovery category %j",
+    (discovery_category) => {
+      expect(() =>
+        parseOfficialPluginRegistry({
+          schema_version: 1,
+          plugins: [{ ...bundledRegistry.plugins[0], discovery_category }],
+        }),
+      ).toThrow("discovery_category");
+    },
+  );
+
   test("category filtering intersects search and availability and preserves marketplace metadata", () => {
     const registry = parseOfficialPluginRegistry(bundledRegistry);
     const installed = new Map([["github", "0.2.0"]]);
@@ -20,7 +73,7 @@ describe("official plugin registry", () => {
       category: "development",
     });
     expect(development.length).toBeGreaterThan(1);
-    expect(development.every((plugin) => plugin.category === "development")).toBe(true);
+    expect(development.every((plugin) => plugin.discoveryCategory === "development")).toBe(true);
     expect(
       projectOfficialPluginCatalog(registry, {
         installed,
@@ -32,7 +85,7 @@ describe("official plugin registry", () => {
     expect(
       projectOfficialPluginCatalog(registry, {
         installed,
-        category: "communication",
+        category: "channels",
         query: "github",
       }),
     ).toEqual([]);
@@ -50,7 +103,7 @@ describe("official plugin registry", () => {
     ).toBe("development");
     const unclassified = {
       ...registry,
-      plugins: [{ ...registry.plugins[0], category: undefined }],
+      plugins: [{ ...registry.plugins[0], discoveryCategory: undefined }],
     };
     expect(
       projectOfficialPluginCatalog(unclassified, { installed, category: "uncategorized" }),
@@ -125,13 +178,13 @@ describe("official plugin registry", () => {
     expect(findOfficialPlugin(registry, "telegram")).toBeUndefined();
   });
 
-  test("theme packages are discoverable in the design category in both locales", () => {
+  test("theme packages are discoverable in the themes category in both locales", () => {
     const registry = parseOfficialPluginRegistry(bundledRegistry);
     for (const locale of ["en", "zh"]) {
       const themes = projectOfficialPluginCatalog(registry, {
         installed: new Map(),
         locale,
-        category: "design",
+        category: "themes",
       });
       expect(themes).toHaveLength(10);
       expect(themes.every((plugin) => plugin.id.startsWith("openagent-theme-"))).toBe(true);
@@ -139,7 +192,7 @@ describe("official plugin registry", () => {
         projectOfficialPluginCatalog(registry, {
           installed: new Map(),
           locale,
-          category: "design",
+          category: "themes",
           query: locale === "zh" ? "翠绿" : "emerald",
         }).map((plugin) => plugin.id),
       ).toEqual(["openagent-theme-garden"]);

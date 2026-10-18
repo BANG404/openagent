@@ -34,7 +34,10 @@ import { pluginSidebarLifecycle, type PluginSidebarLifecycle } from "$lib/plugin
 import type { SettingsOptions } from "./types";
 import type { SettingsDraft } from "./draft.svelte";
 import { createPluginSetup } from "./pluginSetup.svelte";
-import { isPluginCategory, type PluginCategoryFilter } from "$lib/pluginCategories";
+import {
+  isPluginDiscoveryCategory,
+  type PluginDiscoveryCategoryFilter,
+} from "$lib/pluginDiscoveryCategories";
 
 export function createPluginSettings(
   draft: SettingsDraft,
@@ -61,7 +64,7 @@ export function createPluginSettings(
     message: string;
   } | null>(null);
   let officialPluginQuery = $state("");
-  let officialPluginCategory = $state<PluginCategoryFilter>("all");
+  let officialPluginCategory = $state<PluginDiscoveryCategoryFilter>("all");
   let officialPluginFilter = $state<OfficialPluginCatalogFilter>("all");
   let pluginManagementView = $state<"marketplace" | "installed">("marketplace");
   const pluginInstallQueue = desktopPluginInstallQueue;
@@ -592,6 +595,10 @@ export function createPluginSettings(
     get officialPluginCards() {
       return officialPluginCards;
     },
+    agentPluginDiscoveryCategory(pluginId: string) {
+      return officialPluginRegistry?.plugins.find((plugin) => plugin.id === pluginId)
+        ?.discoveryCategory;
+    },
     get officialPluginRegistryLoading() {
       return officialPluginRegistryLoading;
     },
@@ -602,7 +609,7 @@ export function createPluginSettings(
       return officialPluginCategory;
     },
     set officialPluginCategory(value: string) {
-      if (value === "all" || value === "uncategorized" || isPluginCategory(value))
+      if (value === "all" || value === "uncategorized" || isPluginDiscoveryCategory(value))
         officialPluginCategory = value;
     },
     get officialPluginQuery() {

@@ -5,6 +5,7 @@
     {
       "id": "chat-groups",
       "category": "communication",
+      "discovery_category": "collaboration",
       "display_name": "Agent Group Chat",
       "description": "Bring agents with different roles into a group discussion; mention a member to invite a reply.",
       "repository": "https://github.com/BANG404/openagent-chat-groups",
@@ -74,6 +75,7 @@
     {
       "id": "goal",
       "category": "automation",
+      "discovery_category": "orchestration",
       "display_name": "Goal Execution",
       "description": "Keep an agent working toward a goal, track completed steps, and pause or resume progress.",
       "repository": "https://github.com/BANG404/openagent-goal",
@@ -153,6 +155,7 @@
     {
       "id": "graph",
       "category": "automation",
+      "discovery_category": "orchestration",
       "display_name": "Task Orchestration",
       "description": "Split work into dependent tasks, run independent tasks in parallel, and view progress and results in a task graph.",
       "repository": "https://github.com/BANG404/openagent-graph",
@@ -228,6 +231,7 @@
     {
       "id": "cua-driver",
       "category": "automation",
+      "discovery_category": "automation",
       "display_name": "Desktop Control",
       "description": "Let an agent take screenshots, click, and type in desktop apps after you grant computer access.",
       "repository": "https://github.com/BANG404/openagent-cua-driver",
@@ -291,6 +295,7 @@
     {
       "id": "message-board",
       "category": "communication",
+      "discovery_category": "collaboration",
       "display_name": "Agent Message Board",
       "description": "Save agent collaboration messages in channels and threads, then search them or subscribe to updates.",
       "repository": "https://github.com/BANG404/openagent-message-board",
@@ -372,6 +377,7 @@
     {
       "id": "openagent-plugin-kit",
       "category": "development",
+      "discovery_category": "development",
       "display_name": "Plugin Developer",
       "description": "Create OpenAgent plugins from requirements or templates, then develop, test, and validate them for installation.",
       "repository": "https://github.com/BANG404/openagent-plugin-kit",
@@ -415,6 +421,7 @@
     {
       "id": "asana",
       "category": "productivity",
+      "discovery_category": "projects",
       "display_name": "Asana Tasks",
       "description": "Find and update tasks and projects in Asana; requires an authorized Asana account.",
       "repository": "https://github.com/BANG404/openagent-asana",
@@ -450,6 +457,7 @@
     {
       "id": "context7",
       "category": "development",
+      "discovery_category": "development",
       "display_name": "Context7 Docs",
       "description": "Look up library documentation and code examples with Context7 while writing code.",
       "repository": "https://github.com/BANG404/openagent-context7",
@@ -477,6 +485,7 @@
     {
       "id": "fakechat",
       "category": "development",
+      "discovery_category": "development",
       "display_name": "Local Channel Test",
       "description": "Use a local web chat to test incoming messages, agent replies, and message-channel access rules.",
       "repository": "https://github.com/BANG404/openagent-fakechat",
@@ -514,6 +523,7 @@
     {
       "id": "firebase",
       "category": "development",
+      "discovery_category": "development",
       "display_name": "Firebase Projects",
       "description": "Inspect and manage Firebase project resources from your workspace; requires Firebase account access.",
       "repository": "https://github.com/BANG404/openagent-firebase",
@@ -541,6 +551,7 @@
     {
       "id": "github",
       "category": "development",
+      "discovery_category": "development",
       "display_name": "GitHub Repositories",
       "description": "Work with GitHub repositories, issues, and pull requests; requires a GitHub access token.",
       "repository": "https://github.com/BANG404/openagent-github",
@@ -572,6 +583,7 @@
     {
       "id": "gitlab",
       "category": "development",
+      "discovery_category": "development",
       "display_name": "GitLab Projects",
       "description": "Work with GitLab repositories, issues, merge requests, and pipelines; requires GitLab authorization.",
       "repository": "https://github.com/BANG404/openagent-gitlab",
@@ -607,6 +619,7 @@
     {
       "id": "imessage",
       "category": "communication",
+      "discovery_category": "channels",
       "display_name": "iMessage Channel",
       "description": "Send messages to OpenAgent and receive agent replies through iMessage on a Mac; requires macOS message access.",
       "repository": "https://github.com/BANG404/openagent-imessage",
@@ -642,6 +655,7 @@
     {
       "id": "laravel-boost",
       "category": "development",
+      "discovery_category": "development",
       "display_name": "Laravel Development",
       "description": "Inspect and debug the active Laravel app with Laravel Boost; requires PHP and Laravel Boost in the project.",
       "repository": "https://github.com/BANG404/openagent-laravel-boost",
@@ -669,6 +683,7 @@
     {
       "id": "langfuse",
       "category": "development",
+      "discovery_category": "development",
       "display_name": "Langfuse Tracing",
       "description": "Send agent execution and tool-call traces to Langfuse after setup; message and model-content capture are separately opt-in.",
       "repository": "https://github.com/BANG404/openagent-langfuse",
@@ -743,6 +758,7 @@
     {
       "id": "linear",
       "category": "productivity",
+      "discovery_category": "projects",
       "display_name": "Linear Issues",
       "description": "Find and update issues and projects in Linear; requires an authorized Linear account.",
       "repository": "https://github.com/BANG404/openagent-linear",
@@ -778,6 +794,7 @@
     {
       "id": "playwright",
       "category": "automation",
+      "discovery_category": "automation",
       "display_name": "Playwright Browser Automation",
       "description": "Let an agent open web pages, click, fill forms, and take browser screenshots with Playwright.",
       "repository": "https://github.com/BANG404/openagent-playwright",
@@ -805,6 +822,7 @@
     {
       "id": "serena",
       "category": "development",
+      "discovery_category": "development",
       "display_name": "Serena Code Navigation",
       "description": "Find symbols, follow references, and edit code by symbol with Serena in the active project.",
       "repository": "https://github.com/BANG404/openagent-serena",
@@ -832,6 +850,7 @@
     {
       "id": "terraform",
       "category": "development",
+      "discovery_category": "development",
       "display_name": "Terraform Infrastructure",
       "description": "Look up Terraform providers and modules and work with infrastructure workspaces; requires Docker, with account access for hosted workspaces.",
       "repository": "https://github.com/BANG404/openagent-terraform",
@@ -863,6 +882,7 @@
     {
       "id": "openagent-theme-nova",
       "category": "design",
+      "discovery_category": "themes",
       "display_name": "Nova Compact Theme",
       "description": "A neutral gray theme with 13px text, rounded controls, and compact spacing; supports light and dark modes.",
       "repository": "https://github.com/BANG404/openagent-theme-nova",
@@ -886,6 +906,7 @@
     {
       "id": "openagent-theme-vega",
       "category": "design",
+      "discovery_category": "themes",
       "display_name": "Vega Spacious Theme",
       "description": "A neutral gray theme with 14px text, rounded controls, and spacious spacing; supports light and dark modes.",
       "repository": "https://github.com/BANG404/openagent-theme-vega",
@@ -909,6 +930,7 @@
     {
       "id": "openagent-theme-maia",
       "category": "design",
+      "discovery_category": "themes",
       "display_name": "Maia Rounded Theme",
       "description": "A neutral gray theme with 14px text, large rounded controls, and extra spacing; supports light and dark modes.",
       "repository": "https://github.com/BANG404/openagent-theme-maia",
@@ -932,6 +954,7 @@
     {
       "id": "openagent-theme-lyra",
       "category": "design",
+      "discovery_category": "themes",
       "display_name": "Lyra Monospace Theme",
       "description": "A neutral gray theme with 12px monospace text and square corners; supports light and dark modes.",
       "repository": "https://github.com/BANG404/openagent-theme-lyra",
@@ -955,6 +978,7 @@
     {
       "id": "openagent-theme-mira",
       "category": "design",
+      "discovery_category": "themes",
       "display_name": "Mira Dense Theme",
       "description": "A neutral gray theme with 12px text, small rounded controls, and dense spacing; supports light and dark modes.",
       "repository": "https://github.com/BANG404/openagent-theme-mira",
@@ -978,6 +1002,7 @@
     {
       "id": "openagent-theme-luma",
       "category": "design",
+      "discovery_category": "themes",
       "display_name": "Luma Soft Theme",
       "description": "A neutral gray theme with 14px text, extra-rounded controls, and spacious spacing; supports light and dark modes.",
       "repository": "https://github.com/BANG404/openagent-theme-luma",
@@ -1001,6 +1026,7 @@
     {
       "id": "openagent-theme-sera",
       "category": "design",
+      "discovery_category": "themes",
       "display_name": "Sera Warm Gray Theme",
       "description": "A warm taupe theme with 14px text and subtle rounded corners; supports light and dark modes.",
       "repository": "https://github.com/BANG404/openagent-theme-sera",
@@ -1024,6 +1050,7 @@
     {
       "id": "openagent-theme-rhea",
       "category": "design",
+      "discovery_category": "themes",
       "display_name": "Rhea Dense Rounded Theme",
       "description": "A neutral gray theme with 12px text, large rounded controls, and dense spacing; supports light and dark modes.",
       "repository": "https://github.com/BANG404/openagent-theme-rhea",
@@ -1047,6 +1074,7 @@
     {
       "id": "openagent-theme-garden",
       "category": "design",
+      "discovery_category": "themes",
       "display_name": "Garden Emerald Theme",
       "description": "An olive-gray theme with emerald accents, violet charts, 14px text, and large rounded controls; supports light and dark modes.",
       "repository": "https://github.com/BANG404/openagent-theme-garden",
@@ -1070,6 +1098,7 @@
     {
       "id": "openagent-theme-rose-ink",
       "category": "design",
+      "discovery_category": "themes",
       "display_name": "Rose Ink Rose Theme",
       "description": "A warm taupe theme with rose accents, cyan charts, and 14px text; supports light and dark modes.",
       "repository": "https://github.com/BANG404/openagent-theme-rose-ink",

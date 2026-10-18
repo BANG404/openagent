@@ -86,12 +86,17 @@ try {
         window.__reviewedPluginCatalog=${JSON.stringify(reviewedCatalog)};
         window.__catalogLanguage=${JSON.stringify(language)};
         window.__catalogProbe.plugins=window.__reviewedPluginCatalog.plugins;
+        window.__officialCatalogCount=window.__reviewedPluginCatalog.plugins.length;
         document.querySelector('.official-plugin-store-toolbar button').click();
         return true;
       })()`);
       pilot(["wait", "--selector", '[data-plugin-id="goal"]', "--timeout", "20000"]);
       pilot(["snapshot", "-i"]);
       pilot(["run", join(root, "tests/blackbox/plugin-copy.toml")]);
+      pilot(["snapshot", "-i"]);
+      pilot(["run", join(root, "tests/blackbox/plugin-categories.toml")]);
+      pilot(["snapshot", "-i"]);
+      pilot(["run", join(root, "tests/blackbox/plugin-discovery-categories.toml")]);
       captureBlackboxScreenshot(pilot, join(artifacts, `${theme}-${language}.png`));
       // Reopening must fetch again rather than reuse the previous snapshot.
       const requests = Number(evaluate("window.__catalogProbe.requests"));
