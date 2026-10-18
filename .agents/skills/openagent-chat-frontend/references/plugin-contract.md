@@ -19,8 +19,11 @@ selection. Its effective settings preview or saved config must drive both;
 background edits must not leave the root transparent over a custom/plugin color.
 Chat and composer continue to consume the existing shared surface tokens.
 PageRuntime also owns selected theme FontFace registration through the shared
-SDK asset reader. Cleanup retires pending loads on selection, lifecycle or
-summary refresh; font decoding must not block chat restore or remount surfaces.
+SDK asset reader. Equivalent saved/preview appearance and catalog objects retain
+registered and pending faces. Cleanup retires loads only when the selected
+enabled package's identity/path, version or font descriptors change, an explicit
+package asset refresh arrives, or the owner unmounts; font decoding must not
+block chat restore or remount surfaces.
 The plugin package contract owns declarations, limits and failure behavior.
 
 Plugin summaries carry optional `local_source` for the Settings source-refresh

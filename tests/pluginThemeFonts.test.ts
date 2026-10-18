@@ -1,5 +1,5 @@
 import { expect, spyOn, test } from "bun:test";
-import { applyPluginThemeFonts } from "../src/lib/pluginThemeFonts";
+import { applyPluginThemeFonts, pluginThemeFontKey } from "../src/lib/pluginThemeFonts";
 import type { AgentPluginSummary } from "../src/lib/types";
 
 const theme = {
@@ -11,6 +11,26 @@ const theme = {
 const config = { theme_plugin: "theme", agent_plugins_enabled: {} };
 const asset = { content: btoa("wOF2"), mime: "font/woff2", encoding: "base64" as const };
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+test("font identity survives equivalent settings previews and unrelated catalog changes", () => {
+  const key = pluginThemeFontKey([theme], config);
+  expect(pluginThemeFontKey([structuredClone(theme)], structuredClone(config))).toBe(key);
+  expect(pluginThemeFontKey([{ ...theme, description: "refreshed" }], config)).toBe(key);
+  expect(pluginThemeFontKey([theme], { ...config, agent_plugins_enabled: { other: false } })).toBe(
+    key,
+  );
+  for (const changed of [
+    { ...theme, version: "2.0.0" },
+    { ...theme, path: "replacement-package" },
+    { ...theme, theme: { ...theme.theme!, fonts: [] } },
+    { ...theme, error: "unavailable" },
+  ])
+    expect(pluginThemeFontKey([changed], config)).not.toBe(key);
+  expect(
+    pluginThemeFontKey([theme], { ...config, agent_plugins_enabled: { theme: false } }),
+  ).not.toBe(key);
+  expect(pluginThemeFontKey([], config)).not.toBe(key);
+});
 
 test("selected font is decoded, registered and removed; disabled and unselected packages are never read", async () => {
   const registered = new Set<FontFace>();

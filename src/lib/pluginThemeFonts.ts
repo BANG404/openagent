@@ -2,6 +2,30 @@ import type { AgentPluginSummary, AppConfig } from "$lib/types";
 
 type FontAsset = { content: string; mime: string; encoding?: "base64" };
 
+/** Only package/font changes invalidate registered faces, not settings previews. */
+export function pluginThemeFontKey(
+  plugins: AgentPluginSummary[],
+  config: Pick<AppConfig, "theme_plugin" | "agent_plugins_enabled"> | null,
+): string {
+  const plugin = selectedTheme(plugins, config);
+  return JSON.stringify(
+    plugin ? [plugin.id, plugin.path, plugin.version, plugin.theme?.fonts ?? []] : null,
+  );
+}
+
+function selectedTheme(
+  plugins: AgentPluginSummary[],
+  config: Pick<AppConfig, "theme_plugin" | "agent_plugins_enabled"> | null,
+) {
+  return plugins.find(
+    (item) =>
+      item.id === config?.theme_plugin &&
+      item.plugin_type === "theme" &&
+      !item.error &&
+      (config?.agent_plugins_enabled?.[item.id] ?? item.enabled),
+  );
+}
+
 /** Register only the selected enabled package's faces; retire pending loads on cleanup. */
 export function applyPluginThemeFonts(
   plugins: AgentPluginSummary[],
@@ -11,13 +35,7 @@ export function applyPluginThemeFonts(
   createFace = (family: string, bytes: ArrayBuffer, descriptors: FontFaceDescriptors) =>
     new FontFace(family, bytes, descriptors),
 ): () => void {
-  const plugin = plugins.find(
-    (item) =>
-      item.id === config?.theme_plugin &&
-      item.plugin_type === "theme" &&
-      !item.error &&
-      (config?.agent_plugins_enabled?.[item.id] ?? item.enabled),
-  );
+  const plugin = selectedTheme(plugins, config);
   let retired = false;
   const registered: FontFace[] = [];
   for (const font of plugin?.theme?.fonts ?? []) {
