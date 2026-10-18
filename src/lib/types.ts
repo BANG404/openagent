@@ -128,6 +128,11 @@ export interface ChatMessage {
   ui?: ConversationUi;
   content: string;
   timestamp: number;
+  /** Transient steering placement; checkpoint restoration owns durable order. */
+  liveSteering?: {
+    assistantMessageId: string;
+    boundary?: { itemIndex: number; textOffset?: number };
+  };
   toolCalls?: ToolCallRecord[];
   items?: StreamItem[];
   aborted?: boolean;

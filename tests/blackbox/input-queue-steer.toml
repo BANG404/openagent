@@ -27,9 +27,16 @@ script = '''(async()=>{
   const steer=document.querySelector('.steer-btn');if(!steer||steer.disabled)throw new Error('explicit steering action missing');steer.click();
   await wait(sent,'steering acceptance failed');
   await wait(()=>[...document.querySelectorAll('.chat-queue li')].some(row=>row.textContent.includes('correction')),'steering receipt missing');
-  sessionStorage.setItem('input-queue-live-user-ids',JSON.stringify(Object.fromEntries(['correction','next-turn'].map(suffix=>[suffix,[...document.querySelectorAll('.chat-queue li')].find(row=>row.textContent.includes(suffix)).dataset.queueId]))));
+  await fill(`QUEUE_FIXTURE:${probe.marker} correction-two`);document.querySelector('.steer-btn').click();await wait(sent,'second steering acceptance failed');
+  sessionStorage.setItem('input-queue-live-user-ids',JSON.stringify(Object.fromEntries(['correction','correction-two','next-turn'].map(suffix=>[suffix,[...document.querySelectorAll('.chat-queue li')].find(row=>row.textContent.includes(suffix)).dataset.queueId]))));
   const correctionId=JSON.parse(sessionStorage.getItem('input-queue-live-user-ids')).correction;
   await wait(()=>[...document.querySelectorAll('.user-msg')].some(row=>row.dataset.messageId===correctionId),'accepted correction has no user bubble while the original response is still streaming');
+  const first=[...document.querySelectorAll('.user-msg')].find(row=>row.dataset.messageId===correctionId);
+  const secondId=JSON.parse(sessionStorage.getItem('input-queue-live-user-ids'))['correction-two'];
+  await wait(()=>!!document.querySelector(`.user-msg[data-message-id="${secondId}"]`),'second accepted correction has no bubble');
+  const second=document.querySelector(`.user-msg[data-message-id="${secondId}"]`);
+  const response=document.querySelector('.assistant-msg');
+  if(!response||!(response.compareDocumentPosition(first)&Node.DOCUMENT_POSITION_FOLLOWING)||!(first.compareDocumentPosition(second)&Node.DOCUMENT_POSITION_FOLLOWING))throw new Error('pending steering is before its current response or out of submission order');
   await fill('unsent-steering-draft');
   return 'correction accepted for the active run with a separate next-turn input';
 })()'''

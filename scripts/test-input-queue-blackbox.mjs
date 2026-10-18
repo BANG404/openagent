@@ -246,7 +246,7 @@ try {
           (/** @type {any} */ message) =>
             message.role === "user" && JSON.stringify(message.content).includes("correction"),
         ).length,
-        1,
+        2,
       );
       const { stdout: records } = await execute(
         process.execPath,

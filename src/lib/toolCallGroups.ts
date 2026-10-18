@@ -35,7 +35,7 @@ export type StoredMessageRenderEntry =
 
 export type MessageRenderEntry =
   | StoredMessageRenderEntry
-  | { kind: "live_stream"; key: string }
+  | { kind: "live_stream"; key: string; items?: StreamItem[]; settled?: boolean }
   | {
       kind: "assistant_turn";
       messages: ChatMessage[];
