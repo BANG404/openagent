@@ -21,6 +21,18 @@ the presence manager can keep the DOM mounted until the exit animation ends.
 Do not animate the trigger, alter a select's resting dimensions, or stack a
 second lifecycle animation in a child component.
 
+Transient menus, floating application surfaces and management backdrops do not
+use backdrop filters. Opening or removing them must not switch the underlying
+transcript's blur or text rendering; retain the semantic surface color, shadow,
+backdrop tint and opacity/transform transitions. The persistent composer keeps
+its own material. Verify repeated open/close, unchanged underlying text bounds,
+focus restoration and absence of backdrop filters in light/dark and English/Chinese.
+Run `tauri-pilot run tests/blackbox/topbar-surface-stability.toml` in an isolated
+debug window on `?desktop-shell-preview`, selecting each appearance with
+`desktop-shell-preview-theme` and `desktop-shell-preview-locale`. The scenario
+mounts the real management surface without settings or conversation persistence;
+call `window.__topbarSurfaceCleanup()` after capturing the open surface.
+
 ## Interaction rules
 
 - Keep pointer and keyboard feedback immediate; animation must never block the
