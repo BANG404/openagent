@@ -9,6 +9,8 @@ file persistence. Runtime generation options and permission enforcement remain
 private; public configuration carries only their declared inputs.
 
 Runtime-owned conversation storage remains accessible through its protocol only.
+Conversation inbox contracts live in `openagent-protocol/src/input_queue.rs`;
+queue acceptance, persistence, steering and dispatch remain Runtime-owned.
 Do not copy private checkpoints, provider projection, execution loops, sandbox
 enforcement, or prompt assembly into these crates. Product paths, defaults,
 resource installation and user-facing configuration belong in public source.

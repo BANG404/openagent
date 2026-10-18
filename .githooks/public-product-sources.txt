@@ -19,5 +19,6 @@ crates/openagent-config/src/permissions.rs
 crates/openagent-config/src/plugin_identity.rs
 crates/openagent-config/src/plugins.rs
 crates/openagent-protocol/examples/contract_api.rs
+crates/openagent-protocol/src/input_queue.rs
 crates/openagent-protocol/src/lib.rs
 crates/openagent-protocol/src/resources.rs

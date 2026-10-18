@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 mod resources;
 pub use resources::*;
+mod input_queue;
+pub use input_queue::*;
 
 pub const SDK_PROTOCOL_VERSION: u32 = 3;
 
