@@ -479,6 +479,7 @@ const en: Record<TranslationKeys, string> = {
   pluginUninstalled: "Plugin uninstalled.",
   pluginOperationFailed: "Plugin operation failed",
   pluginUpdate: "Update",
+  pluginUpdateAll: "Update all ({count})",
   pluginUninstall: "Uninstall",
   pluginUninstallConfirm: 'Remove plugin "{name}"? Its plugin data will be preserved.',
   pluginUpdateAvailable: "Update available",

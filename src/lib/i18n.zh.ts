@@ -465,6 +465,7 @@ export const zh = {
   pluginUninstalled: "插件已卸载。",
   pluginOperationFailed: "插件操作失败",
   pluginUpdate: "更新",
+  pluginUpdateAll: "全部更新（{count}）",
   pluginUninstall: "卸载",
   pluginUninstallConfirm: "确定卸载插件“{name}”？插件数据会保留。",
   pluginUpdateAvailable: "有可用更新",

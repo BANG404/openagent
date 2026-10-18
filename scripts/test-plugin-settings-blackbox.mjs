@@ -37,6 +37,20 @@ function pilot(args) {
     throw new Error(result.stderr || result.stdout, { cause: result.error });
   return result.stdout.trim();
 }
+/** @param {string} artifact */
+function captureSettings(artifact) {
+  const handle = process.env.BLACKBOX_NATIVE_WINDOW_HANDLE || process.env.BLACKBOX_NATIVE_WINDOW_ID;
+  if (!handle) return pilot(["screenshot", artifact, "--selector", "[role=dialog]"]);
+  // Capture the selected HWND directly: concurrent native fixtures may cover
+  // part of the window while a screen capture is reading its pixels.
+  const capture = spawnSync(
+    "python",
+    [join(repo, "scripts/capture-windows-window.py"), "--hwnd", handle, "--output", artifact],
+    { encoding: "utf8", windowsHide: true },
+  );
+  if (capture.error || capture.status !== 0)
+    throw new Error(capture.stderr, { cause: capture.error });
+}
 /** @param {string} script */
 const evaluate = (script) => pilot(["eval", script]);
 const close = () =>
@@ -105,10 +119,13 @@ try {
     })()`);
     await openPlugins();
     evaluate(
-      `window.__pluginSettingsProbe = ${JSON.stringify({ enable: catalog.pluginEnable, access: catalog.pluginHostAccess, hint: catalog.pluginHostAccessHint, success: catalog.pluginInstallSuccess.replace("{name}", "Graph"), update: catalog.pluginUpdate, updating: catalog.pluginUpdating, updated: catalog.pluginUpdateSuccess.replace("{name}", "Graph"), updatedGoal: catalog.pluginUpdateSuccess.replace("{name}", "Goal"), failed: catalog.pluginOperationFailed })}; true`,
+      `window.__pluginSettingsProbe = ${JSON.stringify({ enable: catalog.pluginEnable, access: catalog.pluginHostAccess, hint: catalog.pluginHostAccessHint, success: catalog.pluginInstallSuccess.replace("{name}", "Graph"), update: catalog.pluginUpdate, updateAll: catalog.pluginUpdateAll, updating: catalog.pluginUpdating, updated: catalog.pluginUpdateSuccess.replace("{name}", "Graph"), updatedGoal: catalog.pluginUpdateSuccess.replace("{name}", "Goal"), failed: catalog.pluginOperationFailed })}; true`,
     );
     pilot(["snapshot", "-i"]);
     pilot(["run", join(repo, "tests/blackbox/plugin-settings.toml")]);
+    pilot(["snapshot", "-i"]);
+    pilot(["run", join(repo, "tests/blackbox/plugin-update-all.toml")]);
+    captureSettings(join(artifacts, `${theme}-${language}-update-all.png`));
     pilot(["snapshot", "-i"]);
     pilot(["click", ".plugin-management-tabs button:nth-of-type(2)"]);
     evaluate(`(async () => {
@@ -131,19 +148,7 @@ try {
       ".toast-stack",
     ]);
     if (process.env.BLACKBOX_NATIVE_WINDOW_HANDLE) {
-      const capture = spawnSync(
-        "python",
-        [
-          join(repo, "scripts/capture-windows-window.py"),
-          "--hwnd",
-          process.env.BLACKBOX_NATIVE_WINDOW_HANDLE,
-          "--output",
-          join(artifacts, `${theme}-${language}-native.png`),
-        ],
-        { encoding: "utf8", windowsHide: true },
-      );
-      if (capture.error || capture.status !== 0)
-        throw new Error(capture.stderr, { cause: capture.error });
+      captureSettings(join(artifacts, `${theme}-${language}-native.png`));
     }
     evaluate(
       `(async () => {const {desktopPluginInstallQueue:queue} = await import('/src/lib/agentPluginInstallQueue.ts');const {toasts,dismissToast} = await import('/src/lib/toast.ts');window.__pluginSettingsCaptureFinish(true);await new Promise(resolve=>setTimeout(resolve,0));for(const key of ['settings-capture','settings-capture-install','settings-capture-update']) queue.dismiss(key);let current=[];toasts.subscribe(items=>current=items)();current.forEach(item=>dismissToast(item.id));return true;})()`,

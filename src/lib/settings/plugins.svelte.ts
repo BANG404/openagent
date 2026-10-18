@@ -69,6 +69,24 @@ export function createPluginSettings(
   let pluginManagementView = $state<"marketplace" | "installed">("marketplace");
   const pluginInstallQueue = desktopPluginInstallQueue;
   let agentPluginInstallTasks = $state<PluginInstallTask[]>(pluginInstallQueue.snapshot());
+  const agentPluginUpdateIds = $derived.by(() => {
+    const installed = new Set(agentPlugins.map((plugin) => plugin.id));
+    return [
+      ...new Set(
+        agentPluginUpdates
+          .filter(
+            (update) =>
+              installed.has(update.id) && update.update_available && update.latest_version,
+          )
+          .map((update) => update.id),
+      ),
+    ];
+  });
+  const agentPluginsUpdating = $derived(
+    agentPluginInstallTasks.some(
+      (task) => task.operation === "update" && task.status === "running",
+    ),
+  );
   const pluginHostAccessQueue = desktopPluginHostAccessQueue;
   let agentPluginHostAccessRequests = $state<AgentPluginSummary[]>(
     pluginHostAccessQueue.snapshot(),
@@ -417,11 +435,29 @@ export function createPluginSettings(
       activate: async (updated, progress) => {
         ++agentPluginRefreshSequence;
         agentPlugins = [...agentPlugins.filter((plugin) => plugin.id !== updated.id), updated];
+        agentPluginUpdates = agentPluginUpdates.filter((update) => update.id !== updated.id);
         progress({ plugin_id: updated.id, stage: "connecting" });
         await refreshAgentPlugins();
         await emit("agent-plugins-changed").catch(() => {});
       },
     });
+  }
+
+  async function updateAllAgentPlugins(): Promise<void> {
+    if (
+      !isTauri() ||
+      agentPluginsLoading ||
+      localPluginRefreshing ||
+      agentPluginUpdatesLoading ||
+      agentPluginsUpdating ||
+      agentPluginRemoveId !== null
+    )
+      return;
+    // Snapshot before any activation refresh changes the inventory. Each request
+    // enters the window-wide queue synchronously, retaining duplicate protection
+    // and independent outcomes even when this Settings surface closes.
+    const ids = [...agentPluginUpdateIds];
+    await Promise.all(ids.map((id) => updateAgentPlugin(id)));
   }
 
   function requestUninstallAgentPlugin(pluginId: string): void {
@@ -667,6 +703,12 @@ export function createPluginSettings(
     get agentPluginUpdatesLoading() {
       return agentPluginUpdatesLoading;
     },
+    get agentPluginUpdateCount() {
+      return agentPluginUpdateIds.length;
+    },
+    get agentPluginsUpdating() {
+      return agentPluginsUpdating;
+    },
     get agentPluginRemoveDialogOpen() {
       return agentPluginRemoveId !== null;
     },
@@ -690,6 +732,7 @@ export function createPluginSettings(
     installMarketplaceAgentPlugin,
     installOfficialAgentPlugin,
     updateAgentPlugin,
+    updateAllAgentPlugins,
     requestUninstallAgentPlugin,
     cancelUninstallAgentPlugin,
     confirmUninstallAgentPlugin,
