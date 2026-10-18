@@ -1,5 +1,9 @@
 # Conversation components
 
+Expanded file changes show content directly below the file header without a
+branch-inference caption or an empty toolbar. Only incomplete projections show
+the localized fragment notice above their content.
+
 ConversationSurface shows Scroll to bottom only for a measurable viewport with
 more than 24px of vertical overflow and more than 24px remaining below it.
 Observe both the viewport and messages-content sizes: streaming, tool disclosure,

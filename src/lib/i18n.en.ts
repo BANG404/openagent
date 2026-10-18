@@ -190,7 +190,6 @@ const en: Record<TranslationKeys, string> = {
   fileChangeViewMode: "File view",
   fileChangeFragmentScope: "Inferred fragments · file line numbers unknown",
   toolCreateFile: "Create file",
-  fileChangeBranchScope: "Selected branch · inferred from tools",
   fileChangeContentUnavailable: "Inferred file content is unavailable",
   fileChangeDeletedContent: "This file was deleted",
   fileChangeEmptyContent: "This file is empty",

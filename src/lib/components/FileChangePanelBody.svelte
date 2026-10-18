@@ -67,12 +67,11 @@
           <Accordion.Content class="file-detail">
             {#if expandedPath === change.path}
               {@const content = fileChangeContent(change)}
-              <div class="file-toolbar">
-                <span>{$t("fileChangeBranchScope")}</span>
-                {#if change.projection?.complete === false}<span
-                    >{$t("fileChangeFragmentScope")}</span
-                  >{/if}
-              </div>
+              {#if change.projection?.complete === false}
+                <div class="file-toolbar">
+                  <span>{$t("fileChangeFragmentScope")}</span>
+                </div>
+              {/if}
               <ScrollArea
                 maxHeight="min(420px, 55vh)"
                 horizontal
