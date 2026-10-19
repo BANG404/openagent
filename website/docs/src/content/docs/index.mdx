@@ -1,15 +1,28 @@
 ---
-title: Build your own OpenAgent plugin
-description: A practical path from your first Skill to a validated, published Agent Plugin.
+title: Use and extend OpenAgent
+description: Get started with the desktop app, solve common problems, and develop your own Agent Plugins.
 ---
 
 import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-Extend your desktop workspace with reusable Skills, MCP tools, commands, or a scoped sidebar. OpenAgent installs **Agent Plugins 1.0** packages; its additional capabilities live under `extensions.openagent`.
+Learn the desktop workflow first, then extend it with reusable Skills, MCP tools, commands, or a scoped sidebar. Choose a guide for the task you want to complete.
+
+## Using OpenAgent
+
+<CardGrid>
+  <LinkCard title="Install & start" description="Choose a package, connect a model service, and complete your first task." href={`${import.meta.env.BASE_URL}usage/getting-started/`} />
+  <LinkCard title="Conversations, files & recovery" description="Give useful context, read tool results, and review branches and edits." href={`${import.meta.env.BASE_URL}usage/conversations/`} />
+  <LinkCard title="Models, permissions & extensions" description="Configure Chat/Flash, understand approval, and use plugins or MCP." href={`${import.meta.env.BASE_URL}usage/configuration/`} />
+  <LinkCard title="Common problems" description="Diagnose connection, attachment, permission, plugin, update, and history issues." href={`${import.meta.env.BASE_URL}usage/troubleshooting/`} />
+</CardGrid>
+
+## Plugin development
+
+OpenAgent installs **Agent Plugins 1.0** packages; its additional capabilities live under `extensions.openagent`.
 
 Start with a working Skill package, add only the components you need, then verify the installed candidate before publishing. You need an installed OpenAgent, Git, and Bun for authoring; you do not need a desktop source build or access to the private SDK. All commands use your project root unless a step says otherwise.
 
-## Build and connect
+### Build and connect
 
 <CardGrid>
   <LinkCard title="01 · Your first plugin" description="Scaffold a Skill, validate it, and install the local package." href={`${import.meta.env.BASE_URL}plugins/first-plugin/`} />
@@ -20,7 +33,7 @@ Start with a working Skill package, add only the components you need, then verif
   <LinkCard title="06 · Sidebar & languages" description="Choose scoped panels or persisted conversation UI and follow host locale." href={`${import.meta.env.BASE_URL}plugins/sidebar/`} />
 </CardGrid>
 
-## Orchestrate and deliver
+### Orchestrate and deliver
 
 <CardGrid>
   <LinkCard title="07 · Host Bridge workflows" description="Learn from Goal, Graph, and Chat Groups; keep state and branches explicit." href={`${import.meta.env.BASE_URL}plugins/workflows/`} />

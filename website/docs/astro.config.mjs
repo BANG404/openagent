@@ -7,8 +7,8 @@ export default defineConfig({
   trailingSlash: "always",
   integrations: [
     starlight({
-      title: { en: "OpenAgent · Plugin development", "zh-CN": "OpenAgent · 插件开发" },
-      description: "Build, validate, and publish Agent Plugins for OpenAgent.",
+      title: { en: "OpenAgent · Docs", "zh-CN": "OpenAgent · 文档" },
+      description: "Use OpenAgent, troubleshoot common problems, and build Agent Plugins.",
       favicon: "https://bang404.github.io/openagent/assets/openagent_logo.png",
       customCss: ["./src/styles/custom.css"],
       locales: {
@@ -21,6 +21,16 @@ export default defineConfig({
       },
       sidebar: [
         { slug: "index" },
+        {
+          label: "Using OpenAgent",
+          translations: { "zh-CN": "软件使用教程" },
+          items: [
+            { slug: "usage/getting-started" },
+            { slug: "usage/conversations" },
+            { slug: "usage/configuration" },
+            { slug: "usage/troubleshooting" },
+          ],
+        },
         {
           label: "Plugin development",
           translations: { "zh-CN": "插件开发教程" },

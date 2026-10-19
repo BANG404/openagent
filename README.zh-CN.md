@@ -11,6 +11,7 @@
 <p align="center">
   <a href="README.md">English</a> · 简体中文<br />
   <a href="https://github.com/BANG404/openagent/releases">下载安装</a> ·
+  <a href="https://bang404.github.io/openagent/docs/zh-cn/">使用与插件开发教程</a> ·
   <a href="CHANGELOG.md">更新日志</a> ·
   <a href="AGENTS.md">贡献指南</a>
 </p>

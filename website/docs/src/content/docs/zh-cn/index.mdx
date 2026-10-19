@@ -1,15 +1,28 @@
 ---
-title: 开发你的 OpenAgent 插件
-description: 从第一个 Skill 到校验、安装和发布，逐步构建可使用的 Agent Plugin。
+title: 使用与扩展 OpenAgent
+description: 从桌面软件入门、常见问题排查，到开发自己的 Agent Plugin。
 ---
 
 import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-通过可复用技能、MCP 工具、命令或带作用域的侧栏扩展桌面工作区。OpenAgent 安装 **Agent Plugins 1.0** 格式的包，平台专属能力放在 `extensions.openagent` 中。
+先掌握桌面软件的工作方式，再通过可复用技能、MCP 工具、命令或带作用域的侧栏扩展能力。根据当前要完成的任务选择教程。
+
+## 软件使用教程
+
+<CardGrid>
+  <LinkCard title="安装与首次使用" description="选择安装包，连接模型服务，并完成第一个任务。" href={`${import.meta.env.BASE_URL}zh-cn/usage/getting-started/`} />
+  <LinkCard title="对话、文件与恢复" description="提供有效上下文，检查工具结果，审阅分支与文件修改。" href={`${import.meta.env.BASE_URL}zh-cn/usage/conversations/`} />
+  <LinkCard title="模型、权限与扩展" description="配置对话与 Flash 模型，理解审批，使用插件或 MCP。" href={`${import.meta.env.BASE_URL}zh-cn/usage/configuration/`} />
+  <LinkCard title="常见问题与排查" description="排查连接、附件、权限、插件、更新与历史记录问题。" href={`${import.meta.env.BASE_URL}zh-cn/usage/troubleshooting/`} />
+</CardGrid>
+
+## 插件开发教程
+
+OpenAgent 安装 **Agent Plugins 1.0** 格式的包，平台专属能力放在 `extensions.openagent` 中。
 
 先运行一个 Skill 包，再按需添加组件，最后验证实际安装的候选包并发布。创作需要已安装的 OpenAgent、Git 和 Bun，无须构建桌面源码或访问私有 SDK。除非步骤另有说明，命令都从你的项目根目录执行。
 
-## 创建与接入
+### 创建与接入
 
 <CardGrid>
   <LinkCard title="01 · 第一个插件" description="创建 Skill，校验插件，然后安装本地包。" href={`${import.meta.env.BASE_URL}zh-cn/plugins/first-plugin/`} />
@@ -20,7 +33,7 @@ import { CardGrid, LinkCard } from '@astrojs/starlight/components';
   <LinkCard title="06 · 侧栏与国际化" description="选择带作用域的面板或持久会话 UI，跟随宿主语言。" href={`${import.meta.env.BASE_URL}zh-cn/plugins/sidebar/`} />
 </CardGrid>
 
-## 编排与交付
+### 编排与交付
 
 <CardGrid>
   <LinkCard title="07 · Host Bridge 工作流" description="参考 Goal、Graph 与 Chat Groups，显式管理状态和分支。" href={`${import.meta.env.BASE_URL}zh-cn/plugins/workflows/`} />
