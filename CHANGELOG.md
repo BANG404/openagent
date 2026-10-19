@@ -10,6 +10,44 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.87.0-beta.1] - 2026-10-19
+
+### Features
+- **sdk**: Publish client and managed Runtime with software releases
+- **chat**: Send large pasted text as file references
+- **updates**: Enforce Runtime plugin contracts and recoverable activation
+- **appearance**: Add adjustable interaction contrast
+- **plugins**: Update all installed plugins in one click
+- **theme**: Expose independent sidebar selection colors
+
+### Bug Fixes
+- **runtime**: Finalize version-based plugin synchronization and Windows validation
+- **runtime**: Pin settings support for style contrast
+- **chat**: Show current-task steering as an icon button
+- **chat**: Show steering messages after runtime consumption
+- **plugins**: Refresh plugin update metadata more frequently
+- **ui**: Retain appearance resources across topbar previews
+- **chat**: Preserve steering order during streaming
+- **chat**: Show accepted steering input during streaming
+- **chat**: Settle queue visibility and contain composer actions
+- **chat**: Wait for new conversations before loading input queues
+- **chat**: Adopt Tiptap for Markdown composition
+- **files**: Remove branch inference caption
+- **chat**: Share durable input queues across desktop and remote
+- **chat**: Remove the quick input workspace process wait
+- **plugins**: Separate store purposes from channel declarations
+- **ui**: Keep underlying text stable when opening topbar surfaces
+- **plugins**: Classify catalog entries by their primary purpose
+- **chat**: Keep file diff syntax work off the UI thread
+- **chat**: Hide scroll-to-bottom when content fits
+- **settings**: Remove icons from MCP list
+
+### Refactoring
+- **sdk**: Use standalone transport and generated wire contracts
+
+### Testing
+- **sdk**: Resolve Tauri mocks from the standalone client package
+
 ## [0.86.0-beta.1] - 2026-10-17
 
 ### Features
