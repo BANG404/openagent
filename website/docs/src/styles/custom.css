@@ -1,11 +1,210 @@
+/* Match the product homepage's neutral surfaces, blue links and rounded cards.
+   Keep Starlight's layout, controls and theme behavior in charge. */
 :root {
+  --sl-font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --sl-color-white: #f5f5f7;
+  --sl-color-gray-1: #e8e8ed;
+  --sl-color-gray-2: #d2d2d7;
+  --sl-color-gray-3: #a1a1a6;
+  --sl-color-gray-4: #86868b;
+  --sl-color-gray-5: #424245;
+  --sl-color-gray-6: #29292c;
+  --sl-color-black: #1d1d1f;
   --sl-color-accent-low: #12365a;
   --sl-color-accent: #2997ff;
   --sl-color-accent-high: #b8dcff;
+  --sl-color-text-accent: #2997ff;
+  --sl-color-bg-nav: #1d1d1f;
+  --sl-color-bg-sidebar: #232325;
+  --sl-color-hairline: rgba(245, 245, 247, 0.16);
+  --sl-color-hairline-light: var(--sl-color-hairline);
+  --sl-color-hairline-shade: var(--sl-color-hairline);
+  --sl-sidebar-width: 17rem;
+  --sl-content-width: 48rem;
+  --sl-nav-height: 3.75rem;
+  --sl-text-h1: clamp(2rem, 4vw, 3rem);
+  --sl-text-h2: 1.875rem;
+  --sl-text-h3: 1.3125rem;
+  --sl-line-height: 1.75;
 }
 
 :root[data-theme="light"] {
+  --sl-color-white: #1d1d1f;
+  --sl-color-gray-1: #323235;
+  --sl-color-gray-2: #424245;
+  --sl-color-gray-3: #6e6e73;
+  --sl-color-gray-4: #86868b;
+  --sl-color-gray-5: #d2d2d7;
+  --sl-color-gray-6: #f5f5f7;
+  --sl-color-gray-7: #fafafa;
+  --sl-color-black: #fff;
   --sl-color-accent-low: #e8f2ff;
   --sl-color-accent: #0066cc;
   --sl-color-accent-high: #004b99;
+  --sl-color-text-accent: #0066cc;
+  --sl-color-bg-nav: #fff;
+  --sl-color-bg-sidebar: #f5f5f7;
+  --sl-color-hairline: rgba(29, 29, 31, 0.14);
+}
+
+/* A quiet header and navigation leave the reading column in focus. */
+site-search button[data-open-modal] {
+  border: 1px solid var(--sl-color-hairline);
+  border-radius: 999px;
+  background: var(--sl-color-bg-sidebar);
+  box-shadow: none;
+}
+
+site-search button[data-open-modal]:hover {
+  border-color: var(--sl-color-text-accent);
+}
+
+.sidebar-content a {
+  padding-block: 0.55rem;
+  border-radius: 10px;
+}
+
+.sidebar-content summary {
+  padding-block: 0.65rem;
+}
+
+.sidebar-content .large {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.sidebar-content a:hover {
+  background: var(--sl-color-bg);
+}
+
+.sidebar-content a[aria-current="page"] {
+  background: var(--sl-color-accent-low);
+  color: var(--sl-color-text-accent);
+}
+
+.right-sidebar-panel h2 {
+  font-size: 0.8125rem;
+}
+
+.right-sidebar-panel a {
+  padding-block: 0.3rem;
+}
+
+/* Homepage typography, scaled for long-form bilingual documentation. */
+h1,
+.sl-markdown-content :is(h2, h3, h4) {
+  font-weight: 600;
+  letter-spacing: -0.035em;
+}
+
+h1 {
+  line-height: 1.12;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+
+main > .content-panel:first-child {
+  padding-top: 3rem;
+  padding-bottom: 2rem;
+}
+
+main > .content-panel + .content-panel {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.sl-markdown-content > p:first-child {
+  color: var(--sl-color-gray-3);
+  font-size: 1.125rem;
+  line-height: 1.6;
+}
+
+.sl-markdown-content :is(h2, h3) {
+  margin-top: 2.75rem;
+}
+
+.sl-markdown-content a:not(:where(.sl-link-card *, .sl-anchor-link)) {
+  text-underline-offset: 0.2em;
+}
+
+.sl-markdown-content :not(pre) > code {
+  border-radius: 5px;
+  padding: 0.15em 0.35em;
+}
+
+.sl-markdown-content th {
+  background: var(--sl-color-bg-sidebar);
+}
+
+.sl-markdown-content :is(th, td) {
+  border-color: var(--sl-color-hairline);
+  padding: 0.8rem 1rem;
+}
+
+.expressive-code {
+  --ec-brdRad: 14px;
+  --ec-brdCol: var(--sl-color-hairline);
+  --ec-frm-frameBoxShdCssVal: none;
+}
+
+/* Reuse the landing page's card geometry without replacing native links. */
+.sl-link-card,
+.pagination-links a {
+  border: 1px solid var(--sl-color-hairline);
+  border-radius: 18px;
+  background: var(--sl-color-bg);
+  padding: 1.5rem;
+  box-shadow: none;
+  transition: border-color 0.15s;
+}
+
+.sl-link-card .title {
+  font-size: 1.125rem;
+  letter-spacing: -0.025em;
+}
+
+.sl-link-card .description {
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.sl-link-card .icon {
+  color: var(--sl-color-text-accent);
+}
+
+.sl-link-card:hover,
+.pagination-links a:hover {
+  border-color: var(--sl-color-text-accent);
+  background: var(--sl-color-bg-sidebar);
+}
+
+.sl-link-card:focus-within,
+.pagination-links a:focus-visible {
+  outline: 2px solid var(--sl-color-text-accent);
+  outline-offset: 4px;
+}
+
+.pagination-links .link-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+@media (max-width: 49.99rem) {
+  main > .content-panel:first-child {
+    padding-top: 2rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .sl-link-card,
+  .pagination-links a {
+    padding: 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-link-card,
+  .pagination-links a {
+    transition: none;
+  }
 }

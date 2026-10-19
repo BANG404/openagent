@@ -11,6 +11,9 @@ export default defineConfig({
       description: "Use OpenAgent, troubleshoot common problems, and build Agent Plugins.",
       favicon: "https://bang404.github.io/openagent/assets/openagent_logo.png",
       customCss: ["./src/styles/custom.css"],
+      components: {
+        SiteTitle: "./src/components/SiteTitle.astro",
+      },
       locales: {
         root: { label: "English", lang: "en" },
         "zh-cn": { label: "简体中文", lang: "zh-CN" },
