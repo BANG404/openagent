@@ -21,7 +21,7 @@ import type {
   TaskTokenUsage,
   TaskTraceSummary,
   ToolImageAttachment,
-} from "./types";
+} from "./types.js";
 
 import type {
   ChatModelBinding,
@@ -34,8 +34,8 @@ import type {
   EmbeddingResourceStatus,
   UserMessageContext,
   ResolvedInput as ResolvedAgentInput,
-} from "./protocol.generated";
-export { OPENAGENT_PROTOCOL_VERSION } from "./protocol.generated";
+} from "./protocol.generated.js";
+export { OPENAGENT_PROTOCOL_VERSION } from "./protocol.generated.js";
 export type {
   ChatModelBinding,
   UserMessageContext,
@@ -50,10 +50,10 @@ export type {
   ResolvedInput as ResolvedAgentInput,
   EmbeddingResourceStatus,
   EmbeddingResourceProgress,
-} from "./protocol.generated";
-export type SubmitAgentInputOutcome = import("./protocol.generated").SubmissionOutcome;
+} from "./protocol.generated.js";
+export type SubmitAgentInputOutcome = import("./protocol.generated.js").SubmissionOutcome;
 
-export type ChatMemoryRetrievalStage = import("./protocol.generated").ChatMemoryRetrievalStage;
+export type ChatMemoryRetrievalStage = import("./protocol.generated.js").ChatMemoryRetrievalStage;
 
 export interface RemoteWorkspace {
   id: string;
@@ -387,7 +387,7 @@ export interface DesktopProductCommandMap {
   };
   refresh_local_agent_plugins: {
     request: { id?: string };
-    response: import("./types").LocalPluginRefreshReport;
+    response: import("./types.js").LocalPluginRefreshReport;
   };
   complete_local_plugin_refresh_preparation: {
     request: { token: string; error?: string };
@@ -842,7 +842,7 @@ export interface OpenAgentOperationMap {
   };
 }
 
-type WireEvent = import("./protocol.generated").OpenAgentWireEvent<
+type WireEvent = import("./protocol.generated.js").OpenAgentWireEvent<
   CheckpointMessage,
   TaskTokenUsage,
   FileChange,
@@ -852,9 +852,9 @@ type WireEvent = import("./protocol.generated").OpenAgentWireEvent<
   RemoteConversationState
 >;
 export type OpenAgentEventMap = { [Event in WireEvent as Event["name"]]: Event["payload"] };
-export type ChatRunStartedEvent = import("./protocol.generated").ChatRunStartedEvent;
+export type ChatRunStartedEvent = import("./protocol.generated.js").ChatRunStartedEvent;
 export type ChatModelUsageEvent =
-  import("./protocol.generated").ChatModelUsageEvent<TaskTokenUsage>;
+  import("./protocol.generated.js").ChatModelUsageEvent<TaskTokenUsage>;
 
 export interface McpUiToolDescriptor {
   server_id: string;

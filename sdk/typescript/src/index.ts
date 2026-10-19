@@ -1,4 +1,4 @@
-export { OpenAgentClient } from "./client";
+export { OpenAgentClient } from "./client.js";
 export type {
   AgentCommandSpec,
   InputDelivery,
@@ -32,15 +32,15 @@ export type {
   SubmitInterruptResponseRequest,
   WorkspaceMediaSource,
   WorkspaceTextSnippet,
-} from "./contracts";
-export { interruptRequest } from "./remote";
+} from "./contracts.js";
+export { interruptRequest } from "./remote.js";
 export type {
   OpenAgentEvent,
   OpenAgentOperation,
   OpenAgentSubscriptionOptions,
   OpenAgentTransport,
   Unsubscribe,
-} from "./transport";
+} from "./transport.js";
 export type {
   AgentPluginAutomationHookSummary,
   AgentPluginAuthorSummary,
@@ -80,4 +80,4 @@ export type {
   RenderableCheckpoint,
   TaskTokenUsage,
   UserInputRequest,
-} from "./types";
+} from "./types.js";

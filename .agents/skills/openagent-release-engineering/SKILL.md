@@ -7,5 +7,5 @@ metadata:
 
 # OpenAgent release engineering
 
-Read matching references. See [Alpha](references/alpha-releases.md) and
-[installer tests](references/windows-install-acceptance.md). Deliver via OWT.
+Read [Alpha](references/alpha-releases.md), [installers](references/windows-install-acceptance.md),
+or [npm SDK](references/client-sdk.md). Deliver via OWT.

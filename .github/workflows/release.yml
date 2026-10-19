@@ -380,6 +380,64 @@ jobs:
       reuse_embedding: ${{ needs.component-plan.outputs.reuse_embedding == 'true' }}
     secrets: inherit
 
+  client-sdk-candidate:
+    name: Build npm SDK and standalone Runtime candidate
+    needs: [detect, runtime-components]
+    if: needs.detect.outputs.published != 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.detect.outputs.sha }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - run: bun install --frozen-lockfile
+      - run: bun install --frozen-lockfile
+        working-directory: sdk/typescript
+      - uses: actions/download-artifact@v4
+        with:
+          name: signed-runtime-components
+          path: runtime-components
+      - name: Build independently versioned npm candidate
+        run: bun scripts/client-sdk-release.mjs --runtime runtime-components --output client-sdk-candidate --channel '${{ needs.detect.outputs.channel }}'
+      - name: Sign standalone Runtime manifest
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: bun scripts/tauri.mjs signer sign --private-key "$TAURI_SIGNING_PRIVATE_KEY" --password "" client-sdk-candidate/runtime/openagent-sdk-manifest.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: client-sdk-candidate
+          path: client-sdk-candidate/
+          if-no-files-found: error
+          retention-days: 7
+
+  client-sdk-qualification:
+    name: Packed npm SDK (${{ matrix.os }})
+    needs: [detect, client-sdk-candidate]
+    if: needs.detect.outputs.published != 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-14, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.detect.outputs.sha }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - uses: actions/download-artifact@v4
+        with:
+          name: client-sdk-candidate
+          path: client-sdk-candidate
+      - name: Verify installed npm package with the qualified Runtime
+        run: bun scripts/verify-client-sdk-package.mjs client-sdk-candidate
+
   tag:
     name: Tag verified commit
     needs:
@@ -391,6 +449,7 @@ jobs:
       - runtime-components
       - frontend-components
       - frontend-build
+      - client-sdk-qualification
     if: >-
       always()
       && needs.detect.outputs.active == 'true'
@@ -401,6 +460,7 @@ jobs:
       && (needs.detect.outputs.published == 'true' || needs.build.result == 'success')
       && (needs.detect.outputs.published == 'true' || needs.runtime-components.result == 'success')
       && (needs.detect.outputs.published == 'true' || needs.frontend-components.result == 'success')
+      && (needs.detect.outputs.published == 'true' || needs.client-sdk-qualification.result == 'success')
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -1612,6 +1672,44 @@ jobs:
           --output "$RUNNER_TEMP/sdk-publish-output"
           --mode publish
 
+  publish-client-sdk:
+    name: Publish standalone Runtime and npm SDK
+    needs: [detect, publish-sdk-release, client-sdk-qualification]
+    if: needs.detect.outputs.published != 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.detect.outputs.sha }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@v4
+        with:
+          name: client-sdk-candidate
+          path: client-sdk-candidate
+      - name: Prepare npm trusted publishing
+        run: npm install --global npm@11.5.1
+      - name: Publish verified Runtime before its npm consumer
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: bun scripts/publish-client-sdk.mjs client-sdk-candidate
+      - name: Attach npm version and Runtime mapping to desktop release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.detect.outputs.tag }}
+        run: gh release upload "$RELEASE_TAG" client-sdk-candidate/release.json --clobber
+
   publish:
     name: Publish release
     needs:
@@ -1623,6 +1721,7 @@ jobs:
       - publish-store
       - publish-distribution-resources
       - publish-sdk-release
+      - publish-client-sdk
       - sdk-release
     if: >-
       always()
@@ -1634,6 +1733,7 @@ jobs:
       && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.frontend != 'true' || needs.publish-frontend-components.result == 'success')
       && (needs.create-draft.outputs.published == 'true' || needs.detect.outputs.prerelease == 'true' || needs.publish-store.result == 'success')
       && needs.publish-sdk-release.result == 'success'
+      && (needs.create-draft.outputs.published == 'true' || needs.publish-client-sdk.result == 'success')
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7

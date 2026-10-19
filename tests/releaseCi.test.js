@@ -283,8 +283,9 @@ describe("release CI verification", () => {
     expect(releaseWorkflow).toContain("OPENAGENT_SDK_RELEASE_TOKEN");
     expect(releaseWorkflow).toContain("openagent-desktop-manifest.json");
     expect(releaseWorkflow).toContain("needs.sdk-release.outputs.sdk_version");
-    const qualifyJob = releaseWorkflow.match(/ {2}qualify:\n(?<job>[\s\S]*?)\n {2}tag:/)?.groups
-      ?.job;
+    const qualifyJob = releaseWorkflow.match(
+      / {2}qualify:\n(?<job>[\s\S]*?)\n {2}client-sdk-candidate:/,
+    )?.groups?.job;
     const tagJob = releaseWorkflow.match(/ {2}tag:\n(?<job>[\s\S]*?)\n {2}create-draft:/)?.groups
       ?.job;
     const buildJob = releaseWorkflow.match(/ {2}build:\n(?<job>[\s\S]*?)\n {2}runtime-components:/)
@@ -393,7 +394,7 @@ describe("release CI verification", () => {
       releaseWorkflow.match(
         /signer sign --private-key "\$TAURI_SIGNING_PRIVATE_KEY" --password ""/g,
       ),
-    ).toHaveLength(4);
+    ).toHaveLength(5);
     expect(releaseWorkflow).toContain('component_channel="frontend-$RELEASE_CHANNEL"');
     expect(releaseWorkflow).toContain("openagent-frontend-manifest.json.sig");
   });

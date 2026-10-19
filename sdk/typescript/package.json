@@ -1,8 +1,7 @@
 {
   "name": "@bang404/openagent-sdk",
-  "version": "0.2.0",
-  "private": true,
-  "description": "Typed OpenAgent client and browser/Tauri transports",
+  "version": "0.3.0",
+  "description": "Typed OpenAgent client and optional local Runtime management",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -10,12 +9,23 @@
     "directory": "sdk/typescript"
   },
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "files": [
     "dist",
     "README.md",
     "LICENSE"
   ],
   "exports": {
+    "./runtime": {
+      "types": "./dist/runtime.d.ts",
+      "import": "./dist/runtime.js"
+    },
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"

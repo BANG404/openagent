@@ -1,4 +1,4 @@
-import type { OpenAgentEventMap, OpenAgentOperationMap } from "./contracts";
+import type { OpenAgentEventMap, OpenAgentOperationMap } from "./contracts.js";
 
 export type OpenAgentOperation = keyof OpenAgentOperationMap;
 export type OpenAgentEvent = keyof OpenAgentEventMap;

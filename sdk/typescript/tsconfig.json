@@ -5,8 +5,10 @@
     "moduleResolution": "bundler",
     "strict": true,
     "skipLibCheck": true,
+    "allowJs": true,
+    "checkJs": true,
     "noEmit": true,
     "types": ["bun"]
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts"]
+  "include": ["src/**/*.ts", "src/**/*.js", "tests/**/*.ts"]
 }

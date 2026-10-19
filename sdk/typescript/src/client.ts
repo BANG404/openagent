@@ -24,9 +24,9 @@ import type {
   SubmitInterruptResponseRequest,
   WorkspaceMediaSource,
   WorkspaceTextSnippet,
-} from "./contracts";
-import type { AgentRole, AgentPluginInstallProgress, ChatAttachment, ConvPatch } from "./types";
-import type { OpenAgentTransport, Unsubscribe } from "./transport";
+} from "./contracts.js";
+import type { AgentRole, AgentPluginInstallProgress, ChatAttachment, ConvPatch } from "./types.js";
+import type { OpenAgentTransport, Unsubscribe } from "./transport.js";
 
 export class OpenAgentClient {
   constructor(private readonly transport: OpenAgentTransport) {}
@@ -154,22 +154,22 @@ export class OpenAgentClient {
     });
   }
 
-  listAgentPlugins(): Promise<import("./types").AgentPluginSummary[]> {
+  listAgentPlugins(): Promise<import("./types.js").AgentPluginSummary[]> {
     return this.invokeProduct("list_agent_plugins", {});
   }
 
-  refreshLocalAgentPlugins(id?: string): Promise<import("./types").LocalPluginRefreshReport> {
+  refreshLocalAgentPlugins(id?: string): Promise<import("./types.js").LocalPluginRefreshReport> {
     return this.invokeProduct("refresh_local_agent_plugins", id ? { id } : {});
   }
 
-  listAgentPluginMarketplaces(): Promise<import("./types").AgentPluginMarketplaceSummary[]> {
+  listAgentPluginMarketplaces(): Promise<import("./types.js").AgentPluginMarketplaceSummary[]> {
     return this.invokeProduct("list_agent_plugin_marketplaces", {});
   }
 
   installMarketplaceAgentPlugin(
     marketplacePath: string,
     pluginName: string,
-  ): Promise<import("./types").AgentPluginSummary> {
+  ): Promise<import("./types.js").AgentPluginSummary> {
     return this.invokeProduct("install_marketplace_agent_plugin", {
       marketplace_path: marketplacePath,
       plugin_name: pluginName,
@@ -180,7 +180,7 @@ export class OpenAgentClient {
     pluginId: string,
     displayName: string,
     sourceUrl: string,
-  ): Promise<import("./types").AgentPluginSummary> {
+  ): Promise<import("./types.js").AgentPluginSummary> {
     return this.invokeProduct("install_official_agent_plugin", {
       plugin_id: pluginId,
       display_name: displayName,
@@ -188,15 +188,15 @@ export class OpenAgentClient {
     });
   }
 
-  checkAgentPluginUpdates(): Promise<import("./types").AgentPluginUpdateReport> {
+  checkAgentPluginUpdates(): Promise<import("./types.js").AgentPluginUpdateReport> {
     return this.invokeProduct("check_agent_plugin_updates", {});
   }
 
-  updateAgentPlugin(id: string): Promise<import("./types").AgentPluginSummary> {
+  updateAgentPlugin(id: string): Promise<import("./types.js").AgentPluginSummary> {
     return this.invokeProduct("update_agent_plugin", { id });
   }
 
-  installAgentPlugin(source: string): Promise<import("./types").AgentPluginSummary> {
+  installAgentPlugin(source: string): Promise<import("./types.js").AgentPluginSummary> {
     return this.invokeProduct("install_agent_plugin", { source });
   }
 

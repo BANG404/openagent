@@ -11,6 +11,7 @@ export default tseslint.config(
       ".svelte-kit/**",
       "build/**",
       "dist/**",
+      "sdk/typescript/dist/**",
       "dist-pages/**",
       "node_modules/**",
       "runtime/**",

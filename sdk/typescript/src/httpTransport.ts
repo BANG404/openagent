@@ -2,14 +2,14 @@ import {
   OPENAGENT_PROTOCOL_VERSION,
   type OpenAgentEventMap,
   type OpenAgentOperationMap,
-} from "./contracts";
+} from "./contracts.js";
 import type {
   OpenAgentEvent as OpenAgentEventName,
   OpenAgentOperation,
   OpenAgentSubscriptionOptions,
   OpenAgentTransport,
   Unsubscribe,
-} from "./transport";
+} from "./transport.js";
 
 interface SessionResponse {
   csrf: string;
@@ -24,14 +24,17 @@ export interface EventSourceLike {
 
 export interface HttpTransportOptions {
   baseUrl?: string;
-  fetch?: typeof fetch;
+  fetch?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
   eventSource?: (url: string) => EventSourceLike;
 }
 
 export class HttpTransport implements OpenAgentTransport {
   private csrf = "";
   private readonly baseUrl: string;
-  private readonly fetchRequest: typeof fetch;
+  private readonly fetchRequest: (
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ) => Promise<Response>;
   private readonly createEventSource: (url: string) => EventSourceLike;
 
   constructor(options: HttpTransportOptions = {}) {

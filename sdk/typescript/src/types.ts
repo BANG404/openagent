@@ -212,7 +212,7 @@ export interface PluginConnectorProbe {
   oauth: "not_applicable" | "not_required" | "required" | "unsupported" | "unknown";
 }
 
-export type AgentPluginI18n = import("./protocol.generated").PluginI18n;
+export type AgentPluginI18n = import("./protocol.generated.js").PluginI18n;
 
 /**
  * Why one plugin's release metadata could not be read.
@@ -296,7 +296,7 @@ export interface AgentPluginMarketplaceSummary {
   error: string | null;
 }
 
-export type ContextCompactionStage = import("./protocol.generated").ContextCompactionStage;
+export type ContextCompactionStage = import("./protocol.generated.js").ContextCompactionStage;
 
 export type AgentMessageTag =
   | "context_compaction"

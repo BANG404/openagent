@@ -1,5 +1,5 @@
-import type { UserInputRequest } from "./types";
-import type { RemoteInterrupt } from "./contracts";
+import type { UserInputRequest } from "./types.js";
+import type { RemoteInterrupt } from "./contracts.js";
 
 export function interruptRequest(
   interrupt: RemoteInterrupt,

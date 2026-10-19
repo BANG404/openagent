@@ -9,6 +9,12 @@ sdk/typescript/src/httpTransport.ts
 sdk/typescript/src/index.ts
 sdk/typescript/src/protocol.generated.ts
 sdk/typescript/src/remote.ts
+sdk/typescript/src/runtime.ts
+sdk/typescript/src/runtimeArtifacts.js
+sdk/typescript/src/runtimeConnection.ts
+sdk/typescript/src/runtimeEventNames.ts
+sdk/typescript/src/runtimeProcess.ts
+sdk/typescript/src/runtimeRelease.ts
 sdk/typescript/src/runtimeProxyResponse.ts
 sdk/typescript/src/tauriClient.ts
 sdk/typescript/src/tauriTransport.ts
@@ -16,9 +22,12 @@ sdk/typescript/src/transport.ts
 sdk/typescript/src/types.ts
 sdk/typescript/tests/frontendDiagnostics.test.ts
 sdk/typescript/tests/fixtures/tauriTransportProbe.ts
+sdk/typescript/tests/fixtures/runtimeLifecycle.ts
 sdk/typescript/tests/httpTransport.test.ts
 sdk/typescript/tests/openagentClient.test.ts
 sdk/typescript/tests/runtimeProxyResponse.test.ts
+sdk/typescript/tests/runtimeConnection.test.ts
+sdk/typescript/tests/runtimeLifecycle.test.ts
 sdk/typescript/tests/tauriTransport.test.ts
 sdk/typescript/tsconfig.build.json
 sdk/typescript/tsconfig.json

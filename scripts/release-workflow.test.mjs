@@ -91,6 +91,8 @@ describe("release workflow publication gates", () => {
       },
       "publish-store": { result: "skipped" },
       "publish-sdk-release": { result: "success" },
+      "client-sdk-qualification": { result: "success" },
+      "publish-client-sdk": { result: "success" },
       "publish-plugins": { result: components.runtime === "true" ? "success" : "skipped" },
     };
     for (const [name, next] of candidateJobs) {
@@ -108,6 +110,7 @@ describe("release workflow publication gates", () => {
     expect(jobCondition(tag, { ...needs, build: { result: "skipped" } })).toBe(false);
     for (const result of ["failure", "skipped", "cancelled"]) {
       expect(jobCondition(tag, { ...needs, "frontend-build": { result } })).toBe(false);
+      expect(jobCondition(tag, { ...needs, "client-sdk-qualification": { result } })).toBe(false);
     }
     for (const result of ["failure", "skipped", "cancelled"]) {
       expect(jobCondition(tag, { ...needs, "data-compatibility": { result } })).toBe(false);
@@ -130,7 +133,7 @@ describe("release workflow publication gates", () => {
     expect(jobCondition(native, needs)).toBe(true);
     expect(jobCondition(distribution, needs)).toBe(true);
     for (const [name, next] of [
-      ["publish-sdk-release", "publish"],
+      ["publish-sdk-release", "publish-client-sdk"],
       ["publish", "archive-prerelease"],
     ]) {
       const source = await releaseJobSource(name, next);
