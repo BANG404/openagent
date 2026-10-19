@@ -303,6 +303,28 @@ describe("release workflow publication gates", () => {
   });
 });
 
+test("npm publication evaluates after skipped optional ancestors and requires its own gates", async () => {
+  const source = await releaseJobSource("publish-client-sdk", "publish");
+  expect(source).toContain("always()");
+  const needs = {
+    detect: { result: "success", outputs: { published: "false" } },
+    "publish-sdk-release": { result: "success" },
+    "client-sdk-qualification": { result: "success" },
+  };
+  expect(jobCondition(source, needs)).toBe(true);
+  for (const [dependency, gate] of Object.entries(needs)) {
+    for (const result of ["failure", "skipped", "cancelled"]) {
+      expect(jobCondition(source, { ...needs, [dependency]: { ...gate, result } })).toBe(false);
+    }
+  }
+  expect(
+    jobCondition(source, {
+      ...needs,
+      detect: { result: "success", outputs: { published: "true" } },
+    }),
+  ).toBe(false);
+});
+
 describe("update data compatibility checks", () => {
   test("preserves records, contents and identifiers while allowing additive fields", () => {
     const previous = {
