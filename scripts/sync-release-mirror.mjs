@@ -10,6 +10,7 @@ import {
   mirrorCapacity,
   mirrorOrigin,
   mirrorPrefix,
+  matchesAssetBytes,
   repository,
   selectMirrorReleases,
 } from "./release-mirror-plan.mjs";
@@ -122,12 +123,21 @@ try {
         existing.some((object) => object.key === entry.key && object.size === entry.asset.size)
       )
         continue;
+      const remote = bucket.file(entry.key);
+      // Resume an interrupted initial sync even before its index was published.
+      if (
+        existing.some((object) => object.key === entry.key) &&
+        matchesAssetBytes(entry.asset, await remote.arrayBuffer())
+      ) {
+        console.log(`Verified existing ${entry.key}`);
+        continue;
+      }
       const local = await download(entry.asset);
-      await bucket.file(entry.key).write(file(local), {
+      await remote.write(file(local), {
         type: entry.asset.name.endsWith(".json") ? "application/json" : "application/octet-stream",
       });
-      if ((await bucket.file(entry.key).stat()).size !== entry.asset.size)
-        throw new Error(`R2 upload size mismatch: ${entry.key}`);
+      if (!matchesAssetBytes(entry.asset, await remote.arrayBuffer()))
+        throw new Error(`R2 upload integrity mismatch: ${entry.key}`);
       console.log(`Mirrored ${entry.key}`);
     }
     const objects = Object.fromEntries(

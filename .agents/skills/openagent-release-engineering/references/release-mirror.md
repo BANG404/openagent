@@ -26,7 +26,10 @@ caches. Preserve original manifest and signature bytes; mirroring does not
 change existing installed clients' GitHub update endpoints or bypass their
 signature, hash, compatibility, activation or rollback checks.
 
-Every upload is checked against GitHub's SHA-256 and length. An availability
+Every upload is read back and checked against GitHub's SHA-256 and length;
+compressed JSON HEAD responses can omit length and are not integrity evidence.
+An interrupted initial sync reuses existing objects only after checking their
+stored bytes against GitHub, even without a published index. An availability
 index is written only after every planned object exists. Retire unreferenced
 objects only after publishing that index and only under `releases/download/`.
 Keep the previous index and live downloads on failure. Rolling channel payload

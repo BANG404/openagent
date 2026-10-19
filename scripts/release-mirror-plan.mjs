@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 /** @typedef {{name: string, size: number, digest?: string, browser_download_url: string}} Asset */
 /** @typedef {{tag_name: string, draft: boolean, published_at: string, assets: Asset[]}} Release */
 export const mirrorOrigin = "https://dl-openagent.ibat.ac.cn";
@@ -12,6 +14,16 @@ const roots = [
   "openagent-frontend-manifest.json",
   "openagent-compatibility-policy.json",
 ];
+
+/** Verify stored bytes rather than HEAD length, which JSON compression can omit.
+ * @param {Asset} asset @param {ArrayBuffer} bytes
+ */
+export function matchesAssetBytes(asset, bytes) {
+  return (
+    bytes.byteLength === asset.size &&
+    `sha256:${createHash("sha256").update(new Uint8Array(bytes)).digest("hex")}` === asset.digest
+  );
+}
 
 /** @param {string} value */
 export function safeSegment(value) {

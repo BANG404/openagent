@@ -1,12 +1,26 @@
 import { expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 import {
   buildMirrorPlan,
   githubReleasePath,
   mirrorCapacity,
   mirrorKey,
+  matchesAssetBytes,
   selectMirrorReleases,
 } from "./release-mirror-plan.mjs";
 import { downloadChannel } from "./pages-downloads.mjs";
+
+test("stored JSON bytes verify without HEAD length and reject same-length corruption", () => {
+  const bytes = new TextEncoder().encode('{"ok":true}').buffer;
+  const current = {
+    ...asset("latest.json"),
+    size: bytes.byteLength,
+    digest: `sha256:${createHash("sha256").update(new Uint8Array(bytes)).digest("hex")}`,
+  };
+  expect(matchesAssetBytes(current, bytes)).toBe(true);
+  expect(matchesAssetBytes(current, new TextEncoder().encode('{"ok":null}').buffer)).toBe(false);
+  expect(matchesAssetBytes({ ...current, size: 0 }, bytes)).toBe(false);
+});
 
 /** @param {string} name @param {string} [tag] */
 function asset(name, tag = "v1.0.0-beta.2") {
