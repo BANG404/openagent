@@ -3,7 +3,7 @@ title: Your first plugin
 description: Create, validate, and install a small Skill package without building OpenAgent from source.
 ---
 
-You need an installed OpenAgent, Git, and Bun 1.2 or newer. Add Node.js when using templates with scripts or MCP servers. Plugin authoring does not require access to OpenAgent's private SDK or a desktop source build.
+You need an installed OpenAgent, Git, and Bun 1.2 or newer for these authoring commands. Keep the public Plugin Kit's own runtime requirements when running its tests. Desktop-supervised JavaScript plugins use OpenAgent's bundled Node.js; add Node.js when running their scripts directly outside the desktop. Plugin authoring does not require access to OpenAgent's private SDK or a desktop source build.
 
 ## 1. Get the public toolchain
 
@@ -18,7 +18,7 @@ The generated package is `plugins/project-notes/`. Keep its `plugin.json` at the
 
 ## 2. Write a Skill
 
-Replace the generated Skill directory with `skills/project-notes/SKILL.md`:
+Rename the generated `skills/` child directory to `project-notes`, remove any unused sample Skills, and replace its `SKILL.md` with:
 
 ```markdown
 ---
@@ -32,7 +32,7 @@ When the user asks to save a note, write to the project path they specify.
 Include file references and never include credentials.
 ```
 
-Skills are discovered from immediate child directories of `skills/`. Each needs YAML `name` and `description`; a Skill provides instructions and does not itself register an executable tool. Discovery is conditional on the task, so make the description specific.
+Skills are discovered from immediate child directories of `skills/`. Each needs YAML `name` and `description`; `name` must match its directory and use 1–64 lowercase letters, digits, or single hyphens. A Skill provides instructions and does not itself register an executable tool. Discovery is conditional on the task, so make the description specific.
 
 ## 3. Validate the package
 
@@ -46,10 +46,12 @@ Fix errors and inspect warnings before installing. The validator checks the pack
 
 Open **Integrations → Plugins → Install** and select `plugins/project-notes/`. Enable the installed package, open a project conversation, and ask the Agent to use `project-notes` to summarize a concrete decision.
 
-OpenAgent copies the source into its managed plugin directory. **Reinstall after editing the source**; modifying your development folder does not change the installed copy. For isolated acceptance, use a separate test installation or a task-specific `OPENAGENT_HOME`, preserving your usual data.
+OpenAgent copies the source into its managed plugin directory and associates this local installation with your source folder. After edits, source synchronization validates and replaces the installed copy; **Refresh** on the Installed tab or card requests synchronization explicitly. Activation waits for active conversation tasks to finish. Invalid changes preserve the working installation. See [local development](../local-development/) for association, refresh, and diagnostics.
+
+For isolated acceptance, use a separate test installation or a task-specific `OPENAGENT_HOME`, preserving your usual data. Try a second request unrelated to project decisions and confirm the Skill description does not cause unnecessary loading.
 
 Check that the Skill is discovered for the intended task, references real project files, and respects the selected approval policy. Then continue to [the package contract](../package/).
 
 ## Prefer an assisted workflow?
 
-Install Plugin Developer (`openagent-plugin-kit`) to create and qualify packages using its `/openagent-plugin-kit:create` workflow. That assistant requires a sufficiently recent Runtime for execution IDs, MCP leases, and control-file supervision; see its [workflow requirements](https://github.com/BANG404/openagent-plugin-kit/blob/main/docs/development-workflow.md).
+Install Plugin Developer (`openagent-plugin-kit`) to create and qualify packages using its `/openagent-plugin-kit:create` workflow. The [assisted development walkthrough](../local-development/#assisted-development-with-plugin-developer) covers creation, reports, resume, and acceptance, including its Runtime prerequisites.

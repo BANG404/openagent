@@ -14,6 +14,10 @@ Public plugin authoring tutorials live in the Astro Starlight content under
 examples aligned with the public kit validator and templates. The release
 engineering [Pages owner](../../openagent-release-engineering/references/github-pages.md)
 owns site builds and deployment; these tutorials expose public package APIs only.
+The learning path covers Skills, package compatibility, MCP, setup/OAuth,
+commands/hooks, sidebar/conversation UI, Host Bridge workflows, source-associated
+refresh and acceptance, then publication. Verify runnable examples against the
+current public kit; keep local-source refresh distinct from release replacement.
 
 - [Plugin Developer / 插件开发助手](https://github.com/BANG404/openagent-plugin-kit)
   (`openagent-plugin-kit`): development, testing and qualification of other plugins.

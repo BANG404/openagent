@@ -36,9 +36,27 @@ addEventListener('message', (event) => {
   // 解析支持的语言，更新可见文本，保留输入。
   // 声明 theme 后应用 context.theme，以 context.conversation_id 隔离状态。
 });
+parent.postMessage({ type: 'openagent:sidebar-ready', version: 1 }, '*');
 ```
 
-上下文是允许列表，不代表可以读取整个应用。不要依赖对话正文、模型输出、私有诊断或其他插件状态。申请 `files` 能力得到的是元数据，不是文件内容。需要持久化会话控件而非 iframe 时，参见[会话 UI](https://github.com/BANG404/openagent-plugin-kit/blob/main/docs/conversation-ui.md)。
+先注册监听器，再发送 ready 通知。上下文是允许列表，不代表可以读取整个应用。不要依赖对话正文、模型输出、私有诊断或其他插件状态。申请 `files` 能力得到的是元数据，不是文件内容。状态需要跟随 `branch_id` 时还须申请 `branch`；会话作用域本身不标识具体分支。
+
+## 选择侧栏或内联会话 UI
+
+| 界面 | 上下文与生命周期 | 交互方式 |
+| --- | --- | --- |
+| 侧栏 | 有工作区或会话作用域的视图；`openagent:sidebar-context` | 声明的上下文与宿主中介的本插件工具桥接 |
+| 会话 UI | 持久化的检查点记录；`openagent:conversation-ui-context` | 通过版本化 state/result 通道更新 props |
+
+侧栏要调用本插件工具时，申请 `workspace` 并遵守[侧栏桥接约定](https://github.com/BANG404/openagent-plugin-kit/blob/main/docs/plugin-format.md#sidebar)。调用限定在所属插件工具，需要活动工作区。不要把进程 Host Bridge 令牌暴露给 HTML。
+
+需要持久内联状态卡时，声明 `ui_components`，包含 `id`、`version: 1`、`title` 和包内 HTML `entry`。已认证进程先检测 `host.conversation.ui.capabilities()`，再用 `host.conversation.ui.set()` 提交稳定的本地记录 ID、组件身份、props 和非空文本 fallback。复用 ID 更新原位置，新 ID 追加记录。
+
+内联文档须自包含，脚本与样式放在 HTML 内；其沙盒不提供网络或宿主令牌。校验发送者、类型和版本，消费实时语言、主题与 props，并在收到匹配且成功的 `openagent:conversation-ui-state-result` 后才显示保存成功。包被移除或组件不受支持时展示持久化 fallback。完整声明与载荷见[会话 UI 指南](https://github.com/BANG404/openagent-plugin-kit/blob/main/docs/conversation-ui.md)。
+
+## 只在工作流相关时显示侧栏
+
+侧栏可选的 `activation_tools` 列出实际暴露的精确工具名。当前分支出现匹配的 assistant 工具调用，或存在匹配的插件自有 flow 投影时，视图才可见，其他分支不会因此激活。不声明时按普通作用域判断可用性。Graph 可作为视图关联工作流的参考，但此字段不是权限检查。
 
 ## 声明真实的语言支持
 

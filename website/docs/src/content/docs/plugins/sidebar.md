@@ -36,9 +36,27 @@ addEventListener('message', (event) => {
   // Resolve your supported locale, update visible strings, and preserve input.
   // Apply context.theme when declared; scope state by context.conversation_id.
 });
+parent.postMessage({ type: 'openagent:sidebar-ready', version: 1 }, '*');
 ```
 
-The context is an allowlist, not access to the whole application. Do not expect transcript text, model output, private diagnostics, or another plugin's state. The `files` capability, if requested, provides metadata rather than file contents. For persistent conversation controls instead of an iframe, see [conversation UI](https://github.com/BANG404/openagent-plugin-kit/blob/main/docs/conversation-ui.md).
+Register the listener before sending the ready notification. The context is an allowlist, not access to the whole application. Do not expect transcript text, model output, private diagnostics, or another plugin's state. The `files` capability, if requested, provides metadata rather than file contents. Request `branch` too when state must follow `branch_id`; conversation scope alone does not identify a branch.
+
+## Choose panel or inline conversation UI
+
+| Surface | Context and lifetime | Interaction |
+| --- | --- | --- |
+| Sidebar | Scoped workspace/conversation view; `openagent:sidebar-context` | Declared context and the host-mediated package-tool bridge |
+| Conversation UI | A persisted checkpoint record; `openagent:conversation-ui-context` | Props updates through its versioned state/result channel |
+
+For package-tool calls, request `workspace` and follow the [sidebar bridge contract](https://github.com/BANG404/openagent-plugin-kit/blob/main/docs/plugin-format.md#sidebar). Calls target the owning plugin's tools and require the active workspace. Never expose a process Host Bridge token to HTML.
+
+For a persistent inline status card, declare `ui_components` with `id`, `version: 1`, `title`, and a contained HTML `entry`. An authenticated process first probes `host.conversation.ui.capabilities()`, then uses `host.conversation.ui.set()` with a stable local record ID, component identity, props, and a nonempty text fallback. Reusing the ID updates its original slot; a new ID appends.
+
+The inline document is self-contained with scripts/styles inside it; its sandbox has no network or host token. Validate source/type/version, consume live locale/theme/props, and wait for a matching successful `openagent:conversation-ui-state-result` before showing a draft as saved. Package removal or an unsupported component shows the persisted fallback. Full declarations and payloads are in the [conversation UI guide](https://github.com/BANG404/openagent-plugin-kit/blob/main/docs/conversation-ui.md).
+
+## Show a panel when its workflow is relevant
+
+Optional sidebar `activation_tools` lists exact exposed tool names. The view appears after a matching assistant tool call on the selected branch, or a matching package-owned flow projection. Other branches do not activate it. Without this declaration, normal scope availability applies. Graph is a useful example of a view associated with its workflow; do not use this field as a permission check.
 
 ## Declare real language coverage
 
