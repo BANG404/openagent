@@ -12,7 +12,45 @@ import {
   runtimeVerificationPlan,
   runRuntimeVerification,
   passedRuntimeTests,
+  runtimeVerificationEnvironment,
 } from "./verify-runtime.mjs";
+
+test("Windows qualification rejects a service session before verification can start", () => {
+  const options = { platform: "win32", qualify: true, environment: {} };
+  expect(() => runtimeVerificationEnvironment({ ...options, readSessionId: () => 0 })).toThrow(
+    "No Cargo checks were started",
+  );
+  expect(() => runtimeVerificationEnvironment({ ...options, readSessionId: () => NaN })).toThrow(
+    "interactive desktop session",
+  );
+  expect(
+    runtimeVerificationEnvironment({ ...options, readSessionId: () => 1 }).CARGO_BUILD_JOBS,
+  ).toBe("1");
+});
+
+test("Runtime verification limits Windows Cargo memory while preserving explicit job counts", () => {
+  const environment = { CARGO_BUILD_JOBS: "3", OPENAGENT_HOME: "existing" };
+  const readSessionId = () => {
+    throw new Error("Focused cases and non-Windows runs need no desktop query");
+  };
+  expect(
+    runtimeVerificationEnvironment({
+      platform: "win32",
+      qualify: false,
+      environment,
+      readSessionId,
+    }).CARGO_BUILD_JOBS,
+  ).toBe("3");
+  expect(
+    runtimeVerificationEnvironment({
+      platform: "linux",
+      qualify: true,
+      environment: {},
+      readSessionId,
+    }),
+  ).toEqual({});
+  expect(environment).toEqual({ CARGO_BUILD_JOBS: "3", OPENAGENT_HOME: "existing" });
+});
 
 test("worktrees share private dependency output while explicit targets and releases remain authoritative", () => {
   const commonGitDirectory = path.resolve("repository/.git");

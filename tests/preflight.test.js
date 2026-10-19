@@ -82,10 +82,10 @@ describe("local preflight plan", () => {
       "format",
       "test-types",
       "svelte-check",
-      "frontend-tests",
       "frontend-build",
-      "bootstrap-build",
       "bundle-size",
+      "bootstrap-build",
+      "frontend-tests",
     ]);
   });
 
@@ -101,6 +101,8 @@ describe("local preflight plan", () => {
       args: ["run", "check:bundle-size"],
     });
     expect(ids.indexOf("frontend-build")).toBeLessThan(ids.indexOf("bundle-size"));
+    expect(ids.indexOf("bundle-size")).toBeLessThan(ids.indexOf("frontend-tests"));
+    expect(ids.indexOf("bundle-size")).toBeLessThan(ids.indexOf("bootstrap-build"));
     expect(commandIds({ automation: true })).not.toContain("bundle-size");
   });
 
