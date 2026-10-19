@@ -28,6 +28,20 @@ packages it also checks highlight/background contrast of at least 1.25:1 light
 and 1.45:1 dark, and foreground/fill contrast of at least 7:1. These highlight
 bounds are collection regression guards, not accessibility conformance claims.
 The default command retains the Rhea and independent-selection override checks.
+Appearance's Style contrast slider scales interaction fills from 0 to 100,
+defaulting to 60 for a softer presentation; 100 preserves the theme's exact
+original fills. `styleContrast.ts` applies this final user layer to shared,
+sidebar, menu and explicit selected fills, preserving aliases so a selection
+that follows hover is scaled only once. Built-in fills scale their existing
+opacity without introducing an accent/interaction variable cycle. Text,
+primary actions, surfaces, borders and package source palettes are unchanged.
+The setting follows theme/mode changes, previews immediately, autosaves through
+the shared draft and returns to 60 when appearance overrides are reset.
+The Bits UI slider loads on demand with a fixed-size track placeholder so it
+does not inflate the settings entry bundle or shift the row while loading.
+Verify the real slider, keyboard/pointer changes, soft/full/zero strength,
+theme switching, saved reopen/reload and reset in all four mode/locale
+combinations with `bun run test:blackbox:style-contrast`.
 Native material, composer geometry and motion remain OpenAgent extensions.
 Desktop workspace cards retain their own 12px radius (`--workspace-card-radius`)
 and 8px gutters when a theme changes control radius, density or typography.

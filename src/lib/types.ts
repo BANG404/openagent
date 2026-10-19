@@ -988,6 +988,7 @@ export interface ThemeOverrides {
   font_family: string;
   ui_font_size?: number;
   code_font_size?: number;
+  style_contrast?: number;
 }
 
 export interface AppConfig {

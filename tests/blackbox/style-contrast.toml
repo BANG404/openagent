@@ -1,0 +1,68 @@
+[scenario]
+name = "appearance contrast slider previews keyboard changes without changing text or primary color"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+action = "eval"
+script = '''(() => {
+  window.__contrastSample = () => {
+    const root = getComputedStyle(document.documentElement);
+    const probe = document.createElement('div');
+    probe.style.backgroundColor = 'var(--sidebar-accent)';
+    document.querySelector('.sidebar').append(probe);
+    const fill = getComputedStyle(probe).backgroundColor;
+    const canvas = document.createElement('canvas'); canvas.width = canvas.height = 1;
+    const context = canvas.getContext('2d');context.fillStyle = fill;context.fillRect(0,0,1,1);
+    const alpha = context.getImageData(0,0,1,1).data[3];
+    probe.remove();
+    return {alpha, fill, foreground:root.getPropertyValue('--foreground'),primary:root.getPropertyValue('--primary')};
+  };
+  window.__contrastSoft = window.__contrastSample();
+  document.querySelector('[data-appearance-contrast] [role=slider]').focus();
+  return true;
+})()'''
+
+[[step]]
+action = "press"
+key = "End"
+
+[[step]]
+action = "eval"
+script = '''(async () => {
+  await new Promise(done=>setTimeout(done,250));
+  if(document.querySelector('[data-appearance-contrast] [role=slider]').getAttribute('aria-valuenow')!=='100')throw Error('End did not reach full strength');
+  window.__contrastFull = window.__contrastSample();
+  if(window.__contrastFull.alpha<=window.__contrastSoft.alpha)throw Error('Slider did not increase actual sidebar fill');
+  if(window.__contrastFull.foreground!==window.__contrastSoft.foreground||window.__contrastFull.primary!==window.__contrastSoft.primary)throw Error('Contrast changed text or primary colors');
+  return true;
+})()'''
+
+[[step]]
+action = "press"
+key = "Home"
+
+[[step]]
+action = "eval"
+script = '''(async () => {
+  await new Promise(done=>setTimeout(done,250));
+  if(document.querySelector('[data-appearance-contrast] [role=slider]').getAttribute('aria-valuenow')!=='0')throw Error('Home did not reach zero');
+  if(window.__contrastSample().alpha!==0)throw Error('Zero contrast still paints a fill');
+  return true;
+})()'''
+
+[[step]]
+action = "press"
+key = "End"
+
+[[step]]
+action = "press"
+key = "ArrowLeft"
+
+[[step]]
+action = "eval"
+script = '''(async () => {
+  await new Promise(done=>setTimeout(done,250));
+  if(document.querySelector('[data-appearance-contrast] [role=slider]').getAttribute('aria-valuenow')!=='99')throw Error('Arrow key did not change the value');
+  return true;
+})()'''

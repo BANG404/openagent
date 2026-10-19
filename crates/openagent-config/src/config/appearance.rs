@@ -24,6 +24,9 @@ pub struct ThemeOverrides {
     pub ui_font_size: Option<u16>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub code_font_size: Option<u16>,
+    /// Interaction fill strength from 0 to 100; absent uses the UI's soft default.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub style_contrast: Option<u16>,
 }
 
 impl ThemeOverrides {
@@ -51,6 +54,7 @@ impl ThemeOverrides {
         }
         self.ui_font_size = self.ui_font_size.map(|size| size.clamp(10, 24));
         self.code_font_size = self.code_font_size.map(|size| size.clamp(10, 24));
+        self.style_contrast = self.style_contrast.map(|value| value.min(100));
     }
 }
 
@@ -64,11 +68,15 @@ mod tests {
         assert!(legacy.theme_plugin.is_empty());
         assert_eq!(legacy.theme_overrides, Default::default());
         assert!(!legacy.theme_overrides.opaque_background);
+        assert_eq!(legacy.theme_overrides.style_contrast, None);
         let mut config: Config = toml::from_str(
             "config_version = 1\ntheme_plugin = 'my-theme'\n[theme_overrides]\nfont_family = 'serif'\nui_font_size = 99\ncode_font_size = 1\n[theme_overrides.light]\naccent = ' #aabbcc '\nbackground = 'url(secret)'\n[theme_overrides.dark]\nforeground = '#EEEEEE'\n",
         ).unwrap();
         normalize_config(&mut config);
         config.theme_overrides.opaque_background = true;
+        config.theme_overrides.style_contrast = Some(200);
+        normalize_config(&mut config);
+        assert_eq!(config.theme_overrides.style_contrast, Some(100));
         assert_eq!(config.theme_plugin, "my-theme");
         assert_eq!(
             config.theme_overrides.light.accent.as_deref(),
@@ -85,6 +93,12 @@ mod tests {
         assert!(config.theme_plugin.is_empty());
         assert!(config.theme_overrides.font_family.is_empty());
         assert!(toml::from_str::<Config>("[theme_overrides]\nui_font_size = 'bad'\n").is_err());
+        assert!(toml::from_str::<Config>("[theme_overrides]\nstyle_contrast = 'bad'\n").is_err());
+        assert!(toml::from_str::<Config>("[theme_overrides]\nstyle_contrast = -1\n").is_err());
+        config.theme_overrides.style_contrast = Some(0);
+        normalize_config(&mut config);
+        let restored: Config = toml::from_str(&toml::to_string(&config).unwrap()).unwrap();
+        assert_eq!(restored.theme_overrides.style_contrast, Some(0));
         assert!(
             toml::from_str::<Config>("[theme_overrides]\nopaque_background = 'bad'\n").is_err()
         );

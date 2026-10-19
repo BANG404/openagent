@@ -95,6 +95,7 @@ test("override normalization rejects unsafe values and bounds typography", () =>
     font_family: "",
     ui_font_size: undefined,
     code_font_size: undefined,
+    style_contrast: undefined,
   });
   const normalized = normalizeThemeOverrides({
     light: { accent: "url(secret)", background: " #abcDEF " },

@@ -51,7 +51,16 @@ Overrides carry separate `light`/`dark` palettes with optional `accent`,
 invalid colors are dropped. `font_family` is empty (follow theme), `system`,
 `sans`, `serif`, or `mono`; unsupported presets revert to empty. Optional
 `ui_font_size`/`code_font_size` are bounded to 10–24 px. Invalid typed TOML remains
-a reload failure, preserving the last valid snapshot. Changes use the existing
+a reload failure, preserving the last valid snapshot.
+
+`theme_overrides.style_contrast` is an optional integer from 0 to 100, clamped
+to 100 by the public Rust normalizer. Missing values preserve the version 1
+shape and render at the frontend's default 60; explicit zero is retained.
+The field shares the appearance-only preview, autosave and cross-window refresh
+path; reset removes it. Invalid typed or negative TOML fails reload and retains
+the last valid snapshot. The design-system semantic theme owner defines the
+fill transformation and native `style-contrast` verification scenario.
+Changes use the existing
 debounced save, atomic persistence, conflict merge, and cross-window notification.
 Appearance-only saves/reloads preserve live connections and automation.
 Reset overrides clears both palettes and typography while retaining the selected

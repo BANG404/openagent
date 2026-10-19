@@ -13,6 +13,10 @@ foreground pairs. Shared primary actions never fix their foreground to white.
 Theme changes must repaint mounted charts and diagrams as well as DOM surfaces;
 they do not change transcripts, streaming ownership or component identity.
 The design-system semantic-themes reference owns token naming and composition.
+Style contrast is a final appearance layer on interaction fills, including
+sidebar selection, and must not remount conversation surfaces or modify their
+content. Its draft preview and persisted value use the same PageRuntime
+appearance owner as palette and font changes.
 
 PageRuntime is the single owner of appearance tokens and native-canvas class
 selection. Its effective settings preview or saved config must drive both;

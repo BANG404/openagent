@@ -8,6 +8,9 @@
   import Switch from "../ui/Switch.svelte";
   import SettingsActionButton from "../ui/SettingsActionButton.svelte";
   const { draft, plugins } = useSettingsContext();
+  let StyleContrastControl = $state<typeof import("./StyleContrastControl.svelte").default | null>(
+    null,
+  );
   let dark = $state(false);
   let defaults = $state({ accent: "", background: "", foreground: "", ui: "14", code: "13" });
   const palette = $derived(dark ? "dark" : "light");
@@ -57,6 +60,10 @@
     draft.draftConfig.theme_overrides = { light: {}, dark: {}, font_family: "" };
   }
   onMount(() => {
+    let mounted = true;
+    void import("./StyleContrastControl.svelte").then((module) => {
+      if (mounted) StyleContrastControl = module.default;
+    });
     const root = document.documentElement;
     const read = () => {
       dark = root.classList.contains("dark");
@@ -72,7 +79,10 @@
     read();
     const observer = new MutationObserver(read);
     observer.observe(root, { attributes: true, attributeFilter: ["class", "style"] });
-    return () => observer.disconnect();
+    return () => {
+      mounted = false;
+      observer.disconnect();
+    };
   });
 </script>
 
@@ -93,6 +103,18 @@
     {/if}
   </div>
 </div>
+{#if StyleContrastControl}
+  <StyleContrastControl
+    value={draft.draftConfig.theme_overrides.style_contrast}
+    ariaLabel={$t("appearanceStyleContrast")}
+    hint={$t("appearanceStyleContrastHint")}
+    onValueChange={(value) => {
+      draft.draftConfig.theme_overrides.style_contrast = value;
+    }}
+  />
+{:else}
+  <div class="settings-card-row contrast-skeleton" aria-busy="true"></div>
+{/if}
 <div class="settings-card-row" data-appearance-native-background>
   <span class="settings-card-copy">
     <span class="label-text">{$t("appearanceNativeBackground")}</span>
@@ -223,6 +245,11 @@
 </div>
 
 <style>
+  .contrast-skeleton {
+    width: 100%;
+    height: 32px;
+    background: linear-gradient(var(--border), var(--border)) center / 100% 2px no-repeat;
+  }
   .color-control,
   .size-control {
     display: flex;

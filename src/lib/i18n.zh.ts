@@ -2,6 +2,8 @@ export const zh = {
   appearanceMode: "模式",
   appearanceEnableTheme: "启用所选主题",
   appearancePluginTheme: "主题",
+  appearanceStyleContrast: "样式对比度",
+  appearanceStyleContrastHint: "调整悬浮和选中背景的深浅，100 为主题原始强度。",
   appearanceDefaultTheme: "OpenAgent 默认",
   appearanceUnavailable: "不可用",
   appearanceUnavailableHint: "所选主题当前不可用，暂时使用默认主题。重新安装后将自动恢复。",

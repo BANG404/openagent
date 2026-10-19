@@ -1,5 +1,6 @@
 import type { AgentPluginSummary, AppConfig, ThemeColors, ThemeOverrides } from "$lib/types";
 import { accentForeground, resolveThemeTokens } from "$lib/themeTokens";
+import { normalizeStyleContrast, withStyleContrast } from "$lib/styleContrast";
 
 export const THEME_FONTS: Record<string, string> = {
   system: 'system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif',
@@ -32,6 +33,7 @@ export function normalizeThemeOverrides(input?: Partial<ThemeOverrides>): ThemeO
       input?.font_family && Object.hasOwn(THEME_FONTS, input.font_family) ? input.font_family : "",
     ui_font_size: size(input?.ui_font_size),
     code_font_size: size(input?.code_font_size),
+    style_contrast: normalizeStyleContrast(input?.style_contrast),
   };
 }
 
@@ -115,7 +117,7 @@ export function appearanceTokens(
   }
   if (overrides.ui_font_size) tokens["--app-font-size"] = `${overrides.ui_font_size}px`;
   if (overrides.code_font_size) tokens["--code-font-size"] = `${overrides.code_font_size}px`;
-  return tokens;
+  return withStyleContrast(tokens, overrides.style_contrast);
 }
 
 /** Apply only custom properties and restore exact pre-existing inline values. */

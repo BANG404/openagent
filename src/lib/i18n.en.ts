@@ -4,6 +4,9 @@ const en: Record<TranslationKeys, string> = {
   appearanceMode: "Mode",
   appearanceEnableTheme: "Enable selected theme",
   appearancePluginTheme: "Theme",
+  appearanceStyleContrast: "Style contrast",
+  appearanceStyleContrastHint:
+    "Adjust hover and selection backgrounds. 100 keeps the theme's full strength.",
   appearanceDefaultTheme: "OpenAgent default",
   appearanceUnavailable: "Unavailable",
   appearanceUnavailableHint:
