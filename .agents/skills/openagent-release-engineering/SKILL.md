@@ -29,4 +29,5 @@ This skill owns build, CI and publication; update-delivery owns running-componen
 | Plugin release feed | [Plugin release index](references/plugin-release-index.md) |
 | Publishing online compatibility policy | [Compatibility policy](references/compatibility-policy.md) |
 | Documentation site deployment | [GitHub Pages](references/github-pages.md) |
+| Selective R2 downloads and retention | [Release mirror](references/release-mirror.md) |
 | Commit titles and scopes | [Commit conventions](references/commit-conventions.md) |

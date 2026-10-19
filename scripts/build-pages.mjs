@@ -4,6 +4,8 @@ import { resolve } from "node:path";
 
 import { checkPages } from "./check-pages.mjs";
 import { renderPluginStore } from "./pages-plugin-store.mjs";
+import { downloadChannel } from "./pages-downloads.mjs";
+import { mirrorOrigin } from "./release-mirror-plan.mjs";
 
 const output = "dist-pages";
 const releaseManifestPaths = {
@@ -11,41 +13,28 @@ const releaseManifestPaths = {
   rc: process.env.OPENAGENT_RC_RELEASE_MANIFEST,
   beta: process.env.OPENAGENT_BETA_RELEASE_MANIFEST,
 };
-const assetSuffixes = {
-  windows: "_x64-setup.exe",
-  macArm: "_aarch64.dmg",
-  macIntel: "_x64.dmg",
-  linuxDeb: "_amd64.deb",
-  linuxRpm: ".x86_64.rpm",
-  linuxAppImage: "_amd64.AppImage",
-};
+let mirroredKeys = [];
+if (Object.values(releaseManifestPaths).some(Boolean)) {
+  try {
+    const response = await fetch(`${mirrorOrigin}/mirror-index.json`, {
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (response.ok) {
+      const index = await response.json();
+      if (index.schema_version === 1 && index.origin === mirrorOrigin && index.objects)
+        mirroredKeys = Object.keys(index.objects);
+    }
+  } catch {
+    console.log("Release mirror unavailable; using GitHub download URLs.");
+  }
+}
 
-async function buildDownloadChannel(channel, releaseManifestPath) {
+async function buildDownloadChannel(releaseManifestPath) {
   if (!releaseManifestPath) {
     return null;
   }
 
-  const release = JSON.parse(await readFile(releaseManifestPath, "utf8"));
-  if (!release) {
-    return null;
-  }
-  const assets = Array.isArray(release.assets) ? release.assets : [];
-  const downloadAssets = Object.fromEntries(
-    Object.entries(assetSuffixes).flatMap(([key, suffix]) => {
-      const asset = assets.find(({ name }) => name.endsWith(suffix) && !name.includes("_full_"));
-      return asset ? [[key, asset.browser_download_url]] : [];
-    }),
-  );
-
-  return {
-    version: release.tag_name ?? null,
-    releaseUrl:
-      release.html_url ??
-      (channel === "stable"
-        ? "https://github.com/BANG404/openagent/releases/latest"
-        : "https://github.com/BANG404/openagent/releases?q=prerelease%3Atrue"),
-    assets: downloadAssets,
-  };
+  return downloadChannel(JSON.parse(await readFile(releaseManifestPath, "utf8")), mirroredKeys);
 }
 
 async function buildDownloadManifest() {
@@ -53,7 +42,7 @@ async function buildDownloadManifest() {
     await Promise.all(
       Object.entries(releaseManifestPaths).map(async ([channel, manifestPath]) => [
         channel,
-        await buildDownloadChannel(channel, manifestPath),
+        await buildDownloadChannel(manifestPath),
       ]),
     ),
   );

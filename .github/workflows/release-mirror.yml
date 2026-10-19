@@ -1,0 +1,53 @@
+name: Sync release download mirror
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [Release, Prepare Release]
+    types: [completed]
+    branches: [main, "release/rc/**", "release/stable/**"]
+  push:
+    branches: [main]
+    paths:
+      - scripts/release-mirror-plan.mjs
+      - scripts/sync-release-mirror.mjs
+      - .github/workflows/release-mirror.yml
+  schedule:
+    - cron: "23 18 * * *"
+
+concurrency:
+  group: release-download-mirror
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Verify release selection and retention rules
+        run: bun test scripts/release-mirror-plan.test.mjs
+      - name: Mirror complete installer and update dependencies, then retire old objects
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OPENAGENT_R2_ENDPOINT: ${{ vars.OPENAGENT_R2_ENDPOINT }}
+          OPENAGENT_R2_ACCESS_KEY_ID: ${{ secrets.OPENAGENT_R2_ACCESS_KEY_ID }}
+          OPENAGENT_R2_SECRET_ACCESS_KEY: ${{ secrets.OPENAGENT_R2_SECRET_ACCESS_KEY }}
+        run: bun scripts/sync-release-mirror.mjs
+  pages:
+    needs: sync
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/pages.yml

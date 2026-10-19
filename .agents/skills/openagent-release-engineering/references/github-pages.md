@@ -43,9 +43,15 @@ and a compatible Node runtime. PRs build and verify their merge SHA without
 deployment. Relevant pushes to `main`, manual dispatches, and release workflow
 calls build and deploy the combined artifact. Only the deploy job has Pages
 write and OIDC permissions. The Pages job also runs the artifact guard regression
-tests. Retain release-manifest inputs and channel fallback; direct platform
-buttons select lightweight assets, excluding full bundles.
-First-install copy points users to full release assets or model download at setup.
+tests. Retain release-manifest inputs and channel fallback. Windows buttons and
+automatic Windows downloads, including the navigation link, select only the full
+package without bundled WebView2; other platforms keep their standard installers.
+Copy explains that application
+resources and the model are included and missing WebView2 needs Internet.
+`scripts/pages-downloads.mjs` uses a mirror URL only when its exact asset exists
+in the completed R2 availability index; otherwise it uses GitHub. A missing full
+Windows variant falls back to release browsing, never to another installer.
+See [release mirror](release-mirror.md) for dependency selection and retention.
 Component-only releases show an explicit no-installer explanation rather than
 presenting their version as a new desktop installer.
 
