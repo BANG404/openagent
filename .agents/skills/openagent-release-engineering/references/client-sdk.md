@@ -21,6 +21,10 @@ version, source SHA, protocol, immutable manifest URL and full manifest digest a
 embedded in the tarball. No install/postinstall downloads or execution occur.
 Source archives retain their separate buildable-snapshot contract.
 
+The candidate compiler resolves TypeScript from the SDK package using Node module
+resolution, supporting both the root frozen dependency install used by host CI
+and an independent SDK install. Never assume an SDK-local `node_modules` tree.
+
 Source/package/build inputs and recommended Runtime identity determine the SDK
 fingerprint. Reuse an already published identical fingerprint in the requested
 channel; otherwise choose an independent SemVer at or above the checked-in SDK

@@ -2,6 +2,7 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { cp, mkdir, readFile, readdir, writeFile, rm } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { requireArtifact, verifyArtifactBytes, verifySignedBytes } from "./signed-artifacts.mjs";
@@ -208,7 +209,7 @@ export async function prepareClientRelease({
   execFileSync(
     process.execPath,
     [
-      join(sdk, "node_modules/typescript/bin/tsc"),
+      createRequire(join(sdk, "package.json")).resolve("typescript/bin/tsc"),
       "-p",
       join(sdk, "tsconfig.build.json"),
       "--outDir",
