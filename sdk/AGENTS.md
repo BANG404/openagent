@@ -12,6 +12,8 @@ before changing it. Public SDK validation and client distribution use this
 host checkout; private releases stamp only Rust package metadata.
 
 Root preflight includes SDK type checking, lint, formatting, and Bun tests.
+Keep transport mock fixtures under `typescript/tests/` so module resolution uses
+the SDK's Tauri installation in both standalone SDK CI and root test runs.
 Frontend and automation CI consume this directory directly without credentials
 or a downloaded client snapshot. `@openagent/client` always resolves this source,
 including when a signed development Runtime kit has been prepared.

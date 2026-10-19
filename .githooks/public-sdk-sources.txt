@@ -15,6 +15,7 @@ sdk/typescript/src/tauriTransport.ts
 sdk/typescript/src/transport.ts
 sdk/typescript/src/types.ts
 sdk/typescript/tests/frontendDiagnostics.test.ts
+sdk/typescript/tests/fixtures/tauriTransportProbe.ts
 sdk/typescript/tests/httpTransport.test.ts
 sdk/typescript/tests/openagentClient.test.ts
 sdk/typescript/tests/runtimeProxyResponse.test.ts

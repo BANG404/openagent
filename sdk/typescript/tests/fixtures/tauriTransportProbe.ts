@@ -30,7 +30,7 @@ mock.module("@tauri-apps/api/event", () => ({
   },
 }));
 
-const { TauriTransport } = await import("../../sdk/typescript/src/tauriTransport");
+const { TauriTransport } = await import("../../src/tauriTransport");
 const client = new TauriTransport();
 await assert.rejects(client.request("product.get_startup_bootstrap", {}), /Runtime starting/);
 await assert.rejects(
