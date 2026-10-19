@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { mkdir } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -18,7 +18,7 @@ export async function createClientSourceSnapshot(output, repositoryRoot = root) 
     [
       "--format=ustar",
       "-czf",
-      archive.slice(dirname(archive).length + 1),
+      basename(archive),
       "-C",
       resolve(repositoryRoot, "sdk/typescript"),
       "src",

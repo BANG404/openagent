@@ -49,6 +49,8 @@ source snapshot only when explicitly requested. Both release and development
 publication use `create-client-source-snapshot.mjs` to include source, lockfile,
 build configuration, README and license. These archives are not installable npm
 packages and are not internal development inputs.
+The packer runs in the output's parent directory with its basename, so absolute
+destinations and drive roots work without GNU tar interpreting a drive as a host.
 Client archives are produced from the public host checkout, never from the
 private repository's historical TypeScript snapshot. Local desktop preparation
 and launch do not download, extract, import or execute that archive. Runtime
