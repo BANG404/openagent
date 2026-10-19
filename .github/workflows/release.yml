@@ -1675,7 +1675,12 @@ jobs:
   publish-client-sdk:
     name: Publish standalone Runtime and npm SDK
     needs: [detect, publish-sdk-release, client-sdk-qualification]
-    if: needs.detect.outputs.published != 'true'
+    if: >-
+      always()
+      && needs.detect.result == 'success'
+      && needs.publish-sdk-release.result == 'success'
+      && needs.client-sdk-qualification.result == 'success'
+      && needs.detect.outputs.published != 'true'
     runs-on: ubuntu-24.04
     permissions:
       contents: write

@@ -56,6 +56,11 @@ desktop draft as the SDK/Runtime mapping. npm and GitHub are not an atomic
 transaction: a failed npm publication can leave an available Runtime; retry the
 same candidate. Never unpublish or replace a successful npm version on failure.
 
+The npm publisher explicitly evaluates after skipped optional ancestors such as
+the prerelease Store job. Use `always()` with successful detection, private SDK
+publication and packed-package qualification gates; GitHub's default status
+condition can otherwise skip npm and leave a successful run with a desktop draft.
+
 Configure npm trusted publishing for owner `BANG404`, repository `openagent`,
 workflow `release.yml`, allowing direct publication. The GitHub-hosted publish
 job grants `id-token: write` and uses Node 24/npm 11.5.1 or newer. The scope must
