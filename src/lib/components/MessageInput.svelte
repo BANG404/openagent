@@ -626,12 +626,32 @@
           />
         {/if}
         {#if isStreaming && onSteer && hasComposerContent}
-          <button
-            class="steer-btn"
-            type="button"
-            disabled={sendDisabled || disabled}
-            onclick={() => onSteer?.()}>{$t("steerCurrentTask")}</button
-          >
+          <Tooltip text={$t("steerCurrentTask")}>
+            {#snippet trigger(props)}
+              <button
+                class="steer-btn"
+                type="button"
+                aria-label={$t("steerCurrentTask")}
+                {...props}
+                disabled={sendDisabled || disabled}
+                onclick={() => onSteer?.()}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  width="16"
+                  height="16"
+                  aria-hidden="true"
+                >
+                  <path d="M21 11.5V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v16l4-4h4.5M16 14v8m-4-4h8" />
+                </svg>
+              </button>
+            {/snippet}
+          </Tooltip>
         {/if}
       </div>
     {/if}
@@ -729,14 +749,22 @@
 <style>
   .steer-btn {
     margin-left: auto;
+    flex: 0 0 var(--composer-control-size);
+    width: var(--composer-control-size);
+    height: var(--composer-control-size);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border: 0;
-    border-radius: calc(var(--radius) * 0.5);
+    border-radius: var(--composer-control-radius);
     background: var(--secondary);
     color: var(--secondary-foreground);
-    padding: 5px 8px;
-    font: inherit;
-    font-size: 11px;
+    padding: 0;
     cursor: pointer;
+  }
+  .steer-btn:hover:not(:disabled) {
+    background: var(--interactive-state-bg);
+    color: var(--accent-foreground);
   }
   .steer-btn:focus-visible {
     outline: none;
