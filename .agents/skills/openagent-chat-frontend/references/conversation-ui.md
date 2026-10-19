@@ -256,7 +256,9 @@ Claimed inputs belong to the live transcript; a lone running receipt must not op
 queue panel. Use the snapshot's active run identity for execution state rather
 than inferring activity from receipt status. A refresh notification during an
 in-flight read schedules one trailing read so terminal state cannot be dropped.
-Keep Add to current task inside the composer's wrapping toolbar. Reserve room
+Keep Add to current task inside the composer's wrapping toolbar as an icon-only
+message-plus button, with a localized Tooltip and accessible name, using the
+shared composer control dimensions. Reserve room
 for send, Stop and context usage together; toolbar actions must never increase
 the outer positioning container below the input surface. Native queue coverage
 asserts containment and non-overlap with a draft during execution, including a

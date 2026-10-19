@@ -52,8 +52,14 @@ script = '''(async()=>{
   const wrapper=document.querySelector('.input-wrapper');
   const original=wrapper.style.width;
   const frame=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+  const {tr}=await import('/src/lib/i18n.ts');
   const check=()=>{
     const surface=wrapper.querySelector('.composer').getBoundingClientRect();
+    const steer=wrapper.querySelector('.steer-btn');
+    const label=tr('steerCurrentTask');
+    if(!steer?.querySelector('svg[aria-hidden="true"]')||steer.textContent.trim()||steer.getAttribute('aria-label')!==label)throw new Error('steering must be an icon button with a localized accessible name');
+    const size=steer.getBoundingClientRect();
+    if(Math.abs(size.width-size.height)>1)throw new Error('steering must use a square composer control');
     const buttons=[...wrapper.querySelectorAll('.steer-btn,.send-btn,.stop-btn,.context-usage-trigger')];
     if(!wrapper.querySelector('.composer-toolbar .steer-btn')||!wrapper.querySelector('.stop-btn'))throw new Error('streaming actions missing');
     const all=[...wrapper.querySelectorAll('.composer-toolbar button,.send-btn,.stop-btn,.context-usage-trigger')].map(e=>({e,r:e.getBoundingClientRect()})).filter(({r})=>r.width&&r.height);
