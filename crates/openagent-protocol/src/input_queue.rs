@@ -3,6 +3,7 @@ use crate::AgentInputRequest;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
 pub enum InputDelivery {
     NextTurn,
@@ -10,6 +11,7 @@ pub enum InputDelivery {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
 pub enum QueuedInputStatus {
     Queued,
@@ -21,6 +23,7 @@ pub enum QueuedInputStatus {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct QueuedInput {
     pub id: String,
@@ -32,6 +35,7 @@ pub struct QueuedInput {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct InputQueueSnapshot {
     pub conv_id: String,
@@ -42,6 +46,7 @@ pub struct InputQueueSnapshot {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 #[serde(
     tag = "type",
     rename_all = "snake_case",
@@ -51,6 +56,7 @@ pub enum InputQueueAction {
     Add {
         input: AgentInputRequest,
         delivery: InputDelivery,
+        #[cfg_attr(feature = "typescript", ts(optional = nullable))]
         expected_run_id: Option<String>,
     },
     Update {
@@ -75,6 +81,7 @@ pub enum InputQueueAction {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct InputQueueRequest {
     pub conv_id: String,

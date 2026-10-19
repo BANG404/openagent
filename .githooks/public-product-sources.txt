@@ -1,6 +1,5 @@
 crates/openagent-app/examples/compatibility-policy.rs
 crates/openagent-app/src/bootstrap.rs
-crates/openagent-app/src/client.rs
 crates/openagent-app/src/compatibility_policy.rs
 crates/openagent-app/src/compatibility_policy/source.rs
 crates/openagent-app/src/compatibility_policy/tests.rs
@@ -19,6 +18,8 @@ crates/openagent-config/src/permissions.rs
 crates/openagent-config/src/plugin_identity.rs
 crates/openagent-config/src/plugins.rs
 crates/openagent-protocol/examples/contract_api.rs
+crates/openagent-protocol/examples/export_typescript.rs
+crates/openagent-protocol/src/events.rs
 crates/openagent-protocol/src/input_queue.rs
 crates/openagent-protocol/src/lib.rs
 crates/openagent-protocol/src/resources.rs

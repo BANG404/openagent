@@ -1,6 +1,6 @@
 [package]
 name = "openagent-app"
-version = "0.1.0"
+version.workspace = true
 edition = "2021"
 license = "GPL-3.0-or-later"
 description = "OpenAgent product orchestration over the standalone Runtime protocol"

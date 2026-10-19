@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
@@ -333,9 +334,41 @@ pub struct RuntimeProcessSupervisor {
     configure: RuntimeCommandSetup,
     client: reqwest::Client,
     running: Mutex<Option<RunningRuntime>>,
+    transitioning: AtomicBool,
+}
+
+struct RuntimeTransition<'a>(&'a AtomicBool);
+
+impl<'a> RuntimeTransition<'a> {
+    fn begin(state: &'a AtomicBool) -> Self {
+        state.store(true, Ordering::Release);
+        Self(state)
+    }
+}
+
+impl Drop for RuntimeTransition<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::Release);
+    }
 }
 
 impl RuntimeProcessSupervisor {
+    /// Report lifecycle transitions without waiting for cold startup. Ordinary
+    /// health/read locks do not imply a process transition.
+    pub async fn transport_status(&self) -> openagent_protocol::RuntimeTransportStatus {
+        use openagent_protocol::RuntimeTransportStatus;
+        if self.transitioning.load(Ordering::Acquire) {
+            return RuntimeTransportStatus::Starting;
+        }
+        let mut running = self.running.lock().await;
+        if let Some(runtime) = running.as_mut() {
+            if matches!(runtime.child.try_wait(), Ok(None)) {
+                return RuntimeTransportStatus::Ready;
+            }
+        }
+        RuntimeTransportStatus::Unavailable
+    }
+
     pub fn new(protocol_version: u32, configure: RuntimeCommandSetup) -> Result<Self, String> {
         let client = reqwest::Client::builder()
             .timeout(HEALTH_TIMEOUT)
@@ -346,6 +379,7 @@ impl RuntimeProcessSupervisor {
             configure,
             client,
             running: Mutex::new(None),
+            transitioning: AtomicBool::new(false),
         })
     }
 
@@ -354,6 +388,7 @@ impl RuntimeProcessSupervisor {
         if running.is_some() {
             return Err("Runtime process is already running".to_string());
         }
+        let _transition = RuntimeTransition::begin(&self.transitioning);
         let candidate = self.spawn_and_probe(spec).await?;
         let status = process_status(&candidate.ready);
         *running = Some(candidate);
@@ -429,6 +464,7 @@ impl RuntimeProcessSupervisor {
         }
         let mut running = self.running.lock().await;
         let previous = running.take();
+        let _transition = RuntimeTransition::begin(&self.transitioning);
         let previous_spec = previous.as_ref().map(|runtime| runtime.spec.clone());
         if let Some(previous) = previous {
             stop_runtime(previous).await?;
@@ -733,6 +769,29 @@ async fn stop_child(child: &mut Child) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
+    #[tokio::test]
+    async fn reports_standalone_lifecycle_and_clears_cancelled_transitions() {
+        use openagent_protocol::RuntimeTransportStatus;
+        let supervisor = super::RuntimeProcessSupervisor::new(3, |_| Ok(())).unwrap();
+        assert_eq!(
+            supervisor.transport_status().await,
+            RuntimeTransportStatus::Unavailable
+        );
+        let transition = super::RuntimeTransition::begin(&supervisor.transitioning);
+        let _running = supervisor.running.lock().await;
+        // Cold startup holds the lock, but the live query must return immediately.
+        assert_eq!(
+            supervisor.transport_status().await,
+            RuntimeTransportStatus::Starting
+        );
+        drop(_running);
+        drop(transition);
+        assert_eq!(
+            supervisor.transport_status().await,
+            RuntimeTransportStatus::Unavailable
+        );
+    }
+
     use super::{
         parse_runtime_bootstrap_inspection, runtime_arguments, validate_ready, RuntimeLaunchSpec,
         RuntimeProtocolRange, RuntimeReady,

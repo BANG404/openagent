@@ -18,3 +18,10 @@ resource installation and user-facing configuration belong in public source.
 Use the root preflight for qualification. The public Rust workspace must be
 included in native CI and dependency-boundary verification.
 Register intentional Rust source in `.githooks/public-product-sources.txt`.
+
+The native HTTP boundary lives in `src-tauri/src/runtime_transport.rs`; do not
+add a second App HTTP client. Internal `publish = false` crates inherit the
+public workspace version and have no individual release train.
+`openagent-protocol` owns generated TypeScript wire declarations, including
+generic event envelopes. Its optional `typescript` feature supplies code
+generation only; production consumers need no TypeScript generator dependency.

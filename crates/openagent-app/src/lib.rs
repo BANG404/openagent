@@ -5,7 +5,6 @@
 //! their supervised Runtime through the public protocol.
 
 pub mod bootstrap;
-pub mod client;
 pub mod compatibility_policy;
 pub mod defaults;
 pub mod embedding_resource;

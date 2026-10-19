@@ -11,6 +11,8 @@ mod resources;
 pub use resources::*;
 mod input_queue;
 pub use input_queue::*;
+mod events;
+pub use events::*;
 
 pub const SDK_PROTOCOL_VERSION: u32 = 3;
 
@@ -18,14 +20,26 @@ pub const SDK_PROTOCOL_VERSION: u32 = 3;
 /// desktop transport and Runtime release version.
 pub const PLUGIN_PROTOCOL_VERSION: u32 = 1;
 
+/// Live state of the supervised standalone transport, never an engine selector.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum RuntimeTransportStatus {
+    Starting,
+    Ready,
+    Unavailable,
+}
+
 /// Optional Host Bridge embedding capability, discovered through embedding.status.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields)]
 pub struct PluginEmbeddingRequest {
     pub texts: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 pub struct PluginEmbeddingStatus {
     pub version: u32,
     pub supported: bool,
@@ -39,6 +53,7 @@ pub struct PluginEmbeddingStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 pub struct PluginEmbeddingResponse {
     pub version: u32,
     pub model_id: String,
@@ -48,6 +63,7 @@ pub struct PluginEmbeddingResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields)]
 pub struct PluginI18n {
     pub supported_locales: Vec<String>,
@@ -57,6 +73,7 @@ pub struct PluginI18n {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
 pub enum CommandOwner {
     Runtime,
@@ -64,6 +81,7 @@ pub enum CommandOwner {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
 pub enum CommandArgument {
     None,
@@ -72,6 +90,7 @@ pub enum CommandArgument {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 pub struct CommandSpec {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub plugin_i18n: Option<PluginI18n>,
@@ -81,6 +100,7 @@ pub struct CommandSpec {
     pub label_key: String,
     pub description_key: String,
     #[serde(default)]
+    #[cfg_attr(feature = "typescript", ts(optional = nullable))]
     pub plugin_id: Option<String>,
     /// Literal labels supplied by portable plugins. Builtin commands keep
     /// using localized translation keys for compatibility.
@@ -91,12 +111,14 @@ pub struct CommandSpec {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
 pub enum AgentCommand {
     Compact,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
 pub enum ClientAction {
     NewConversation,
@@ -108,6 +130,7 @@ pub enum ClientAction {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ResolvedInput {
     Chat {
@@ -125,8 +148,11 @@ pub enum ResolvedInput {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SubmissionOutcome {
+    /// The transport accepted durable input; execution completes through events.
+    RunAccepted,
     RunCompleted,
     ImmediateCommand {
         command: AgentCommand,
@@ -135,6 +161,7 @@ pub enum SubmissionOutcome {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct ChatModelBinding {
     pub provider_id: String,
@@ -142,63 +169,83 @@ pub struct ChatModelBinding {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum UserMessageContext {
     Quote {
         text: String,
         #[serde(default)]
         #[serde(rename = "sourceMessageId")]
+        #[cfg_attr(feature = "typescript", ts(optional = nullable))]
         source_message_id: Option<String>,
     },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct AgentInputRequest {
     pub conv_id: String,
     pub text: String,
     #[serde(default)]
+    #[cfg_attr(feature = "typescript", ts(optional = nullable))]
     pub parent_checkpoint_id: Option<String>,
     #[serde(default)]
+    #[cfg_attr(feature = "typescript", ts(optional = nullable))]
     pub branch_id: Option<String>,
     #[serde(default)]
+    #[cfg_attr(feature = "typescript", ts(as = "Option<Vec<String>>", optional))]
     pub attachments: Vec<String>,
     #[serde(default)]
+    #[cfg_attr(
+        feature = "typescript",
+        ts(as = "Option<Vec<UserMessageContext>>", optional)
+    )]
     pub contexts: Vec<UserMessageContext>,
     #[serde(default)]
+    #[cfg_attr(feature = "typescript", ts(optional = nullable))]
     pub model_binding: Option<ChatModelBinding>,
     #[serde(default)]
+    #[cfg_attr(feature = "typescript", ts(optional = nullable))]
     pub user_message_id: Option<String>,
     #[serde(default)]
+    #[cfg_attr(feature = "typescript", ts(optional = nullable))]
     pub assistant_message_id: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct CreateConversationRequest {
     pub id: String,
     pub title: String,
     pub workspace: String,
     #[serde(default)]
+    #[cfg_attr(feature = "typescript", ts(optional = nullable))]
     pub parent_conv_id: Option<String>,
     #[serde(default)]
+    #[cfg_attr(feature = "typescript", ts(optional = nullable))]
     pub role_id: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct ResumeInterruptRequest {
     pub conv_id: String,
     pub interrupt_id: String,
     pub response: String,
     #[serde(default)]
+    #[cfg_attr(feature = "typescript", ts(optional = nullable))]
     pub branch_id: Option<String>,
     pub assistant_message_id: String,
     #[serde(default)]
+    #[cfg_attr(feature = "typescript", ts(optional = nullable))]
     pub model_binding: Option<ChatModelBinding>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct SubmitInterruptResponseRequest {
     pub conv_id: String,
@@ -207,6 +254,7 @@ pub struct SubmitInterruptResponseRequest {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
 pub enum InputErrorCode {
     EmptyInput,
@@ -215,6 +263,7 @@ pub enum InputErrorCode {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "typescript", derive(ts_rs::TS))]
 pub struct InputError {
     pub code: InputErrorCode,
     pub command: Option<String>,
