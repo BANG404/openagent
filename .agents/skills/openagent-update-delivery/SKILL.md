@@ -5,8 +5,9 @@ metadata:
   category: release-engineering
 ---
 
-# Modular updates
+# Component updates
 
-Read [component-updates.md](references/component-updates.md) for update
-boundaries, activation, rollback, and reload. Route native mechanics and
-release artifacts to their owning skills.
+Use [component updates](references/component-updates.md) for compatibility, activation barriers, supervised replacement, confirmation and rollback.
+Use [update verification](references/update-verification.md) when choosing failure fixtures or qualifying a handoff.
+
+Release artifacts and channels belong to release-engineering; native process/window mechanics belong to desktop-host. Preserve one activation transaction per resource owner.

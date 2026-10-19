@@ -4,19 +4,14 @@ Use this reference to choose where durable knowledge belongs before editing.
 Treat code, tests, and agent-facing documentation as one deliverable, but keep
 each behavior or invariant in one primary source of truth.
 
-## Ownership map
+## Ownership
 
-| Change area | Primary documentation owner |
-| --- | --- |
-| Repository ownership, commands, safety, verification, or contribution policy | `AGENTS.md` |
-| Product behavior, architecture, integration contract, configuration, release, or design system | The matching workspace skill and its focused references; update README only for public overview changes |
-| Chat transcript, composer, tool rendering, streaming, reconciliation, restore, attachments, chat events, or streamed content | `.agents/skills/openagent-chat-frontend/` |
-| Tauri host, native windows, single-instance behavior, IPC adapters, or native verification | `.agents/skills/openagent-desktop-host/`, plus `openagent-design-system` for visible behavior |
-| Configuration, databases, memory, schemas, migrations, backups, or data-transition UX | `.agents/skills/openagent-configuration/` |
-| CI classification, release workflows, Tauri bundles, sidecars, or pinned helper artifacts | `.agents/skills/openagent-release-engineering/` |
-| A repeatable agent procedure or fragile subsystem invariant | The workspace skill that must trigger for future work |
-| Repository-wide ownership, commands, safety, verification, or contribution policy | `AGENTS.md` |
-| Private SDK implementation | Follow `runtime/AGENTS.md` and update SDK-owned documentation in the SDK commit before updating the parent gitlink |
+Use `.agents/skills/manifest.json` for the primary owner of repository paths and
+AGENTS.md for intent routing. Skill-local references document the owned behavior;
+README files describe the public overview. Private Runtime internals stay in its
+repository and follow `runtime/AGENTS.md` before advancing the parent gitlink.
+Repository-wide contribution policy belongs in AGENTS.md. Do not maintain another
+copy of the path-to-owner map here.
 
 Prefer an existing owner. Create a focused document, skill, or skill reference
 only when no existing owner fits. Keep skill bodies concise: place the core
@@ -31,8 +26,8 @@ diagnostics in this public repository.
 ## Documentation policy
 
 - Document the resulting behavior and durable constraint, not task history.
-- If existing prose remains correct, add the newly confirmed invariant,
-  ownership boundary, failure mode, or verification scenario.
+- Update affected constraints and remove superseded guidance; avoid appending
+  task history or unrelated detail merely to satisfy the documentation gate.
 - Delete superseded guidance instead of leaving compatibility prose unless the
   task explicitly requires compatibility.
 - Keep skill metadata accurate so the right work triggers the instructions.
@@ -40,9 +35,10 @@ diagnostics in this public repository.
 - Treat tests as behavior proof, not a substitute for agent-facing guidance.
 
 `bun run check:docs` is the minimum automated guardrail. Product or automation
-logic changes require an agent-facing Markdown change. Mapped chat frontend
-logic requires a Markdown change somewhere under
-`.agents/skills/openagent-chat-frontend/`. Test-only, generated-output,
+logic changes require Markdown under every affected primary owner selected by
+the shared manifest. Public SDK code uses SDK documentation; unmapped repository
+logic uses AGENTS.md, README or CHANGELOG. A change to an unrelated skill does
+not satisfy this gate. Test-only, generated-output,
 dependency-lock, and documentation-only changes do not create a documentation
 requirement. The parent repository does not inspect documentation inside the
 private SDK gitlink.

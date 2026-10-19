@@ -17,7 +17,7 @@ Read every applicable owner before changing files:
 | Verify browser-visible behavior | `.agents/skills/playwright/SKILL.md` |
 | Deliver repository changes | `.agents/skills/deliver-via-owt/SKILL.md` |
 
-The `openagent-*` skills own implementation; starting skills route verification and delivery.
+The `openagent-*` skills own implementation; starting skills route verification and delivery. File ownership comes from `.agents/skills/manifest.json`; load secondary contracts only for affected cross-boundary behavior.
 
 | Scope | Source of truth |
 | --- | --- |
@@ -31,7 +31,7 @@ The `openagent-*` skills own implementation; starting skills route verification 
 | Messaging channels and remote gateway | `.agents/skills/openagent-channel-integrations/` |
 | Agent Plugin packages (`plugin.json`), lifecycle, automation, and sidebar extensions | `.agents/skills/openagent-plugin-development/` |
 | Modular frontend, Runtime, and shell updates | `.agents/skills/openagent-update-delivery/` |
-| Embedding resource provenance and activation | `.agents/skills/openagent-embedding-resources/` |
+| Embedding resource provenance and activation | `.agents/skills/openagent-desktop-host/references/model-provenance.md` |
 | Windows development environment | `.agents/skills/openagent-windows-development/` |
 | Public SDK contracts or transports | `sdk/AGENTS.md` |
 | Private Runtime changes | `runtime/AGENTS.md` and every skill it requires |

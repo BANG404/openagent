@@ -1,29 +1,11 @@
-## Shapes
+# Shapes
 
-### Border Radius Scale
+Use the semantic radius scale exposed by `src/app.css`. Application-level surfaces
+consume `--app-radius`; theme packages can change the shared control radius.
+Circles, pills, compact menu rows and native window edges retain their own semantic
+constraints. Do not introduce local intermediate radii to compensate for layout.
 
-| Token            | Value        | Use                                                                                                            |
-| ---------------- | ------------ | -------------------------------------------------------------------------------------------------------------- |
-| `{rounded.none}` | 0px          | Full-bleed product tiles (no corner rounding)                                                                  |
-| `{rounded.xs}`   | 5px          | Inline links when styled as subtle chips (rare)                                                                |
-| `{rounded.sm}`   | 8px          | Dark utility buttons (Sign In, Bag), inline card imagery                                                       |
-| `{rounded.md}`   | 11px         | White Pearl Button capsules                                                                                    |
-| `{rounded.lg}`   | 18px         | Store utility cards, accessories grid cards                                                                    |
-| `{rounded.pill}` | 9999px       | Primary blue pill CTAs, sub-nav buy button, configurator option chips, search input — the signature Apple pill |
-| `{rounded.full}` | 9999px / 50% | Circular control chips floating over photography                                                               |
-
-### Application Shell Geometry
-
-The desktop window edge and application-level surfaces share a 12px radius
-through `--app-radius`. Use this token for the conversation shell, composers,
-floating surfaces, message surfaces, and other large internal panels so the
-interior geometry follows the native window edge. Keep pills, circles, and
-compact menu rows on their semantic radius tokens.
-
-### Photography Geometry
-
-- **Hero imagery**: full-bleed, 21:9 or taller on the homepage; 16:9 on environment and shop pages. Product renders are photographic-realistic, often shot on a tinted surface that becomes the tile background.
-- **Product renders**: PNG/WebP with transparency; rest on a surface tile and pick up the system shadow.
-- **Accessory grid**: square 1:1 crops at `{rounded.lg}` (18px) radius, light neutral backgrounds, product centered with 20–40px internal padding.
-- **No rounded imagery in hero tiles** — images are full-bleed rectangular. Rounding (`{rounded.sm}`, `{rounded.lg}`) appears only on inline card imagery.
-- Lazy-loading via responsive `srcset` and `sizes` across all breakpoints; CDN-optimized WebP.
+Desktop workspace cards retain their fixed 12px `--workspace-card-radius` and 8px
+gutters independently of theme control radius, density and typography. The
+[semantic theme contract](semantic-themes.md) owns this exception. Native window
+clipping and materials follow the desktop-host owner.

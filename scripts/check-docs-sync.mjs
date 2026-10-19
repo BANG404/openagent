@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
+import { loadSkillManifest, resolveSkillOwner } from "./agent-skill-routing.mjs";
 
 const ZERO_SHA = /^0+$/;
 
@@ -16,7 +17,7 @@ const AGENT_DOCUMENTATION = [
 const LOGIC_FILES = [
   /^crates\/.+\.(?:rs|toml)$/,
   /^sdk\/typescript\/src\/.+\.ts$/,
-  /^src\/.+\.(?:js|mjs|cjs|ts|svelte)$/,
+  /^src\/.+\.(?:js|mjs|cjs|ts|svelte|css)$/,
   /^src-tauri\/src\/.+\.rs$/,
   /^src-tauri\/build\.rs$/,
   /^src-tauri\/capabilities\/.+\.json$/,
@@ -27,15 +28,6 @@ const LOGIC_FILES = [
   /^tsconfig\.json$/,
   /^(?:eslint|svelte|vite)\.config\.(?:js|mjs|ts)$/,
 ];
-
-const CHAT_FRONTEND_FILES = [
-  /^src\/routes\/(?:remote\/)?\+page\.svelte$/,
-  /^src\/lib\/(?:chatStream|conversationDb|checkpointTree|assistantOutput|inputQueue(?:\.svelte)?|remoteConversationProjection|startupRestoreCache|toolCallGroups|types)\.ts$/,
-  /^src\/lib\/components\/(?:AttachmentPreview|FileChangeBanner|FileChangePanel|MermaidToolPreview|MessageInput|MessageList|ProcessRecordGroup|RetryAttempt|StreamItemRenderer|ToolApprovalActions|ToolCallCard|ToolCallGroup|TranscriptList|UserInputForm|UserInputSummary)\.svelte$/,
-  /^src\/lib\/streamdown\//,
-];
-
-const CHAT_SKILL_DOCUMENTATION = /^\.agents\/skills\/openagent-chat-frontend\/.+\.md$/;
 
 /**
  * @param {string[]} files
@@ -65,20 +57,47 @@ export function documentationSyncErrors(files) {
     return [];
   }
 
-  const documentation = changed.filter((file) => matchesAny(file, AGENT_DOCUMENTATION));
-  const errors = [];
-
-  if (documentation.length === 0) {
-    errors.push(
-      "Logic changed without agent-facing documentation. Update AGENTS.md, README, or the relevant workspace SKILL.md/reference in the same change.",
-    );
+  // Prepare Release already publishes the version-only contract in CHANGELOG.
+  // Keep that route without letting unrelated product/automation code bypass its owner.
+  const releaseMetadata = new Set([
+    "package.json",
+    "src-tauri/tauri.conf.json",
+    "src-tauri/Cargo.toml",
+    "src-tauri/Cargo.lock",
+  ]);
+  if (
+    changed.includes(".github/release.json") &&
+    changed.includes("CHANGELOG.md") &&
+    logic.every((file) => releaseMetadata.has(file))
+  ) {
+    return [];
   }
 
-  const chatLogic = logic.filter((file) => matchesAny(file, CHAT_FRONTEND_FILES));
-  if (chatLogic.length > 0 && !changed.some((file) => CHAT_SKILL_DOCUMENTATION.test(file))) {
-    errors.push(
-      "Chat frontend logic changed without Markdown under .agents/skills/openagent-chat-frontend/. Update the skill's current invariant in the same change.",
-    );
+  const documentation = changed.filter((file) => matchesAny(file, AGENT_DOCUMENTATION));
+  const manifest = loadSkillManifest();
+  const required = new Set();
+  for (const file of logic) {
+    if (file.startsWith("sdk/")) required.add("sdk");
+    else required.add(resolveSkillOwner(file, manifest) ?? "repository");
+  }
+  const errors = [];
+  for (const owner of required) {
+    const covered = documentation.some((file) => {
+      if (owner === "sdk") return /^sdk\/(?:AGENTS\.md|typescript\/README\.md)$/.test(file);
+      if (owner === "repository") return /^(?:AGENTS|README(?:\.[^/]+)?|CHANGELOG)\.md$/.test(file);
+      return file.startsWith(`.agents/skills/${owner}/`);
+    });
+    if (!covered) {
+      const target =
+        owner === "sdk"
+          ? "sdk/AGENTS.md or sdk/typescript/README.md"
+          : owner === "repository"
+            ? "AGENTS.md, README, or CHANGELOG.md"
+            : `.agents/skills/${owner}/`;
+      errors.push(
+        `Logic owned by ${owner} changed without its documentation. Update ${target} with the affected invariant.`,
+      );
+    }
   }
 
   return errors;

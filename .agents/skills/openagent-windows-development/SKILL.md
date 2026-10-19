@@ -7,6 +7,7 @@ metadata:
 
 # Windows development
 
-Read [setup-and-sync.md](references/setup-and-sync.md) for setup, linker,
-filesystem, and WSL sync rules. Keep local performance workarounds out of the
-product runtime.
+Read [setup and synchronization](references/setup-and-sync.md) for linker, filesystem, build-memory and WSL workflows.
+Apply performance settings only to the intended local verification process or explicitly chosen setup operation.
+
+Native verification runs in the signed-in user's interactive desktop session. Keep the same isolated fixture and worktree when launching from Session 0; do not change product sandbox policy to compensate for a service-session failure.
