@@ -48,7 +48,10 @@ must not overwrite its separate revision history or feed.
   protocol plugin. Both binaries must admit the former, reject the latter while
   retaining its installed version and repository, and preserve enablement,
   package bytes and plugin data across both candidate starts.
-  The fixture resolves its workspace's real path before launch and settings;
+  Both update-data and packed npm consumer fixtures canonicalize their temporary
+  root before deriving Runtime homes, so macOS `/var` aliases do not violate
+  private-state filesystem-link admission. The update fixture also resolves its
+  workspace's real path before launch and settings;
   HTTP workspace-scoped creation uses that same path spelling. Windows runner
   casing and macOS temporary-directory symlinks must not create two different
   workspace scopes. Baseline startup must expose the fixture conversation before

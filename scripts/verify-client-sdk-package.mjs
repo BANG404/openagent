@@ -1,7 +1,7 @@
 // @ts-check
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
  * @param {string} candidate
  */
 export async function verifyClientPackage(candidate) {
-  const directory = await mkdtemp(join(tmpdir(), "openagent-npm-consumer-"));
+  const directory = await realpath(await mkdtemp(join(tmpdir(), "openagent-npm-consumer-")));
   try {
     await writeConsumer(directory, candidate);
     execFileSync(process.execPath, ["install", "--ignore-scripts"], {

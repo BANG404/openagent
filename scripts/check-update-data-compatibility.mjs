@@ -314,7 +314,7 @@ async function assertPluginCompatibility(runtime) {
  * @param {{baselineBinary: string; candidateBinary: string}} options
  */
 export async function checkUpdateDataCompatibility({ baselineBinary, candidateBinary }) {
-  const fixture = await mkdtemp(path.join(tmpdir(), "openagent-update-data-"));
+  const fixture = await realpath(await mkdtemp(path.join(tmpdir(), "openagent-update-data-")));
   const home = path.join(fixture, "home");
   const workspaceDirectory = path.join(fixture, "workspace");
   const model = await startModelFixture();
