@@ -1,0 +1,61 @@
+---
+const { siteTitleHref, locale } = Astro.locals.starlightRoute;
+const isChinese = locale === 'zh-cn';
+const homeHref = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/../`;
+---
+
+<div class="docs-brand">
+  <a class="docs-brand-home" href={homeHref} aria-label={isChinese ? 'OpenAgent 主页' : 'OpenAgent home'}>
+    <img src={`${homeHref}assets/openagent_logo.png`} alt="" width="25" height="25" />
+    <span translate="no">OpenAgent</span>
+  </a>
+  <a class="docs-brand-section" href={siteTitleHref}>{isChinese ? '文档' : 'Docs'}</a>
+</div>
+
+<style>
+  .docs-brand,
+  .docs-brand-home {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .docs-brand {
+    min-width: 0;
+    gap: 12px;
+    white-space: nowrap;
+  }
+
+  a {
+    text-decoration: none;
+  }
+
+  .docs-brand-home {
+    color: var(--sl-color-white);
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  img {
+    flex-shrink: 0;
+    object-fit: contain;
+  }
+
+  .docs-brand-section {
+    border-inline-start: 1px solid var(--sl-color-hairline);
+    padding-inline-start: 12px;
+    color: var(--sl-color-gray-3);
+    font-size: 13px;
+  }
+
+  a:hover {
+    color: var(--sl-color-text-accent);
+  }
+
+  a:focus-visible {
+    outline: 2px solid var(--sl-color-text-accent);
+    outline-offset: 4px;
+    border-radius: 4px;
+  }
+</style>
