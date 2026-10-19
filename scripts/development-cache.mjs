@@ -46,7 +46,7 @@ export function activeExecutablePaths() {
         "-NoProfile",
         "-NonInteractive",
         "-Command",
-        "$ErrorActionPreference = 'Stop'; @(Get-Process | ForEach-Object { $_.Path } | Where-Object { $_ }) | ConvertTo-Json -Compress",
+        "$ErrorActionPreference = 'Stop'; @(Get-CimInstance Win32_Process | ForEach-Object { $_.ExecutablePath } | Where-Object { $_ }) | ConvertTo-Json -Compress",
       ],
       { encoding: "utf8", windowsHide: true },
     );

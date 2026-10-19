@@ -79,3 +79,8 @@ Collectors refuse junction/symlink roots or candidates and recheck paths,
 selection and active executables before removal. If a maintenance process crashes,
 its PID-bearing `.openagent-cache-cleanup.lock` remains: confirm the owner is dead
 before manually removing only that lock. Never remove a live process's lock.
+
+Windows executable discovery queries `Win32_Process.ExecutablePath` through CIM;
+do not enumerate each process's modules through Windows PowerShell `Get-Process.Path`,
+which can exceed the maintenance/test deadline on a busy desktop. A discovery
+failure still skips collection rather than risking a running executable.

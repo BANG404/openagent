@@ -4,6 +4,7 @@ import { access, mkdir, mkdtemp, readFile, rm, symlink, utimes, writeFile } from
 import os from "node:os";
 import path from "node:path";
 import {
+  activeExecutablePaths,
   cleanDevelopmentTargets,
   cleanDevelopmentRuntimeImages,
   registerDevelopmentTarget,
@@ -32,6 +33,14 @@ const exists = (directory) =>
     () => true,
     () => false,
   );
+
+test.skipIf(process.platform !== "win32")(
+  "Windows process discovery protects the running executable",
+  () => {
+    const paths = activeExecutablePaths().map((file) => path.normalize(file).toLowerCase());
+    expect(paths).toContain(path.normalize(process.execPath).toLowerCase());
+  },
+);
 
 test("collects owned orphan targets while protecting live processes, ordinary targets and foreign caches", async () => {
   const f = await fixture();
