@@ -59,6 +59,12 @@ SDK-owned remaining gates before an SDK push; this command does not replace
 formatting, client, benchmark or real-model qualification. Source corrections
 require a new focused pass before any broad checks. Final host preflight follows
 the stabilized affected cases; do not run full preflight repeatedly as a debugger.
+On Windows the wrapper defaults to one Cargo job to bound compiler/linker memory;
+an explicit `CARGO_BUILD_JOBS` takes precedence. `--qualify` checks its process's
+desktop session before inspecting Rust or mutating the Cargo cache. Session 0 is
+rejected immediately; launch the same command from the same worktree in the
+signed-in user's interactive session. Focused tests without desktop dependencies
+remain available from a service session.
 
 Runtime preparation and verification record the source worktree in the shared
 Cargo target directory. Switching source directories invalidates only the three
@@ -94,6 +100,10 @@ Do not manually duplicate them. Use `bun run preflight --dry-run` to inspect
 the plan. Visible desktop changes additionally run their owning native black-box
 scenario. Follow [OWT delivery](../../deliver-via-owt/references/owt.md) for
 worktree integration and cleanup.
+Run native UI automation separately from preflight/build/type-check commands:
+they can regenerate SvelteKit assets and reload a development WebView mid-scenario.
+Complete those checks, wait for the development server to be ready, then launch
+the isolated desktop scenario in the signed-in user's interactive session.
 
 Release automation preflight includes `lint:frontend` and `lint:actions`, both
 of which reject warnings. Quote dynamic values in Bash expansion patterns and

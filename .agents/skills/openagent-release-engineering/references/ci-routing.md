@@ -61,7 +61,8 @@ three verification routes:
   Delivery helpers under `.agents/skills/deliver-via-owt/` follow the shared
   `.agents/skills/` automation route, including after skill directory renames.
   Whenever frontend checks are selected, local preflight builds fresh production
-  assets and enforces bundle budgets after tests, including with `--all`.
+  assets and enforces bundle budgets before the bootstrap build and broad test
+  suite, including with `--all`. Oversized assets stop the serial plan immediately.
   Bundle measurement and manifest-resolution changes select frontend checks
   as well as automation so their resulting assets are qualified.
 

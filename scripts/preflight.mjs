@@ -114,15 +114,16 @@ export function buildPreflightCommands(modules, { base = "", full = false } = {}
     add("test-types", "Test TypeScript", "bun", ["run", "check:tests"]);
     add("lint", "JavaScript and frontend lint", "bun", ["run", "lint:frontend"]);
     add("format", "Repository formatting", "bun", ["run", "format:check"]);
+    // Reject oversized assets before spending time on the broad test suite.
+    add("frontend-build", "Frontend production build", "bun", ["run", "build"]);
+    add("bundle-size", "Frontend bundle budgets", "bun", ["run", "check:bundle-size"]);
+    add("bootstrap-build", "Independent shell bootstrap build", "bun", ["run", "build:bootstrap"]);
     add(
       "frontend-tests",
       "Affected frontend and automation tests and shared guards",
       "bun",
       testArgs("frontend"),
     );
-    add("frontend-build", "Frontend production build", "bun", ["run", "build"]);
-    add("bootstrap-build", "Independent shell bootstrap build", "bun", ["run", "build:bootstrap"]);
-    add("bundle-size", "Frontend bundle budgets", "bun", ["run", "check:bundle-size"]);
   }
 
   if (modules.nativeQuality || modules.nativePlatform) {

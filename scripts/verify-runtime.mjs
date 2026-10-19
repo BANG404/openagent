@@ -8,6 +8,34 @@ import { fileURLToPath } from "node:url";
 import { parseRustHost } from "./prepare-runtime-server.mjs";
 import { sourceCargoEnvironment, withSourceCargoWorkspaceLock } from "./source-cargo.mjs";
 
+/** Check desktop requirements before toolchain inspection or shared-cache mutation.
+ * @param {{ qualify: boolean; platform?: string; environment?: NodeJS.ProcessEnv;
+ * readSessionId?: () => number }} options
+ */
+export function runtimeVerificationEnvironment({
+  qualify,
+  platform = process.platform,
+  environment = process.env,
+  readSessionId = () =>
+    Number(
+      execFileSync(
+        "powershell.exe",
+        ["-NoProfile", "-NonInteractive", "-Command", `(Get-Process -Id ${process.pid}).SessionId`],
+        { encoding: "utf8", windowsHide: true, timeout: 10_000 },
+      ).trim(),
+    ),
+}) {
+  if (platform !== "win32") return { ...environment };
+  if (qualify) {
+    const session = readSessionId();
+    if (!Number.isInteger(session) || session < 1)
+      throw new Error(
+        "Windows Runtime qualification requires the signed-in user's interactive desktop session; Session 0 cannot run Winsta0 confinement tests. Launch this same command and isolated worktree there before retrying. No Cargo checks were started.",
+      );
+  }
+  return { ...environment, CARGO_BUILD_JOBS: environment.CARGO_BUILD_JOBS?.trim() || "1" };
+}
+
 /** @param {{ packageName: string; testTarget?: string; binaryTarget?: string; caseName: string; targetTriple: string; qualify?: boolean; ignored?: boolean }} options */
 export function runtimeVerificationPlan({
   packageName,
@@ -107,7 +135,10 @@ async function main() {
     values.set(flag, value);
   }
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-  const environment = sourceCargoEnvironment({ repositoryRoot: root });
+  const environment = sourceCargoEnvironment({
+    repositoryRoot: root,
+    environment: runtimeVerificationEnvironment({ qualify: args.includes("--qualify") }),
+  });
   const version = spawnSync(process.env.RUSTC ?? "rustc", ["-vV"], { encoding: "utf8" });
   if (version.error) throw version.error;
   if (version.status !== 0) throw new Error("Could not inspect the Rust toolchain.");
@@ -162,5 +193,10 @@ async function main() {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  await main();
+  try {
+    await main();
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  }
 }
