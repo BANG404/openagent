@@ -1,4 +1,4 @@
-# GitHub Pages and plugin tutorials
+# GitHub Pages and documentation
 
 `website/index.html`, `site.css`, and `site.js` own the bilingual product and
 download landing page. `website/docs/` is an independent Astro Starlight package
@@ -6,6 +6,10 @@ with a dedicated Bun lockfile; its dependencies do not enter the desktop app.
 English content lives in `src/content/docs/`, Chinese in the matching `zh-cn/`
 paths. The deployed routes are `/openagent/` and `/openagent/docs/` respectively.
 Starlight owns search, sidebar navigation, theme, locale switching, and its sitemap.
+The docs home routes readers to application usage (`usage/`) and plugin authoring
+(`plugins/`). Keep both paths translated and navigable from the landing page.
+Usage covers setup, conversations/recovery, model/permission configuration and
+troubleshooting; menu labels must match the public UI locale catalogs.
 
 The landing page's tutorial links carry `data-doc-path` and follow its selected
 language. Retain the tutorial navigation on mobile. Keep both dictionaries and

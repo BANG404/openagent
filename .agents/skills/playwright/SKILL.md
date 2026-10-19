@@ -1,12 +1,15 @@
 ---
 name: playwright
-description: Use when the task requires rendering or automating a real browser from the terminal, including frontend change verification, visual and interaction checks, screenshots, navigation, form filling, data extraction, and UI-flow debugging, via an installed `playwright-cli` or a Bun-preferred, Node-compatible package runner.
+description: Verify OpenAgent browser-visible UI with the repository Playwright wrapper, pinned Chromium, isolated sessions and retained evidence. Use for frontend browser reproduction; native window behavior uses desktop-host and tauri-pilot.
 metadata:
   category: browser-automation
 ---
 
-# Playwright CLI
+# OpenAgent browser verification
 
-Use the bundled playwright-cli wrapper for browser rendering and interaction.
-Read matching references. Snapshot before actions and after navigation; refs
-become stale.
+Use this repository's wrapper for its pinned browser, persistent installation and isolated sessions. Generic browser tasks outside OpenAgent can use the global Playwright skill.
+
+- For first-time browser preparation, launcher resolution or shell setup, read [installation](references/install.md).
+- For repository UI verification, session isolation, snapshots and evidence, read [verification](references/verification.md).
+
+Browser observations verify browser-visible behavior. Native window materials, startup and IPC require desktop-host's real-window scenario.

@@ -7,7 +7,13 @@ description: Ship a stable GitHub release archive and verify OpenAgent's explici
 
 Set `repository` in `plugin.json` to your HTTPS GitHub source repository. Keep `name` unchanged when publishing updates. Advance the source version for every changed package, including bundled Skills: patch for compatible fixes, minor for compatible additions, major for breaking package APIs. Published tags and archives are immutable.
 
-OpenAgent discovers updates from the repository's latest **stable** GitHub release. A prerelease is not an update candidate. Plugin protocol compatibility remains separate from version ordering.
+OpenAgent discovers **stable** GitHub releases; prereleases are not update candidates. Publish the verified protocol/features in release notes so a host can select a compatible candidate when the latest release requires newer capabilities. For the basic Skill package:
+
+```html
+<!-- openagent-plugin {"plugin_protocol":{"min":1,"max":1},"features":[]} -->
+```
+
+Include actual required features, such as `configuration-v1`, when applicable. When the latest is incompatible, the updater considers the newest compatible stable candidate among the latest 100 releases. The archive's complete manifest is still validated; release notes cannot override its compatibility requirements.
 
 ## Validate and exercise the package
 
@@ -36,12 +42,20 @@ Attach that archive to a stable GitHub release for the same commit. The release 
 | Root | `plugin.json` directly at archive root |
 | Identity | Manifest `name` matches the installed package |
 
-Verify the digest through the GitHub release asset API. A checksum text file alone does not replace GitHub's asset digest. Exclude credentials and development-only state. Extraction rejects traversal and links.
+Verify the digest through the GitHub release asset API. With GitHub CLI, inspect an uploaded release using:
+
+```sh
+gh api repos/you/project-notes/releases/tags/v1.0.0 --jq '.assets[] | {name, digest, browser_download_url}'
+```
+
+Replace the owner, repository, and tag. Download the actual asset and compare its SHA-256 with that digest. A checksum text file alone does not replace GitHub's asset digest. Exclude credentials and development-only state. Extraction rejects traversal and links. `git archive` contains tracked files only; commit required runtime build output before using this command, or build a clean distribution directory with `plugin.json` at its root and archive that directory instead.
 
 ## Verify an update from an older installation
 
 Install the previous version in an isolated fixture and create representative plugin data. Check for updates in Settings. Checking does not download or execute package code. Select **Update** explicitly; OpenAgent downloads, verifies, validates in staging, then atomically replaces the package. Failed activation restores the previous package; `PLUGIN_DATA` is preserved.
 
-Confirm the new version, commands and tools, retained data, and a useful error for an invalid archive or digest. A package data migration belongs to the plugin and needs its own recovery plan. Uninstall retains plugin data; do not promise that it erases all state.
+Confirm the new version, commands and tools, retained data, and a useful error for an invalid archive or digest. A package data migration belongs to the plugin and needs its own recovery plan. Uninstall retains plugin data and private settings; do not promise that it erases all state. Developer-source refresh and GitHub release updates are different paths: qualify release replacement with an archive-installed fixture, without an active local source association.
+
+Release Runtime-version changes can also synchronize compatible plugin subscriptions before processes mount. Offline or invalid candidates retain the installed package. Authors should qualify compatibility and data recovery independently of the user's explicit update action.
 
 For the complete release rules, see [Plugin Kit publishing](https://github.com/BANG404/openagent-plugin-kit/blob/main/docs/publishing.md).

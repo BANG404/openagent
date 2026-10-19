@@ -4,7 +4,7 @@ Under plugin protocol 1, a package must require `conversation-observations-v1`
 and declare `extensions.openagent.conversation_observations` with `version: 1`
 and a `consent_field`. That field belongs to the package's configuration schema,
 is boolean, explicitly defaults to false and has no MCP binding. The Plugin Kit
-[format reference](../../../../plugins/openagent-plugin-kit/docs/plugin-format.md#conversation-observations)
+[format reference](https://github.com/BANG404/openagent-plugin-kit/blob/main/docs/plugin-format.md#conversation-observations)
 owns the public payload schema and limits. Runtime and validator reject unsafe
 declarations and unknown required features before execution.
 

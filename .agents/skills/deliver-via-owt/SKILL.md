@@ -5,7 +5,16 @@ metadata:
   category: repository-delivery
 ---
 
-# OWT repository delivery
+# Repository delivery
 
-Prefer [Codex](references/codex-worktree.md); otherwise use [OWT](references/owt.md).
-Read [ownership](references/living-documentation.md). Preserve unrelated work.
+Preserve unrelated work and record the committed local `main` base before editing.
+
+| Task | Read |
+| --- | --- |
+| Existing eligible Codex conversation worktree | [Codex delivery](references/codex-worktree.md) |
+| Worktree selection, fallback or integration recovery | [Ordinary OWT](references/owt.md) |
+| Choosing the documentation owner | [Living documentation](references/living-documentation.md) |
+| Explicitly coordinated joint delivery | [Sealed batches](references/batch-owt.md) |
+| Explicitly launching independent Codex tasks | [Parallel execution](references/parallel-codex-exec.md) |
+
+Use the simple Codex path when eligible. Batch procedures apply only to joint work.

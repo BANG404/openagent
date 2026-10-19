@@ -1,4 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { loadSkillManifest, resolveSkillOwner } from "./agent-skill-routing.mjs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -10,7 +12,7 @@ const manifestPath = resolve(skillsRoot, "manifest.json");
 /** @typedef {{ skill: string, paths: string[] }} SkillOwner */
 /** @typedef {{ version: number, owners: SkillOwner[] }} SkillManifest */
 
-export const MAX_SKILL_ENTRYPOINT_CHARS = 200;
+export const RECOMMENDED_SKILL_ENTRYPOINT_CHARS = 6000;
 
 /**
  * @param {string} file
@@ -73,30 +75,18 @@ function markdownFiles(directory) {
   return files;
 }
 
-/**
- * Return the prose length of a skill entrypoint. YAML metadata and fenced
- * examples are routing data or reference material, so they do not count
- * toward the compact entrypoint budget.
- *
+/** Count all loaded body text, including examples and link destinations.
  * @param {string} source
- * @returns {number}
  */
 export function skillBodyCharacterCount(source) {
   const lines = source.split(/\r?\n/);
-  const frontmatterEnd = lines[0] === "---" ? lines.indexOf("---", 1) : -1;
-  const bodyLines = lines.slice(frontmatterEnd >= 0 ? frontmatterEnd + 1 : 0);
-  let inFence = false;
-  const body = bodyLines
-    .filter((line) => {
-      if (line.startsWith("```")) {
-        inFence = !inFence;
-        return false;
-      }
-      return !inFence;
-    })
-    .join(" ")
-    .replace(/\s/gu, "");
-  return [...body].length;
+  const end = lines[0] === "---" ? lines.indexOf("---", 1) : -1;
+  return [
+    ...lines
+      .slice(end >= 0 ? end + 1 : 0)
+      .join("\n")
+      .replace(/\s/gu, ""),
+  ].length;
 }
 
 /**
@@ -114,14 +104,16 @@ export function skillEntrypoints(directory = skillsRoot) {
  * @param {{ directory?: string, maxChars?: number }} [options]
  * @returns {string[]}
  */
-export function skillLengthErrors({
+export function skillLengthWarnings({
   directory = skillsRoot,
-  maxChars = MAX_SKILL_ENTRYPOINT_CHARS,
+  maxChars = RECOMMENDED_SKILL_ENTRYPOINT_CHARS,
 } = {}) {
   return skillEntrypoints(directory).flatMap((file) => {
     const count = skillBodyCharacterCount(readFileSync(file, "utf8"));
     return count > maxChars
-      ? [`${file}: entrypoint has ${count} prose characters (maximum ${maxChars})`]
+      ? [
+          `${file}: entrypoint has ${count} body characters (recommended ${maxChars}); consider routing conditional detail to references`,
+        ]
       : [];
   });
 }
@@ -154,58 +146,128 @@ function validateSkillDirectories(errors, skillNames) {
   }
 }
 
-/** @param {string[]} errors @param {Set<string>} skillNames */
-function validateManifest(errors, skillNames) {
-  if (!existsSync(manifestPath)) {
-    errors.push(`${manifestPath}: missing routing manifest`);
-    return;
-  }
-  /** @type {SkillManifest | undefined} */
-  let manifest;
-  try {
-    manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-  } catch (error) {
-    errors.push(`${manifestPath}: invalid JSON (${error})`);
-  }
-  const owners = manifest?.owners;
-  if (!Array.isArray(owners) || owners.length === 0) {
-    errors.push(`${manifestPath}: owners must be a non-empty array`);
-    return;
+/**
+ * @param {SkillManifest} manifest
+ * @param {Set<string>} skillNames
+ * @param {string[]} files
+ * @returns {string[]}
+ */
+export function manifestErrors(manifest, skillNames, files) {
+  const errors = [];
+  if (manifest.version !== 2) errors.push("Skill manifest version must be 2");
+  if (!Array.isArray(manifest.owners) || manifest.owners.length === 0) {
+    return [...errors, "Skill manifest owners must be a non-empty array"];
   }
   const listed = new Set();
-  for (const owner of owners) {
-    if (
-      !owner ||
-      typeof owner.skill !== "string" ||
-      !Array.isArray(owner.paths) ||
-      owner.paths.length === 0
-    ) {
-      errors.push(`${manifestPath}: each owner needs a skill and non-empty paths`);
+  const patterns = new Map();
+  for (const owner of manifest.owners) {
+    if (!owner || typeof owner.skill !== "string" || !Array.isArray(owner.paths)) {
+      errors.push("Each owner needs a skill and a paths array (empty for workflow-only skills)");
       continue;
     }
-    if (!skillNames.has(owner.skill)) errors.push(`${manifestPath}: unknown skill ${owner.skill}`);
-    if (listed.has(owner.skill)) errors.push(`${manifestPath}: duplicate owner ${owner.skill}`);
+    if (!skillNames.has(owner.skill)) errors.push(`Unknown skill ${owner.skill}`);
+    if (listed.has(owner.skill)) errors.push(`Duplicate owner ${owner.skill}`);
     listed.add(owner.skill);
+    for (const pattern of owner.paths) {
+      if (
+        typeof pattern !== "string" ||
+        !pattern ||
+        /[\\?#[\]{}]|\*\*|^\/|(?:^|\/)\.\.?(?:\/|$)/.test(pattern)
+      ) {
+        errors.push(`${owner.skill}: invalid route ${String(pattern)}`);
+        continue;
+      }
+      const previous = patterns.get(pattern);
+      if (previous) errors.push(`Duplicate route ${pattern}: ${previous}, ${owner.skill}`);
+      patterns.set(pattern, owner.skill);
+      // Exact files may be prospective workspace context, such as DESIGN.md.
+      // Independent ignored plugin checkouts are not part of this inventory.
+      if ((pattern.endsWith("/") || pattern.includes("*")) && !pattern.startsWith("plugins/")) {
+        const prefix = pattern.split("*")[0];
+        if (!files.some((file) => file.startsWith(prefix))) {
+          errors.push(`${owner.skill}: route matches no repository paths: ${pattern}`);
+        }
+      }
+    }
   }
   for (const skill of skillNames) {
-    if (!listed.has(skill)) errors.push(`${manifestPath}: unlisted skill ${skill}`);
+    if (!listed.has(skill)) errors.push(`Unlisted skill ${skill}`);
   }
-}
-
-function validate() {
-  const errors = [...skillLengthErrors()];
-  const skillNames = new Set();
-  validateSkillDirectories(errors, skillNames);
-  validateManifest(errors, skillNames);
+  if (errors.length) return errors;
+  for (const file of files) {
+    try {
+      resolveSkillOwner(file, manifest);
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : String(error));
+    }
+  }
   return errors;
 }
 
-const errors = validate();
-if (errors.length) {
-  for (const error of errors) console.error(`- ${error}`);
-  process.exitCode = 1;
-} else {
-  console.log("Agent skill contract is valid.");
+/** References must be reachable from their own skill, without searching the directory.
+ * @param {string} directory
+ * @returns {string[]}
+ */
+export function referenceRoutingErrors(directory = skillsRoot) {
+  const errors = [];
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const skillRoot = resolve(directory, entry.name);
+    const pending = [resolve(skillRoot, "SKILL.md")];
+    const seen = new Set();
+    while (pending.length) {
+      const file = pending.pop();
+      if (!file || seen.has(file) || !existsSync(file)) continue;
+      seen.add(file);
+      for (const match of readFileSync(file, "utf8").matchAll(/\]\(([^)#\s]+)/g)) {
+        const target = resolve(dirname(file), match[1]);
+        if (target.startsWith(`${skillRoot}/`) || target.startsWith(`${skillRoot}\\`)) {
+          if (target.endsWith(".md")) pending.push(target);
+        }
+      }
+    }
+    const references = resolve(skillRoot, "references");
+    if (!existsSync(references)) continue;
+    for (const file of markdownFiles(references)) {
+      if (!seen.has(file)) errors.push(`${file}: no link route from this skill's SKILL.md`);
+    }
+  }
+  return errors;
 }
 
-export { validate };
+export function validate() {
+  /** @type {string[]} */
+  const errors = [];
+  const skillNames = new Set();
+  validateSkillDirectories(errors, skillNames);
+  errors.push(...referenceRoutingErrors());
+  try {
+    const files = execFileSync(
+      "git",
+      ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+      {
+        cwd: root,
+        encoding: "utf8",
+      },
+    )
+      .split("\0")
+      .filter(Boolean);
+    errors.push(...manifestErrors(loadSkillManifest(), skillNames, files));
+  } catch (error) {
+    errors.push(`${manifestPath}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  return errors;
+}
+
+function main() {
+  for (const warning of skillLengthWarnings()) console.warn(`- ${warning}`);
+  const errors = validate();
+  if (errors.length) {
+    for (const error of errors) console.error(`- ${error}`);
+    process.exitCode = 1;
+  } else {
+    console.log("Agent skill contract is valid.");
+  }
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();

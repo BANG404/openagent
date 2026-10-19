@@ -1,20 +1,116 @@
 {
-  "version": 1,
+  "version": 2,
   "owners": [
-    { "skill": "agent-prompt-infrastructure", "paths": [".agents/skills/", "crates/openagent-app/src/defaults.rs", "crates/openagent-app/resources/skills/"] },
-    { "skill": "deliver-via-owt", "paths": [".agents/skills/deliver-via-owt/"] },
-    { "skill": "openagent-chat-frontend", "paths": ["src/lib/", "src/routes/"] },
-    { "skill": "openagent-desktop-host", "paths": ["src-tauri/", "crates/openagent-app/", "crates/openagent-protocol/"] },
-    { "skill": "openagent-design-system", "paths": ["DESIGN.md"] },
-    { "skill": "openagent-configuration", "paths": ["config", "src/lib/settings", "crates/openagent-config/", "crates/openagent-app/src/persistence.rs"] },
-    { "skill": "openagent-release-engineering", "paths": [".github/workflows/", "scripts/release"] },
-    { "skill": "openagent-channel-integrations", "paths": ["src-tauri/src/channels"] },
-    { "skill": "openagent-plugin-development", "paths": ["plugins/", "plugin.json", "mcp.json", ".agents/skills/openagent-plugin-development/", "src/lib/plugin", "src/lib/pluginRegistry", "src-tauri/src/plugin"] },
-    { "skill": "openagent-update-delivery", "paths": ["scripts/update", "src-tauri/src/update"] },
-    { "skill": "openagent-embedding-resources", "paths": ["src-tauri/resources/models/", "scripts/fetch-embedding-model.mjs", "crates/openagent-app/src/embedding_resource.rs", "crates/openagent-protocol/src/resources.rs"] },
-    { "skill": "openagent-windows-development", "paths": ["scripts/prepare-windows", ".wslconfig"] },
-    { "skill": "tauri-pilot", "paths": [".agents/skills/tauri-pilot/"] },
-    { "skill": "playwright", "paths": ["scripts/test-browser-preview.mjs", "tests/browser"] },
-    { "skill": "wait-for-pr-ci", "paths": ["scripts/wait-for-pr-ci"] }
+    {
+      "skill": "agent-prompt-infrastructure",
+      "paths": [
+        ".agents/skills/manifest.json",
+        "AGENTS.md",
+        "scripts/agent-skill-routing.mjs",
+        "scripts/validate-agent-skills.mjs",
+        "scripts/check-docs-sync.mjs",
+        "crates/openagent-app/src/defaults.rs",
+        "crates/openagent-app/resources/skills/"
+      ]
+    },
+    {
+      "skill": "deliver-via-owt",
+      "paths": []
+    },
+    {
+      "skill": "openagent-chat-frontend",
+      "paths": ["src/lib/", "src/routes/"]
+    },
+    {
+      "skill": "openagent-desktop-host",
+      "paths": [
+        "src-tauri/",
+        "crates/openagent-app/",
+        "crates/openagent-protocol/",
+        "scripts/fetch-embedding-model.mjs"
+      ]
+    },
+    {
+      "skill": "openagent-design-system",
+      "paths": [
+        "DESIGN.md",
+        "src/app.css",
+        "src/lib/components/ui/",
+        "src/lib/theme*.ts",
+        "src/lib/styleContrast.ts"
+      ]
+    },
+    {
+      "skill": "openagent-configuration",
+      "paths": [
+        "src/lib/settings/",
+        "src/lib/settings*.ts",
+        "src/lib/components/Settings*.svelte",
+        "src/lib/components/settings/",
+        "src/lib/components/PermissionSettings.svelte",
+        "src/lib/permissionProfiles.ts",
+        "src/lib/frontendDiagnostics.ts",
+        "crates/openagent-config/",
+        "crates/openagent-app/src/persistence.rs"
+      ]
+    },
+    {
+      "skill": "openagent-release-engineering",
+      "paths": [".github/", "scripts/", "package.json", "bun.lock"]
+    },
+    {
+      "skill": "openagent-channel-integrations",
+      "paths": [
+        "src/lib/settings/channels.svelte.ts",
+        "src/lib/components/settings/SettingsChannelsTab.svelte",
+        "src/lib/openagent/remote.ts",
+        "src/routes/remote/"
+      ]
+    },
+    {
+      "skill": "openagent-plugin-development",
+      "paths": [
+        "plugins/",
+        "src/lib/plugin*.ts",
+        "src/lib/agentPlugin*.ts",
+        "src/lib/officialPluginRegistry*",
+        "src/lib/components/Plugin*.svelte",
+        "src/lib/components/settings/Plugin*.svelte",
+        "src/lib/components/settings/SettingsPluginsTab.svelte",
+        "src/lib/settings/plugin*.ts",
+        "crates/openagent-app/src/plugin_updates.rs",
+        "src-tauri/src/plugin*.rs",
+        "scripts/plugin-*.mjs",
+        "scripts/prepare-plugin-sources.mjs"
+      ]
+    },
+    {
+      "skill": "openagent-update-delivery",
+      "paths": [
+        "src-tauri/src/component_updates/",
+        "src/lib/appUpdat*.ts",
+        "scripts/check-update-data-compatibility.mjs"
+      ]
+    },
+    {
+      "skill": "openagent-windows-development",
+      "paths": [
+        "scripts/windows-dev-setup.ps1",
+        "scripts/prepare-windows-sandbox-helpers.mjs",
+        ".cargo/config.toml"
+      ]
+    },
+    {
+      "skill": "tauri-pilot",
+      "paths": []
+    },
+    {
+      "skill": "playwright",
+      "paths": ["scripts/test-browser-preview.mjs", ".playwright/"]
+    },
+    {
+      "skill": "wait-for-pr-ci",
+      "paths": []
+    }
   ]
 }

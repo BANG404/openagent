@@ -31,7 +31,7 @@ describe("agent-facing documentation synchronization", () => {
     ]);
 
     expect(errors).toEqual([
-      "Chat frontend logic changed without Markdown under .agents/skills/openagent-chat-frontend/. Update the skill's current invariant in the same change.",
+      "Logic owned by openagent-chat-frontend changed without its documentation. Update .agents/skills/openagent-chat-frontend/ with the affected invariant.",
     ]);
     for (const queueModule of ["src/lib/inputQueue.ts", "src/lib/inputQueue.svelte.ts"]) {
       expect(documentationSyncErrors([queueModule, "sdk/typescript/README.md"])).toHaveLength(1);
@@ -64,12 +64,62 @@ describe("agent-facing documentation synchronization", () => {
     ).toEqual([]);
   });
 
-  test("treats manifests and embedded skills as living documentation inputs", () => {
-    expect(documentationSyncErrors(["package.json"])).toHaveLength(1);
-    expect(documentationSyncErrors(["package.json", "CHANGELOG.md"])).toEqual([]);
-    expect(documentationSyncErrors(["package.json", "static/skills/find-skills/SKILL.md"])).toEqual(
-      [],
+  test("requires release ownership for package metadata rather than unrelated Markdown", () => {
+    expect(documentationSyncErrors(["package.json", "CHANGELOG.md"])).toHaveLength(1);
+    expect(
+      documentationSyncErrors(["package.json", "static/skills/find-skills/SKILL.md"]),
+    ).toHaveLength(1);
+    expect(
+      documentationSyncErrors([
+        "package.json",
+        ".agents/skills/openagent-release-engineering/references/versioning.md",
+      ]),
+    ).toEqual([]);
+  });
+
+  test("requires all affected owners, including the more specific channel owner", () => {
+    const logic = ["src/lib/settings/channels.svelte.ts", "src/lib/chatStream.ts"];
+    const channelDoc =
+      ".agents/skills/openagent-channel-integrations/references/messaging-channels.md";
+    expect(documentationSyncErrors([...logic, channelDoc])).toHaveLength(1);
+    expect(
+      documentationSyncErrors([
+        ...logic,
+        channelDoc,
+        ".agents/skills/openagent-chat-frontend/references/transcript-streaming.md",
+      ]),
+    ).toEqual([]);
+  });
+
+  test("keeps the Prepare Release metadata route without exempting product logic", () => {
+    const release = [
+      ".github/release.json",
+      "CHANGELOG.md",
+      "package.json",
+      "src-tauri/Cargo.toml",
+      "src-tauri/Cargo.lock",
+      "src-tauri/tauri.conf.json",
+    ];
+    expect(documentationSyncErrors(release)).toEqual([]);
+    expect(documentationSyncErrors([...release, "src/lib/chatStream.ts"]).length).toBeGreaterThan(
+      0,
     );
+    expect(documentationSyncErrors([...release, "scripts/release.mjs"]).length).toBeGreaterThan(0);
+  });
+
+  test("unrelated release prose cannot cover changes to the documentation validator", () => {
+    expect(
+      documentationSyncErrors([
+        "scripts/check-docs-sync.mjs",
+        ".agents/skills/openagent-release-engineering/SKILL.md",
+      ]),
+    ).toHaveLength(1);
+    expect(
+      documentationSyncErrors([
+        "scripts/check-docs-sync.mjs",
+        ".agents/skills/agent-prompt-infrastructure/references/prompt-contract.md",
+      ]),
+    ).toEqual([]);
   });
 
   test("normalizes Windows paths and ignores the SDK gitlink", () => {

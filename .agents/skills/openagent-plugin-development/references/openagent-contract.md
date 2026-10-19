@@ -31,7 +31,7 @@ package data and update provenance while contributing no executable components.
 
 The optional `embedding.status` and `embedding.embed` Host Bridge operations
 expose local Runtime inference under protocol 1. Follow
-[embedding resources](../../openagent-embedding-resources/references/model-provenance.md#plugin-inference)
+[embedding resources](../../openagent-desktop-host/references/model-provenance.md#plugin-inference)
 for detection, request bounds, model identity and resource ownership.
 
 Release Runtime-version changes synchronize installed GitHub subscriptions in
@@ -403,7 +403,7 @@ ordinary Runtime finalization. Plugin hooks do not receive model context or
 Inspector/trace data. The opt-in public text contract follows
 [conversation observations](conversation-observations.md). Content-free branch
 and compaction identity follows the Plugin Kit's
-[context sessions](../../../../plugins/openagent-plugin-kit/docs/plugin-format.md#context-sessions).
+[context sessions](https://github.com/BANG404/openagent-plugin-kit/blob/main/docs/plugin-format.md#context-sessions).
 Command execution requires an explicit host permission;
 MCP-backed actions are preferred.
 

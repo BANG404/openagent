@@ -16,7 +16,7 @@ The template includes a dependency-free Node.js stdio server. Read its existing 
 
 ## Declare transport and data
 
-The generated `mcp.json` uses this shape:
+The following adapts the generated `mcp.json` to a server named `notes`. Keep the generated server ID if other declarations refer to it, or update all those references together:
 
 ```json
 {
@@ -35,6 +35,8 @@ The generated `mcp.json` uses this shape:
 
 Use `${PLUGIN_ROOT}` for executable resources and `${PLUGIN_DATA}` for persistent state. The host expands these values after installation. HTTP servers are also supported; transport and authentication details are in the [MCP field reference](https://github.com/BANG404/openagent-plugin-kit/blob/main/docs/plugin-format.md).
 
+The example `NOTES_FILE` is your application's setting, not an automatic storage implementation: read that variable in the server and implement persistence. Bundle dependencies/build output needed by the installed server. A process confined by the current network policy cannot assume it may download packages at startup. See [configuration and authorization](../configuration/) for user tokens and HTTP service setup.
+
 ## Direct and Relay
 
 Configure mounting in `plugin.json`, under `extensions.openagent`:
@@ -52,6 +54,6 @@ For execution-scoped leases, start with `mcp-lifecycle` and follow the [lease co
 
 ## Verify the installed copy
 
-Install, enable, and call an existing template tool in a project conversation. Confirm tool discovery, a successful result, and persistence after reopening. Then check invalid arguments, process failure, and the selected mounting mode. Reinstall source changes before retesting.
+Install, enable, and call an existing template tool in a project conversation. Confirm tool discovery, a successful result, and persistence after reopening. Then check invalid arguments, process failure, and the selected mounting mode. After source edits, [refresh the associated installation](../local-development/) before retesting.
 
 Keep credentials out of archives and logs. User-visible tool notices should consume the host-provided `_openagent.locale`; independent process notices can query `host.locale.get()`. Translate notices without changing protocol identifiers or user content.

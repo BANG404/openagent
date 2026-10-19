@@ -7,7 +7,6 @@ metadata:
 
 # Agent prompt infrastructure
 
-Route skill metadata and routing here.
-Read [prompt-contract.md](references/prompt-contract.md).
-Run bun run check:skills after skill or manifest edits.
-Keep SDK prompt assembly in runtime/.
+Keep prompt composition in the private Runtime; this workspace owns skill routing and documentation validation.
+Read [prompt and routing contracts](references/prompt-contract.md) for metadata, ownership, discovery or documentation-gate changes.
+Run `bun run check:skills` after changing a skill or the manifest.

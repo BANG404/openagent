@@ -16,7 +16,7 @@ bun tools/openagent-plugin-kit/scripts/validate-plugin.mjs plugins/notes-tools -
 
 ## 声明传输与数据
 
-生成的 `mcp.json` 使用以下结构：
+下例将生成的 `mcp.json` 改为名叫 `notes` 的服务。其他声明引用生成的服务 ID 时，应保留该 ID，或一起修改所有引用：
 
 ```json
 {
@@ -35,6 +35,8 @@ bun tools/openagent-plugin-kit/scripts/validate-plugin.mjs plugins/notes-tools -
 
 `${PLUGIN_ROOT}` 用于可执行资源，`${PLUGIN_DATA}` 用于持久状态，宿主在安装后展开这些值。也支持 HTTP 服务；传输和认证字段见 [MCP 规范](https://github.com/BANG404/openagent-plugin-kit/blob/main/docs/plugin-format.md)。
 
+示例 `NOTES_FILE` 是应用自己的设置，不会自动实现存储；服务需要读取该变量并实现持久化。把已安装服务需要的依赖和构建产物放入包内。进程受当前网络策略约束，不能假定启动时有权下载依赖。用户 token 与 HTTP 服务配置见[配置与授权](../configuration/)。
+
 ## Direct 与 Relay
 
 在 `plugin.json` 的 `extensions.openagent` 中配置挂载：
@@ -52,6 +54,6 @@ bun tools/openagent-plugin-kit/scripts/validate-plugin.mjs plugins/notes-tools -
 
 ## 验证已安装副本
 
-安装、启用后，在项目对话中调用模板已有工具，确认发现工具、调用成功，并在重新打开后保留数据。随后验证错误参数、进程失败和所选挂载模式。源码变更后重新安装再测试。
+安装、启用后，在项目对话中调用模板已有工具，确认发现工具、调用成功，并在重新打开后保留数据。随后验证错误参数、进程失败和所选挂载模式。源码变更后，[刷新已关联的安装](../local-development/)再测试。
 
 不要把凭据写入归档或日志。工具的可见提示应使用宿主提供的 `_openagent.locale`；独立进程提示可查询 `host.locale.get()`。翻译提示时保留协议标识符和用户内容。

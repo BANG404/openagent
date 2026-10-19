@@ -22,20 +22,25 @@ the user.
 
 ## Routing contract
 
-Every workspace skill has one directory-matching `name`, a non-empty
-description and a record in
-`.agents/skills/manifest.json`. The manifest identifies the primary owner for
-repository paths. A task may load secondary contracts for cross-boundary
-behavior, but the primary owner decides where the durable invariant is edited.
+Every workspace skill has a directory-matching `name`, a non-empty description
+and one record in `.agents/skills/manifest.json` (schema version 2). Every skill
+implicitly owns its own directory. Workflow-only skills may have an empty paths
+array. The manifest is the canonical file-ownership map; AGENTS.md routes by
+intent and verification skills supply observation procedures.
 
-When two owners appear applicable, use this order:
+Paths are exact files, directory prefixes ending in `/`, or patterns with `*`
+matching within one path segment. Select the match with the longest literal
+prefix (before the first `*`); an exact file wins over a directory prefix of the
+same length. Equal-specificity matches from different owners are errors, never
+resolved by manifest order. `scripts/agent-skill-routing.mjs` implements this
+contract for both skill validation and the documentation gate.
 
-1. The manifest's primary owner for the changed path.
-2. A referenced secondary contract for the cross-boundary behavior.
-3. A verification skill only for the required observation or test procedure.
-
-Do not resolve overlap by copying the same rule into multiple skills. Link to
-the primary owner instead.
+Load secondary contracts only for affected cross-boundary behavior. Edit each
+durable invariant at its primary owner and link to it from other skills. Every
+reference must be reachable through Markdown links from its own SKILL.md; entry
+routing should say when to read it, rather than requiring a directory-wide read.
+Independent plugin specifications use canonical repository URLs so validating
+workspace documentation does not require cloning optional plugin sources.
 
 Skill discovery uses directory paths, visible counts, and names for global,
 project, and enabled plugin skills. Models inspect candidate SKILL.md metadata
@@ -59,15 +64,29 @@ update the manifest or entrypoint and run `bun run check:skills`. Product logic
 changes still require the relevant behavior documentation through
 `bun run check:docs` and `bun run preflight`.
 
-The chat documentation gate covers both the plain input-queue projection and
-its Svelte state wrapper; changes to either require the chat owner's reference.
+The documentation gate resolves each changed logic file through this same
+manifest and requires Markdown under every affected primary owner. Public SDK
+changes require SDK documentation; unmapped repository-level logic requires
+AGENTS.md, README or CHANGELOG. Unrelated documentation cannot satisfy an owner's
+contract. Tests, generated output and the private Runtime gitlink retain their
+existing separate verification routes.
+Prepare Release's metadata-only change set uses its release marker and CHANGELOG
+as the documentation route. Adding product or automation logic requires the
+ordinary owner documentation even when release metadata is present.
 
 Prompt behavior should be verified with stable metadata or snapshots that show
 which layers were selected, not by exposing raw system prompts, provider
 secrets, or model-context diagnostics in normal product UI.
 
-## Entrypoint size
+## Entrypoint size and validation
 
-Each skill `SKILL.md` is a compact router. Its prose body is limited to 200
-non-whitespace characters; move detailed procedures, schemas, and examples to
-linked references. `bun run check:skills` enforces this budget for every skill.
+Keep SKILL.md focused on essential constraints and task-to-reference routing.
+The recommended body budget is 6000 non-whitespace characters, including examples
+and link destinations; exceeding it prints a review hint rather than failing.
+A short skill can be self-contained. Conditional detail belongs in references.
+
+`bun run check:skills` enforces metadata, relative-link existence, reference
+reachability and unambiguous ownership on repository files. It rejects duplicate
+routes and stale directory/pattern prefixes. Exact context files such as DESIGN.md
+may be prospective; ignored independent plugin checkouts are not inventory inputs.
+Length is a soft signal; reachable, specific routing is the required contract.
