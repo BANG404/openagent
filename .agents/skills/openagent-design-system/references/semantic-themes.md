@@ -12,9 +12,7 @@ Sidebar hover uses `--sidebar-accent` / `--sidebar-accent-foreground`.
 Selected projects, conversations, child conversations and recent conversations
 use `--sidebar-selected` / `--sidebar-selected-foreground`, including while hovered
 or focused. These default to the hover pair; packages may override either selected
-token independently. Rhea explicitly references the hover pair in both modes,
-retaining the same colors for hover and selection.
-The other nine published collection packages strengthen their sidebar hover
+token independently. All ten published collection packages strengthen their sidebar hover
 and selected fill together: OKLCH lightness 0.90 in light mode and 0.36 in dark
 mode, retaining each palette's chroma and hue. These are package-owned overrides
 documented in their READMEs; the upstream snapshot and generic composition
@@ -23,7 +21,7 @@ that intentionally share hover and selection colors.
 Run `bun run test:blackbox:sidebar-selection --collection` to apply all ten
 source manifests to the native desktop sidebar fixture in light/dark and
 English/Chinese. It checks project/root/child/recent selection, focused hover,
-equal hover/selected colors, and captures each combination. For the nine adjusted
+equal hover/selected colors, and captures each combination. For all ten
 packages it also checks highlight/background contrast of at least 1.25:1 light
 and 1.45:1 dark, and foreground/fill contrast of at least 7:1. These highlight
 bounds are collection regression guards, not accessibility conformance claims.
@@ -41,7 +39,9 @@ The Bits UI slider loads on demand with a fixed-size track placeholder so it
 does not inflate the settings entry bundle or shift the row while loading.
 Verify the real slider, keyboard/pointer changes, soft/full/zero strength,
 theme switching, saved reopen/reload and reset in all four mode/locale
-combinations with `bun run test:blackbox:style-contrast`.
+combinations with `bun run test:blackbox:style-contrast` for the built-in, Nova
+and Rhea themes. Add `--collection` to verify the built-in and all ten installed
+collection packages through the actual slider, persistence and reset controls.
 Native material, composer geometry and motion remain OpenAgent extensions.
 Desktop workspace cards retain their own 12px radius (`--workspace-card-radius`)
 and 8px gutters when a theme changes control radius, density or typography.
