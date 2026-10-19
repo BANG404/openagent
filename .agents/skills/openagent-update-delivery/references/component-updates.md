@@ -195,10 +195,17 @@ the same barrier before its shared bounded teardown.
 
 Release Runtime bootstrap synchronizes compatible installed plugin subscriptions
 before mounting package processes when the Runtime version changes. Plugin
-SemVer advances independently; protocol ranges control admission. Failed updates
+SemVer advances independently; protocol ranges and required capabilities control admission. Failed updates
 preserve installed bytes/data and retry on the next startup. Debug Runtime
 bootstrap retains explicit plugin updates. Synchronization uses an eight-second
 network budget so existing desktop readiness deadlines continue to apply.
+Online replacement instead prepares a recoverable package transaction before
+stopping the old Runtime. Package updates remain uncommitted until the candidate
+starts, reconnects and its verified resource selection commits. Recovery uses
+`resources/runtime/plugin-update.json` to reverify the maintenance Runtime and
+finish or roll back its opaque package transaction before startup. The host
+advertises plugin-update lifecycle protocol 1; a candidate requires a desktop
+restart when an older online-update host cannot coordinate this boundary.
 The plugin contract owns schema, selection, publication and retry details.
 SDK and desktop Runtime publication run the independent
 standard-package pipeline; desktop publication requires that pipeline to succeed.
@@ -250,14 +257,26 @@ exposing the process token or user data. Runtime version comparison uses the
 active resource or supervised process version, not the independently versioned
 Tauri application.
 
-The Runtime identity the host reports as component detail is a release identity
-rather than the supervised process's crate version. It prefers the active
-Runtime resource's `release_version`, then that resource's own `version`, and
-finally the packaged shell release the bundled sidecar ships inside, and it is
-absent while no Runtime runs. The process record cannot serve as that identity:
-`openagent-server` reports the crate version of the binary it was built from,
-and the packaged sidecar is built from an unstamped SDK checkout, so every
-product release would otherwise report the same Runtime version.
+Runtime component detail reports the running binary's actual Runtime SemVer.
+The workspace package version is the source of truth for Cargo, `--version-json`,
+release tags and signed artifact manifests. Desktop assembly build metadata may
+identify distribution bytes, but cannot change Runtime version precedence.
+New Runtime resources must match the process version on activation and startup;
+legacy resources without a plugin contract retain their historical startup
+behavior until upgraded. The overall product release remains independently
+versioned and never substitutes for Runtime component detail.
+After startup recovers any outstanding plugin transaction, a selected Runtime
+that advertises the plugin contract cannot automatically fall back to an older
+binary on startup failure. Its committed plugins may already require the new
+contract. Preserve the selection and data and report recovery failure; rollback
+before commit restores the whole package/data/settings transaction instead.
+
+Run `test:blackbox:runtime-compatibility` against the same isolated native
+instance and `OPENAGENT_HOME`, with an explicit `TAURI_PILOT_SOCKET` and
+`BLACKBOX_EXPECTED_RUNTIME_VERSION`. It checks the real component detail,
+Runtime drain barrier and refusal of an unverified replacement while retaining
+the running version. Runtime-owned transaction tests additionally cover package,
+data and settings rollback and interruption recovery.
 
 The supervised server accepts that process-scoped Bearer token for its typed
 product `/api` routes, exposes a Bearer-only complete desktop startup bootstrap,

@@ -106,6 +106,7 @@ fn select_packaged_runtime_binary(
 async fn start_runtime_spec(
     supervisor: &RuntimeProcessSupervisor,
     spec: RuntimeLaunchSpec,
+    resource: Option<&crate::runtime_resource::InstalledRuntimeResource>,
 ) -> Result<(), String> {
     let inspection =
         crate::runtime_process::inspect_runtime_bootstrap(&spec.binary_path, &spec.openagent_home)
@@ -114,6 +115,16 @@ async fn start_runtime_spec(
         return Err("Runtime startup refused incompatible persisted data; preserve its migration backup and complete the explicit startup transition".into());
     }
     supervisor.start(spec).await?;
+    if let Some(resource) = resource.filter(|_| inspection.plugin_contract.is_some()) {
+        if !supervisor
+            .status()
+            .await
+            .is_some_and(|status| resource.matches_process_version(&status.version))
+        {
+            supervisor.stop().await?;
+            return Err("Runtime binary version differs from its verified release identity".into());
+        }
+    }
     if let Err(error) = validate_supervised_runtime_bootstrap(supervisor).await {
         let _ = supervisor.stop().await;
         return Err(error);
@@ -128,6 +139,11 @@ pub(crate) async fn start_external_desktop_runtime(
     launch: ExternalRuntimeLaunch,
     primary_desktop_services: bool,
 ) -> Result<(), String> {
+    if primary_desktop_services {
+        manager
+            .recover_plugin_update(&launch.openagent_home)
+            .await?;
+    }
     let spec_for = |binary_path| RuntimeLaunchSpec {
         binary_path,
         workspace: launch.workspace.clone(),
@@ -140,7 +156,13 @@ pub(crate) async fn start_external_desktop_runtime(
     };
     let mut failures = Vec::new();
     if let Some(active) = manager.active_resource().await? {
-        match start_runtime_spec(&supervisor, spec_for(active.binary_path.clone())).await {
+        match start_runtime_spec(
+            &supervisor,
+            spec_for(active.binary_path.clone()),
+            Some(&active),
+        )
+        .await
+        {
             Ok(()) => {
                 app.state::<RuntimeEventProxy>()
                     .start(app.clone(), supervisor)
@@ -151,8 +173,27 @@ pub(crate) async fn start_external_desktop_runtime(
                 failures.push(format!("active Runtime {} failed: {error}", active.version))
             }
         }
+        let inspection = crate::runtime_process::inspect_runtime_bootstrap(
+            &active.binary_path,
+            &launch.openagent_home,
+        )
+        .await?;
+        if inspection.plugin_contract.is_some() {
+            // Startup already recovered any pending transaction. A completed
+            // plugin migration cannot be undone by selecting an older binary.
+            return Err(format!(
+                "{}; automatic Runtime fallback is blocked after plugin transaction support; preserve the selected Runtime and plugin data for recovery",
+                failures.join("; ")
+            ));
+        }
         if let Some(previous) = manager.rollback_active().await? {
-            match start_runtime_spec(&supervisor, spec_for(previous.binary_path.clone())).await {
+            match start_runtime_spec(
+                &supervisor,
+                spec_for(previous.binary_path.clone()),
+                Some(&previous),
+            )
+            .await
+            {
                 Ok(()) => {
                     app.state::<RuntimeEventProxy>()
                         .start(app.clone(), supervisor)
@@ -167,7 +208,7 @@ pub(crate) async fn start_external_desktop_runtime(
         }
     }
     let packaged = packaged_runtime_binary()?;
-    start_runtime_spec(&supervisor, spec_for(packaged))
+    start_runtime_spec(&supervisor, spec_for(packaged), None)
         .await
         .map_err(|error| {
             failures.push(format!("packaged Runtime failed: {error}"));

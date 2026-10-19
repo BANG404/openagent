@@ -39,16 +39,30 @@ the primary Runtime before plugin processes mount. Checks and downloads are
 bounded; offline, incompatible and failed candidates preserve the installed
 package and retry at the next startup. Debug builds retain explicit updates.
 The derived `plugin-runtime-version.json` marker binds successful checks to the
-executing Runtime binary SHA-256, package version and plugin protocol; deleting
-it repeats synchronization. This also handles independently versioned Runtime
-resources built from source with the same package version.
+declared Runtime release version and plugin protocol; deleting it repeats
+synchronization. Runtime release identities are immutable. Checksums protect
+artifact integrity and do not determine compatibility.
 
-Publisher release notes advertise `plugin_protocol` inside an
+Publisher release notes advertise `plugin_protocol` and required `features` inside an
 `<!-- openagent-plugin <JSON> -->` marker. When latest is incompatible, checks
-select the newest compatible stable candidate among the latest 100 releases.
+select the newest stable candidate satisfying both protocol and capability
+requirements among the latest 100 releases. Historical notes without features
+retain their original metadata; the complete archive still enforces requirements.
 The archive still passes complete manifest/protocol validation, digest checks
 and name/version agreement before atomic replacement. No host-access grant or
 plugin enablement setting is changed. Plugin data migrations remain package-owned.
+
+Online Runtime replacement prepares required plugin upgrades before stopping the
+old process. A local-source conflict, unavailable compatible release, stale
+metadata or failed download defers the Runtime upgrade. Prepared candidates are
+rechecked against installed versions, enablement and full manifests before
+activation. The candidate snapshots changed packages, their `PLUGIN_DATA` and
+private settings before starting any new package process. A failed Runtime
+restores that snapshot before the old process restarts; successful Runtime
+selection commits the package transaction. An interrupted transaction recovers
+before ordinary startup. The desktop verifies the recorded Runtime resource
+again before invoking its opaque package-maintenance commands. Other workspace
+Runtimes must close before a package replacement; no active work is cancelled.
 
 Package authors determine versions and verified protocol ranges during the
 change, following [plugin versioning](versioning.md). Independent standard package

@@ -23,6 +23,43 @@ const USER_TEXT = "保留升级前的会话正文 / Keep this conversation after
 const ASSISTANT_TEXT = "Persisted compatibility reply";
 const MEMORY_TEXT = "User-maintained memory must survive updates.\n";
 const ATTACHMENT_TEXT = "Attachment before update\n";
+const PLUGIN_IDS = ["compatibility-legacy", "compatibility-future"];
+
+/** @param {string} home */
+async function seedPluginCompatibility(home) {
+  for (const id of PLUGIN_IDS) {
+    const root = path.join(home, "plugins", id);
+    await mkdir(root, { recursive: true });
+    const protocol = id === "compatibility-legacy" ? 1 : 4294967295;
+    await writeFile(
+      path.join(root, "plugin.json"),
+      JSON.stringify({
+        $schema: "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+        name: id,
+        version: "1.0.0",
+        repository: `https://github.com/example/${id}`,
+        extensions: {
+          openagent: { compatibility: { plugin_protocol: { min: protocol, max: protocol } } },
+        },
+      }),
+    );
+    await mkdir(path.join(home, "plugin-data", id), { recursive: true });
+    await writeFile(
+      path.join(home, "plugin-data", id, "state.json"),
+      '{"schema_version":1,"value":"preserve"}',
+    );
+  }
+}
+
+/** @param {string} home */
+async function pluginBytes(home) {
+  return Promise.all(
+    PLUGIN_IDS.map(async (id) => ({
+      package: await readFile(path.join(home, "plugins", id, "plugin.json"), "utf8"),
+      data: await readFile(path.join(home, "plugin-data", id, "state.json"), "utf8"),
+    })),
+  );
+}
 
 /** Compare existing values while allowing additive object fields.
  * @param {unknown} expected @param {unknown} actual @param {string} [label]
@@ -234,6 +271,7 @@ async function snapshot(runtime, id, locator) {
         "language",
         "onboarding_completed",
         "permission_profile",
+        "agent_plugins_enabled",
       ].map((key) => [key, config[key]]),
     ),
     conversation: await runtime.invoke("get_conversation_meta", { convId: id }),
@@ -255,6 +293,23 @@ async function assertNoReset(home) {
   assert.equal(backups.length, 0, "Supported update unexpectedly backed up and reset user data");
 }
 
+/** Assert actual admission/rejection and retained update provenance on both binaries.
+ * @param {Awaited<ReturnType<typeof startRuntime>>} runtime
+ */
+async function assertPluginCompatibility(runtime) {
+  const plugins = await runtime.invoke("list_agent_plugins", {});
+  const legacy = plugins.find((plugin) => plugin.id === PLUGIN_IDS[0]);
+  const future = plugins.find((plugin) => plugin.id === PLUGIN_IDS[1]);
+  assert(legacy && legacy.enabled && !legacy.error, "Protocol-1 plugin no longer loads");
+  assert(future && !future.enabled && future.error, "Unsupported plugin contract was admitted");
+  assert.equal(future.version, "1.0.0", "Incompatible plugin lost its installed version");
+  assert.equal(
+    future.repository,
+    `https://github.com/example/${PLUGIN_IDS[1]}`,
+    "Incompatible plugin lost its repair subscription",
+  );
+}
+
 /** Runs released bytes only, against a new task-owned home; never accepts a user's data root.
  * @param {{baselineBinary: string; candidateBinary: string}} options
  */
@@ -265,6 +320,8 @@ export async function checkUpdateDataCompatibility({ baselineBinary, candidateBi
   const model = await startModelFixture();
   try {
     await mkdir(home);
+    await seedPluginCompatibility(home);
+    const expectedPluginBytes = await pluginBytes(home);
     await mkdir(workspaceDirectory);
     // HTTP workspace-scoped creation resolves real paths. Use that same spelling
     // for launch/configuration so runner temp aliases do not invalidate the baseline.
@@ -284,6 +341,11 @@ export async function checkUpdateDataCompatibility({ baselineBinary, candidateBi
           theme: "dark",
           language: "zh",
           onboarding_completed: true,
+          agent_plugins_enabled: {
+            ...original.agent_plugins_enabled,
+            "compatibility-legacy": true,
+            "compatibility-future": false,
+          },
           context_compaction_enabled: false,
           memory_retrieval_enabled: false,
           diagnostic_log_collection_enabled: false,
@@ -309,6 +371,7 @@ export async function checkUpdateDataCompatibility({ baselineBinary, candidateBi
         },
       });
       await baseline.invoke("save_memory", { scope: "global", content: MEMORY_TEXT });
+      await assertPluginCompatibility(baseline);
       const attachment = await baseline.request("/api/attachments", {
         name: "compatibility.txt",
         content_base64: Buffer.from(ATTACHMENT_TEXT).toString("base64"),
@@ -356,6 +419,7 @@ export async function checkUpdateDataCompatibility({ baselineBinary, candidateBi
       inspectHome(candidateBinary, home, restart === 0 ? ["ready", "restart_required"] : "ready");
       const candidate = await startRuntime(candidateBinary, home, workspace);
       try {
+        await assertPluginCompatibility(candidate);
         assertPreserved(expected, await snapshot(candidate, id, locator));
         const bootstrap = await candidate.request("/api/desktop/bootstrap");
         assert(
@@ -366,6 +430,11 @@ export async function checkUpdateDataCompatibility({ baselineBinary, candidateBi
         await candidate.stop();
       }
       await assertNoReset(home);
+      assert.deepEqual(
+        await pluginBytes(home),
+        expectedPluginBytes,
+        "Runtime update changed plugin packages or data",
+      );
     }
 
     // Declining an unsupported transition must leave the original data intact.

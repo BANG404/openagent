@@ -61,6 +61,7 @@
     "test:blackbox:tool-image-storage": "bun scripts/test-tool-image-storage-blackbox.mjs",
     "test:blackbox:storage-history": "bun scripts/test-storage-history-blackbox.mjs",
     "test:blackbox:runtime-status": "bun scripts/test-runtime-status-blackbox.mjs",
+    "test:blackbox:runtime-compatibility": "bun scripts/test-runtime-compatibility-blackbox.mjs",
     "test:blackbox:thinking-preview": "bun scripts/test-thinking-preview-blackbox.mjs",
     "test:blackbox:turn-footer": "bun scripts/test-turn-footer-blackbox.mjs",
     "test:blackbox:remote-page": "bun scripts/test-remote-page-blackbox.mjs",

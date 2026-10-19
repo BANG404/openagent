@@ -69,6 +69,25 @@ pub struct RuntimeBootstrapInspection {
     transition: Option<RuntimePersistenceTransition>,
     #[serde(default)]
     compatibility_policy: Option<crate::compatibility_policy::Decision>,
+    #[serde(default)]
+    pub plugin_contract: Option<RuntimePluginContract>,
+    #[serde(default)]
+    pub plugin_conflicts: Vec<RuntimePluginConflict>,
+    #[serde(default)]
+    restart_reason: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+pub struct RuntimePluginContract {
+    pub plugin_protocol: u32,
+    pub features: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+pub struct RuntimePluginConflict {
+    pub id: String,
+    pub version: Option<String>,
+    pub reason: String,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
@@ -78,6 +97,9 @@ struct RuntimePersistenceTransition {
 }
 
 impl RuntimeBootstrapInspection {
+    pub fn requires_plugin_update(&self) -> bool {
+        self.status == "plugins_incompatible"
+    }
     pub fn requires_persistence_transition(&self) -> bool {
         self.status == "transition_required"
     }
@@ -87,6 +109,9 @@ impl RuntimeBootstrapInspection {
     }
 
     pub fn restart_reason(&self) -> String {
+        if let Some(reason) = &self.restart_reason {
+            return reason.clone();
+        }
         self.compatibility_policy
             .as_ref()
             .filter(|decision| decision.restart_required)
@@ -191,6 +216,11 @@ fn parse_runtime_bootstrap_inspection(bytes: &[u8]) -> Result<RuntimeBootstrapIn
             inspection.schema_version
         ));
     }
+    if inspection.plugin_contract.as_ref().is_some_and(|contract| {
+        contract.plugin_protocol == 0 || contract.features.iter().any(|feature| feature.is_empty())
+    }) {
+        return Err("Runtime bootstrap returned an invalid plugin contract".into());
+    }
     if let Some(decision) = &inspection.compatibility_policy {
         decision
             .require_allowed()
@@ -204,11 +234,79 @@ fn parse_runtime_bootstrap_inspection(bytes: &[u8]) -> Result<RuntimeBootstrapIn
     }
     match inspection.status.as_str() {
         "ready" | "restart_required" if inspection.transition.is_none() => Ok(inspection),
+        "plugins_incompatible"
+            if inspection.transition.is_none()
+                && !inspection.plugin_conflicts.is_empty()
+                && inspection
+                    .plugin_contract
+                    .as_ref()
+                    .is_some_and(|contract| contract.plugin_protocol > 0) =>
+        {
+            Ok(inspection)
+        }
         "transition_required" if inspection.transition.is_some() => Ok(inspection),
         status => Err(format!(
             "Runtime bootstrap inspection returned invalid status {status}"
         )),
     }
+}
+
+/// Opaque package maintenance is implemented by the verified candidate, never
+/// by the desktop host. Versions and the candidate's own contract govern admission.
+pub async fn runtime_plugin_update_with_setup(
+    binary: &Path,
+    home: &Path,
+    action: &str,
+    previous: Option<&str>,
+    configure: RuntimeCommandSetup,
+) -> Result<(), String> {
+    if !["prepare", "commit", "rollback"].contains(&action) {
+        return Err("Invalid Runtime/plugin update action".into());
+    }
+    let mut command = Command::new(binary);
+    configure(command.as_std_mut())?;
+    command
+        .args(["--runtime-plugin-update", action])
+        .arg("--runtime-plugin-owner-stdin")
+        .env("OPENAGENT_HOME", home)
+        .env_remove("OPENAGENT_PREVIOUS_RUNTIME_VERSION")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true);
+    if let Some(version) = previous {
+        command.env("OPENAGENT_PREVIOUS_RUNTIME_VERSION", version);
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.as_std_mut().creation_flags(0x0800_0000);
+    }
+    let mut child = command.spawn().map_err(|e| e.to_string())?;
+    let _lifetime =
+        crate::process_lifetime::bind_tokio_child("Runtime plugin maintenance", &child)?;
+    // Keep the owner pipe open while waiting. Unix preparation watches EOF;
+    // Windows additionally binds maintenance to the desktop lifecycle job.
+    let _owner = child.stdin.take();
+    let output = tokio::time::timeout(Duration::from_secs(120), child.wait_with_output())
+        .await
+        .map_err(|_| "Runtime/plugin maintenance timed out")?
+        .map_err(|e| e.to_string())?;
+    if !output.status.success() {
+        return Err(format!(
+            "Runtime/plugin {action} failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        ));
+    }
+    let value: serde_json::Value =
+        serde_json::from_slice(&output.stdout).map_err(|e| e.to_string())?;
+    if value["schema_version"] != 1
+        || value["status"] != action
+        || !value["runtime_version"].is_string()
+    {
+        return Err("Runtime/plugin maintenance returned an invalid response".into());
+    }
+    Ok(())
 }
 
 struct RunningRuntime {
@@ -323,7 +421,10 @@ impl RuntimeProcessSupervisor {
             self.configure,
         )
         .await?;
-        if inspection.requires_restart() || inspection.requires_persistence_transition() {
+        if inspection.requires_restart()
+            || inspection.requires_persistence_transition()
+            || inspection.requires_plugin_update()
+        {
             return Err("Runtime replacement requires a desktop restart or a confirmed persistence transition; the previous process remains active".into());
         }
         let mut running = self.running.lock().await;
@@ -333,13 +434,26 @@ impl RuntimeProcessSupervisor {
             stop_runtime(previous).await?;
         }
 
-        match self.spawn_and_probe(candidate_spec).await {
+        match self.spawn_and_probe(candidate_spec.clone()).await {
             Ok(candidate) => {
                 let status = process_status(&candidate.ready);
                 *running = Some(candidate);
                 Ok(status)
             }
             Err(candidate_error) => {
+                if inspection.plugin_contract.is_some() {
+                    runtime_plugin_update_with_setup(
+                        &candidate_spec.binary_path,
+                        &candidate_spec.openagent_home,
+                        "rollback",
+                        None,
+                        self.configure,
+                    )
+                    .await
+                    .map_err(|error| {
+                        format!("{candidate_error}; plugin rollback failed: {error}")
+                    })?;
+                }
                 let Some(previous_spec) = previous_spec else {
                     return Err(candidate_error);
                 };
@@ -693,6 +807,27 @@ mod tests {
     fn rejects_an_incompatible_runtime_protocol() {
         assert!(validate_ready(&ready("http://127.0.0.1:43123"), 1).is_err());
         assert!(validate_ready(&ready("http://127.0.0.1:43123"), 4).is_err());
+    }
+
+    #[test]
+    fn plugin_conflicts_are_an_explicit_pre_activation_gate() {
+        let mut response = serde_json::json!({"schema_version":1,"status":"plugins_incompatible",
+            "plugin_contract":{"plugin_protocol":1,"features":["configuration-v1"]},
+            "plugin_conflicts":[{"id":"external","version":"2.0.0","reason":"requires protocol 2"}]});
+        let parsed =
+            parse_runtime_bootstrap_inspection(&serde_json::to_vec(&response).unwrap()).unwrap();
+        assert!(parsed.requires_plugin_update());
+        assert!(!parsed.requires_persistence_transition());
+        response["plugin_conflicts"] = serde_json::json!([]);
+        assert!(
+            parse_runtime_bootstrap_inspection(&serde_json::to_vec(&response).unwrap()).is_err()
+        );
+        response["plugin_conflicts"] =
+            serde_json::json!([{"id":"external","version":"2.0.0","reason":"requires protocol 2"}]);
+        response.as_object_mut().unwrap().remove("plugin_contract");
+        assert!(
+            parse_runtime_bootstrap_inspection(&serde_json::to_vec(&response).unwrap()).is_err()
+        );
     }
 
     #[test]

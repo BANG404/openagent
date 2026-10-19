@@ -912,9 +912,8 @@ jobs:
         env:
           SDK_SHA: ${{ inputs.sdk_sha }}
         run: |
-          short_sha="${SDK_SHA:0:12}"
-          base_version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' runtime/rust/openagent-server/Cargo.toml | head -n 1)"
-          version="${base_version%%-*}-dev.$short_sha"
+          base_version="$(node scripts/runtime-source-version.mjs)"
+          version="$base_version"
           mkdir -p sdk-development-clients
           printf '%s\n' "$version" > sdk-development-clients/version.txt
           tar --format=ustar -C sdk/typescript -czf \

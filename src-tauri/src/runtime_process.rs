@@ -5,6 +5,7 @@ pub use openagent_app::runtime_process::{
 };
 
 pub(crate) fn configure_runtime_policy_context(command: &mut std::process::Command) {
+    command.env("OPENAGENT_RUNTIME_PLUGIN_UPDATE_PROTOCOL", "1");
     command.env("OPENAGENT_POLICY_SHELL_VERSION", env!("CARGO_PKG_VERSION"));
     command.env_remove("OPENAGENT_POLICY_PREVIOUS_RUNTIME");
     command.env("OPENAGENT_POLICY_OPERATION", "startup");
@@ -25,6 +26,21 @@ pub(crate) async fn inspect_runtime_update_bootstrap(
         binary_path,
         openagent_home,
         Some(previous_runtime),
+        configure_runtime_command,
+    )
+    .await
+}
+
+pub(crate) async fn update_runtime_plugins(
+    spec: &RuntimeLaunchSpec,
+    action: &str,
+    previous: Option<&str>,
+) -> Result<(), String> {
+    openagent_app::runtime_process::runtime_plugin_update_with_setup(
+        &spec.binary_path,
+        &spec.openagent_home,
+        action,
+        previous,
         configure_runtime_command,
     )
     .await

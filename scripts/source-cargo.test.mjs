@@ -212,6 +212,38 @@ test("switching worktrees invalidates only workspace artifacts before build and 
   }
 });
 
+test("immutable public dependencies do not invalidate the private Runtime workspace", async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "openagent-source-public-deps-test-"));
+  try {
+    const repositoryRoot = path.resolve("task-worktree");
+    const marker = process.platform === "win32" ? repositoryRoot.toLowerCase() : repositoryRoot;
+    await writeFile(path.join(directory, ".openagent-source-worktree"), marker);
+    const deps = path.join(directory, "x86_64-pc-windows-msvc", "debug", "deps");
+    await mkdir(deps, { recursive: true });
+    for (const name of ["app", "protocol"]) {
+      const manifest = path.resolve(`cargo-git-checkout/crates/openagent-${name}`);
+      await writeFile(
+        path.join(deps, `openagent_${name}-fixture.d`),
+        `# env-dep:CARGO_MANIFEST_DIR=${manifest.replaceAll("\\", "\\\\")}\n`,
+      );
+    }
+    let clean = false;
+    await withSourceCargoWorkspaceLock(
+      {
+        repositoryRoot,
+        environment: { CARGO_TARGET_DIR: directory },
+        async cleanWorkspace() {
+          clean = true;
+        },
+      },
+      async () => {},
+    );
+    expect(clean).toBe(false);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test("a legacy launcher cannot hide foreign SDK artifacts behind the current owner marker", async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "openagent-source-dep-info-test-"));
   try {

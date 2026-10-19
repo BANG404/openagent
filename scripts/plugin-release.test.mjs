@@ -357,7 +357,20 @@ describe("source-owned plugin release versions", () => {
       expect(calls.find((args) => args.includes("create"))).toContain(initial);
     });
   });
-  test.each(["digest", "source", "range", "draft", "prerelease"])(
+  test("publishes required capabilities with the immutable package release", () => {
+    withFixture(({ root, manifest, commitSource, output }) => {
+      manifest.version = "1.1.0";
+      Object.assign(manifest.extensions.openagent.compatibility, {
+        features: ["configuration-v1"],
+      });
+      commitSource("feat: require configuration support");
+      const results = releasePlugins({ root, output, publish: false });
+      expect(results[0].features).toEqual(["configuration-v1"]);
+      const notes = readFileSync(join(output, "demo-notes.md"), "utf8");
+      expect(notes).toContain('"features":["configuration-v1"]');
+    });
+  });
+  test.each(["digest", "source", "range", "features", "draft", "prerelease"])(
     "rejects published release with invalid %s",
     (failure) => {
       withFixture(({ root, initial, output }) => {
@@ -377,8 +390,8 @@ describe("source-owned plugin release versions", () => {
                     },
                   ],
                   body:
-                    failure === "range"
-                      ? `<!-- openagent-plugin ${JSON.stringify({ source_sha: initial, plugin_protocol: { min: 2, max: 2 } })} -->`
+                    failure === "range" || failure === "features"
+                      ? `<!-- openagent-plugin ${JSON.stringify({ source_sha: initial, plugin_protocol: { min: failure === "range" ? 2 : 1, max: failure === "range" ? 2 : 1 }, features: failure === "features" ? ["configuration-v1"] : [] })} -->`
                       : "",
                 },
               ],

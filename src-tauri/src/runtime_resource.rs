@@ -13,6 +13,7 @@ use tokio::sync::Mutex;
 const MANIFEST_FILE: &str = "openagent-sdk-manifest.json";
 const SIGNATURE_FILE: &str = "openagent-sdk-manifest.json.sig";
 const ACTIVE_FILE: &str = "active.json";
+const PLUGIN_UPDATE_FILE: &str = "plugin-update.json";
 const MAX_MANIFEST_BYTES: usize = 1024 * 1024;
 const MAX_SIGNATURE_BYTES: usize = 16 * 1024;
 
@@ -70,6 +71,19 @@ pub struct InstalledRuntimeResource {
 }
 
 impl InstalledRuntimeResource {
+    pub(crate) fn matches_process_version(&self, process: &str) -> bool {
+        let (Ok(mut declared), Ok(mut running)) = (
+            semver::Version::parse(&self.version),
+            semver::Version::parse(process),
+        ) else {
+            return false;
+        };
+        // Desktop assembly metadata identifies helpers/distribution bytes;
+        // Runtime release precedence must agree with the executable itself.
+        declared.build = semver::BuildMetadata::EMPTY;
+        running.build = semver::BuildMetadata::EMPTY;
+        declared == running
+    }
     pub(crate) fn is_newer_than(&self, baseline: &Self) -> Result<bool, String> {
         let candidate_sdk = semver::Version::parse(&self.version)
             .map_err(|error| format!("Runtime candidate version is invalid: {error}"))?;
@@ -105,6 +119,12 @@ struct RuntimeResourceSelection {
     previous: Option<RuntimeResourceSelectionEntry>,
 }
 
+#[derive(Deserialize, Serialize)]
+struct RuntimePluginUpdateReceipt {
+    schema_version: u32,
+    candidate: RuntimeResourceSelectionEntry,
+}
+
 #[derive(Clone)]
 pub struct RuntimeResourceManager {
     resources_dir: PathBuf,
@@ -138,6 +158,89 @@ impl RuntimeResourceManager {
 
     pub fn resources_dir(&self) -> &Path {
         &self.resources_dir
+    }
+
+    /// Record only a verified resource identity. Recovery never executes a path
+    /// supplied by a WebView or by the package-owned transaction journal.
+    pub(crate) async fn begin_plugin_update(
+        &self,
+        candidate: &InstalledRuntimeResource,
+    ) -> Result<(), String> {
+        let _guard = self.operation.lock().await;
+        if self.resources_dir.join(PLUGIN_UPDATE_FILE).exists() {
+            return Err(
+                "An earlier Runtime/plugin update requires recovery before another update".into(),
+            );
+        }
+        let verified = self
+            .load_installed(&candidate.version, &candidate.target)
+            .await?;
+        if verified.binary_path != candidate.binary_path || verified.sha256 != candidate.sha256 {
+            return Err(
+                "Plugin update candidate differs from its verified Runtime resource".into(),
+            );
+        }
+        let receipt = RuntimePluginUpdateReceipt {
+            schema_version: 1,
+            candidate: selection_entry(&verified),
+        };
+        let temporary = self
+            .resources_dir
+            .join(format!(".{PLUGIN_UPDATE_FILE}.{}", uuid::Uuid::new_v4()));
+        std::fs::write(
+            &temporary,
+            serde_json::to_vec(&receipt).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| e.to_string())?;
+        std::fs::OpenOptions::new()
+            .write(true)
+            .open(&temporary)
+            .and_then(|file| file.sync_all())
+            .map_err(|e| e.to_string())?;
+        replace_file(&temporary, &self.resources_dir.join(PLUGIN_UPDATE_FILE))
+    }
+
+    pub(crate) fn finish_plugin_update(&self) -> Result<(), String> {
+        match std::fs::remove_file(self.resources_dir.join(PLUGIN_UPDATE_FILE)) {
+            Ok(()) => Ok(()),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+            Err(e) => Err(e.to_string()),
+        }
+    }
+
+    pub(crate) async fn recover_plugin_update(&self, home: &Path) -> Result<(), String> {
+        let _guard = self.operation.lock().await;
+        let bytes = match std::fs::read(self.resources_dir.join(PLUGIN_UPDATE_FILE)) {
+            Ok(bytes) => bytes,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(e) => return Err(e.to_string()),
+        };
+        let receipt: RuntimePluginUpdateReceipt = serde_json::from_slice(&bytes)
+            .map_err(|e| format!("Invalid Runtime/plugin recovery receipt: {e}"))?;
+        if receipt.schema_version != 1 {
+            return Err("Unsupported Runtime/plugin recovery receipt".into());
+        }
+        let candidate = self
+            .load_installed(&receipt.candidate.version, &receipt.candidate.target)
+            .await?;
+        let selected = self.active_resource_locked().await?;
+        let action = if selected
+            .as_ref()
+            .is_some_and(|selected| selection_entry(selected) == receipt.candidate)
+        {
+            "commit"
+        } else {
+            "rollback"
+        };
+        openagent_app::runtime_process::runtime_plugin_update_with_setup(
+            &candidate.binary_path,
+            home,
+            action,
+            None,
+            crate::runtime_process::configure_runtime_command,
+        )
+        .await?;
+        self.finish_plugin_update()
     }
 
     pub async fn active_resource(&self) -> Result<Option<InstalledRuntimeResource>, String> {
@@ -1054,6 +1157,26 @@ mod tests {
         assert!(progress
             .last()
             .is_some_and(|event| { event.downloaded_bytes == 15 && event.total_bytes == 15 }));
+        assert!(installed.matches_process_version("9.9.9-test.1"));
+        assert!(installed.matches_process_version("9.9.9-test.1+desktop.1"));
+        assert!(!installed.matches_process_version("0.1.1"));
+        manager.begin_plugin_update(&installed).await.unwrap();
+        let receipt = manager.resources_dir.join(PLUGIN_UPDATE_FILE);
+        assert!(receipt.is_file());
+        assert!(manager.begin_plugin_update(&installed).await.is_err());
+        let mut untrusted = installed.clone();
+        untrusted.binary_path = home.path().join("untrusted-executable");
+        manager.finish_plugin_update().unwrap();
+        assert!(manager.begin_plugin_update(&untrusted).await.is_err());
+        assert!(!receipt.exists());
+        std::fs::write(&receipt, br#"{"schema_version":99,"candidate":{"version":"9.9.9-test.1","target":"windows-x64"}}"#).unwrap();
+        assert!(manager
+            .recover_plugin_update(home.path())
+            .await
+            .unwrap_err()
+            .contains("Unsupported"));
+        assert!(receipt.is_file());
+        manager.finish_plugin_update().unwrap();
         manager.activate(&installed).await.unwrap();
         assert_eq!(
             manager.active_resource().await.unwrap().unwrap().version,

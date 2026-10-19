@@ -162,7 +162,9 @@ async function foreignWorkspaceArtifacts(targetDirectory, sourceRoot) {
         return [];
       });
       for (const file of files) {
-        if (!/^openagent_(protocol|runtime|app|server|benchmark)-.*\.d$/.test(file)) continue;
+        // Public App/protocol are immutable Git dependencies, not private
+        // workspace crates. Cargo owns their revision-specific cache identity.
+        if (!/^openagent_(runtime|server|benchmark)-.*\.d$/.test(file)) continue;
         const info = await readFile(path.join(directory, file), "utf8");
         const manifest = /^# env-dep:CARGO_MANIFEST_DIR=(.+)$/m.exec(info)?.[1];
         if (!manifest) continue;

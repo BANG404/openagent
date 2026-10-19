@@ -77,10 +77,16 @@ application source changes.
 The private SDK also has its own release train for the supervised desktop
 Runtime. An immutable `sdk-vX.Y.Z` release publishes platform `openagent-server`
 binaries and `openagent-sdk-manifest.json` with the SDK protocol version, size,
-and SHA-256 for every target. SDK SemVer is calculated only from SDK
-Conventional Commits after the newest ancestor SDK tag. The release tag points
-directly to the immutable SDK commit; package versions are stamped only in
-release build worktrees, so publishing never creates a different source SHA. A
+and SHA-256 for every target. `runtime/Cargo.toml` declares the Runtime release
+version once under `[workspace.package]`; the server and execution crate inherit
+it. Package authors advance that source version during release-worthy changes.
+Conventional Commits after the newest ancestor SDK tag determine the minimum
+permitted SemVer bump; preparation rejects a source version below that minimum.
+The release tag must agree with the source version. The release tag points
+directly to the immutable SDK commit; publication never stamps a different
+version onto already-built bytes. Each platform build executes `--version-json`
+before packaging, and manifest assembly requires matching binary versions,
+SDK protocols and plugin contracts on every platform. A
 commit with no release-worthy SDK change reuses its newest ancestor SDK release.
 That release does not require a desktop installer update. Desktop Runtime
 changes are also eligible for the signed Runtime component channel. Independent

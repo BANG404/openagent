@@ -146,9 +146,16 @@ async fn restore_previous_runtime(
     supervisor: Arc<RuntimeProcessSupervisor>,
     proxy: &RuntimeEventProxy,
     previous_spec: RuntimeLaunchSpec,
+    plugin_candidate: Option<&RuntimeLaunchSpec>,
+    manager: &RuntimeResourceManager,
 ) -> Result<u64, String> {
     proxy.stop().await;
-    supervisor.reload_after_drain(previous_spec).await?;
+    supervisor.stop().await?;
+    if let Some(candidate) = plugin_candidate {
+        crate::runtime_process::update_runtime_plugins(candidate, "rollback", None).await?;
+        manager.finish_plugin_update()?;
+    }
+    supervisor.start(previous_spec).await?;
     let drain = drain_supervised_runtime(&supervisor, false).await?;
     if !drain.drained {
         return Err("restored Runtime could not enter the component update barrier".to_string());
@@ -192,6 +199,9 @@ pub(crate) async fn activate_runtime_resource(
         .launch_spec()
         .await
         .ok_or_else(|| "Runtime activation requires external Runtime mode".to_string())?;
+    if !previous_spec.primary_desktop_services {
+        return Err("Activate Runtime updates from the primary desktop window after closing other workspace windows".into());
+    }
 
     let candidate_spec = RuntimeLaunchSpec {
         binary_path: candidate.binary_path.clone(),
@@ -246,8 +256,36 @@ pub(crate) async fn activate_runtime_resource(
         ));
     }
 
+    let transactional_plugins = bootstrap.plugin_contract.is_some();
+    if transactional_plugins {
+        manager.begin_plugin_update(&candidate).await?;
+        if let Err(error) = crate::runtime_process::update_runtime_plugins(
+            &candidate_spec,
+            "prepare",
+            Some(&previous_version),
+        )
+        .await
+        {
+            // A response can be lost after Prepared was written. Cancel that
+            // decision before clearing the durable desktop receipt.
+            crate::runtime_process::update_runtime_plugins(&candidate_spec, "rollback", None)
+                .await?;
+            manager.finish_plugin_update()?;
+            return Err(error);
+        }
+    } else if bootstrap.requires_plugin_update() {
+        return Err("Runtime update requires compatible plugins before activation".into());
+    }
+    let plugin_candidate = transactional_plugins.then_some(&candidate_spec);
+
     proxy.stop().await;
-    if let Err(candidate_error) = supervisor.reload_after_drain(candidate_spec).await {
+    if let Err(candidate_error) = supervisor.reload_after_drain(candidate_spec.clone()).await {
+        if transactional_plugins && supervisor.launch_spec().await.as_ref() == Some(&previous_spec)
+        {
+            crate::runtime_process::update_runtime_plugins(&candidate_spec, "rollback", None)
+                .await?;
+            manager.finish_plugin_update()?;
+        }
         tracing::error!(
             target: "openagent::component_update",
             component = "runtime",
@@ -288,6 +326,8 @@ pub(crate) async fn activate_runtime_resource(
             supervisor.inner().clone(),
             &proxy,
             previous_spec.clone(),
+            plugin_candidate,
+            &manager,
         )
         .await;
         let _ = app.emit(
@@ -302,7 +342,15 @@ pub(crate) async fn activate_runtime_resource(
         });
     }
 
-    if let Err(validation_error) = validate_supervised_runtime_bootstrap(supervisor.inner()).await {
+    let identity_check = match supervisor.status().await {
+        Some(status) if candidate.matches_process_version(&status.version) => Ok(()),
+        _ => Err("Runtime binary version differs from its verified release identity".into()),
+    };
+    let validation = match identity_check {
+        Ok(()) => validate_supervised_runtime_bootstrap(supervisor.inner()).await,
+        Err(error) => Err(error),
+    };
+    if let Err(validation_error) = validation {
         tracing::error!(
             target: "openagent::component_update",
             component = "runtime",
@@ -316,6 +364,8 @@ pub(crate) async fn activate_runtime_resource(
             supervisor.inner().clone(),
             &proxy,
             previous_spec.clone(),
+            plugin_candidate,
+            &manager,
         )
         .await;
         let _ = app.emit(
@@ -346,6 +396,8 @@ pub(crate) async fn activate_runtime_resource(
                 supervisor.inner().clone(),
                 &proxy,
                 previous_spec.clone(),
+                plugin_candidate,
+                &manager,
             )
             .await;
             let _ = app.emit(
@@ -370,8 +422,15 @@ pub(crate) async fn activate_runtime_resource(
             %activation_error,
             "Runtime candidate selection commit failed; rolling back"
         );
-        let rollback =
-            restore_previous_runtime(&app, supervisor.inner().clone(), &proxy, previous_spec).await;
+        let rollback = restore_previous_runtime(
+            &app,
+            supervisor.inner().clone(),
+            &proxy,
+            previous_spec,
+            plugin_candidate,
+            &manager,
+        )
+        .await;
         let _ = app.emit(
             "runtime-resource-rolled-back",
             serde_json::json!({ "reason": "selection_commit_failed" }),
@@ -384,6 +443,21 @@ pub(crate) async fn activate_runtime_resource(
         });
     }
 
+    if transactional_plugins {
+        // The durable resource selection is committed first. A crash between
+        // these writes makes startup finish the same package commit.
+        if let Err(error) =
+            crate::runtime_process::update_runtime_plugins(&candidate_spec, "commit", None).await
+        {
+            // The candidate may have durably committed before its response was
+            // lost. Preserve its selected/running combination and receipt;
+            // startup can repeat commit, never restore old packages blindly.
+            return Err(format!(
+                "Runtime is active; plugin finalization requires recovery: {error}"
+            ));
+        }
+        manager.finish_plugin_update()?;
+    }
     *updates.pending.lock().await = None;
     let _ = app.emit(
         "runtime-resource-activated",

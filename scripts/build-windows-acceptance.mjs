@@ -1,5 +1,6 @@
 // @ts-check
 import assert from "node:assert/strict";
+import { readRuntimeSourceVersion } from "./runtime-source-version.mjs";
 import { spawnSync, execFileSync } from "node:child_process";
 import { copyFile, cp, mkdir, mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -106,12 +107,7 @@ export async function buildWindowsAcceptance({ output }) {
     path.join(root, "src-tauri/binaries/openagent-server-x86_64-pc-windows-msvc.exe"),
     path.join(runtime, runtimeName),
   );
-  const sdkCargo = await readFile(
-    path.join(root, "runtime/rust/openagent-server/Cargo.toml"),
-    "utf8",
-  );
-  const sdkVersion = sdkCargo.match(/^version = "([^"]+)"/m)?.[1];
-  assert(sdkVersion, "Missing Runtime version");
+  const sdkVersion = await readRuntimeSourceVersion(path.join(root, "runtime"));
   await writeFile(
     path.join(runtime, "openagent-sdk-manifest.json"),
     JSON.stringify({

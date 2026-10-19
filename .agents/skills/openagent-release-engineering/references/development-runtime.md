@@ -30,6 +30,9 @@ development Runtime and Windows-helper builds use
 `<host-common-git-directory>/openagent-source-target/<platform>` so related OWT
 worktrees reuse Cargo dependency output. Cargo still checks the current source,
 lockfile, compiler and flags; this is not a prebuilt Runtime qualification.
+Foreign-worktree detection covers private Runtime, server and benchmark crates
+only. Public App/protocol crates are immutable Git dependencies whose revision
+identity Cargo manages; their checkout paths must not invalidate private output.
 The source-build lock covers compilation and copying the output, preventing a
 second worktree from replacing bytes before the first stages them. An interrupted
 owner leaves a PID-bearing lock; inspect that process before manually removing

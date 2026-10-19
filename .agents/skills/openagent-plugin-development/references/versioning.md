@@ -40,7 +40,12 @@ range. Bounds are positive unsigned 32-bit integers. Do not expand a range to
 unimplemented or untested protocols, or change the protocol for a release-only
 automation edit.
 
-The Runtime currently checks its single plugin protocol against that range.
+The Runtime checks its single plugin protocol against that range and every
+required feature against its implemented feature registry. `runtime.plugin_contract`
+on the authenticated Host Bridge exposes `{ plugin_protocol, features }` for
+optional feature discovery; older Runtimes may reject that operation. Admission,
+release-history selection, cache reuse and final archive validation apply the
+same requirements. Runtime SemVer identifies a release, not plugin compatibility.
 This is admission control, not protocol negotiation or an old-protocol adapter.
 A missing declaration means `{ "min": 1, "max": 1 }` permanently, even after a
 Runtime upgrade. Packaging preserves that absence rather than injecting fields.
@@ -70,8 +75,8 @@ manifest edits alone do not.
 
 Public `crates/openagent-app/src/plugin_updates.rs` owns startup synchronization
 policy. The primary server holds its process lock before calling it, before
-mounting plugin processes. An immutable executable digest and plugin protocol
-identify the successful check. Checks have a three-second deadline; updates
+mounting plugin processes. The declared Runtime release version and plugin
+protocol identify the successful check. Checks have a three-second deadline; updates
 share an eight-second startup budget with at most five seconds per package.
 Stale results and failures retain the previous marker so startup retries. The
 engine implements the package-operation port and retains package leases,

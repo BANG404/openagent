@@ -15,15 +15,6 @@ describe("product release identity", () => {
     expect(hostSource).toContain("shell: shell_version");
   });
 
-  test("reports the Runtime release identity instead of its crate version", () => {
-    expect(hostSource).toContain("fn runtime_release_identity(");
-    expect(hostSource).toContain("let active_runtime = runtime_manager.active_resource().await?;");
-    expect(hostSource).toContain(
-      "runtime_release_identity(active_runtime.as_ref(), &shell_version)",
-    );
-    expect(hostSource).not.toContain("status.version");
-  });
-
   test("keeps the frontend identity out of the host", () => {
     expect(hostSource).not.toContain("frontend: frontend_version");
   });

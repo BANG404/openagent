@@ -146,7 +146,8 @@ export function verifyPluginSources(root) {
         sourceSha: git(directory, ["rev-parse", `${tag}^{commit}`]),
       })),
     });
-    return { id, directory, sha, manifest, repository, plan, range };
+    const features = manifest.extensions?.openagent?.compatibility?.features ?? [];
+    return { id, directory, sha, manifest, repository, plan, range, features };
   });
 }
 
@@ -160,7 +161,7 @@ export function releasePlugins({ root, output, publish, runGh = gh }) {
     throw new Error("Missing pinned plugin protocol version");
   mkdirSync(output, { recursive: true });
   const results = [];
-  for (const { id, directory, sha, repository, plan, range } of packages) {
+  for (const { id, directory, sha, repository, plan, range, features } of packages) {
     if (protocol < range.min || protocol > range.max)
       throw new Error(`Plugin ${id} does not support protocol ${protocol}`);
     const tag = plan.tag;
@@ -171,6 +172,7 @@ export function releasePlugins({ root, output, publish, runGh = gh }) {
       version: plan.version,
       tag,
       plugin_protocol: range,
+      features,
       publish: plan.publish,
     });
     const packageDirectory = mkdtempSync(join(output, `${id}-source-`));
@@ -206,7 +208,7 @@ export function releasePlugins({ root, output, publish, runGh = gh }) {
       // This directory was allocated by this invocation, never a prior stage.
       rmSync(packageDirectory, { recursive: true, force: true });
     }
-    const metadata = { schema_version: 1, source_sha: sha, plugin_protocol: range };
+    const metadata = { schema_version: 1, source_sha: sha, plugin_protocol: range, features };
     const notes = join(output, `${id}-notes.md`);
     writeFileSync(
       notes,
@@ -222,7 +224,7 @@ export function releasePlugins({ root, output, publish, runGh = gh }) {
         (/** @type {{tag_name: string}} */ item) => item.tag_name === tag,
       );
       if (existing) {
-        verifyPublishedPlugin({ repository, tag, sha, range, existing, runGh });
+        verifyPublishedPlugin({ repository, tag, sha, range, features, existing, runGh });
       } else {
         runGh([
           "release",
@@ -239,7 +241,7 @@ export function releasePlugins({ root, output, publish, runGh = gh }) {
           notes,
         ]);
         const created = JSON.parse(runGh(["api", `repos/${repository}/releases/tags/${tag}`]));
-        verifyPublishedPlugin({ repository, tag, sha, range, existing: created, runGh });
+        verifyPublishedPlugin({ repository, tag, sha, range, features, existing: created, runGh });
       }
     }
   }
@@ -253,9 +255,9 @@ export function releasePlugins({ root, output, publish, runGh = gh }) {
 /**
  * A tag alone is not an installable release. Verify its immutable remote source
  * and an archive digest; manual v* releases need not contain automation notes.
- * @param {{repository: string, tag: string, sha: string, range: {min: number, max: number}, existing: {draft?: boolean, prerelease?: boolean, body?: string, assets?: {name: string, digest?: string}[]}, runGh: typeof gh}} input
+ * @param {{repository: string, tag: string, sha: string, range: {min: number, max: number}, features?: string[], existing: {draft?: boolean, prerelease?: boolean, body?: string, assets?: {name: string, digest?: string}[]}, runGh: typeof gh}} input
  */
-function verifyPublishedPlugin({ repository, tag, sha, range, existing, runGh }) {
+function verifyPublishedPlugin({ repository, tag, sha, range, features = [], existing, runGh }) {
   if (
     existing.draft ||
     existing.prerelease ||
@@ -278,7 +280,9 @@ function verifyPublishedPlugin({ repository, tag, sha, range, existing, runGh })
     if (
       metadata.source_sha !== sha ||
       metadata.plugin_protocol?.min !== range.min ||
-      metadata.plugin_protocol?.max !== range.max
+      metadata.plugin_protocol?.max !== range.max ||
+      (metadata.features !== undefined &&
+        JSON.stringify(metadata.features.toSorted()) !== JSON.stringify(features.toSorted()))
     )
       throw new Error(`Release ${repository}/${tag} has mismatched plugin compatibility metadata`);
   } else if (tag.startsWith("plugin-v")) {

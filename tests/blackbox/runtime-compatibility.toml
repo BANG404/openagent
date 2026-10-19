@@ -1,0 +1,26 @@
+[scenario]
+name = "Runtime binary version and rejected replacement preserve the running process"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "component detail exposes the actual Runtime and rejects an unverified candidate"
+action = "eval"
+script = '''(async () => {
+  const invoke = window.__TAURI_INTERNALS__.invoke;
+  const expected = window.__runtimeCompatibilityExpected;
+  const before = await invoke('get_component_versions');
+  if (!expected || before.runtime !== expected) throw new Error('Runtime component detail differs from binary release version');
+  const gate = await invoke('begin_component_update');
+  if (!gate.ready) throw new Error('Isolated Runtime did not drain');
+  try {
+    let rejected = false;
+    try { await invoke('activate_runtime_resource', {version:'999.0.0', target:'windows-x64'}); }
+    catch (error) { rejected = String(error).includes('pending verified resource'); }
+    if (!rejected) throw new Error('Unverified Runtime candidate was admitted');
+    const after = await invoke('get_component_versions');
+    if (after.runtime !== before.runtime) throw new Error('Rejected update replaced the active Runtime');
+  } finally { await invoke('end_component_update'); }
+  if (!document.querySelector('.sidebar-content')) throw new Error('Native application surface was lost');
+  return 'Actual Runtime version retained after rejected activation';
+})()'''

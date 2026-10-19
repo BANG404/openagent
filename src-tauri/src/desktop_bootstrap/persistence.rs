@@ -41,6 +41,7 @@ fn confirm_persistence_transition(plan: &PersistenceTransitionPlan) -> bool {
 fn run_desktop_bootstrap_command(command: &str) -> anyhow::Result<DesktopBootstrapStatus> {
     let home = selected_home()?;
     let manager = crate::component_updates::runtime_resource_manager(home.clone());
+    recover_plugin_update_for_primary(&manager, &home)?;
     let binary = if let Some(active) =
         tauri::async_runtime::block_on(manager.active_resource()).map_err(anyhow::Error::msg)?
     {
@@ -141,7 +142,23 @@ pub(crate) fn prepare_interactive_persistence_with_binary(
     binary: &std::path::Path,
 ) -> anyhow::Result<Option<ExternalRuntimeLaunch>> {
     let home = selected_home()?;
+    let manager = crate::component_updates::runtime_resource_manager(home.clone());
+    recover_plugin_update_for_primary(&manager, &home)?;
     prepare_persistence_with(|command| run_desktop_bootstrap_with_binary(command, binary, &home))
+}
+
+fn recover_plugin_update_for_primary(
+    manager: &crate::runtime_resource::RuntimeResourceManager,
+    home: &std::path::Path,
+) -> anyhow::Result<()> {
+    if super::instances::should_start_primary_desktop_services(
+        crate::workspace_process::is_workspace_window_process(),
+        super::instances::is_development_multi_instance(),
+    ) {
+        tauri::async_runtime::block_on(manager.recover_plugin_update(home))
+            .map_err(anyhow::Error::msg)?;
+    }
+    Ok(())
 }
 
 fn prepare_persistence_with(

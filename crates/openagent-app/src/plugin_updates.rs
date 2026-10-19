@@ -1,7 +1,5 @@
 //! Product subscription synchronization before Runtime execution starts.
-use sha2::{Digest, Sha256};
 use std::future::Future;
-use std::io::Read;
 use std::path::Path;
 use std::time::Duration;
 
@@ -33,23 +31,7 @@ pub async fn synchronize_plugins_for_runtime(
     marker: &Path,
     backend: &impl PluginUpdateBackend,
 ) -> Result<(), String> {
-    let digest = tokio::task::spawn_blocking(|| -> Result<String, String> {
-        let path = std::env::current_exe().map_err(|error| error.to_string())?;
-        let mut file = std::fs::File::open(path).map_err(|error| error.to_string())?;
-        let mut hash = Sha256::new();
-        let mut buffer = [0_u8; 65536];
-        loop {
-            let length = file.read(&mut buffer).map_err(|error| error.to_string())?;
-            if length == 0 {
-                break;
-            }
-            hash.update(&buffer[..length]);
-        }
-        Ok(format!("{:x}", hash.finalize()))
-    })
-    .await
-    .map_err(|error| error.to_string())??;
-    synchronize_plugins_at(&format!("{version}+{digest}"), marker, backend).await
+    synchronize_plugins_at(version, marker, backend).await
 }
 
 async fn synchronize_plugins_at(

@@ -1,7 +1,7 @@
 use super::ComponentVersions;
 use crate::frontend_resource::FrontendResourceManager;
 use crate::runtime_process::RuntimeProcessSupervisor;
-use crate::runtime_resource::{InstalledRuntimeResource, RuntimeResourceManager};
+use crate::runtime_resource::RuntimeResourceManager;
 use std::sync::Arc;
 use tauri::State;
 
@@ -50,28 +50,6 @@ pub(crate) async fn get_onboarding_resource_status(
     Ok(OnboardingResourceStatus { frontend, runtime })
 }
 
-/// Resolve the Runtime release identity reported as component detail.
-///
-/// The supervised process only reports the crate version of the binary it runs,
-/// and that is not a release identity: the packaged sidecar is built from an
-/// unstamped SDK checkout, so every product release ships a Runtime that reports
-/// the same crate version. The signed Runtime resource that delivers modular
-/// Runtime updates publishes the product release version instead, so this
-/// prefers that identity, then the resource's own version, and finally the
-/// packaged shell release that the bundled sidecar ships inside.
-fn runtime_release_identity(
-    active: Option<&InstalledRuntimeResource>,
-    shell_version: &str,
-) -> String {
-    let Some(resource) = active else {
-        return shell_version.to_string();
-    };
-    resource
-        .release_version
-        .clone()
-        .unwrap_or_else(|| resource.version.clone())
-}
-
 #[tauri::command]
 pub(crate) async fn get_component_versions(
     app: tauri::AppHandle,
@@ -98,56 +76,6 @@ pub(crate) async fn get_component_versions(
         .map(|version| version.to_string())
         .unwrap_or_else(|| shell_version.clone()),
         shell: shell_version.clone(),
-        runtime: supervisor
-            .status()
-            .await
-            .map(|_| runtime_release_identity(active_runtime.as_ref(), &shell_version)),
+        runtime: supervisor.status().await.map(|status| status.version),
     })
-}
-
-#[cfg(test)]
-mod runtime_identity_tests {
-    use super::{runtime_release_identity, InstalledRuntimeResource};
-    use std::path::PathBuf;
-
-    fn resource(version: &str, release_version: Option<&str>) -> InstalledRuntimeResource {
-        InstalledRuntimeResource {
-            version: version.to_string(),
-            release_version: release_version.map(str::to_string),
-            target: "test-target".to_string(),
-            binary_path: PathBuf::from("openagent-server"),
-            manifest_path: PathBuf::from("openagent-sdk-manifest.json"),
-            signature_path: PathBuf::from("openagent-sdk-manifest.json.sig"),
-            protocol_min: 1,
-            protocol_max: 1,
-            size: 0,
-            sha256: String::new(),
-        }
-    }
-
-    #[test]
-    fn identity_prefers_the_product_release_of_the_active_resource() {
-        let installed = resource("1.4.0", Some("0.66.0"));
-        assert_eq!(
-            runtime_release_identity(Some(&installed), "0.65.1-beta.1"),
-            "0.66.0"
-        );
-    }
-
-    #[test]
-    fn identity_falls_back_to_the_resource_version() {
-        let installed = resource("1.4.0", None);
-        assert_eq!(
-            runtime_release_identity(Some(&installed), "0.65.1-beta.1"),
-            "1.4.0"
-        );
-    }
-
-    #[test]
-    fn identity_falls_back_to_the_packaged_shell_release() {
-        assert_eq!(
-            runtime_release_identity(None, "0.65.1-beta.1"),
-            "0.65.1-beta.1"
-        );
-    }
 }
