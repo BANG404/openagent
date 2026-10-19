@@ -8,6 +8,22 @@ paths. The deployed routes are `/openagent/` and `/openagent/docs/` respectively
 Starlight owns search, sidebar navigation, theme, locale switching, and its sitemap.
 The docs home routes readers to application usage (`usage/`) and plugin authoring
 (`plugins/`). Keep both paths translated and navigable from the landing page.
+The accelerated entry is `https://openagent.ibat.ac.cn/`, which redirects to
+`/openagent/` to preserve the project's asset, documentation and Pagefind paths.
+`scripts/cloudflare-site-proxy.mjs` proxies only GET/HEAD under that base to the
+fixed GitHub Pages origin. It omits browser credentials, keeps origin redirects
+on the accelerated hostname and caches successful reads for five minutes
+(`downloads.json` for one minute); errors are not cached. Browsers revalidate
+responses instead of retaining old download links locally. GitHub Pages remains
+the publication source, so successful deployments appear without a second site
+upload. Download binaries use the separate R2 mirror.
+Deploy proxy changes using authenticated `cf` 1.0.0-beta.18 and Bun:
+`bun scripts/deploy-site-proxy.mjs` (add `--dry-run` to validate without uploading).
+The deploy script assembles cf's v0 Build Output in its own temporary directory
+and attaches the Worker custom domain; no API secret is stored in this repository.
+Verify the root redirect, homepage, Chinese/English docs, search assets, download
+links and HTTPS after deployment. A global CDN address is not a mainland network
+availability guarantee; mainland reachability must be measured from that network.
 Usage covers setup, conversations/recovery, model/permission configuration and
 troubleshooting; menu labels must match the public UI locale catalogs.
 
