@@ -62,8 +62,7 @@ write and OIDC permissions. The Pages job also runs the artifact guard regressio
 tests. Retain release-manifest inputs and channel fallback. Windows buttons and
 automatic Windows downloads, including the navigation link, select only the full
 package without bundled WebView2; other platforms keep their standard installers.
-Copy explains that application
-resources and the model are included and missing WebView2 needs Internet.
+Below the platform buttons, retain only the localized link to all release assets.
 `scripts/pages-downloads.mjs` uses a mirror URL only when its exact asset exists
 in the completed R2 availability index; otherwise it uses GitHub. A missing full
 Windows variant falls back to release browsing, never to another installer.
