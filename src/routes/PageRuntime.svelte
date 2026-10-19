@@ -1421,12 +1421,14 @@
     try {
       resendAttachments = await Promise.all(
         sourceAttachments.map(async (attachment) => {
-          if (!attachment.path.startsWith("sha256:")) return attachment;
+          const reference = attachment.path.startsWith("text-ref:");
+          const locator = reference ? attachment.path.slice("text-ref:".length) : attachment.path;
+          if (!locator.startsWith("sha256:")) return attachment;
           const path = await openAgent.invokeProduct("materialize_attachment_blob", {
-            blobId: attachment.path,
+            blobId: locator,
             name: attachment.name,
           });
-          return { ...attachment, path };
+          return { ...attachment, path: reference ? `text-ref:${path}` : path };
         }),
       );
     } catch (error) {

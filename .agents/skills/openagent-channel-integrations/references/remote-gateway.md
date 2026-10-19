@@ -92,6 +92,11 @@ preserves the pending turn and resets backoff after a received state.
 `attachments.ts` owns browser file capabilities and preview URL cleanup,
 including uploads that complete after unmount. The page retains the canonical
 conversation projection and submits ordinary input through the shared client.
+Large text pastes use the same upload transport and `text-ref:` attachment
+delivery mode as desktop. The gateway unwraps that mode before applying its
+existing upload-directory containment checks, preserving it for queueing and
+forks. Preview accepts durable blob IDs or a contained uploaded path, so a text
+card can open before its first submission; arbitrary filesystem paths remain denied.
 `execution.svelte.ts` owns fork submission, stream pause state and interrupt
 resolution tracking, and uses the shared Runtime input-queue projection. It receives
 the canonical conversation and composer draft through a typed writable facade;

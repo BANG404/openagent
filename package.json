@@ -48,6 +48,7 @@
     "test:blackbox:settings-copy": "bun scripts/test-settings-copy-blackbox.mjs",
     "test:blackbox:plugin-setup": "bun scripts/test-plugin-setup-blackbox.mjs",
     "test:blackbox:composer-editor": "bun scripts/test-composer-editor-blackbox.mjs",
+    "test:blackbox:text-attachments": "bun scripts/test-text-attachments-blackbox.mjs",
     "test:blackbox:input-queue": "bun scripts/test-input-queue-blackbox.mjs",
     "test:blackbox:composer-palette": "bun scripts/test-composer-palette-blackbox.mjs",
     "test:blackbox:new-conversation-skeleton": "bun scripts/test-new-conversation-skeleton-blackbox.mjs",

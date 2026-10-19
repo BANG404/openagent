@@ -17,6 +17,35 @@ const record = (overrides) => ({
 });
 
 describe("checkpoint record projection", () => {
+  test("restores pasted text as a file chip while retaining reference delivery", () => {
+    const blob = `sha256:${"b".repeat(64)}`;
+    const [message] = checkpointRecordsToMessages(
+      [
+        record({
+          role: "user",
+          content: [
+            { type: "text", text: "Inspect [File #1]" },
+            {
+              type: "attachment",
+              blob_id: blob,
+              name: "paste.txt",
+              mime_type: "text/plain",
+              kind: "text_reference",
+            },
+          ],
+        }),
+      ],
+      "checkpoint",
+    );
+    expect(message.content).toBe("Inspect [File #1]");
+    expect(message.items.find((item) => item.type === "attachment").attachment).toEqual({
+      path: `text-ref:${blob}`,
+      name: "paste.txt",
+      kind: "document",
+      mimeType: "text/plain",
+      referenceLabel: "[File #1]",
+    });
+  });
   test("restores legacy user image references as ordinary attachment previews without inline bytes", () => {
     const blob = `sha256:${"a".repeat(64)}`;
     const [message] = checkpointRecordsToMessages(

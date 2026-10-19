@@ -170,6 +170,7 @@
   ]);
 
   function runPrimaryAction() {
+    if (attachmentController.savingTextPaste) return;
     if (!isStreaming || hasComposerContent) {
       onSend();
     } else if (isPaused) {
@@ -218,7 +219,7 @@
       return attachments;
     },
     get disabled() {
-      return disabled;
+      return disabled || attachmentController.savingTextPaste;
     },
     get placeholder() {
       return placeholder;
@@ -633,7 +634,7 @@
                 type="button"
                 aria-label={$t("steerCurrentTask")}
                 {...props}
-                disabled={sendDisabled || disabled}
+                disabled={sendDisabled || disabled || attachmentController.savingTextPaste}
                 onclick={() => onSteer?.()}
               >
                 <svg
@@ -679,7 +680,8 @@
           class:queue-btn={showStopButton}
           aria-label={streamingPrimaryTitle}
           {...props}
-          disabled={hasComposerContent ? sendDisabled : disabled}
+          disabled={attachmentController.savingTextPaste ||
+            (hasComposerContent ? sendDisabled : disabled)}
           onclick={runPrimaryAction}
         >
           {#if hasComposerContent}
@@ -727,8 +729,8 @@
           class="send-btn"
           aria-label={sendTitle}
           {...props}
-          disabled={sendDisabled}
-          onclick={onSend}
+          disabled={sendDisabled || attachmentController.savingTextPaste}
+          onclick={runPrimaryAction}
         >
           <svg
             viewBox="0 0 16 16"

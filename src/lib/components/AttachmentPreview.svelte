@@ -14,6 +14,7 @@
   import { t } from "$lib/i18n";
   import { useOpenAgentUiCapabilities } from "$lib/openagent";
   import type { ChatAttachment } from "$lib/types";
+  import { attachmentLocator } from "$lib/textAttachmentReference";
   import Tooltip from "./Tooltip.svelte";
 
   type PreviewPayload = {
@@ -47,7 +48,7 @@
   const canZoomImage = $derived(preview?.kind === "image" && Boolean(preview.data_url));
 
   $effect(() => {
-    const locator = attachment.path;
+    const locator = attachmentLocator(attachment.path);
     const name = attachment.name;
     reloadKey;
     preview = null;
@@ -70,11 +71,13 @@
     }
     request
       .then((value) => {
-        if (attachment.path === locator && attachment.name === name) preview = value;
+        if (attachmentLocator(attachment.path) === locator && attachment.name === name)
+          preview = value;
       })
       .catch(() => {
         previewCache.delete(key);
-        if (attachment.path === locator && attachment.name === name) failed = true;
+        if (attachmentLocator(attachment.path) === locator && attachment.name === name)
+          failed = true;
       });
   });
 
@@ -143,13 +146,14 @@
   }
 
   async function repairPreview() {
-    if (!attachment.path.startsWith("sha256:")) return;
+    const locator = attachmentLocator(attachment.path);
+    if (!locator.startsWith("sha256:")) return;
     repairError = "";
     try {
-      const repaired = await uiCapabilities.repairAttachment(attachment.path, attachment.name);
+      const repaired = await uiCapabilities.repairAttachment(locator, attachment.name);
       if (!repaired) return;
-      previewCache.delete(`tauri\0${attachment.path}\0${attachment.name}`);
-      previewCache.delete(`transport\0${attachment.path}\0${attachment.name}`);
+      previewCache.delete(`tauri\0${locator}\0${attachment.name}`);
+      previewCache.delete(`transport\0${locator}\0${attachment.name}`);
       reloadKey += 1;
     } catch (error) {
       repairError = String(error);
@@ -307,7 +311,7 @@
               <span class="file-fold" aria-hidden="true"></span>
               <strong>{extension}</strong>
               <p>{$t("attachmentPreviewUnavailable")}</p>
-              {#if attachment.path.startsWith("sha256:")}
+              {#if attachmentLocator(attachment.path).startsWith("sha256:")}
                 <button type="button" onclick={repairPreview}
                   >{$t("selectOriginalAttachment")}</button
                 >

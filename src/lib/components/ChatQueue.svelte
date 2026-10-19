@@ -30,7 +30,8 @@
           path
             .split(/[\\/]/)
             .at(-1)
-            ?.replace(/^queue-blob:[^:]+:/, ""),
+            ?.replace(/^text-ref:/, "")
+            .replace(/^queue-blob:[^:]+:/, ""),
         )
         .join(", ") ||
       ""

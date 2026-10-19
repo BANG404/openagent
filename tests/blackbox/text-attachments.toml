@@ -1,0 +1,62 @@
+[scenario]
+name = "Large pasted text uses a file chip and path-only delivery"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "short paste, save failure, pending guard, preview, removal and send"
+action = "eval"
+script = '''(async () => {
+  const assert = (condition, message) => { if (!condition) throw new Error(message); };
+  const settle = () => new Promise(resolve => setTimeout(resolve, 60));
+  const wait = async (read, message) => { const end = Date.now() + 8000; while (Date.now() < end) { if (read()) return; await settle(); } throw new Error(message); };
+  const editor = () => document.querySelector('.input-wrapper [role=textbox]');
+  const paste = async text => {
+    editor().focus(); const clipboard = new DataTransfer(); clipboard.setData('text/plain', text);
+    editor().dispatchEvent(new ClipboardEvent('paste', {clipboardData: clipboard, bubbles: true, cancelable: true}));
+    await settle();
+  };
+  const clear = async () => {
+    editor().focus(); const range = document.createRange(); range.selectNodeContents(editor());
+    const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
+    document.dispatchEvent(new Event('selectionchange')); await settle();
+    document.execCommand('delete'); await settle();
+  };
+  await paste('😀'.repeat(1000));
+  assert(editor().textContent === '😀'.repeat(1000) && !document.querySelector('.attachment-list'), 'short Unicode paste became an attachment');
+  await clear();
+  const {desktopOpenAgent:c} = await import('/src/lib/openagent/tauriClient.ts');
+  const original = c.invokeProduct.bind(c);
+  c.invokeProduct = (operation, args) => operation === 'save_pasted_attachment' ? Promise.reject(new Error('Fixture save failure')) : original(operation, args);
+  try {
+    await paste('RECOVER_PASTED_TEXT'.repeat(80));
+    await wait(() => editor().textContent.includes('RECOVER_PASTED_TEXT'), 'failed save lost pasted text');
+    assert(!document.querySelector('.attachment-list'), 'failed save created an attachment');
+  } finally { c.invokeProduct = original; }
+  await clear();
+  const body = 'PASTED_PAYLOAD_SENTINEL\r\n' + '你好😀'.repeat(400);
+  c.invokeProduct = async (operation, args) => {
+    if (operation === 'save_pasted_attachment') await new Promise(resolve => setTimeout(resolve, 500));
+    return original(operation, args);
+  };
+  try {
+    await paste(body);
+    assert(document.querySelector('.send-btn').disabled, 'send remained enabled while saving');
+    editor().dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true, cancelable:true}));
+    assert(!document.querySelector('.user-msg'), 'Enter submitted a pending paste');
+    await wait(() => document.querySelector('.attachment-list .attachment-preview'), 'text attachment did not appear');
+  } finally { c.invokeProduct = original; }
+  assert(editor().textContent.includes('[File #1]') && !editor().textContent.includes('PASTED_PAYLOAD_SENTINEL'), 'paste was not replaced by a file chip');
+  document.querySelector('.attachment-list .preview-trigger').click();
+  await wait(() => document.querySelector('[role=dialog] pre')?.textContent.includes('PASTED_PAYLOAD_SENTINEL'), 'text preview missing');
+  document.querySelector('.attachment-dialog').dispatchEvent(new KeyboardEvent('keydown', {key:'Escape', bubbles:true, cancelable:true}));
+  await settle();
+  document.querySelector('.attachment-list .remove-button').click();
+  await wait(() => !document.querySelector('.attachment-list'), 'remove retained the attachment');
+  assert(!editor().textContent.includes('[File #1]'), 'remove retained the placeholder');
+  await paste(body);
+  await wait(() => document.querySelector('.attachment-list .attachment-preview') && !document.querySelector('.send-btn').disabled, 'second paste failed');
+  await paste(' Summarize the attached file.');
+  document.querySelector('.send-btn').click();
+  return 'Large pasted text native interactions passed';
+})()'''

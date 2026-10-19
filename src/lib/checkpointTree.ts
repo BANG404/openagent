@@ -264,6 +264,7 @@ function recordToMessage( // NOSONAR: checkpoint projection handles legacy and c
 ): ChatMessage {
   let content = "";
   const derivedItems: StreamItem[] = persistedItems(r.items);
+  let documentIndex = 0;
   for (const part of r.content) {
     if (part.type === "text" && typeof part.text === "string") {
       // Host-added attachment labels and draft context follow the user's first
@@ -273,12 +274,14 @@ function recordToMessage( // NOSONAR: checkpoint projection handles legacy and c
         derivedItems.push(...appendChunk([], part.text));
       }
     } else if (part.type === "attachment") {
+      if (part.kind !== "image") documentIndex++;
       derivedItems.push({
         type: "attachment",
         attachment: {
-          path: textValue(part.blob_id),
+          path: `${part.kind === "text_reference" ? "text-ref:" : ""}${textValue(part.blob_id)}`,
           name: textValue(part.name, "attachment"),
           kind: part.kind === "image" ? "image" : "document",
+          referenceLabel: part.kind === "text_reference" ? `[File #${documentIndex}]` : undefined,
           mimeType: typeof part.mime_type === "string" ? part.mime_type : undefined,
         },
       });

@@ -1,11 +1,12 @@
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { tick } from "svelte";
+import { onDestroy, tick } from "svelte";
 import { fromStore } from "svelte/store";
 import { t } from "$lib/i18n";
 import { showToast } from "$lib/toast";
 import type { ChatAttachment } from "$lib/types";
 import type { OpenAgentClient } from "$lib/openagent/client";
 import { attachmentNameSupported, selectableAttachmentExtensions } from "$lib/attachmentPolicy";
+import { isLargeTextPaste, TEXT_REFERENCE_PREFIX } from "$lib/textAttachmentReference";
 import {
   attachmentsReferencedByText,
   removeAttachmentReference,
@@ -23,7 +24,7 @@ interface AttachmentOptions {
   readonly client: Pick<OpenAgentClient, "invokeProduct">;
   readonly onUploadAttachments?: (files: File[]) => Promise<ChatAttachment[]>;
   readonly onAttachmentPickerOpenChange?: (open: boolean) => void | Promise<void>;
-  insertPastedText(event: ClipboardEvent): void;
+  insertPastedText(event: ClipboardEvent, capturedText?: string): void;
   focusEnd(): void;
 }
 
@@ -31,6 +32,11 @@ interface AttachmentOptions {
 export function createAttachmentController(options: AttachmentOptions) {
   const translate = fromStore(t);
   let browserFileInput = $state<HTMLInputElement | null>(null);
+  let savingTextPaste = $state(false);
+  let disposed = false;
+  onDestroy(() => {
+    disposed = true;
+  });
   let referencedAttachmentPaths = new Set<string>();
   const maxAttachments = 8;
   const maxAttachmentBytes = 20 * 1024 * 1024;
@@ -195,6 +201,65 @@ export function createAttachmentController(options: AttachmentOptions) {
   async function handlePaste(event: ClipboardEvent) {
     const files = Array.from(event.clipboardData?.files ?? []);
     if (files.length === 0) {
+      const text = event.clipboardData?.getData("text/plain") ?? "";
+      if (
+        options.showAttachments &&
+        isLargeTextPaste(text) &&
+        (options.tauriAvailable || options.onUploadAttachments)
+      ) {
+        event.preventDefault();
+        if (options.disabled || savingTextPaste) return;
+        if (options.attachments.length >= maxAttachments) {
+          showToast({ title: translate.current("attachmentLimitReached"), variant: "error" });
+          return;
+        }
+        const file = new File([text], `pasted-${crypto.randomUUID()}.txt`, { type: "text/plain" });
+        if (file.size > maxAttachmentBytes) {
+          showToast({ title: translate.current("attachmentTooLarge"), variant: "error" });
+          return;
+        }
+        const draftValue = options.value;
+        const draftAttachments = options.attachments;
+        const ownsDraft = () =>
+          !disposed && options.value === draftValue && options.attachments === draftAttachments;
+        savingTextPaste = true;
+        try {
+          const records = options.tauriAvailable
+            ? [
+                {
+                  path: await options.client.invokeProduct("save_pasted_attachment", {
+                    name: file.name,
+                    contentBase64: await fileToBase64(file),
+                  }),
+                  name: file.name,
+                  kind: "document" as const,
+                },
+              ]
+            : await options.onUploadAttachments!([file]);
+          if (records.length !== 1) throw new Error("Text attachment was not saved");
+          if (ownsDraft())
+            appendAttachmentRecords(
+              records.map((record) => ({
+                ...record,
+                path: `${TEXT_REFERENCE_PREFIX}${record.path}`,
+              })),
+            );
+        } catch (error) {
+          savingTextPaste = false;
+          if (ownsDraft()) {
+            // Preserve the clipboard payload in the draft when saving fails.
+            options.insertPastedText(event, text);
+            showToast({
+              title: translate.current("attachmentPasteFailed"),
+              description: String(error),
+              variant: "error",
+            });
+          }
+        } finally {
+          savingTextPaste = false;
+        }
+        return;
+      }
       options.insertPastedText(event);
       return;
     }
@@ -313,6 +378,9 @@ export function createAttachmentController(options: AttachmentOptions) {
   });
 
   return {
+    get savingTextPaste() {
+      return savingTextPaste;
+    },
     get browserFileInput() {
       return browserFileInput;
     },

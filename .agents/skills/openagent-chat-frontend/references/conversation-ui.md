@@ -1,5 +1,22 @@
 # Conversation components
 
+Pastes above 1,000 Unicode characters become UTF-8 `.txt` attachments when the
+composer supports attachments and a save/upload transport exists. Preserve the
+clipboard's exact text, including line endings. Reuse the ordinary `[File #N]`
+chip, removable card and text preview in the composer and transcript. Short
+pastes and attachment-free composers retain ordinary Markdown insertion.
+While saving, disable editing, send and steering; discard completions for a
+replaced/unmounted draft. Saving failure restores the text to the current draft
+and reports the existing localized attachment error. Limits remain eight files
+and 20 MB per file; reject over-limit pastes without changing the draft.
+
+`text-ref:` is an explicit attachment-locator delivery mode. Keep it through
+submission, checkpoints, editing and forks; unwrap it for preview, repair and
+blob materialization, then reapply it for resubmission. The Runtime owns
+file-reference provider delivery and durable blob restoration. Verify the native
+paste, failure, remove/preview, send and reload flow in light/dark and English/
+Chinese with `bun run test:blackbox:text-attachments` in an isolated data root.
+
 Expanded file changes show content directly below the file header without a
 branch-inference caption or an empty toolbar. Only incomplete projections show
 the localized fragment notice above their content.

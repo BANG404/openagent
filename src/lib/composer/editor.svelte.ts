@@ -133,13 +133,13 @@ export function createEditorController(options: EditorOptions) {
     else if (format.prefix === "`") chain.toggleCode().run();
   }
 
-  function insertPastedText(event: ClipboardEvent) {
+  function insertPastedText(event: ClipboardEvent, capturedText?: string) {
     if (!editor || options.disabled) {
       event.preventDefault();
       return;
     }
     event.preventDefault();
-    const text = event.clipboardData?.getData("text/plain");
+    const text = capturedText ?? event.clipboardData?.getData("text/plain");
     if (!text) return;
     editor.commands.insertContent(text.replace(/\r\n?/g, "\n"), { contentType: "markdown" });
   }
