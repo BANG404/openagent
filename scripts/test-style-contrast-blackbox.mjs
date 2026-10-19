@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { captureBlackboxScreenshot } from "./blackbox-screenshot.mjs";
+import { themeCollection } from "./themes/collection";
 
 assert(
   process.env.OPENAGENT_HOME?.includes("style-contrast") && process.env.TAURI_PILOT_SOCKET,
@@ -14,7 +15,9 @@ assert(
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const artifacts = mkdtempSync(join(tmpdir(), "openagent-style-contrast-native-"));
 const scenario = join(root, "tests/blackbox/style-contrast.toml");
-const themeId = "openagent-theme-nova";
+const themeIds = process.argv.includes("--collection")
+  ? themeCollection.map(({ id }) => id)
+  : ["openagent-theme-nova", "openagent-theme-rhea"];
 /** @param {string[]} args */
 function pilot(args) {
   if (["click", "press"].includes(args[0])) pilot(["snapshot", "-i"]);
@@ -73,22 +76,25 @@ const original = JSON.parse(
     `(async()=>{const {desktopOpenAgent:c}=await import('/src/lib/openagent/tauriClient.ts');return c.invokeProduct('get_settings',{});})()`,
   ),
 );
-let installed = false;
+/** @type {string[]} */
+const installed = [];
 try {
-  await operation(`const {desktopOpenAgent:c,emit}=await import('/src/lib/openagent/tauriClient.ts');
-    if((await c.listAgentPlugins()).some(plugin=>plugin.id==='${themeId}'))throw Error('Fixture theme already installed');
-    await c.installAgentPlugin(${JSON.stringify(join(root, "plugins", themeId))});await emit('agent-plugins-changed');`);
-  installed = true;
+  for (const themeId of themeIds) {
+    await operation(`const {desktopOpenAgent:c,emit}=await import('/src/lib/openagent/tauriClient.ts');
+      if((await c.listAgentPlugins()).some(plugin=>plugin.id==='${themeId}'))throw Error('Fixture theme already installed');
+      await c.installAgentPlugin(${JSON.stringify(join(root, "plugins", themeId))});await emit('agent-plugins-changed');`);
+    installed.push(themeId);
+  }
   for (const mode of ["light", "dark"])
     for (const language of ["en", "zh"]) {
       await close();
       await operation(`const {desktopOpenAgent:c,emit}=await import('/src/lib/openagent/tauriClient.ts');
         const config=await c.invokeProduct('get_settings',{});
         Object.assign(config,{theme:'${mode}',language:'${language}',theme_plugin:'',theme_overrides:{light:{},dark:{},font_family:''}});
-        config.agent_plugins_enabled={...config.agent_plugins_enabled,'${themeId}':true};
+        for(const id of ${JSON.stringify(themeIds)})config.agent_plugins_enabled[id]=true;
         await c.invokeProduct('save_settings',{config});await emit('settings-changed');await emit('agent-plugins-changed');`);
       await until(`document.documentElement.classList.contains('${mode}')`);
-      for (const id of ["", themeId]) {
+      for (const id of ["", ...themeIds]) {
         await open();
         pilot(["click", "[data-appearance-theme] button"]);
         pilot(["click", `[role=option][data-value="${id}"]`]);
@@ -143,7 +149,7 @@ try {
   await close();
   await operation(`const {desktopOpenAgent:c,emit}=await import('/src/lib/openagent/tauriClient.ts');
     await c.invokeProduct('save_settings',{config:${JSON.stringify(original)}});
-    ${installed ? `await c.uninstallAgentPlugin('${themeId}');` : ""}
+    for(const id of ${JSON.stringify(installed)})await c.uninstallAgentPlugin(id);
     await emit('settings-changed');await emit('agent-plugins-changed');`);
 }
 console.log(`Style contrast black-box passed. Artifacts: ${artifacts}`);

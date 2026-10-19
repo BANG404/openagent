@@ -63,7 +63,7 @@ try {
         pilot(["snapshot", "-i"]);
         pilot(["run", scenario]);
         pilot(["eval", "window.__assertSidebarSelection(true)"]);
-        if (collection && id !== "openagent-theme-rhea") {
+        if (collection) {
           pilot([
             "eval",
             `(() => {
