@@ -20,13 +20,4 @@ export interface OpenAgentTransport {
     handler: (payload: OpenAgentEventMap[Event]) => void,
     options?: OpenAgentSubscriptionOptions,
   ): Promise<Unsubscribe>;
-
-  invokeLocal?<Response>(command: string, args?: Record<string, unknown>): Promise<Response>;
-
-  listenLocal?<Payload>(
-    event: string,
-    handler: (event: { payload: Payload }) => void,
-  ): Promise<Unsubscribe>;
-
-  emitLocal?<Payload>(event: string, payload?: Payload): Promise<void>;
 }

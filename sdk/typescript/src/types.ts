@@ -212,11 +212,7 @@ export interface PluginConnectorProbe {
   oauth: "not_applicable" | "not_required" | "required" | "unsupported" | "unknown";
 }
 
-export interface AgentPluginI18n {
-  supported_locales: string[];
-  default_locale: string;
-  translations: Record<string, Record<string, string>>;
-}
+export type AgentPluginI18n = import("./protocol.generated").PluginI18n;
 
 /**
  * Why one plugin's release metadata could not be read.
@@ -300,8 +296,7 @@ export interface AgentPluginMarketplaceSummary {
   error: string | null;
 }
 
-export type ContextCompactionStage =
-  "checking" | "summarizing" | "creating" | "done" | "skipped" | "failed";
+export type ContextCompactionStage = import("./protocol.generated").ContextCompactionStage;
 
 export type AgentMessageTag =
   | "context_compaction"

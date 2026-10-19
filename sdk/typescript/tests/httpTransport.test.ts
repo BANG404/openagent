@@ -438,14 +438,5 @@ describe("HttpTransport", () => {
     await expect(client.openWorkspacePath("src/main.ts")).rejects.toThrow(
       "requires convId for workspace.open_path",
     );
-    await expect(client.invokeLocal("open_path", { path: "C:/workspace" })).rejects.toThrow(
-      "does not provide local desktop capabilities",
-    );
-    await expect(client.listenLocal("skills-updated", () => {})).rejects.toThrow(
-      "does not provide local desktop events",
-    );
-    await expect(client.emitLocal("debug-visibility", { visible: false })).rejects.toThrow(
-      "does not provide local desktop events",
-    );
   });
 });

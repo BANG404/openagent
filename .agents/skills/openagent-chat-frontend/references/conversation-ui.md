@@ -202,10 +202,15 @@ production route's initial import graph.
 # Client source selection
 
 Frontend imports use `@openagent/client` through the public client facade;
-SvelteKit resolves this to a prepared development snapshot or the explicitly
-selected source client. Do not import `sdk/typescript` paths in product code.
+SvelteKit always resolves this to the current public host source. Do not import
+`sdk/typescript` paths in product code.
 The release-engineering public-development reference owns kit preparation and
 source/version admission.
+
+Native chat always uses the standalone Runtime transport. Branch switching and
+fork submission must not cache a startup-time mode probe or fall back to an
+embedded product command after a Runtime failure. Browser fixtures may keep
+their synthetic branch path; installed desktop execution has one owner.
 
 Skill discovery is Runtime-owned. Frontend configuration snapshots and Flash
 settings omit skill-classification controls, and static tool labels follow the

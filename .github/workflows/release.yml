@@ -1139,7 +1139,7 @@ jobs:
             --output distribution-resources --runtime runtime-components --frontend frontend-components \
             --model src-tauri/resources/models/all-MiniLM-L6-v2-q --helpers distribution-helpers \
             --version "${{ needs.detect.outputs.version }}" --sdk-sha "${{ steps.sdk-source.outputs.sha }}"
-          tar --format=ustar -C sdk/typescript -czf distribution-resources/openagent-typescript-sdk.tar.gz src package.json
+          bun scripts/create-client-source-snapshot.mjs --output distribution-resources/openagent-typescript-sdk.tar.gz
           node scripts/sdk-dev-artifacts.mjs --artifacts distribution-resources \
             --output distribution-resources/sdk-dev-manifest.json \
             --sdk-sha "${{ steps.sdk-source.outputs.sha }}" --version "${{ needs.detect.outputs.version }}"

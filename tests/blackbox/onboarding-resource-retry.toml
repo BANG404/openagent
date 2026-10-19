@@ -16,16 +16,18 @@ script = '''(async () => {
     await new Promise(resolve => setTimeout(resolve, 100));
     if (!panel.querySelector(`nav [aria-current="step"][aria-label^="${step + 1}."]`)) throw new Error('wizard did not advance');
   }
-  const { desktopOpenAgent: client } = await import('/src/lib/openagent/tauriClient.ts');
-  const original = client.invokeLocal;
+  const original = window.fetch;
   let failedRead = false;
   try {
-    client.invokeLocal = (command, ...args) => {
-      if (command === 'get_onboarding_resource_status') {
+    window.fetch = async (input, init) => {
+      const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);
+      if ((url.protocol === 'ipc:' || url.hostname === 'ipc.localhost') && decodeURIComponent(url.pathname.slice(1)) === 'get_onboarding_resource_status') {
         failedRead = true;
-        return Promise.reject(new Error('fixture status read failure'));
+        return new Response('fixture status read failure', {
+          headers: {'Tauri-Response': 'error', 'Content-Type': 'text/plain'}
+        });
       }
-      return original.call(client, command, ...args);
+      return original(input, init);
     };
     button(['Start using OpenAgent', '开始使用 OpenAgent']).click();
     await new Promise(resolve => setTimeout(resolve, 250));
@@ -33,7 +35,7 @@ script = '''(async () => {
     if (!panel.querySelector('.error')) throw new Error('resource failure was not reported');
     if (!button(['Start using OpenAgent', '开始使用 OpenAgent']).disabled) throw new Error('failed resources allow completion');
   } finally {
-    client.invokeLocal = original;
+    window.fetch = original;
   }
   panel.querySelector('.onboarding-nav-item[aria-label^="1."]').click();
   await new Promise(resolve => setTimeout(resolve, 100));

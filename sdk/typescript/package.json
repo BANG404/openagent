@@ -1,6 +1,6 @@
 {
   "name": "@bang404/openagent-sdk",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "description": "Typed OpenAgent client and browser/Tauri transports",
   "license": "MIT",
@@ -43,11 +43,17 @@
     "test": "bun test",
     "prepack": "bun run build"
   },
-  "dependencies": {
-    "@tauri-apps/api": "^2"
-  },
   "devDependencies": {
     "@types/bun": "latest",
-    "typescript": "~5.6.2"
+    "typescript": "~5.6.2",
+    "@tauri-apps/api": "^2"
+  },
+  "peerDependencies": {
+    "@tauri-apps/api": "^2"
+  },
+  "peerDependenciesMeta": {
+    "@tauri-apps/api": {
+      "optional": true
+    }
   }
 }

@@ -1,1 +1,7 @@
-export { desktopOpenAgent, emit, invoke, listen } from "@openagent/client/tauriClient";
+export {
+  desktopOpenAgent,
+  emit,
+  invoke,
+  listen,
+  runtimeTransportStatus,
+} from "@openagent/client/tauriClient";

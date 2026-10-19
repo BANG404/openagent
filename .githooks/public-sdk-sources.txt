@@ -7,6 +7,7 @@ sdk/typescript/src/client.ts
 sdk/typescript/src/contracts.ts
 sdk/typescript/src/httpTransport.ts
 sdk/typescript/src/index.ts
+sdk/typescript/src/protocol.generated.ts
 sdk/typescript/src/remote.ts
 sdk/typescript/src/runtimeProxyResponse.ts
 sdk/typescript/src/tauriClient.ts
@@ -17,5 +18,6 @@ sdk/typescript/tests/frontendDiagnostics.test.ts
 sdk/typescript/tests/httpTransport.test.ts
 sdk/typescript/tests/openagentClient.test.ts
 sdk/typescript/tests/runtimeProxyResponse.test.ts
+sdk/typescript/tests/tauriTransport.test.ts
 sdk/typescript/tsconfig.build.json
 sdk/typescript/tsconfig.json

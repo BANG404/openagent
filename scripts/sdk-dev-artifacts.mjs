@@ -57,7 +57,11 @@ export async function createSdkDevelopmentManifest({ directory, sdkSha, version 
       await Promise.all(
         Object.entries(CLIENTS).map(async ([key, client]) => [
           key,
-          { name: client.name, ...(await describeFile(directory, client.file)) },
+          {
+            name: client.name,
+            format: "source-snapshot",
+            ...(await describeFile(directory, client.file)),
+          },
         ]),
       ),
     ),

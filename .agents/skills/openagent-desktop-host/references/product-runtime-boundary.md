@@ -43,3 +43,21 @@ Plugin daemon lifecycle is generic and keyed by validated package identity.
 The native shell adds no named-plugin launch flags, endpoints or commands.
 Direct MCP plugins own their children through the ordinary Runtime process
 boundary; the shell never starts a parallel application for them.
+
+## Standalone transport lifecycle
+
+Desktop product operations always traverse the authenticated Runtime proxy.
+`runtime_transport_status` reports `starting`, `ready` or `unavailable`; it is a
+live status query, never a transport selector. No process means unavailable,
+not an embedded engine. Failed startup requests must remain retryable through
+the same proxy. Event subscription removes its local listener when relay startup
+fails. Setup, resource installation, windows and local file dialogs use the
+explicit `tauriClient` entry independently of Runtime readiness.
+The generic client and transport interfaces contain no native invoke/listen/emit
+capabilities. The public SDK boundary owns generated wire contract instructions.
+
+Verify with `bun run test:blackbox:runtime-transport` against an explicitly
+selected isolated native window. It injects one proxy failure in that real WebView,
+proves the same client recovers, checks native setup access during the failure,
+and records light/dark and Chinese/English passes. The subprocess transport
+probe separately verifies listener cleanup and repeated disconnect recovery.

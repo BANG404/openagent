@@ -143,7 +143,10 @@
     "test:blackbox:shell-resources": "bun scripts/test-shell-resources-blackbox.mjs",
     "test:blackbox:onboarding-welcome": "bun scripts/test-onboarding-welcome-blackbox.mjs",
     "test:blackbox:shell-install": "bun scripts/test-shell-install-blackbox.mjs",
-    "test:blackbox:desktop-exit": "bun scripts/test-desktop-exit-blackbox.mjs"
+    "test:blackbox:desktop-exit": "bun scripts/test-desktop-exit-blackbox.mjs",
+    "generate:protocol": "bun scripts/generate-protocol-types.mjs",
+    "check:protocol": "bun scripts/generate-protocol-types.mjs --check",
+    "test:blackbox:runtime-transport": "bun scripts/test-runtime-transport-blackbox.mjs"
   },
   "license": "GPL-3.0-or-later",
   "overrides": {

@@ -22,20 +22,6 @@ class MockTransport {
   emit(event, payload) {
     this.handlers.get(event)?.(payload);
   }
-
-  async invokeLocal(command, args) {
-    this.requests.push({ command, args });
-    return "local-result";
-  }
-
-  async listenLocal(event, handler) {
-    this.handlers.set(event, (payload) => handler({ payload }));
-    return () => this.unsubscribed.push(event);
-  }
-
-  async emitLocal(event, payload) {
-    this.requests.push({ event, payload });
-  }
 }
 
 function chatHandlers(overrides = {}) {
@@ -104,26 +90,11 @@ describe("OpenAgentClient", () => {
     expect(OPENAGENT_PROTOCOL_VERSION).toBe(3);
   });
 
-  test("keeps desktop-only capabilities behind the transport boundary", async () => {
-    const transport = new MockTransport();
-    const client = new OpenAgentClient(transport);
-
-    await expect(client.invokeLocal("open_path", { path: "C:/workspace" })).resolves.toBe(
-      "local-result",
-    );
-    expect(transport.requests).toEqual([{ command: "open_path", args: { path: "C:/workspace" } }]);
-    const payloads = [];
-    const unsubscribe = await client.listenLocal("skills-updated", ({ payload }) => {
-      payloads.push(payload);
-    });
-    transport.emit("skills-updated", { changed: true });
-    expect(payloads).toEqual([{ changed: true }]);
-    unsubscribe();
-    await client.emitLocal("debug-visibility", { visible: false });
-    expect(transport.requests.at(-1)).toEqual({
-      event: "debug-visibility",
-      payload: { visible: false },
-    });
+  test("exposes no native desktop bridge on the general client", () => {
+    const client = new OpenAgentClient(new MockTransport());
+    expect("invokeLocal" in client).toBe(false);
+    expect("listenLocal" in client).toBe(false);
+    expect("emitLocal" in client).toBe(false);
   });
 
   test("submits typed agent operations through a transport-neutral name", async () => {

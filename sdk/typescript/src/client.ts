@@ -94,32 +94,6 @@ export class OpenAgentClient {
     return this.transport.request("conversation.mutate_input_queue", { convId, action });
   }
 
-  invokeLocal<Response>(command: string, args?: Record<string, unknown>): Promise<Response> {
-    if (!this.transport.invokeLocal) {
-      return Promise.reject(
-        new Error("This transport does not provide local desktop capabilities"),
-      );
-    }
-    return this.transport.invokeLocal<Response>(command, args);
-  }
-
-  listenLocal<Payload>(
-    event: string,
-    handler: (event: { payload: Payload }) => void,
-  ): Promise<Unsubscribe> {
-    if (!this.transport.listenLocal) {
-      return Promise.reject(new Error("This transport does not provide local desktop events"));
-    }
-    return this.transport.listenLocal<Payload>(event, handler);
-  }
-
-  emitLocal<Payload>(event: string, payload?: Payload): Promise<void> {
-    if (!this.transport.emitLocal) {
-      return Promise.reject(new Error("This transport does not provide local desktop events"));
-    }
-    return this.transport.emitLocal(event, payload);
-  }
-
   resumeInterrupt(request: ResumeInterruptedChatRequest): Promise<void> {
     return this.transport.request("agent.resume_interrupt", request);
   }
@@ -357,12 +331,18 @@ export class OpenAgentClient {
         handlers.onThinkingChunk(conv_id, text),
       ),
       this.transport.subscribe("chat.tool_call", ({ conv_id, name, args, tool_use_id, mcp_ui }) =>
-        handlers.onToolCall(conv_id, name, args, tool_use_id, mcp_ui),
+        handlers.onToolCall(conv_id, name, args, tool_use_id ?? undefined, mcp_ui ?? undefined),
       ),
       this.transport.subscribe(
         "chat.tool_result",
         ({ conv_id, result, tool_use_id, mcp_ui, image_attachments }) =>
-          handlers.onToolResult(conv_id, result, tool_use_id, mcp_ui, image_attachments),
+          handlers.onToolResult(
+            conv_id,
+            result,
+            tool_use_id ?? undefined,
+            mcp_ui ?? undefined,
+            image_attachments ?? undefined,
+          ),
       ),
       this.transport.subscribe("chat.file_change", ({ conv_id, change, branch_id }) =>
         handlers.onFileChange(conv_id, change, branch_id),
@@ -373,7 +353,14 @@ export class OpenAgentClient {
       this.transport.subscribe(
         "chat.retry",
         ({ conv_id, attempt, max_attempts, model, error, restored_checkpoint }) =>
-          handlers.onRetry(conv_id, attempt, max_attempts, model, error, restored_checkpoint),
+          handlers.onRetry(
+            conv_id,
+            attempt,
+            max_attempts,
+            model ?? undefined,
+            error,
+            restored_checkpoint ?? undefined,
+          ),
       ),
       this.transport.subscribe("chat.compaction_progress", ({ conv_id, stage, error }) =>
         handlers.onCompactionProgress(conv_id, stage, error),

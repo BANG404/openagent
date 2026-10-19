@@ -110,6 +110,10 @@ export function buildPreflightCommands(modules, { base = "", full = false } = {}
   }
 
   if (modules.frontend) {
+    add("protocol-bindings", "Generated public protocol bindings", "bun", [
+      "run",
+      "check:protocol",
+    ]);
     add("svelte-check", "Svelte and TypeScript", "bun", ["run", "check"]);
     add("test-types", "Test TypeScript", "bun", ["run", "check:tests"]);
     add("lint", "JavaScript and frontend lint", "bun", ["run", "lint:frontend"]);
@@ -137,6 +141,10 @@ export function buildPreflightCommands(modules, { base = "", full = false } = {}
     ]);
   }
   if (modules.nativeQuality) {
+    add("protocol-bindings", "Generated public protocol bindings", "bun", [
+      "run",
+      "check:protocol",
+    ]);
     add("public-rust-format", "Public Rust formatting", "cargo", [
       "fmt",
       "--manifest-path",

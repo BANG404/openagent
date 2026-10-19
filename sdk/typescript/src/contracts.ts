@@ -23,102 +23,37 @@ import type {
   ToolImageAttachment,
 } from "./types";
 
-export const OPENAGENT_PROTOCOL_VERSION = 3;
+import type {
+  ChatModelBinding,
+  AgentInputRequest as SubmitAgentInputRequest,
+  InputQueueAction,
+  InputQueueSnapshot,
+  CommandSpec as AgentCommandSpec,
+  ResumeInterruptRequest as ResumeInterruptedChatRequest,
+  SubmitInterruptResponseRequest,
+  EmbeddingResourceStatus,
+  UserMessageContext,
+  ResolvedInput as ResolvedAgentInput,
+} from "./protocol.generated";
+export { OPENAGENT_PROTOCOL_VERSION } from "./protocol.generated";
+export type {
+  ChatModelBinding,
+  UserMessageContext,
+  CommandSpec as AgentCommandSpec,
+  AgentInputRequest as SubmitAgentInputRequest,
+  InputDelivery,
+  QueuedInput,
+  InputQueueSnapshot,
+  InputQueueAction,
+  ResumeInterruptRequest as ResumeInterruptedChatRequest,
+  SubmitInterruptResponseRequest,
+  ResolvedInput as ResolvedAgentInput,
+  EmbeddingResourceStatus,
+  EmbeddingResourceProgress,
+} from "./protocol.generated";
+export type SubmitAgentInputOutcome = import("./protocol.generated").SubmissionOutcome;
 
-export interface ChatModelBinding {
-  providerId: string;
-  model: string;
-}
-
-export type UserMessageContext = {
-  type: "quote";
-  text: string;
-  sourceMessageId?: string | null;
-};
-
-export interface AgentCommandSpec {
-  plugin_i18n?: import("./types").AgentPluginI18n | null;
-  name: string;
-  owner: "runtime" | "client";
-  argument: "none" | "required_text" | "optional_text";
-  label_key: string;
-  description_key: string;
-  plugin_id: string | null;
-  label?: string | null;
-  description?: string | null;
-}
-
-export interface SubmitAgentInputRequest {
-  convId: string;
-  text: string;
-  parentCheckpointId?: string | null;
-  branchId?: string | null;
-  attachments?: string[];
-  contexts?: UserMessageContext[];
-  modelBinding?: ChatModelBinding | null;
-  userMessageId?: string | null;
-  assistantMessageId?: string | null;
-}
-
-export type InputDelivery = "next_turn" | "steer";
-
-export interface QueuedInput {
-  id: string;
-  input: SubmitAgentInputRequest;
-  delivery: InputDelivery;
-  status: "queued" | "starting" | "running" | "completed" | "failed" | "cancelled";
-  runId: string | null;
-  error: string | null;
-}
-
-export interface InputQueueSnapshot {
-  convId: string;
-  revision: number;
-  paused: boolean;
-  activeRunId: string | null;
-  items: QueuedInput[];
-}
-
-export type InputQueueAction =
-  | {
-      type: "add";
-      input: SubmitAgentInputRequest;
-      delivery: InputDelivery;
-      expectedRunId?: string | null;
-    }
-  | { type: "update"; id: string; input: SubmitAgentInputRequest; expectedRevision: number }
-  | { type: "delete"; id: string }
-  | { type: "clear" }
-  | { type: "reorder"; ids: string[]; expectedRevision: number }
-  | { type: "set_paused"; paused: boolean }
-  | { type: "retry"; id: string };
-
-export type SubmitAgentInputOutcome =
-  | { type: "run_completed" }
-  | { type: "run_accepted" }
-  | {
-      type: "immediate_command";
-      command: "compact";
-      changed: boolean;
-    };
-
-export interface ResumeInterruptedChatRequest {
-  convId: string;
-  interruptId: string;
-  response: string;
-  branchId?: string | null;
-  assistantMessageId: string;
-  modelBinding?: ChatModelBinding | null;
-}
-
-export interface SubmitInterruptResponseRequest {
-  convId: string;
-  interruptId: string;
-  response: string;
-}
-
-export type ChatMemoryRetrievalStage =
-  "query_rewrite" | "embedding" | "searching" | "completed" | "skipped";
+export type ChatMemoryRetrievalStage = import("./protocol.generated").ChatMemoryRetrievalStage;
 
 export interface RemoteWorkspace {
   id: string;
@@ -264,43 +199,11 @@ export interface WorkspaceMediaSource {
   mimeType: string;
 }
 
-export type ResolvedAgentInput =
-  | { type: "chat"; text: string }
-  | {
-      type: "agent_command";
-      command: "compact";
-      argument: string;
-      original_text: string;
-    }
-  | {
-      type: "client_action";
-      action:
-        | "new_conversation"
-        | "open_model_settings"
-        | "open_memory"
-        | "open_skills"
-        | "open_settings";
-      original_text: string;
-    };
-
 /** Privacy-filtered desktop diagnostic. Raw messages and stack traces are excluded. */
 export interface FrontendDiagnosticRequest {
   eventName: string;
   component: string;
   errorKind: string;
-}
-
-export interface EmbeddingResourceStatus {
-  state: "ready" | "missing" | "corrupt";
-  model_id: string;
-  version: string;
-  total_bytes: number;
-}
-
-export interface EmbeddingResourceProgress {
-  downloaded_bytes: number;
-  total_bytes: number;
-  current_file: string;
 }
 
 export interface DesktopProductCommandMap {
@@ -939,104 +842,19 @@ export interface OpenAgentOperationMap {
   };
 }
 
-export interface OpenAgentEventMap {
-  "chat.input_consumed": { conv_id: string; run_id: string; message: CheckpointMessage };
-  "chat.input_queue_changed": { conv_id: string };
-  "plugin.install_progress": AgentPluginInstallProgress;
-  "conversation.state": RemoteConversationState;
-  "chat.run_started": ChatRunStartedEvent;
-  "chat.response_started": { conv_id: string };
-  "chat.model_usage": ChatModelUsageEvent;
-  "chat.memory_retrieval": { conv_id: string; stage: ChatMemoryRetrievalStage };
-  "chat.chunk": { conv_id: string; text: string };
-  "chat.thinking_chunk": { conv_id: string; text: string };
-  "chat.tool_call": {
-    conv_id: string;
-    name: string;
-    args: unknown;
-    tool_use_id?: string;
-    mcp_ui?: McpUiInvocation;
-  };
-  "chat.tool_result": {
-    conv_id: string;
-    result: string;
-    tool_use_id?: string;
-    mcp_ui?: McpUiInvocation;
-    image_attachments?: ToolImageAttachment[];
-  };
-  "chat.file_change": { conv_id: string; change: FileChange; branch_id?: string | null };
-  "chat.checkpoint": {
-    conv_id: string;
-    checkpoint_id: string;
-    branch_id?: string | null;
-  };
-  "chat.retry": {
-    conv_id: string;
-    attempt: number;
-    max_attempts: number;
-    model?: string;
-    error?: string | null;
-    restored_checkpoint?: boolean;
-  };
-  "chat.compaction_progress": {
-    conv_id: string;
-    stage: ContextCompactionStage;
-    error?: string | null;
-  };
-  "chat.done": {
-    conv_id: string;
-    asst_msg_id?: string | null;
-    turn_id?: string | null;
-    error?: string | null;
-  };
-  "chat.follow_up_suggestions": {
-    conv_id: string;
-    asst_msg_id: string;
-    suggestions: string[];
-  };
-  "conversation.new_suggestions": {
-    workspace: string;
-    language: "zh" | "en";
-    suggestions: string[];
-  };
-  "chat.interrupted": {
-    conv_id: string;
-    request_id: string;
-    asst_msg_id?: string | null;
-    turn_id?: string | null;
-  };
-  "chat.cancelled": {
-    conv_id: string;
-    asst_msg_id?: string | null;
-    turn_id?: string | null;
-  };
-}
-
-export interface ChatRunStartedEvent {
-  conv_id: string;
-  message: string;
-  msg_id: string;
-  asst_msg_id: string;
-  workspace: string;
-  title: string;
-  created_at: number;
-  updated_at: number;
-  pinned: boolean;
-  parent_conv_id?: string | null;
-  compacted_from_conv_id?: string | null;
-  flow_kind?: string | null;
-  flow_status?: string | null;
-  role_id?: string | null;
-  source: string;
-  is_new: boolean;
-  user_visible?: boolean;
-}
-
-export interface ChatModelUsageEvent {
-  conv_id: string;
-  turn: number;
-  usage: TaskTokenUsage;
-}
+type WireEvent = import("./protocol.generated").OpenAgentWireEvent<
+  CheckpointMessage,
+  TaskTokenUsage,
+  FileChange,
+  McpUiInvocation,
+  ToolImageAttachment,
+  AgentPluginInstallProgress,
+  RemoteConversationState
+>;
+export type OpenAgentEventMap = { [Event in WireEvent as Event["name"]]: Event["payload"] };
+export type ChatRunStartedEvent = import("./protocol.generated").ChatRunStartedEvent;
+export type ChatModelUsageEvent =
+  import("./protocol.generated").ChatModelUsageEvent<TaskTokenUsage>;
 
 export interface McpUiToolDescriptor {
   server_id: string;

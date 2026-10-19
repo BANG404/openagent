@@ -916,9 +916,8 @@ jobs:
           version="$base_version"
           mkdir -p sdk-development-clients
           printf '%s\n' "$version" > sdk-development-clients/version.txt
-          tar --format=ustar -C sdk/typescript -czf \
-            "$GITHUB_WORKSPACE/sdk-development-clients/openagent-typescript-sdk.tar.gz" \
-            src package.json tsconfig.json tsconfig.build.json README.md LICENSE
+          bun scripts/create-client-source-snapshot.mjs \
+            --output "$GITHUB_WORKSPACE/sdk-development-clients/openagent-typescript-sdk.tar.gz"
       - uses: actions/upload-artifact@v4
         with:
           name: sdk-development-clients

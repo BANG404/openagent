@@ -3,7 +3,7 @@ import { expect, test } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fetchPublicTypescriptSdk } from "./fetch-public-typescript-sdk.mjs";
+import { fetchClientSourceSnapshot } from "./fetch-client-source-snapshot.mjs";
 import { signingFixture } from "../tests/fixtures/minisign.mjs";
 
 test("downloads only the exact checksummed SDK snapshot", async () => {
@@ -31,8 +31,8 @@ test("downloads only the exact checksummed SDK snapshot", async () => {
           ? new Response(fixture.sign(manifestBytes))
           : new Response(bytes);
     const output = join(directory, "sdk.tar.gz");
-    await fetchPublicTypescriptSdk({
-      expectedSdkSha: sdkSha,
+    await fetchClientSourceSnapshot({
+      expectedRuntimeSha: sdkSha,
       output,
       manifestUrl: "https://example.test/sdk-dev-manifest.json",
       fetchRequest,
@@ -44,7 +44,7 @@ test("downloads only the exact checksummed SDK snapshot", async () => {
   }
 });
 
-test("rejects a development channel for a different SDK commit", async () => {
+test("rejects a development channel for a different Runtime commit", async () => {
   const fixture = signingFixture();
   const bytes = Buffer.from(
     JSON.stringify({
@@ -55,8 +55,8 @@ test("rejects a development channel for a different SDK commit", async () => {
   const fetchRequest = async (url) =>
     new Response(String(url).endsWith(".sig") ? fixture.sign(bytes) : bytes);
   expect(
-    fetchPublicTypescriptSdk({
-      expectedSdkSha: "0123456789abcdef0123456789abcdef01234567",
+    fetchClientSourceSnapshot({
+      expectedRuntimeSha: "0123456789abcdef0123456789abcdef01234567",
       output: "unused.tar.gz",
       manifestUrl: "https://example.test/sdk-dev-manifest.json",
       fetchRequest,

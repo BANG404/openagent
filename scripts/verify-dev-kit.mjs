@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { validateDevKit } from "./prepare-dev-kit.mjs";
 import { readDesktopRuntimeProtocol } from "./runtime-protocol.mjs";
-import { verifyArtifactBytes, verifySignedBytes } from "./signed-artifacts.mjs";
+import { requireArtifact, verifyArtifactBytes, verifySignedBytes } from "./signed-artifacts.mjs";
 
 /** Admit new candidates and existing immutable kits through the same checks.
  * @param {string} directory
@@ -24,9 +24,15 @@ export async function verifyDevelopmentKit(directory, sdkSha, options = {}) {
   }
   for (const target of ["windows-x64", "linux-x64", "macos-x64", "macos-arm64"]) {
     const kit = validateDevKit(manifest, sdkSha, target, protocolVersion);
-    for (const artifact of [kit.client, kit.runtime, ...kit.helpers]) {
+    for (const artifact of [kit.runtime, ...kit.helpers]) {
       verifyArtifactBytes(await readFile(join(directory, artifact.file)), artifact);
     }
+  }
+  // Publication verifies an explicitly advertised optional source snapshot;
+  // Runtime admission itself never requires or consumes a client archive.
+  if (manifest.clients?.typescript) {
+    const artifact = requireArtifact(manifest.clients.typescript);
+    verifyArtifactBytes(await readFile(join(directory, artifact.file)), artifact);
   }
   const runtimeBytes = await readFile(join(directory, "openagent-sdk-manifest.json"));
   verifySignedBytes(

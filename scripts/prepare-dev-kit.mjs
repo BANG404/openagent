@@ -23,7 +23,7 @@ const targets = {
 
 /** @param {string} sdkSha */
 export function immutableDevKitUrl(sdkSha) {
-  if (!/^[0-9a-f]{40}$/.test(sdkSha)) throw new Error("Invalid SDK commit SHA");
+  if (!/^[0-9a-f]{40}$/.test(sdkSha)) throw new Error("Invalid Runtime commit SHA");
   return `https://github.com/BANG404/openagent/releases/download/runtime-dev-${sdkSha}/sdk-dev-manifest.json`;
 }
 
@@ -36,10 +36,9 @@ export function validateDevKit(
 ) {
   if (manifest.schema_version !== 2 || manifest.sdk_sha !== expectedSha) {
     throw new Error(
-      `No matching public development kit for SDK ${expectedSha}. Select a published source tag or prepare an exact source kit; another SDK revision is never substituted.`,
+      `No matching public development kit for Runtime ${expectedSha}. Select a published source tag or prepare an exact source kit; another Runtime revision is never substituted.`,
     );
   }
-  const clients = /** @type {{ typescript?: unknown }} */ (manifest.clients);
   const runtime =
     /** @type {{ sdk_sha: string; version: string; protocol?: { min: number; max: number }; artifacts?: Record<string, unknown> }} */ (
       manifest.runtime
@@ -70,7 +69,6 @@ export function validateDevKit(
         ? ["codex-bwrap-linux-x64"]
         : [];
   return {
-    client: requireArtifact(clients?.typescript),
     runtime: requireArtifact(runtime.artifacts?.[target]),
     helpers: requiredHelpers.map((name) => {
       const artifact = requireArtifact(helpers?.[target]?.[name]);
@@ -80,11 +78,11 @@ export function validateDevKit(
   };
 }
 
-/** @param {{ repositoryRoot?: string; manifestUrl?: string; expectedSdkSha?: string; targetTriple?: string; publicKey?: string; fetchRequest?: typeof fetch }} [options] */
+/** @param {{ repositoryRoot?: string; manifestUrl?: string; expectedRuntimeSha?: string; targetTriple?: string; publicKey?: string; fetchRequest?: typeof fetch }} [options] */
 export async function prepareDevKit(options = {}) {
   const repositoryRoot = options.repositoryRoot ?? root;
   const expectedSha =
-    options.expectedSdkSha ??
+    options.expectedRuntimeSha ??
     execFileSync("git", ["rev-parse", "HEAD:runtime"], {
       cwd: repositoryRoot,
       encoding: "utf8",
@@ -151,7 +149,7 @@ export async function prepareDevKit(options = {}) {
       2,
     )}\n`,
   );
-  return { sdkSha: expectedSha, target, runtimeDestination, kitDirectory };
+  return { runtimeSha: expectedSha, target, runtimeDestination, kitDirectory };
 }
 
 /** Re-admit the persisted kit without network access before executing any prepared bytes.
@@ -209,5 +207,5 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     manifestUrl = `https://github.com/BANG404/openagent/releases/download/${release}/sdk-dev-manifest.json`;
   }
   const result = await prepareDevKit({ manifestUrl, targetTriple: value("--target") });
-  console.log(`Prepared verified SDK ${result.sdkSha} for ${result.target}.`);
+  console.log(`Prepared verified Runtime ${result.runtimeSha} for ${result.target}.`);
 }

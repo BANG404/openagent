@@ -41,7 +41,14 @@ it must match the source Runtime pin. `--manifest-url` selects a signed mirror
 or fixture. Missing exact-SHA kits fail; never substitute a moving channel or
 a different source revision.
 
-Schema 2 retains its published client descriptor for distribution consumers.
+Schema 2 may include a client source-snapshot descriptor for distribution consumers.
+Runtime preparation and re-admission ignore that descriptor, including its absence
+or malformed contents; only Runtime and required helper artifacts gate startup.
+The standalone `fetch-client-source-snapshot.mjs` command downloads a signed
+source snapshot only when explicitly requested. Both release and development
+publication use `create-client-source-snapshot.mjs` to include source, lockfile,
+build configuration, README and license. These archives are not installable npm
+packages and are not internal development inputs.
 Client archives are produced from the public host checkout, never from the
 private repository's historical TypeScript snapshot. Local desktop preparation
 and launch do not download, extract, import or execute that archive. Runtime

@@ -183,3 +183,22 @@ release-relevant Conventional Commits control the `X.Y.Z` base version:
 If legacy history contains both a stable tag and later beta tags with the same
 `X.Y.Z`, the suffix cannot be removed safely. The script detects that collision
 and recalculates from the existing stable tag instead of overwriting it.
+
+## Runtime, Client SDK and Plugin API identities
+
+| Boundary | Version ownership | Compatibility |
+| --- | --- | --- |
+| Runtime | Private execution engine and supervised server release SemVer | Desktop transport protocol range and persisted-data admission |
+| Client SDK | Public TypeScript client package; independent SemVer when distributed | Typed operation/event wire contract; no plugin release coupling |
+| Plugin API | Plugin manifest and Host Bridge protocol version plus capabilities | Each plugin declares its own version and required protocol/capabilities |
+| Internal public Cargo crates | One `crates/Cargo.toml` workspace version, `publish = false` | No independent package release workflow |
+
+Published `sdk-v*` tags, `sdk_sha`, `SDK_PROTOCOL_VERSION` and signed filenames
+are existing distribution identifiers for the Runtime or desktop wire protocol;
+they never identify the TypeScript client version or the Plugin API version.
+Use Runtime in user-facing progress and documentation. Preserve immutable tags
+and signed identities when clarifying terminology; changing a distribution
+protocol requires coordinated producer/consumer changes. Client source snapshots
+are optional artifacts and never a prerequisite for a Runtime development kit.
+Plugin compatibility follows `PLUGIN_PROTOCOL_VERSION` and declared capabilities,
+independently of both the application version and Client SDK package version.

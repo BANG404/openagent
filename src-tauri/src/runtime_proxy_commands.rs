@@ -34,14 +34,10 @@ pub(crate) async fn proxy_runtime_request(
 }
 
 #[tauri::command]
-pub(crate) async fn runtime_transport_mode(
+pub(crate) async fn runtime_transport_status(
     supervisor: State<'_, Arc<RuntimeProcessSupervisor>>,
-) -> Result<String, String> {
-    Ok(if supervisor.status().await.is_some() {
-        "external".to_string()
-    } else {
-        "embedded".to_string()
-    })
+) -> Result<openagent_protocol::RuntimeTransportStatus, String> {
+    Ok(supervisor.transport_status().await)
 }
 
 #[tauri::command]

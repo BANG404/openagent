@@ -579,11 +579,6 @@
   let streamCompletionTailAnchor = $state<{ convId: string; token: number } | null>(null);
   let streamCompletionTailAnchorSequence = 0;
   const tauriAvailable = isTauri();
-  const externalRuntimeTransport = tauriAvailable
-    ? invoke<"embedded" | "external">("runtime_transport_mode")
-        .then((mode) => mode === "external")
-        .catch(() => false)
-    : Promise.resolve(false);
 
   async function refreshTaskUsagesForConversation(convId: string): Promise<void> {
     if (!tauriAvailable) return;
@@ -1452,14 +1447,6 @@
     const forkSourceCheckpointId = getActiveTipNode(convTrees[convId])?.ckId;
     if (!forkSourceCheckpointId) return;
 
-    if (!(await externalRuntimeTransport)) {
-      try {
-        await openAgent.invokeProduct("rollback_to_checkpoint", { convId, checkpointId });
-      } catch {
-        return;
-      }
-    }
-
     conversations[convIdx] = {
       ...conv,
       messages: conv.messages.slice(0, userMsgIdx),
@@ -1515,7 +1502,7 @@
     const targetTipCheckpoint = getActiveTipNode(updatedTree)?.ckId;
     if (!targetTipCheckpoint) return;
 
-    if (tauriAvailable && (await externalRuntimeTransport)) {
+    if (tauriAvailable) {
       try {
         await openAgent.switchRemoteConversationBranch(convId, targetTipCheckpoint);
         convTrees = { ...convTrees, [convId]: updatedTree };
@@ -3203,12 +3190,12 @@
       convId in pendingParentCk &&
       typeof forkedFromMessageId === "string" &&
       typeof forkSourceCheckpointId === "string" &&
-      (await externalRuntimeTransport);
+      tauriAvailable;
     if (useRuntimeFork) {
       pendingForkUserMessageIds = { ...pendingForkUserMessageIds, [convId]: userMsg.id };
     }
-    // Embedded diagnostics still need an explicit branch id. The ordinary
-    // external Runtime owns branch creation and route selection atomically.
+    // Browser fixtures need an explicit branch id. The supervised Runtime
+    // owns branch creation and route selection atomically.
     const branchId = useRuntimeFork
       ? null
       : await ensureActiveBranch(

@@ -1,15 +1,20 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "@bang404/openagent-sdk",
-      "dependencies": {
-        "@tauri-apps/api": "^2",
-      },
       "devDependencies": {
+        "@tauri-apps/api": "^2",
         "@types/bun": "latest",
         "typescript": "~5.6.2",
       },
+      "peerDependencies": {
+        "@tauri-apps/api": "^2",
+      },
+      "optionalPeers": [
+        "@tauri-apps/api",
+      ],
     },
   },
   "packages": {

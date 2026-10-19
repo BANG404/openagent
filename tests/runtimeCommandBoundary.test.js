@@ -44,7 +44,7 @@ const nativeCommands = new Set([
   "restart_app",
   "reveal_main_window",
   "reveal_onboarding_window",
-  "runtime_transport_mode",
+  "runtime_transport_status",
   "save_download_file",
   "start_runtime_event_proxy",
 ]);

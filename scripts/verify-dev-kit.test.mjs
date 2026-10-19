@@ -56,6 +56,13 @@ test("admits a signed protocol-3 kit and rejects corruption, missing targets and
     await signManifest("openagent-sdk-manifest.json", runtime);
     const verify = () => verifyDevelopmentKit(directory, sdkSha, { publicKey: fixture.publicKey });
     await verify();
+    await writeFile(join(directory, "client.tar.gz"), "corrupt-bytes");
+    await expect(verify()).rejects.toThrow("checksum mismatch");
+    await rm(join(directory, "client.tar.gz"));
+    await signManifest("sdk-dev-manifest.json", { ...manifest, clients: undefined });
+    await verify();
+    await writeFile(join(directory, "client.tar.gz"), bytes);
+    await signManifest("sdk-dev-manifest.json", manifest);
     await writeFile(join(directory, "runtime"), "corrupt-bytes");
     await expect(verify()).rejects.toThrow("checksum mismatch");
     await writeFile(join(directory, "runtime"), bytes);

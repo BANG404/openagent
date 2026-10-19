@@ -248,7 +248,9 @@ describe("desktop conversation branches", () => {
       pageSource.indexOf("async function sendMessage"),
     );
 
-    expect(reexecuteSource).toContain("if (!(await externalRuntimeTransport))");
+    expect(reexecuteSource).not.toContain('"rollback_to_checkpoint"');
+    expect(pageSource).not.toContain("runtime_transport_mode");
+    expect(pageSource).not.toContain("externalRuntimeTransport");
     expect(dispatchSource).toContain("openAgent.forkRemoteConversationRun");
     expect(dispatchSource).toContain("sourceCheckpointId: forkSourceCheckpointId");
     expect(dispatchSource).toContain(

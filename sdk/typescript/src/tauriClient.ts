@@ -1,3 +1,5 @@
+import { invoke as invokeNative } from "@tauri-apps/api/core";
+import { emit as emitNative, listen as listenNative } from "@tauri-apps/api/event";
 import { OpenAgentClient } from "./client";
 import { isDesktopProductCommand } from "./contracts";
 import { TauriTransport } from "./tauriTransport";
@@ -16,16 +18,23 @@ export function invoke<Response>(
   if (isDesktopProductCommand(command)) {
     return desktopOpenAgent.invokeProduct(command, (args ?? {}) as never) as Promise<Response>;
   }
-  return desktopOpenAgent.invokeLocal<Response>(command, args);
+  return invokeNative<Response>(command, args);
 }
 
 export function listen<Payload>(
   event: string,
   handler: (event: { payload: Payload }) => void,
 ): Promise<() => void> {
-  return desktopOpenAgent.listenLocal<Payload>(event, handler);
+  return listenNative<Payload>(event, handler);
 }
 
 export function emit<Payload>(event: string, payload?: Payload): Promise<void> {
-  return desktopOpenAgent.emitLocal(event, payload);
+  return emitNative(event, payload);
+}
+
+/** Live lifecycle state; callers may retry after starting or unavailable. */
+export function runtimeTransportStatus(): Promise<
+  import("./protocol.generated").RuntimeTransportStatus
+> {
+  return invokeNative("runtime_transport_status");
 }

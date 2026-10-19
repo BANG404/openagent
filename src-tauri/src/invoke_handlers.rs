@@ -19,7 +19,7 @@ pub(crate) fn register(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<ta
         component_updates::handoff::prepare_shell_handoff,
         component_updates::barrier::end_component_update,
         component_updates::runtime::activate_runtime_resource,
-        runtime_proxy_commands::runtime_transport_mode,
+        runtime_proxy_commands::runtime_transport_status,
         runtime_proxy_commands::proxy_runtime_request,
         runtime_proxy_commands::start_runtime_event_proxy,
         runtime_proxy_commands::stop_runtime_event_proxy,

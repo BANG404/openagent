@@ -1,0 +1,41 @@
+[scenario]
+name = "Standalone Runtime proxy retries after startup failure while native capabilities remain available"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+action = "eval"
+script = '''(async () => {
+  const {desktopOpenAgent: client, invoke} = await import('/src/lib/openagent/tauriClient.ts');
+  const native = window.__TAURI_INTERNALS__.invoke;
+  const originalFetch = window.fetch;
+  if (await native('runtime_transport_status') !== 'ready') throw new Error('Expected a ready supervised Runtime');
+  if ('invokeLocal' in client || 'listenLocal' in client || 'emitLocal' in client) throw new Error('General client leaked native capabilities');
+  const calls = [];
+  window.fetch = async (input, init) => {
+    const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);
+    if (url.protocol === 'ipc:' || url.hostname === 'ipc.localhost') {
+      const command = decodeURIComponent(url.pathname.slice(1));
+      calls.push(command);
+      if (command === 'proxy_runtime_request') return new Response('fixture Runtime starting', {
+        headers: {'Tauri-Response': 'error', 'Content-Type': 'text/plain'}
+      });
+    }
+    return originalFetch(input, init);
+  };
+  try {
+    let rejected = false;
+    try { await client.invokeProduct('get_settings', {}); }
+    catch (error) { rejected = String(error).includes('fixture Runtime starting'); }
+    if (!rejected) throw new Error('Unavailable Runtime selected another execution path');
+    await invoke('get_system_locale');
+    if (!calls.includes('get_system_locale')) throw new Error('Native startup capability did not remain available');
+    if (calls.includes('runtime_transport_mode') || calls.includes('get_settings')) throw new Error('Product request fell back to a direct command');
+  } finally { window.fetch = originalFetch; }
+  const settings = await client.invokeProduct('get_settings', {});
+  if (!settings.workspace) throw new Error('Same client did not recover through the supervised proxy');
+  const snapshot = await client.getStartupBootstrap();
+  if (!snapshot) throw new Error('Product bootstrap did not recover');
+  if (!document.querySelector('.sidebar-content')) throw new Error('Product surface was lost');
+  return 'Standalone Runtime recovery and independent native capabilities verified';
+})()'''
