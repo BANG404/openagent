@@ -1993,7 +1993,9 @@ jobs:
       - detect
       - publish
     if: >-
-      needs.detect.outputs.prerelease == 'true'
+      always()
+      && needs.detect.result == 'success'
+      && needs.detect.outputs.prerelease == 'true'
       && needs.publish.result == 'success'
     runs-on: ubuntu-24.04
     steps:

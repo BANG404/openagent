@@ -122,6 +122,10 @@ directory stop publication even when other packages supply passing suites.
     prerelease SHA when applicable;
 11. deploy the release landing page with the published tag.
 
+Prerelease archival evaluates with `always()` and requires successful detection
+and desktop publication. This prevents skipped optional ancestors, including the
+prerelease Store job, from silently suppressing the source archive branch.
+
 The published GitHub Release body embeds only the current version's generated
 `CHANGELOG.md` section, links the exact `previousTag...tag` comparison, and
 summarizes the selected frontend, Runtime, and native-shell components. Every

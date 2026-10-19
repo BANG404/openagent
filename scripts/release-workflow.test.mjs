@@ -325,6 +325,27 @@ test("npm publication evaluates after skipped optional ancestors and requires it
   ).toBe(false);
 });
 
+test("prerelease archival evaluates after skipped ancestors and requires successful publication", async () => {
+  const source = await releaseJobSource("archive-prerelease", "deploy-pages");
+  expect(source).toContain("always()");
+  const needs = {
+    detect: { result: "success", outputs: { prerelease: "true" } },
+    publish: { result: "success" },
+  };
+  expect(jobCondition(source, needs)).toBe(true);
+  for (const [dependency, gate] of Object.entries(needs)) {
+    for (const result of ["failure", "skipped", "cancelled"]) {
+      expect(jobCondition(source, { ...needs, [dependency]: { ...gate, result } })).toBe(false);
+    }
+  }
+  expect(
+    jobCondition(source, {
+      ...needs,
+      detect: { result: "success", outputs: { prerelease: "false" } },
+    }),
+  ).toBe(false);
+});
+
 describe("update data compatibility checks", () => {
   test("preserves records, contents and identifiers while allowing additive fields", () => {
     const previous = {
