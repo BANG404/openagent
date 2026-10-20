@@ -104,6 +104,10 @@ Run native UI automation separately from preflight/build/type-check commands:
 they can regenerate SvelteKit assets and reload a development WebView mid-scenario.
 Complete those checks, wait for the development server to be ready, then launch
 the isolated desktop scenario in the signed-in user's interactive session.
+The input-queue native runner holds its loopback provider while testing Stop
+with an empty inbox, checks the paused empty snapshot and reload, then releases
+that request before starting the steering fixture. Keep these phases isolated
+so a provider completion cannot substitute for cancellation.
 
 Release automation preflight includes `lint:frontend` and `lint:actions`, both
 of which reject warnings. Quote dynamic values in Bash expansion patterns and

@@ -272,8 +272,12 @@ Queue rows and their count include only waiting and failed receipts. An idle,
 unpaused queue's first ordinary input is awaiting immediate dispatch when no
 claimed or failed head blocks it, and does not open the panel; later waiting
 inputs do. Paused heads and failures remain
-visible. An empty queue's initial/background read never mounts the panel or
-skeleton by itself; loading feedback remains inside an already relevant queue.
+visible. A paused snapshot with no waiting or failed inputs does not open the
+panel, including after Stop, clearing the queue or removing its last item.
+Preserve Runtime's pause state; a subsequent waiting or failed input exposes
+the controls again. Read errors still expose refresh even when there are no rows.
+An empty queue's initial/background read never mounts the panel or skeleton by
+itself; loading feedback remains inside an already relevant queue.
 Claimed inputs belong to the live transcript; a lone running receipt must not open the
 queue panel. Use the snapshot's active run identity for execution state rather
 than inferring activity from receipt status. A refresh notification during an
