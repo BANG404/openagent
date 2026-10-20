@@ -32,6 +32,12 @@ route through the desktop proxy; read deadlines apply to snapshots, while
 accepted writes retain their ordinary completion semantics. Run
 `test:blackbox:input-queue` for this adapter and the shared queue controls.
 
+Human-interrupt transcript acceptance uses `bun run test:blackbox:interrupt-turn`
+against an isolated debug instance with an explicit `TAURI_PILOT_SOCKET`.
+The deterministic provider fixture covers question responses, approval controls,
+and reload recovery in all four theme/locale combinations. Its setup and turn
+invariants belong to the [chat interrupt contract](../../openagent-chat-frontend/references/tools-interrupts.md).
+
 `bun run test:blackbox:desktop-exit` starts its own isolated Windows Tauri
 fixtures against the product Vite frontend. Four light/dark and English/Chinese
 passes use shell-install preparation to retain the final status for inspection:
