@@ -59,6 +59,17 @@
   this boundary with `bun run test:blackbox:mcp-ui-transcript`: it loads the
   independent Mermaid package's real offline resource and checks streaming,
   completion, failure, iframe identity, reload, both themes and both locales.
+  MCP App size requests stay inside the transcript width and the inline height
+  limit. Fullscreen and PIP promote the existing frame to the browser top layer
+  without reparenting its iframe: overflow, containment, the composer and sidebars
+  must not constrain or cover it. Host close controls and Escape return inline;
+  app modals occupy a higher top-layer surface. Notify actual container width
+  changes through host context after layout, without remounting or losing edits.
+  The transcript runner also exercises the real editor controls, extreme size
+  requests, tall/wide fitting and scrolling, fullscreen/PIP bounds, modal hit
+  testing, live appearance, narrow containers, error/empty recovery and local
+  edits across terminal reconciliation. Its test-only widget probe communicates
+  over postMessage; keep production opaque-origin sandboxing intact.
 - Keep ordinary and enhanced file/search tool cards, grouped tool summaries,
   and both pending and completed `ask_user` surfaces on the same compact,
   transparent, neutral-perimeter grammar: one summary row followed by

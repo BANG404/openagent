@@ -190,9 +190,15 @@ Mermaid package. The latter reads its built offline resource from
 and verifies that MCP UI remains outside tool/process disclosures through live
 and durable rendering. Both require an explicit task-specific `TAURI_PILOT_SOCKET`
 and retain screenshots for light/dark and English/Chinese.
+The MCP runner also checks actual control interactions, fitted SVG visibility,
+top-layer fullscreen and modals, bounded PIP, resizing, live appearance, error
+and empty recovery, and edited-source identity through final reconciliation.
 
 `bun run test:blackbox:mcp-ui-streaming` additionally qualifies the native
 transport with the real Mermaid stdio server and its resource above 1 MiB.
 Use an isolated multi-instance home and explicit pilot socket; its local provider
 holds the follow-up response open until the editor renders, then verifies
 completion and reload in all four theme/locale combinations.
+Pass `--bridge-fixture` directly to `scripts/test-mcp-ui-streaming-blackbox.mjs`
+to qualify the demo server's app-only tool and file bridge through ordinary chat,
+including close and reload, without the primary desktop dev API.

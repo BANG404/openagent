@@ -10,7 +10,9 @@
   let { invocation }: { invocation: McpUiInvocation } = $props();
 
   let frame = $state<HTMLIFrameElement | null>(null);
+  let container = $state<HTMLElement | null>(null);
   let modalFrame = $state<HTMLIFrameElement | null>(null);
+  let modalContainer = $state<HTMLElement | null>(null);
   let height = $state(280);
   let width = $state<number | null>(null);
   let initialized = $state(false);
@@ -35,6 +37,16 @@
   const uiCapabilities = useOpenAgentUiCapabilities();
 
   const availableDisplayModes = ["inline", "fullscreen", "pip"] as const;
+
+  function setDisplayMode(mode: typeof displayMode): void {
+    displayMode = mode;
+    hostContextVersion += 1;
+    post({
+      jsonrpc: "2.0",
+      method: "ui/notifications/host-context-changed",
+      params: hostContext(),
+    });
+  }
 
   function hostContext(): Record<string, unknown> {
     const container = frame?.parentElement;
@@ -284,6 +296,12 @@
       void request("ui/set-widget-state", { state: state });
     }
   };
+  window.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && (hostContext.displayMode === "fullscreen" || hostContext.displayMode === "pip")) {
+      event.preventDefault();
+      request("ui/request-display-mode", { mode: "inline" }).catch(function () {});
+    }
+  });
 })();
 ${scriptClose}`;
   }
@@ -545,14 +563,8 @@ ${scriptClose}`;
         response(id, { mode: displayMode });
         return;
       }
-      displayMode = requested;
-      hostContextVersion += 1;
+      setDisplayMode(requested);
       response(id, { mode: displayMode });
-      post({
-        jsonrpc: "2.0",
-        method: "ui/notifications/host-context-changed",
-        params: hostContext(),
-      });
       return;
     }
     if (method === "notifications/message") {
@@ -828,6 +840,42 @@ ${scriptClose}`;
   }
 
   $effect(() => {
+    if (container && displayMode !== "inline" && !closed) container.showPopover();
+  });
+
+  $effect(() => {
+    if (modalContainer && modal) {
+      modalContainer.showPopover();
+      modalContainer.querySelector("button")?.focus();
+    }
+  });
+
+  $effect(() => {
+    if (!container) return;
+    let previousWidth = container.clientWidth;
+    let update = 0;
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(update);
+      update = requestAnimationFrame(() => {
+        if (!container || container.clientWidth === previousWidth) return;
+        previousWidth = container.clientWidth;
+        if (!initialized) return;
+        hostContextVersion += 1;
+        post({
+          jsonrpc: "2.0",
+          method: "ui/notifications/host-context-changed",
+          params: hostContext(),
+        });
+      });
+    });
+    observer.observe(container);
+    return () => {
+      cancelAnimationFrame(update);
+      observer.disconnect();
+    };
+  });
+
+  $effect(() => {
     invocation.resource?.uri;
     invocation.arguments;
     invocation.structured_content;
@@ -881,7 +929,21 @@ ${scriptClose}`;
   });
 </script>
 
+<svelte:window
+  onkeydown={(event) => {
+    if (event.key === "Escape" && modal) {
+      event.preventDefault();
+      modal = null;
+    } else if (event.key === "Escape" && displayMode !== "inline") {
+      event.preventDefault();
+      setDisplayMode("inline");
+    }
+  }}
+/>
+
 <section
+  bind:this={container}
+  popover={displayMode === "inline" || closed ? undefined : "manual"}
   class:closed
   class:fullscreen={displayMode === "fullscreen"}
   class:pip={displayMode === "pip"}
@@ -889,6 +951,14 @@ ${scriptClose}`;
   style={"height: " + height + "px" + (width ? "; width: " + width + "px" : "")}
   aria-label={$t("mcpApp")}
 >
+  {#if displayMode !== "inline"}
+    <div class="mcp-app-chrome">
+      <span>{$t("mcpApp")}</span>
+      <button type="button" aria-label={$t("close")} onclick={() => setDisplayMode("inline")}
+        >×</button
+      >
+    </div>
+  {/if}
   <iframe
     title={$t("mcpApp")}
     srcdoc={documentSource()}
@@ -901,7 +971,12 @@ ${scriptClose}`;
 </section>
 
 {#if modal}
-  <div class="mcp-app-modal-backdrop" role="presentation">
+  <div
+    class="mcp-app-modal-backdrop"
+    role="presentation"
+    popover="manual"
+    bind:this={modalContainer}
+  >
     <div
       class="mcp-app-modal"
       role="dialog"
@@ -964,7 +1039,9 @@ ${scriptClose}`;
 <style>
   .mcp-app-frame {
     width: 100%;
+    max-width: 100%;
     min-height: 120px;
+    padding: 0;
     margin: 6px 0;
     overflow: hidden;
     border: 1px solid var(--border);
@@ -979,24 +1056,54 @@ ${scriptClose}`;
     inset: 0;
     z-index: 1000;
     height: 100dvh !important;
+    width: 100dvw !important;
+    max-width: none;
+    max-height: none;
     margin: 0;
     border-radius: 0;
-    background: var(--background);
+    background: var(--card);
   }
   .mcp-app-frame.pip {
     position: fixed;
-    right: 16px;
-    bottom: 16px;
+    inset: auto 16px 16px auto;
     z-index: 1000;
-    width: min(360px, calc(100vw - 32px));
+    width: min(360px, calc(100vw - 32px)) !important;
     height: 240px !important;
     margin: 0;
     box-shadow: 0 12px 32px rgb(0 0 0 / 22%);
+  }
+  .mcp-app-frame:popover-open {
+    display: flex;
+    flex-direction: column;
+    color: var(--foreground);
+  }
+  .mcp-app-chrome {
+    display: flex;
+    flex: 0 0 32px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .mcp-app-chrome button {
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--foreground);
+    cursor: pointer;
+  }
+  .mcp-app-chrome button:hover {
+    background: var(--muted);
   }
   iframe {
     display: block;
     width: 100%;
     height: 100%;
+    min-height: 0;
+    flex: 1;
     border: 0;
   }
   .mcp-app-modal-backdrop {
@@ -1006,6 +1113,13 @@ ${scriptClose}`;
     display: grid;
     place-items: center;
     padding: 20px;
+    margin: 0;
+    width: 100dvw;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    border: 0;
+    color: var(--foreground);
     background: rgb(0 0 0 / 42%);
   }
   .mcp-app-modal {

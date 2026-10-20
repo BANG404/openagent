@@ -9,6 +9,8 @@ import { promisify } from "node:util";
 import { captureBlackboxScreenshot } from "./blackbox-screenshot.mjs";
 
 const root = resolve(import.meta.dirname, "..");
+const bridgeFixture = process.argv.includes("--bridge-fixture");
+const toolName = bridgeFixture ? "render_demo_app" : "render_mermaid";
 const home = resolve(process.env.OPENAGENT_HOME || "");
 assert(
   process.env.OPENAGENT_HOME && process.env.TAURI_PILOT_SOCKET,
@@ -20,7 +22,7 @@ assert(
 );
 const resourceBytes = statSync(join(root, "plugins/mermaid/ui/app.html")).size;
 assert(
-  resourceBytes > 1024 * 1024 && resourceBytes <= 4 * 1024 * 1024,
+  bridgeFixture || (resourceBytes > 1024 * 1024 && resourceBytes <= 4 * 1024 * 1024),
   "Use the real large Mermaid resource",
 );
 const artifacts = mkdtempSync(join(tmpdir(), "openagent-mcp-ui-streaming-"));
@@ -81,9 +83,16 @@ const model = createServer(async (request, response) => {
     if (round === 1) {
       const tools = JSON.parse(body).tools;
       const tool = tools?.find((/** @type {any} */ entry) =>
-        entry.function?.name.endsWith("render_mermaid"),
+        entry.function?.name.endsWith(toolName),
       );
       assert(tool, "The real Mermaid tool must reach the provider catalog");
+      if (bridgeFixture)
+        assert(
+          !tools.some((/** @type {any} */ entry) =>
+            entry.function?.name.endsWith("demo_app_action"),
+          ),
+          "App-only tools must stay out of the provider catalog",
+        );
       response.end(
         completion({
           role: "assistant",
@@ -92,10 +101,12 @@ const model = createServer(async (request, response) => {
             {
               function: {
                 name: tool.function.name,
-                arguments: {
-                  source: "flowchart LR\nStreaming --> Visible",
-                  title: "Streaming fixture",
-                },
+                arguments: bridgeFixture
+                  ? { label: "Bridge streaming fixture" }
+                  : {
+                      source: "flowchart LR\nStreaming --> Visible",
+                      title: "Streaming fixture",
+                    },
               },
             },
           ],
@@ -154,7 +165,14 @@ config.mcp.servers = [
     tool_mode: "direct",
     transport: "stdio",
     command: "node",
-    args: [join(root, "plugins/mermaid/server/index.mjs")],
+    args: [
+      join(
+        root,
+        bridgeFixture
+          ? "tests/fixtures/mcp-app-demo/server.mjs"
+          : "plugins/mermaid/server/index.mjs",
+      ),
+    ],
   },
 ];
 config.memory_retrieval_enabled = false;
@@ -194,19 +212,33 @@ try {
       await evaluate(
         `(async()=>{const editor=document.querySelector('[contenteditable=true][role=textbox]');editor.focus();const clipboard=new DataTransfer();clipboard.setData('text/plain','mcp-stream-fixture');editor.dispatchEvent(new ClipboardEvent('paste',{clipboardData:clipboard,bubbles:true,cancelable:true}));await new Promise(r=>setTimeout(r,100));document.querySelector('.send-btn').click();return true;})()`,
       );
-      await until("window.__mcpRenderStatus?.status==='ready'");
+      if (bridgeFixture) {
+        await until(
+          `document.querySelector('.mcp-app-frame')?.style.height==='${theme === "dark" ? 600 : 560}px'`,
+        );
+        await evaluate(
+          `window.__mcpStreamingFrame=document.querySelector('.mcp-app-frame iframe');true`,
+        );
+      } else await until("window.__mcpRenderStatus?.status==='ready'");
       assert.ifError(modelError);
       assert(
         continuation && !continuation.writableEnded,
         "The editor must render before the model finishes",
       );
       await pilot(["snapshot", "-i"]);
-      await pilot([
-        "run",
-        join(root, "tests/blackbox/mcp-ui-streaming.toml"),
-        "--junit",
-        join(artifacts, `${theme}-${language}.xml`),
-      ]);
+      if (!bridgeFixture)
+        await pilot([
+          "run",
+          join(root, "tests/blackbox/mcp-ui-streaming.toml"),
+          "--junit",
+          join(artifacts, `${theme}-${language}.xml`),
+        ]);
+      if (bridgeFixture)
+        assert.equal(
+          await evaluate(`!!document.querySelector('[data-running=true]')`),
+          "true",
+          "Bridge operations must complete during the active Turn",
+        );
       if (process.platform === "win32" && process.env.BLACKBOX_NATIVE_WINDOW_ID) {
         captureBlackboxScreenshot(pilot, join(artifacts, `${theme}-${language}-streaming.png`));
       } else {
@@ -230,6 +262,15 @@ try {
       await until(
         "!!document.querySelector('.mcp-app-frame iframe') && document.body.textContent.includes('MCP streaming fixture finished.')",
       );
+      if (bridgeFixture) {
+        await until(
+          `document.querySelector('.mcp-app-frame')?.style.height==='${theme === "dark" ? 600 : 560}px'`,
+        );
+        await evaluate(
+          `document.querySelector('.mcp-app-frame iframe').contentWindow.postMessage({jsonrpc:'2.0',method:'ui/notifications/tool-input',params:{arguments:{close:true}}},'*');true`,
+        );
+        await until(`document.querySelector('.mcp-app-frame')?.classList.contains('closed')`);
+      }
       assert.equal(round, 2, "Finalization or reload repeated the provider request");
       const checkpointId = await invoke("get_active_branch_tip", { convId: id });
       const checkpoints = await invoke("get_checkpoint_view", { convId: id, checkpointId });
@@ -242,7 +283,9 @@ try {
         "The completed checkpoint must retain the MCP resource",
       );
       console.log(
-        `Passed ${theme}/${language}: ${resourceBytes} byte editor rendered during streaming and survived completion/reload`,
+        bridgeFixture
+          ? `Passed ${theme}/${language}: app-only tool, file upload/download, streaming, completion, reload and close`
+          : `Passed ${theme}/${language}: ${resourceBytes} byte editor rendered during streaming and survived completion/reload`,
       );
     }
   await pilot(["logs", "--level", "error"]);

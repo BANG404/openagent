@@ -327,6 +327,21 @@ Frame-size rejection and coalesced/fragmented network input are covered by the
 host transport Rust tests. The existing MCP UI transcript scenario covers failed
 rendering and recovery.
 
+The transcript runner also drives the real offline editor in the native window
+using a test-only postMessage probe appended to its resource. It asserts visible
+SVG bounds rather than accepting a ready status alone, including very tall/wide
+diagrams, zoom overflow, mode transitions, modal layering, Escape, live
+theme/locale changes, resize, empty/error recovery and edited-source identity at
+completion. It retains fullscreen and completed native screenshots. Keep the
+explicit main HWND when checking composited iframe pixels.
+
+`bun scripts/test-mcp-ui-streaming-blackbox.mjs --bridge-fixture` runs the
+dependency-free demo server through ordinary chat in a multi-instance window.
+It verifies that app-only tools stay outside the model catalog while the widget
+can call them, file upload/download succeeds, and completion, reload and close
+work in all four appearance combinations. This route needs no primary dev API;
+the dev-API seeding runner below remains useful for its dedicated scenarios.
+
 The committed `tests/blackbox/mcp-apps.toml` and `mcp-apps-teardown.toml`
 scenarios verify the MCP Apps host bridge against the real, dependency-free MCP
 stdio server in `tests/fixtures/mcp-app-demo/`. The wrapper copies that fixture

@@ -1,0 +1,55 @@
+<script>
+  // Test-only instrumentation served with the real offline widget resource.
+  // It uses the widget's actual controls and the normal opaque-origin bridge.
+  addEventListener("message", async (event) => {
+    if (event.source !== parent || event.data?.type !== "mcp-test-request") return;
+    const { id, action, value } = event.data;
+    try {
+      let result;
+      if (action === "inspect") {
+        const svg = document.querySelector("#diagram svg");
+        result = {
+          source: document.querySelector("#source").value,
+          transform: document.querySelector("#diagram").style.transform,
+          svg: svg?.getBoundingClientRect().toJSON(),
+          viewBox: svg?.getAttribute("viewBox"),
+          viewport: document.querySelector("#viewport").getBoundingClientRect().toJSON(),
+          canvasScrollWidth: document.querySelector("#viewport").scrollWidth,
+          language: document.documentElement.lang,
+          dark: document.documentElement.classList.contains("dark"),
+          width: innerWidth,
+          height: innerHeight,
+          layout: {
+            display: getComputedStyle(document.body).display,
+            height: getComputedStyle(document.body).height,
+            flex: getComputedStyle(document.querySelector("#viewport")).flex,
+            mode: document.documentElement.dataset.displayMode,
+          },
+          scrollWidth: document.documentElement.scrollWidth,
+          mode: window.openai.displayMode,
+          repairHidden: document.querySelector("#repair").hidden,
+          status: document.querySelector("#status").textContent,
+          dimensions: window.__mcpProbeContext?.containerDimensions,
+        };
+      } else if (action === "click") document.getElementById(value).click();
+      else if (action === "input") document.getElementById("source").value = value;
+      else if (action === "size")
+        parent.postMessage(
+          { jsonrpc: "2.0", method: "ui/notifications/size-changed", params: value },
+          "*",
+        );
+      else if (action === "mode") result = await window.openai.requestDisplayMode(value);
+      else if (action === "modal")
+        result = await window.openai.requestModal("MCP modal test", { title: "MCP modal test" });
+      else if (action === "close") result = await window.openai.requestClose();
+      else if (action === "escape")
+        dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      parent.postMessage({ type: "mcp-test-response", id, result: result ?? true }, "*");
+    } catch (error) {
+      parent.postMessage({ type: "mcp-test-response", id, error: String(error) }, "*");
+    }
+  });
+  addEventListener("openai:host-context-changed", (event) => {
+    window.__mcpProbeContext = event.detail;
+  });
+</script>

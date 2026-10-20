@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { captureBlackboxScreenshot } from "./blackbox-screenshot.mjs";
+import { checkMcpUiInteractions } from "./mcp-ui-interaction-checks.mjs";
 
 assert(process.env.TAURI_PILOT_SOCKET, "Select the isolated native window");
 const artifacts = mkdtempSync(join(tmpdir(), "openagent-mcp-ui-transcript-"));
@@ -46,11 +47,12 @@ const resourceServer = spawn(
     `
   const {createServer}=require('node:http');
   const {readFileSync}=require('node:fs');
-  const html=readFileSync(process.argv[1]);
+  const html=readFileSync(process.argv[1],'utf8').replace('</body>',readFileSync(process.argv[2],'utf8')+'</body>');
   const server=createServer((req,res)=>{res.writeHead(200,{'content-type':'text/html','access-control-allow-origin':'*'});res.end(html);});
   server.listen(0,'127.0.0.1',()=>console.log(server.address().port));
 `,
     join(process.cwd(), "plugins/mermaid/ui/app.html"),
+    join(process.cwd(), "tests/fixtures/mcp-ui-probe.html"),
   ],
   { windowsHide: true, stdio: ["ignore", "pipe", "inherit"] },
 );
@@ -86,14 +88,21 @@ try {
           ),
           "true",
         );
-        evaluate(
-          `document.querySelector('.mcp-app-frame iframe').contentWindow.postMessage({jsonrpc:'2.0',method:'ui/notifications/tool-input',params:{arguments:{source:'this is invalid Mermaid'}}},'*')`,
+        const { widget } = await checkMcpUiInteractions({
+          evaluate,
+          until,
+          capture: (label) =>
+            captureBlackboxScreenshot(
+              pilot,
+              join(artifacts, `${theme}-${locale}-${pass}-${label}.png`),
+            ),
+        });
+        const editedSource = "flowchart LR\nLocalEdit --> Preserved";
+        await widget("input", editedSource);
+        await widget("click", "render");
+        await until(
+          `window.__mcpRenderStatus?.status==='ready' && window.__mcpRenderStatus?.source===${JSON.stringify(editedSource)}`,
         );
-        await until(`window.__mcpRenderStatus?.status==='failed'`);
-        evaluate(
-          `document.querySelector('.mcp-app-frame iframe').contentWindow.postMessage({jsonrpc:'2.0',method:'ui/notifications/tool-input',params:{arguments:{source:'flowchart LR\\nRecovered --> Ready'}}},'*')`,
-        );
-        await until(`window.__mcpRenderStatus?.status==='ready'`);
         pilot(["click", "[data-mcp-finalize]"]);
         await until(`document.querySelector('[data-stage="completed"]')!==null`);
         assert.equal(
@@ -102,9 +111,19 @@ try {
           ),
           "true",
         );
+        assert.equal(
+          (await widget("inspect")).source,
+          editedSource,
+          "Final reconciliation must retain local edits",
+        );
         pilot(["snapshot", "-i"]);
         pilot(["run", scenario]);
         captureBlackboxScreenshot(pilot, join(artifacts, `${theme}-${locale}-${pass}.png`));
+        await widget("mode", "fullscreen");
+        await widget("close");
+        await until(
+          `document.querySelector('.mcp-app-frame')?.classList.contains('closed') && !document.querySelector(':popover-open')`,
+        );
         pilot(["click", "[data-mcp-fail]"]);
         await until(`!document.querySelector('.mcp-app-frame')`);
         assert.equal(
@@ -115,6 +134,10 @@ try {
         );
       }
     }
+} catch (error) {
+  captureBlackboxScreenshot(pilot, join(artifacts, "failure.png"));
+  console.error(`MCP UI transcript failed. Artifacts: ${artifacts}`);
+  throw error;
 } finally {
   resourceServer.kill();
   pilot(["navigate", original]);

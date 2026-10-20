@@ -14,6 +14,11 @@ Check both the host and embedded content, including plugin HTML, when reviewing
 titles. Verify the composed surface in both themes and languages instead of
 judging an isolated component alone.
 
+MCP App fullscreen and PIP keep their existing iframe while occupying the browser
+top layer. Fullscreen uses the opaque card surface, including its close chrome;
+the native-material transparent canvas must not expose underlying chat controls.
+The chat frontend owner defines sizing, mode and nested-modal behavior.
+
 When the conversation pane is collapsed, an available right sidebar becomes
 the sole workspace surface and must occupy the full workspace width. The
 sidebar's saved collapse preference remains available when the conversation
