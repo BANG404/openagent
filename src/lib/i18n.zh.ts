@@ -978,6 +978,7 @@ export const zh = {
   working: "处理中…",
   workedFor: "处理了",
   agentRunning: "Agent 运行中",
+  agentWaitingForInput: "等待输入",
   thinking: "思考中",
   yes: "是",
   no: "否",

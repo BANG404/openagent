@@ -84,7 +84,10 @@ export function reconcileTerminalAssistantMessage(
   const alreadyDurable = visible.some(
     (message) =>
       message.role === "assistant" &&
-      (message.id === responseMessageId || message.turn?.response_message_id === responseMessageId),
+      (message.id === finalized.id ||
+        (message.turn?.response_message_id === responseMessageId &&
+          ["completed", "cancelled", "failed"].includes(message.turn.status) &&
+          message.turn.status === finalized.transientTurnStatus)),
   );
   return alreadyDurable
     ? { messages: visible, appended: false }

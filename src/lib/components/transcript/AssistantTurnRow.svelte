@@ -7,6 +7,7 @@
   import { finalAssistantOutput } from "$lib/assistantOutput";
   import {
     assistantTurnStatus,
+    hasPendingHumanInput,
     latestTurnMetadata,
     shouldShowProcessRecords,
   } from "$lib/processRecordState";
@@ -92,13 +93,17 @@
   let liveNow = $state(Date.now());
   let liveStart = $state(Date.now());
   $effect(() => {
-    if (entry.kind !== "live_stream" || entry.settled) return;
+    const turn = latestTurnMetadata(entryAssistantMessages(entry));
+    const live = entry.kind === "live_stream" && !entry.settled;
+    const waiting =
+      assistantTurnStatus(entryAssistantMessages(entry), false) === "interrupted" &&
+      hasPendingHumanInput(assistantItems(entry, [], activeConvId, activeBranchId));
+    if (!live && !waiting) return;
     // The transport's clock survives switching conversations and model rounds.
     // Paired clients can instead recover the logical Turn clock from history.
     liveStart =
+      turn?.started_at ??
       streamStartedAt ??
-      messages.findLast((message) => message.turn?.response_message_id === entry.key)?.turn
-        ?.started_at ??
       messages.findLast(
         (message) => message.role === "user" && !message.tags?.includes("context_compaction"),
       )?.timestamp ??
@@ -150,6 +155,8 @@
     activeStream && !memoryRetrievalStage && (!isAwaitingStreamOutput || hasModelResponse)}
   {@const turnMetadata = latestTurnMetadata(turnMessages)}
   {@const turnStatus = assistantTurnStatus(turnMessages, assistantIsStreaming)}
+  {@const waitingForInput =
+    turnStatus === "interrupted" && hasPendingHumanInput(renderedAssistantItems)}
   {@const turnSuggestionHostMessageId =
     turnMetadata?.response_message_id ?? assistantMsg?.id ?? null}
   {@const turnIsTerminal = ["completed", "cancelled", "failed"].includes(turnStatus)}
@@ -220,8 +227,11 @@
   <ProcessRecordGroup
     grouped={showProcessRecords}
     running={showRunningStatus}
+    waiting={waitingForInput}
     summary={turnIsTerminal}
-    duration={showRunningStatus ? formatDuration(Math.max(0, liveNow - liveStart)) : timing?.total}
+    duration={showRunningStatus || waitingForInput
+      ? formatDuration(Math.max(0, liveNow - liveStart))
+      : timing?.total}
   >
     {@render renderAssistantSegments(processSegments)}
   </ProcessRecordGroup>
@@ -242,7 +252,7 @@
       <span>{$t("awaitingStreamOutput")}</span>
     </div>
   {/if}
-  {#if assistantMsg}
+  {#if assistantMsg && turnIsTerminal}
     {#if isRerunnable || timing || cacheUsage || assistantMsg.timestamp > 0 || renderedAssistantItems.length > 0}
       <div
         class="msg-footer-row message-record pagination-footer"

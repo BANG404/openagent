@@ -40,6 +40,7 @@ function fixture() {
       memoryRetrievalSkippable: {},
       recoveredConversationIds: {},
       startTiming() {},
+      resumeTiming() {},
       recordFirstResponse() {},
       clearAwaitingOutput() {},
       clearMemoryRetrieval() {},

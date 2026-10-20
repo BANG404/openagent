@@ -350,7 +350,7 @@ describe("tool-call grouping", () => {
     expect(entries).toHaveLength(2);
     expect(entries[1]).toMatchObject({
       kind: "assistant_turn",
-      key: "assistant-final",
+      key: "tool-1",
       finalIndex: 3,
       messages: [{ id: "tool-1" }, { id: "tool-2" }, { id: "assistant-final" }],
     });
@@ -408,7 +408,7 @@ describe("tool-call grouping", () => {
     expect(entries).toHaveLength(2);
     expect(entries[1]).toMatchObject({
       kind: "assistant_turn",
-      key: "assistant-final",
+      key: "assistant-before",
       finalIndex: 3,
       messages: [
         { id: "assistant-before" },

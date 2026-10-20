@@ -7,8 +7,8 @@ export function isCompactionReplayUser(msg: ChatMessage) {
   return msg.role === "user" && msg.tags?.includes("context_compaction") === true;
 }
 export function entryAssistantMessages(entry: MessageRenderEntry): ChatMessage[] {
-  if (entry.kind === "assistant_turn") {
-    return entry.messages.filter((message) => message.role === "assistant");
+  if (entry.kind === "assistant_turn" || entry.kind === "live_stream") {
+    return (entry.messages ?? []).filter((message) => message.role === "assistant");
   }
   if (entry.kind === "message" && entry.msg.role === "assistant") return [entry.msg];
   return [];
@@ -20,7 +20,17 @@ export function assistantItems(
   activeConvId: string | null,
   activeBranchId: string | null,
 ): StreamItem[] {
-  if (entry.kind === "live_stream") return entry.items ?? currentStreamItems;
+  if (entry.kind === "live_stream") {
+    const prefix = entry.messages
+      ? assistantItems(
+          { kind: "assistant_turn", key: entry.key, messages: entry.messages, finalIndex: -1 },
+          [],
+          activeConvId,
+          activeBranchId,
+        )
+      : [];
+    return [...prefix, ...(entry.items ?? currentStreamItems)];
+  }
   if (entry.kind === "assistant_turn") {
     return entry.messages.flatMap((message) => {
       // A durable turn is grouped with the replay that opens it, so its

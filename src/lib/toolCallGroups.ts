@@ -35,7 +35,13 @@ export type StoredMessageRenderEntry =
 
 export type MessageRenderEntry =
   | StoredMessageRenderEntry
-  | { kind: "live_stream"; key: string; items?: StreamItem[]; settled?: boolean }
+  | {
+      kind: "live_stream";
+      key: string;
+      items?: StreamItem[];
+      settled?: boolean;
+      messages?: ChatMessage[];
+    }
   | {
       kind: "assistant_turn";
       messages: ChatMessage[];
@@ -264,13 +270,13 @@ export function groupAssistantTurns(entries: StoredMessageRenderEntry[]): Messag
       break;
     }
 
-    const finalAssistantMessage = messages.findLast((message) => message.role === "assistant")!;
+    const firstAssistantMessage = messages.find((message) => message.role === "assistant")!;
     const turn = messages.find((message) => message.turn)?.turn;
     grouped.push({
       kind: "assistant_turn",
       messages,
       finalIndex,
-      key: turn?.response_message_id ?? finalAssistantMessage.id,
+      key: turn?.response_message_id ?? firstAssistantMessage.id,
     });
     position = end;
   }
@@ -281,7 +287,17 @@ export function appendLiveStreamEntry(
   entries: MessageRenderEntry[],
   streamMessageId: string | null,
 ): MessageRenderEntry[] {
-  return streamMessageId ? [...entries, { kind: "live_stream", key: streamMessageId }] : entries;
+  if (!streamMessageId) return entries;
+  const previous = entries.at(-1);
+  // Resumed executions allocate a new message ID, but consecutive assistant
+  // records still belong to the same user Turn. Keep its row and children mounted.
+  if (previous?.kind === "assistant_turn") {
+    return [
+      ...entries.slice(0, -1),
+      { kind: "live_stream", key: previous.key, messages: previous.messages },
+    ];
+  }
+  return [...entries, { kind: "live_stream", key: streamMessageId }];
 }
 
 export type ToolCallStatus =

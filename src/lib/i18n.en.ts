@@ -1022,6 +1022,7 @@ const en: Record<TranslationKeys, string> = {
   working: "Working…",
   workedFor: "Worked for",
   agentRunning: "Agent running",
+  agentWaitingForInput: "Waiting for input",
   workDetails: "Work details",
   thinking: "Thinking",
   yes: "Yes",

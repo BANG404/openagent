@@ -81,6 +81,13 @@ branch tip are persisted before either UI observes completion. If both devices
 act at once, the existing stale interrupt ID and per-conversation resume lock
 reject the duplicate action.
 
+Remote live snapshots reuse logical Turn metadata from the selected checkpoint
+path. Resumed question/approval executions join the existing transcript row;
+their per-execution message IDs never reset the row key or clock. Pass the
+logical start timestamp to the shared transcript even when the current snapshot
+has no Turn metadata. Waiting interruptions remain nonterminal and keep final
+actions hidden, just as on desktop.
+
 ## Transport behavior
 
 The remote page composes browser controllers under `src/lib/remote/`.

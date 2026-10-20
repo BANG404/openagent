@@ -141,7 +141,7 @@
       argHint={toolArgHint(item.args)}
       approval={item.approval}
       onApprove={(requestId) => onSubmitUserInput(requestId, { approved: true })}
-      onDeny={onCancelUserInput}
+      onDeny={(requestId) => onSubmitUserInput(requestId, { approved: false })}
       {mermaidConfig}
       showRunning={isStreaming}
       onToggle={() => (expanded = !expanded)}

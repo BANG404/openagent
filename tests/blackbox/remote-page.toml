@@ -224,6 +224,11 @@ script = '''(async()=>{
   await wait(()=>document.querySelectorAll('.chat-queue [data-queue-id]').length===1&&!document.querySelector('[contenteditable=true][role=textbox]').textContent.trim(),'queue acceptance did not clear exactly the submitted draft');
   const queue=await (await fetch('/api/conversations/two-a/input-queue')).json();
   if(queue.items.length!==1||queue.items[0].input.attachments[0]!=='fixture-blob'||!queue.items[0].input.contexts.some(context=>context.text.includes('Durable answer two-a')))throw new Error('remote queue dropped attachment or quote: '+JSON.stringify(queue.items));
+  // An idle resumed head leaves the inbox while Runtime dispatches it. Keep a
+  // second queued input so pause/clear still have a visible inbox to operate on.
+  await fill('second remote follow-up');
+  document.querySelector('.send-btn').click();
+  await wait(()=>document.querySelectorAll('.chat-queue [data-queue-id]').length===2&&!document.querySelector('[contenteditable=true][role=textbox]').textContent.trim(),'second queued input missing');
   await fill('unsent remote queue draft');
   const buttons=()=>[...document.querySelectorAll('.chat-queue .queue-header button')];
   buttons().find(button=>button.textContent===tr('resumeQueue')).click();

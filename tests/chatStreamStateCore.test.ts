@@ -3,6 +3,7 @@ import type { ChatStreamStateMaps } from "../src/lib/chatStreamStateCore";
 import {
   cleanupChatState,
   recordChatFirstResponse,
+  resumeChatTiming,
   startChatTiming,
 } from "../src/lib/chatStreamStateCore";
 
@@ -43,6 +44,23 @@ describe("chat stream state lifecycle", () => {
     expect(current.firstTokenAt).toEqual({ a: 11, b: 21 });
     recordChatFirstResponse(current, "c", 300);
     expect(current.firstTokenAt.c).toBe(300);
+  });
+
+  test("restores timing after an interrupt cleanup without resetting sibling conversations", () => {
+    const current = state();
+    cleanupChatState(current, "a");
+    resumeChatTiming(
+      current,
+      "a",
+      [
+        { id: "input", role: "user", content: "request", timestamp: 10 },
+        { id: "reply", role: "assistant", content: "question", timestamp: 20, firstTokenAt: 11 },
+      ],
+      1_000,
+    );
+    recordChatFirstResponse(current, "a", 1_001);
+    expect(current.startedAt).toEqual({ a: 10, b: 20 });
+    expect(current.firstTokenAt).toEqual({ a: 11, b: 21 });
   });
 
   test("cleans every transient map for one conversation without touching siblings", () => {

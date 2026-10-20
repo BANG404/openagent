@@ -6,6 +6,7 @@
     duration?: string | null;
     grouped?: boolean;
     running?: boolean;
+    waiting?: boolean;
     summary?: boolean;
     children: Snippet;
   }
@@ -14,13 +15,20 @@
     duration = null,
     grouped = true,
     running = false,
+    waiting = false,
     summary = false,
     children,
   }: Props = $props();
   let open = $state(false);
 
   let label = $derived(
-    running ? $t("agentRunning") : duration ? `${$t("workedFor")} ${duration}` : $t("workDetails"),
+    waiting
+      ? $t("agentWaitingForInput")
+      : running
+        ? $t("agentRunning")
+        : duration
+          ? `${$t("workedFor")} ${duration}`
+          : $t("workDetails"),
   );
 </script>
 
@@ -28,17 +36,18 @@
   class="process-records"
   data-grouped={grouped ? "true" : undefined}
   data-running={running ? "true" : undefined}
+  data-waiting={waiting ? "true" : undefined}
   data-summary={summary ? "true" : undefined}
   data-open={grouped && open ? "true" : undefined}
 >
-  {#if running || (summary && !grouped)}
+  {#if running || waiting || (summary && !grouped)}
     <div
       class="process-record-summary process-record-static"
       class:process-record-running={running}
-      role={running ? "status" : undefined}
+      role={running || waiting ? "status" : undefined}
     >
       <span>{label}</span>
-      {#if running}<span class="process-duration" role="timer">{duration}</span>{/if}
+      {#if running || waiting}<span class="process-duration" role="timer">{duration}</span>{/if}
     </div>
   {:else if grouped}
     <button
@@ -74,7 +83,9 @@
     margin: 0 0 14px;
   }
 
-  .process-records:not([data-grouped="true"]):not([data-running="true"]):not([data-summary="true"]),
+  .process-records:not([data-grouped="true"]):not([data-running="true"]):not(
+      [data-waiting="true"]
+    ):not([data-summary="true"]),
   .process-records:not([data-grouped="true"]) .process-record-content {
     display: contents;
   }

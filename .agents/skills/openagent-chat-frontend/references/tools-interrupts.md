@@ -83,11 +83,21 @@
   cards.
   A live approval request arrives before its run's terminal interruption event;
   if the clicked request still belongs to the live stream, wait for that event
-  to finalize the assistant turn before initializing the resumed stream. Never
+  to finalize its assistant record before initializing the resumed stream. Never
   clear the text or tool cards that contain the approval being resolved.
   A failed response restores only its matching card and must not tear down a
   sibling approval that is still queued or running. Apply the same behavior to
   desktop and remote transcript projections.
+  `ask_user` answers/cancellations and approval allow/deny responses all continue
+  the same logical Turn, following the row and timing rules in
+  [transcript and streaming](transcript-streaming.md). A new authored message starts a
+  new Turn; its existing durable unanswered/denied result rules still apply.
+  Shared approval cards submit both decisions through the answer callback with
+  `values.approved` set to a boolean. Reserve `{ cancelled: true }` for cancelling
+  an `ask_user` form; the approval endpoint rejects that form-cancellation shape.
+  Run `bun run test:blackbox:interrupt-turn` against an isolated native instance
+  to verify question answer/cancel, batched approvals, allow/deny, preserved
+  record identity and waiting/terminal reload in all four themes/locales.
 - Render `render_mermaid` as a standalone transcript row from ToolCall source and
   restore it from the matching durable ToolResult. Defer the preview until its
   successful ToolResult arrives; never mount pending or failed render previews.

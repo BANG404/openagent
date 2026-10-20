@@ -1,0 +1,22 @@
+[scenario]
+name = "human interrupts preserve one Turn and mounted records"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "one waiting header, original clock and mounted pre-interrupt output"
+action = "eval"
+script = '''(() => {
+  const assert = (condition, message) => { if (!condition) throw new Error(message); };
+  const groups = document.querySelectorAll('.process-records');
+  assert(groups.length === 1, 'interrupt/resume split the logical Turn');
+  assert(groups[0].dataset.waiting === 'true', 'interrupt lost its waiting header');
+  assert(!document.querySelector('.msg-footer-row'), 'nonterminal Turn exposed its final footer');
+  const record = [...document.querySelectorAll('.stream-item')].find(node => node.textContent.includes('Before the question'));
+  assert(record, 'pre-interrupt output disappeared');
+  if (window.__interruptRecord) assert(record === window.__interruptRecord, 'resume remounted the original record');
+  window.__interruptRecord = record;
+  const timer = groups[0].querySelector('[role=timer]');
+  assert(timer && timer.textContent !== '0ms', 'interrupt reset its clock');
+  return 'same waiting Turn, clock, records and nonterminal actions verified';
+})()'''

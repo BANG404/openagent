@@ -54,6 +54,7 @@
   import { mergeConversationMetadata } from "$lib/page/conversationMetadata";
   import { createRoleController, DEFAULT_ROLE_KEY } from "$lib/page/roles.svelte";
   import { ChatStreamState } from "$lib/chatStreamState.svelte";
+  import { currentTurnMessages, latestTurnMetadata } from "$lib/processRecordState";
   import {
     InterruptResolutionTracker,
     InterruptTerminalHandoff,
@@ -1258,7 +1259,11 @@
           // erases the text and tool cards that the user just approved.
           await terminalHandoff;
           if (resolution.firstForConversation) {
-            chatStreams.startTiming(convId);
+            const location = findConversationLocation(convId);
+            chatStreams.resumeTiming(
+              convId,
+              location?.conversations[location.index].messages ?? [],
+            );
             chatStreams.streamingConversationIds = {
               ...chatStreams.streamingConversationIds,
               [convId]: true,
@@ -2507,6 +2512,16 @@
     const durableItems = items.filter((item) => item.type !== "compaction_boundary");
 
     const finalizedAt = Date.now();
+    const location = findConversationLocation(conv_id);
+    const turnMessages = currentTurnMessages(
+      location?.conversations[location.index].messages ?? [],
+    );
+    const previousTurn = latestTurnMetadata(turnMessages);
+    const input = turnMessages.find((message) => message.role === "user");
+    const startedAt =
+      previousTurn?.started_at ?? chatStreams.startedAt[conv_id] ?? input?.timestamp;
+    const firstTokenAt = previousTurn?.first_token_at ?? chatStreams.firstTokenAt[conv_id];
+    const completedAt = status === "interrupted" ? undefined : finalizedAt;
     const assistantMsg: ChatMessage = {
       id: assistantMessageId ?? crypto.randomUUID(),
       role: "assistant",
@@ -2515,12 +2530,24 @@
       items: durableItems.length > 0 ? [...durableItems] : undefined,
       aborted: status === "cancelled" || undefined,
       checkpointId: checkpointId ?? undefined,
-      firstTokenAt: chatStreams.firstTokenAt[conv_id],
-      completedAt: status === "interrupted" ? undefined : finalizedAt,
+      firstTokenAt,
+      completedAt,
       transientTurnStatus: status,
+      turn:
+        input && startedAt != null && responseMessageId
+          ? {
+              id: previousTurn?.id ?? responseMessageId,
+              input_message_id: previousTurn?.input_message_id ?? input.id,
+              response_message_id: previousTurn?.response_message_id ?? responseMessageId,
+              status,
+              started_at: startedAt,
+              first_token_at: firstTokenAt,
+              completed_at: completedAt,
+              duration_ms: completedAt == null ? undefined : completedAt - startedAt,
+            }
+          : undefined,
     };
 
-    const location = findConversationLocation(conv_id);
     if (!location) {
       // Conv was deleted while streaming — drop the in-flight message instead of saving an orphan row.
       const { [conv_id]: _items, ...restItems } = chatStreams.itemsByConversation;

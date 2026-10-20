@@ -1,5 +1,6 @@
 import type { ChatMemoryRetrievalStage } from "$lib/openagent";
-import type { StreamItem } from "$lib/types";
+import type { ChatMessage, StreamItem } from "$lib/types";
+import { turnClock } from "$lib/processRecordState";
 
 export interface ChatStreamStateMaps {
   itemsByConversation: Record<string, StreamItem[]>;
@@ -46,6 +47,19 @@ export function recordChatFirstResponse(
 ): void {
   if (state.firstTokenAt[conversationId] !== undefined) return;
   state.firstTokenAt = { ...state.firstTokenAt, [conversationId]: timestamp };
+}
+
+export function resumeChatTiming(
+  state: ChatStreamStateMaps,
+  conversationId: string,
+  messages: ChatMessage[],
+  timestamp: number,
+): void {
+  const clock = turnClock(messages);
+  startChatTiming(state, conversationId, clock.startedAt ?? timestamp);
+  if (clock.firstTokenAt != null) {
+    recordChatFirstResponse(state, conversationId, clock.firstTokenAt);
+  }
 }
 
 export function cleanupChatState(state: ChatStreamStateMaps, conversationId: string): void {

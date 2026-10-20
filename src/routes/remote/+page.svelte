@@ -29,6 +29,7 @@
   import { pluginCommandText } from "$lib/pluginI18n";
   import { renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
   import { resolveUserInput } from "$lib/chatStream";
+  import { turnClock } from "$lib/processRecordState";
   import { encodeModelBinding } from "$lib/modelBinding";
   import {
     projectCurrentFileChanges,
@@ -291,6 +292,18 @@
             conversation.conv_id,
           )
         : [];
+    }
+    // Live snapshots contain message records; the selected checkpoint path
+    // supplies their logical Turn identity and clock across interrupt resumes.
+    if (running && remoteHistory.activeTree) {
+      const turns = new Map(
+        computeActivePath(remoteHistory.activeTree)
+          .filter((message) => message.turn)
+          .map((message) => [message.id, message.turn]),
+      );
+      projected = projected.map((message) =>
+        turns.has(message.id) ? { ...message, turn: turns.get(message.id) } : message,
+      );
     }
     return Object.entries(remoteExecution.resolvingInterrupts).reduce(
       (messages, [requestId, resolution]) =>
@@ -830,6 +843,7 @@
                 scrollElement={messagesEl}
                 isStreaming={running}
                 isAwaitingStreamOutput={running && currentStreamItems.length === 0}
+                streamStartedAt={turnClock(projectedMessages).startedAt ?? null}
                 {currentStreamItems}
                 {currentStreamMessageId}
                 activeConvId={conversation?.conv_id ?? null}

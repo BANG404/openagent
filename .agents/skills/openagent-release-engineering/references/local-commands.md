@@ -117,6 +117,13 @@ then checks navigation and reload in four theme/locale pairs. It restores
 settings and removes fixture conversations. On Windows select the verified
 main HWND with `BLACKBOX_NATIVE_WINDOW_ID` for native screenshots.
 
+`test:blackbox:interrupt-turn` uses the same isolated-home/socket setup and a
+loopback Ollama fixture to drive `ask_user` answer/cancel followed by batched
+tool approvals. It verifies allow/deny, one logical Turn, original record DOM
+identity and clock, and reload while waiting and after completion across all
+four themes/locales. Its workspace is `<OPENAGENT_HOME>/workspace`; it restores
+settings and removes its conversations after the run.
+
 The input-queue native runner holds its loopback provider while testing Stop
 with an empty inbox, checks the paused empty snapshot and reload, then releases
 that request before starting the steering fixture. Keep these phases isolated

@@ -184,6 +184,20 @@
   transport's conversation-scoped start timestamp, with durable Turn metadata
   or the authored user timestamp for paired clients; switching conversations
   must not restart the clock. Dispose the interval at completion or unmount.
+  Human interrupts (`ask_user` and tool approvals) retain the same mounted row
+  and record keys while waiting and resuming. Show a localized waiting header
+  during the interrupt; elapsed time includes the wait, matching the logical
+  Turn's wall-clock duration. A resumed execution keeps its distinct assistant
+  message ID for event correlation, but joins the durable prefix in that row.
+  Restore its start and first-response timestamps from the selected Turn before
+  streaming again. Snapshot clients without Turn metadata use the first
+  assistant record as the row key and the authored input timestamp as the clock.
+  Terminal reconciliation deduplicates the current execution's message or an
+  already terminal matching Turn; an earlier interrupted owner is not proof
+  that the resumed execution is already visible.
+  Show the waiting header only while a pending question or approval remains;
+  answered, cancelled or unanswered historical forms do not keep an old clock
+  running after the user has continued with a new message.
   Every terminal reply retains a top process summary, including replies with
   no process records to fold. Use a static header without a chevron when there
   is no disclosure, and display the final duration there when available. Keep

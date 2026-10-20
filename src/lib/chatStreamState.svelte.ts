@@ -1,10 +1,11 @@
 import type { ChatMemoryRetrievalStage } from "$lib/openagent";
-import type { StreamItem } from "$lib/types";
+import type { ChatMessage, StreamItem } from "$lib/types";
 import {
   cleanupChatState,
   clearChatAwaitingOutput,
   clearChatMemoryRetrieval,
   recordChatFirstResponse,
+  resumeChatTiming,
   startChatTiming,
 } from "$lib/chatStreamStateCore";
 
@@ -22,6 +23,10 @@ export class ChatStreamState {
 
   startTiming(conversationId: string, timestamp = Date.now()): void {
     startChatTiming(this, conversationId, timestamp);
+  }
+
+  resumeTiming(conversationId: string, messages: ChatMessage[]): void {
+    resumeChatTiming(this, conversationId, messages, Date.now());
   }
 
   recordFirstResponse(conversationId: string): void {
