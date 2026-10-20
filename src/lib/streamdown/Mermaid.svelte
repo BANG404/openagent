@@ -24,6 +24,7 @@
   let renderError = $state("");
   let renderGeneration = 0;
   let themeRevision = $state(0);
+  const source = $derived(token.text);
 
   onMount(() => observeThemePalette(() => themeRevision++));
 
@@ -164,14 +165,16 @@
   $effect(() => {
     void themeRevision;
     const config = streamdown.mermaidConfig as MermaidConfig | undefined;
-    if (!mermaidReady || !mermaidNode) return;
+    const code = source;
+    const element = mermaidNode;
+    if (!mermaidReady || !element) return;
     // Streaming Markdown updates the token for every chunk. Debouncing avoids
     // queueing a render for each intermediate source while keeping the final
     // diagram responsive. Invalidate the previous generation immediately so
     // an older in-flight render can never replace the latest source.
     renderGeneration += 1;
     const timeout = window.setTimeout(() => {
-      void renderMermaid(token.text, mermaidNode as HTMLElement, config);
+      void renderMermaid(code, element, config);
     }, 180);
     return () => window.clearTimeout(timeout);
   });

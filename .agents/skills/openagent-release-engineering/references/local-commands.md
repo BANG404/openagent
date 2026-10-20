@@ -104,6 +104,10 @@ Run native UI automation separately from preflight/build/type-check commands:
 they can regenerate SvelteKit assets and reload a development WebView mid-scenario.
 Complete those checks, wait for the development server to be ready, then launch
 the isolated desktop scenario in the signed-in user's interactive session.
+`test:blackbox:mermaid-zoom` uses the host's admitted Vite origin and an explicit
+`TAURI_PILOT_SOCKET`, repeats its scenario after navigation reload in four
+theme/locale pairs, and retains screenshots under the system temporary directory.
+Its synthetic preview requires no configured provider or saved conversation.
 
 Release automation preflight includes `lint:frontend` and `lint:actions`, both
 of which reject warnings. Quote dynamic values in Bash expansion patterns and

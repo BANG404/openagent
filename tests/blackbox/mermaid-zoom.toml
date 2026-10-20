@@ -1,0 +1,60 @@
+[scenario]
+name = "Mermaid zoom survives root mutations and fullscreen transitions"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "retain the same SVG and view until source or palette changes"
+action = "eval"
+script = '''(async () => {
+  const assert = (condition, message) => { if (!condition) throw new Error(message); };
+  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+  const button = name => document.querySelector(`[aria-label="${name}"]`);
+  const canvas = () => document.querySelector('[data-mermaid-svg]');
+  const svg = () => canvas()?.querySelector(':scope > svg');
+  for (let i = 0; i < 100 && !svg(); i++) await wait(100);
+  assert(svg(), 'diagram did not render');
+  await wait(500);
+  for (const expanded of [false, true]) {
+    if (expanded) { button('Toggle expand').click(); await wait(100); }
+    const original = svg();
+    const fitted = canvas().style.transform;
+    button('Zoom in').click();
+    const zoomed = canvas().style.transform;
+    assert(zoomed !== fitted, 'zoom did not change the view');
+    const root = document.documentElement;
+    root.style.setProperty('--mermaid-unrelated-probe', String(Date.now()));
+    root.classList.toggle('mermaid-unrelated-probe');
+    await wait(1200);
+    assert(svg() === original, 'unrelated root mutation replaced the diagram');
+    assert(canvas().style.transform === zoomed, 'unrelated root mutation reset zoom');
+    root.style.removeProperty('--mermaid-unrelated-probe');
+    root.classList.remove('mermaid-unrelated-probe');
+    button('Zoom out').click();
+    const zoomedOut = canvas().style.transform;
+    await wait(500);
+    assert(canvas().style.transform === zoomedOut && svg() === original, 'zoom out refreshed the diagram');
+    button('Zoom to fit').click();
+    assert(canvas().style.transform !== zoomedOut, 'fit did not restore the view');
+  }
+  document.dispatchEvent(new KeyboardEvent('keydown', {key:'Escape',bubbles:true}));
+  window.dispatchEvent(new KeyboardEvent('keydown', {key:'Escape'}));
+  await wait(100);
+  assert(!document.querySelector('[data-streamdown-mermaid][data-expanded="true"]'), 'Escape did not leave fullscreen');
+  const original = svg();
+  const foreground = document.documentElement.style.getPropertyValue('--foreground');
+  document.documentElement.style.setProperty('--foreground', '#314159');
+  for (let i = 0; i < 100 && svg() === original; i++) await wait(50);
+  assert(svg() !== original, 'actual palette change did not update the diagram');
+  if (foreground) document.documentElement.style.setProperty('--foreground', foreground);
+  else document.documentElement.style.removeProperty('--foreground');
+  await wait(500);
+  document.querySelector('.mermaid-finalization-control').click();
+  await wait(800);
+  assert(svg() && document.querySelector('.mermaid-finalization-control').disabled, 'finalization lost the durable diagram');
+  button('Zoom in').click();
+  const finalView = canvas().style.transform;
+  await wait(1200);
+  assert(canvas().style.transform === finalView, 'durable diagram reset zoom');
+  return 'embedded/fullscreen zoom, fit, unrelated mutations, palette refresh and finalization passed';
+})()'''

@@ -107,7 +107,14 @@
   enforce a finite per-render timeout so a pathological diagram cannot block
   the queue and make later tool calls appear to time out. Streamed Mermaid
   source is debounced before rendering, and a newer source invalidates any
-  older in-flight result. The main chat shell preloads the Mermaid module
+  older in-flight result. Capture source dependencies before the debounce so
+  source updates actually schedule a render. Renderer palette observers compare
+  resolved colors and font before notifying: unrelated or equivalent root
+  class/style mutations must preserve the SVG and the user's pan/zoom, including
+  fullscreen. Actual palette changes still repaint. Verify embedded/fullscreen
+  zoom, fit, palette refresh, finalization and reload in light/dark and English/
+  Chinese with `bun run test:blackbox:mermaid-zoom` in an isolated Tauri window.
+  The main chat shell preloads the Mermaid module
   before revealing the window so the first tool request does not spend the
   Runtime response deadline on a cold dynamic import; a failed preload remains
   retryable.

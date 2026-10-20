@@ -78,9 +78,11 @@
   data-message-id={msg.id}
   onfocusout={async (event) => {
     const surface = event.currentTarget;
+    const previousTarget = event.target;
     // Replacing the focused bubble also emits focusout. Let startEdit mount and
     // focus the textarea before deciding whether focus left the message.
     await tick();
+    if (previousTarget instanceof Node && !previousTarget.isConnected) return;
     if (!surface.contains(surface.ownerDocument.activeElement)) {
       edit.blurEdit(msg);
     }
@@ -108,6 +110,7 @@
         edit.editingText = e.currentTarget.value;
       }}
       onkeydown={(e) => {
+        if (e.isComposing || e.keyCode === 229) return;
         if (e.key === "Enter" && !e.shiftKey && canSubmitEdit) {
           e.preventDefault();
           edit.commitEdit(activeConvId!, msgIdx, attachments, contexts);
