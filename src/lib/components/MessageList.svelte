@@ -149,6 +149,7 @@
   let readingTurnKey = $state<string | null>(null);
   let loadingBookTurnKey = $state<string | null>(null);
   let BookReader = $state<typeof import("./AgentBookReader.svelte").default | null>(null);
+  const bookConversationId = $derived(activeConvId);
   let suggestionHostMessageId = $derived(latestTurnSuggestionHostMessageId(messages));
   let copyFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
   $effect(() => () => {
@@ -226,9 +227,10 @@
     ),
   );
 
-  // Keep reader selection scoped to the mounted conversation.
+  // Parent view refreshes invalidate the prop getter even in the same
+  // conversation. Only actual navigation may discard the reader selection.
   $effect(() => {
-    activeConvId;
+    void bookConversationId;
     readingTurnKey = null;
     loadingBookTurnKey = null;
   });

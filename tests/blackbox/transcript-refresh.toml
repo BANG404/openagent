@@ -1,7 +1,37 @@
 [scenario]
-name = "ordinary chat polling preserves Mermaid view and user edit focus"
+name = "ordinary chat polling preserves book mode, Mermaid view and user edit focus"
 fail_fast = true
 global_timeout_ms = 60000
+
+[[step]]
+name = "real queue refreshes retain book mode until explicitly closed"
+action = "eval"
+script = '''(async()=>{
+  const {desktopOpenAgent:client}=await import('/src/lib/openagent/tauriClient.ts');
+  const original=client.getInputQueue;let polls=0;
+  client.getInputQueue=async function(...args){const result=await original.apply(this,args);polls++;return result;};
+  const assert=(value,message)=>{if(!value)throw new Error(message);};
+  const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  const open=async()=>{
+    document.querySelector('.msg-action-btn[aria-label="Read in book mode"],.msg-action-btn[aria-label="以书籍模式阅读"]').click();
+    for(let i=0;i<50 && !document.querySelector('.agent-book-dialog');i++)await wait(100);
+    const dialog=document.querySelector('.agent-book-dialog');
+    assert(dialog,'Book mode did not open');return dialog;
+  };
+  try{
+    const dialog=await open();const start=polls;
+    await wait(4500);
+    assert(polls-start>=2,'Did not exercise two successful automatic queue polls');
+    assert(dialog.isConnected && document.querySelector('.agent-book-dialog')===dialog,'Queue refresh closed book mode');
+    assert(dialog.querySelector('[data-mermaid-svg] > svg'),'Book mode lost its rendered diagram');
+    dialog.querySelector('.book-close').click();await wait(100);
+    assert(!document.querySelector('.agent-book-dialog'),'Explicit close did not exit book mode');
+    await open();
+    document.querySelector('.book-close').click();await wait(100);
+    assert(!document.querySelector('.agent-book-dialog'),'Reopened book mode did not close');
+    return 'Book mode survived actual periodic queue loads and explicit close/reopen';
+  }finally{client.getInputQueue=original;}
+})()'''
 
 [[step]]
 name = "real queue refreshes do not replace the SVG or reset embedded/fullscreen zoom"
