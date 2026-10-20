@@ -65,7 +65,7 @@
   }
 </script>
 
-{#if error || visibleItems.length || snapshot?.paused}
+{#if error || visibleItems.length}
   <section class="chat-queue" aria-label={$t("messageQueue")} aria-busy={loading || busy}>
     <div class="queue-header">
       <span>{$t("messageQueue")} {snapshot ? visibleItems.length : ""}</span>

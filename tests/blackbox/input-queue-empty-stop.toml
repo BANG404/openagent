@@ -1,0 +1,31 @@
+[scenario]
+name = "Stop with no waiting inputs leaves no empty paused queue"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "stop an active reply with an empty inbox and preserve the unsent draft"
+action = "eval"
+script = '''(async()=>{
+  const probe=JSON.parse(sessionStorage.getItem('input-queue-fixture'));
+  const {desktopOpenAgent:client}=await import('/src/lib/openagent/tauriClient.ts');
+  const wait=async(check,why)=>{const end=Date.now()+20000;while(Date.now()<end){if(await check())return;await new Promise(r=>setTimeout(r,50));}throw new Error(why);};
+  const fill=async(text)=>{const editor=document.querySelector('[contenteditable=true][role=textbox]');editor.focus();const range=document.createRange();range.selectNodeContents(editor);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);document.dispatchEvent(new Event('selectionchange'));const clipboard=new DataTransfer();clipboard.setData('text/plain',text);editor.dispatchEvent(new ClipboardEvent('paste',{clipboardData:clipboard,bubbles:true,cancelable:true}));await new Promise(r=>requestAnimationFrame(r));};
+  await fill(`QUEUE_FIXTURE:${probe.marker} empty-stop`);
+  document.querySelector('.send-btn').click();
+  await wait(()=>document.body.textContent.includes(`Queue response ${probe.marker}`)&&!!document.querySelector('.stop-btn'),'provider stream did not start');
+  await fill('unsent-empty-stop-draft');
+  let queueFlashed=false;
+  const observer=new MutationObserver(()=>{if(document.querySelector('.chat-queue'))queueFlashed=true;});
+  observer.observe(document.body,{childList:true,subtree:true});
+  try {
+    document.querySelector('.stop-btn').click();
+    await wait(()=>!document.querySelector('.stop-btn'),'Stop did not finish');
+    await wait(async()=>{const queue=await client.getInputQueue(probe.convId);return queue.paused&&!queue.activeRunId&&queue.items.length===0;},'empty stopped queue did not settle');
+    window.dispatchEvent(new Event('focus'));
+    await new Promise(r=>setTimeout(r,1000));
+    if(queueFlashed||document.querySelector('.chat-queue'))throw new Error('Stop opened an empty paused queue');
+    if(!document.querySelector('[contenteditable=true][role=textbox]').textContent.includes('unsent-empty-stop-draft'))throw new Error('Stop erased the unsent draft');
+    return 'Stop preserved the draft without showing an empty paused queue';
+  } finally {observer.disconnect();}
+})()'''

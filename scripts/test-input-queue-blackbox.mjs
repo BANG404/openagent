@@ -200,6 +200,20 @@ try {
         "Runtime ignored native edit or ordering",
       );
       hold = true;
+      await openConversation("empty-stop");
+      await pilot(["snapshot", "-i"]);
+      await pilot([
+        "run",
+        join(root, "tests/blackbox/input-queue-empty-stop.toml"),
+        "--junit",
+        join(artifacts, `${theme}-${language}-empty-stop.xml`),
+      ]);
+      await screenshot(`${theme}-${language}-empty-stop.png`);
+      await evaluate("setTimeout(()=>location.reload(),100); true");
+      await new Promise((done) => setTimeout(done, 500));
+      await until("!!document.querySelector('[contenteditable=true][role=textbox]')");
+      await until("!document.querySelector('.chat-queue') && !document.querySelector('.stop-btn')");
+      releases.splice(0).forEach((release) => release());
       const steeringId = await openConversation("steer");
       const beforeSteer = requests.length;
       await pilot(["snapshot", "-i"]);
