@@ -154,6 +154,11 @@ Keep generic daemon supervision independent of any package's MCP topology.
   Tauri event names.
 - A lagged or disconnected SSE stream must stop live delivery and request
   a durable frontend resync before a new stream is started.
+- Bound each SSE frame to 32 MiB, including incomplete frames, independently
+  of HTTP chunk boundaries. This accommodates the MCP Apps 4 MiB resource
+  limit plus JSON escaping and the event envelope. A legal large resource must
+  reach the live transcript before terminal checkpoint hydration; verify with
+  `bun run test:blackbox:mcp-ui-streaming` against the real Mermaid package.
 - Record every WebView product request the host refuses or cannot deliver as a
   warning with the method, a route label built only from the fixed Runtime
   route words, and a bounded failure class. Dynamic path segments hold

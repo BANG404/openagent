@@ -11,6 +11,7 @@ import { toolImageAttachments } from "./toolImageAttachments";
 import type {
   ChatMessage,
   ChatToolImage,
+  McpUiInvocation,
   CheckpointMetadataFields,
   CheckpointMessage,
   CheckpointTurnMetadata,
@@ -384,6 +385,7 @@ export function checkpointRecordsToMessages( // NOSONAR: checkpoint normalizatio
             toolUseId,
             toolResultText(part.content),
             toolResultImages(part.content, part.meta),
+            toolResultMcpUi(part.meta),
           )
         );
       })
@@ -465,11 +467,17 @@ function toolResultImages(content: unknown, meta?: unknown): ChatToolImage[] {
   });
 }
 
+function toolResultMcpUi(meta: unknown): McpUiInvocation | undefined {
+  if (!meta || typeof meta !== "object") return undefined;
+  return (meta as { mcp_ui?: McpUiInvocation }).mcp_ui;
+}
+
 function attachPersistedToolResult( // NOSONAR: durable tool results are reconciled atomically with their owning message.
   messages: ChatMessage[],
   toolUseId: string,
   result: string,
   images: ChatToolImage[] = [],
+  mcpUi?: McpUiInvocation,
 ): boolean {
   for (let messageIndex = messages.length - 1; messageIndex >= 0; messageIndex--) {
     const message = messages[messageIndex];
@@ -497,6 +505,7 @@ function attachPersistedToolResult( // NOSONAR: durable tool results are reconci
         ...item,
         result,
         images: images.length > 0 ? images : item.images,
+        mcpUi: mcpUi ?? item.mcpUi,
         approval,
       };
     } else if (item.type === "user_input") {
@@ -621,6 +630,7 @@ export function buildTreeFromCheckpoints( // NOSONAR: tree construction applies 
               toolUseId,
               toolResultText(part.content),
               toolResultImages(part.content, part.meta),
+              toolResultMcpUi(part.meta),
             )
           );
         })

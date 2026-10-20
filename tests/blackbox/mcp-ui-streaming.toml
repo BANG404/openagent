@@ -1,0 +1,17 @@
+[scenario]
+name = "Large Mermaid MCP App renders before the streaming Turn completes"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+action = "eval"
+script = '''(() => {
+  const frame = document.querySelector('.mcp-app-frame');
+  if (!(frame instanceof HTMLElement) || !frame.querySelector('iframe')) throw new Error('The live editor is missing');
+  if (getComputedStyle(frame).display === 'none' || frame.getBoundingClientRect().height <= 0) throw new Error('The live editor is hidden');
+  if (frame.closest('.tool-call-group,.process-records')) throw new Error('The editor was folded into process records');
+  if (!document.querySelector('[data-running=true]')) throw new Error('The Turn already completed');
+  if (window.__mcpRenderStatus?.status !== 'ready') throw new Error('The real editor did not validate its diagram');
+  window.__mcpStreamingFrame = frame.querySelector('iframe');
+  return true;
+})()'''

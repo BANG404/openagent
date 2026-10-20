@@ -314,6 +314,19 @@ clear in both locale/theme passes; confirmation turns must not auto-wake.
 
 ## MCP Apps coverage
 
+`bun run test:blackbox:mcp-ui-streaming` uses an isolated multi-instance window
+with explicit `OPENAGENT_HOME` and `TAURI_PILOT_SOCKET`. It runs the independent
+Mermaid package's real stdio server and large offline editor through ordinary
+chat submission and a local deterministic provider. The follow-up response stays
+open until the editor reports a ready diagram, proving the native SSE relay
+delivered it before the Turn completed. Light/dark and English/Chinese passes
+also verify iframe identity across completion and restoration after reload.
+On Windows, set `BLACKBOX_NATIVE_WINDOW_ID` to that instance's verified main
+HWND to capture composited iframe pixels with the shared screenshot helper.
+Frame-size rejection and coalesced/fragmented network input are covered by the
+host transport Rust tests. The existing MCP UI transcript scenario covers failed
+rendering and recovery.
+
 The committed `tests/blackbox/mcp-apps.toml` and `mcp-apps-teardown.toml`
 scenarios verify the MCP Apps host bridge against the real, dependency-free MCP
 stdio server in `tests/fixtures/mcp-app-demo/`. The wrapper copies that fixture

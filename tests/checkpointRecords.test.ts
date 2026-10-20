@@ -1,6 +1,11 @@
 // @ts-nocheck -- legacy fixture typing is tracked separately from the strict test surface.
 import { describe, expect, test } from "bun:test";
-import { askUserRequestFromToolUse, checkpointRecordsToMessages } from "../src/lib/checkpointTree";
+import {
+  askUserRequestFromToolUse,
+  buildTreeFromCheckpoints,
+  checkpointRecordsToMessages,
+  computeActivePath,
+} from "../src/lib/checkpointTree";
 
 const record = (overrides) => ({
   id: crypto.randomUUID(),
@@ -17,6 +22,69 @@ const record = (overrides) => ({
 });
 
 describe("checkpoint record projection", () => {
+  test("restores completed MCP UI from its paired durable result", () => {
+    const mcpUi = {
+      descriptor: {
+        server_id: "mermaid",
+        tool_name: "render_mermaid",
+        resource_uri: "ui://mermaid/app",
+        visibility: ["model"],
+        meta: null,
+      },
+      resource: {
+        uri: "ui://mermaid/app",
+        mime_type: "text/html;profile=mcp-app",
+        text: "<html>editor</html>",
+        blob: null,
+        meta: null,
+      },
+      arguments: { source: "graph TD; A-->B" },
+      content: [{ type: "text", text: "prepared" }],
+      structured_content: { source: "graph TD; A-->B" },
+      meta: null,
+      is_error: false,
+    };
+    const records = [
+      record({
+        id: "call",
+        content: [{ type: "tool_use", id: "ui-1", name: "render_mermaid", input: mcpUi.arguments }],
+      }),
+      record({
+        role: "user",
+        content: [
+          {
+            type: "tool_result",
+            tool_use_id: "ui-1",
+            content: [{ type: "text", text: "prepared" }],
+            meta: { mcp_ui: mcpUi },
+          },
+        ],
+      }),
+      record({ id: "final", content: [{ type: "text", text: "Done" }] }),
+    ];
+    const messages = checkpointRecordsToMessages(records, "checkpoint");
+    expect(messages).toHaveLength(2);
+    expect(messages[0].items[0]).toMatchObject({ toolUseId: "ui-1", result: "prepared", mcpUi });
+    expect(messages[1].content).toBe("Done");
+    const treeMessages = computeActivePath(
+      buildTreeFromCheckpoints([
+        {
+          meta: {
+            thread_id: "conversation",
+            checkpoint_id: "checkpoint",
+            parent_checkpoint_id: null,
+            metadata: "{}",
+            created_at: 0,
+          },
+          data: { messages: records, phase: "final_completed", file_change_ids: [] },
+        },
+      ]),
+    );
+    expect(treeMessages.find((message) => message.id === "call")?.items[0].mcpUi).toEqual(mcpUi);
+    delete records[1].content[0].meta;
+    expect(checkpointRecordsToMessages(records, "legacy")[0].items[0].mcpUi).toBeUndefined();
+  });
+
   test("restores pasted text as a file chip while retaining reference delivery", () => {
     const blob = `sha256:${"b".repeat(64)}`;
     const [message] = checkpointRecordsToMessages(

@@ -1,5 +1,11 @@
 # Transcript and streaming
 
+- Restore completed MCP Apps presentations from the paired tool result's
+  `meta.mcp_ui` in both flat checkpoint and branch-tree projections. Terminal
+  reconciliation must retain the mounted app, and reopening the conversation
+  must render its stored resource without repeating the tool or provider call.
+  Legacy results without this optional metadata remain ordinary tool cards.
+
 - Keep the route as the desktop composition and runtime-coordination boundary.
   The permanently expanded desktop sidebar owns its width, resize gesture, and
   conversation navigation chrome; the shared title bar owns application menus,
