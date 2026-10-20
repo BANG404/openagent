@@ -30,6 +30,7 @@
           repairHidden: document.querySelector("#repair").hidden,
           status: document.querySelector("#status").textContent,
           dimensions: window.__mcpProbeContext?.containerDimensions,
+          theme: window.__inspectMermaidTheme?.(document.querySelector("#diagram")),
         };
       } else if (action === "click") document.getElementById(value).click();
       else if (action === "input") document.getElementById("source").value = value;

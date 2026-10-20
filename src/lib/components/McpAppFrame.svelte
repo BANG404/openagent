@@ -6,6 +6,8 @@
   import { t, locale } from "$lib/i18n";
   import type { McpUiInvocation } from "$lib/types";
   import { hydrateMcpToolImages } from "$lib/toolImageAttachments";
+  import { mcpAppStyles } from "$lib/mcpAppStyles";
+  import { observeThemePalette } from "$lib/streamdown/themePalette";
 
   let { invocation }: { invocation: McpUiInvocation } = $props();
 
@@ -70,7 +72,7 @@
       },
       toolInfo: { tool: { name: invocation.descriptor.tool_name } },
       openInAppUrl,
-      styles: { variables: {}, css: { fonts: "" } },
+      styles: mcpAppStyles(),
       version: hostContextVersion,
     };
   }
@@ -898,7 +900,7 @@ ${scriptClose}`;
 
   $effect(() => {
     window.addEventListener("message", onMessage);
-    const observer = new MutationObserver(() => {
+    const stopThemeObserver = observeThemePalette(() => {
       if (!initialized) return;
       hostContextVersion += 1;
       post({
@@ -907,9 +909,8 @@ ${scriptClose}`;
         params: hostContext(),
       });
     });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     return () => {
-      observer.disconnect();
+      stopThemeObserver();
       window.removeEventListener("message", onMessage);
     };
   });

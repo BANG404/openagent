@@ -1,6 +1,7 @@
 import type { MermaidConfig } from "mermaid";
 import { normalizeMermaidSource } from "./mermaidSource";
 import { readThemePalette } from "./themePalette";
+import { mermaidPalette } from "./mermaidPalette";
 
 export type MermaidRenderOutput = {
   svg: string;
@@ -69,39 +70,10 @@ export function loadMermaid() {
 
 function defaultConfig(customConfig?: MermaidConfig): MermaidConfig {
   const palette = readThemePalette();
-  const themeVariables: Record<string, string> = {};
-  const mapping: Record<string, string[]> = {
-    card: ["mainBkg", "primaryColor", "actorBkg", "labelBoxBkgColor", "clusterBkg"],
-    background: ["background", "secondaryColor", "edgeLabelBackground"],
-    muted: ["tertiaryColor", "activationBkgColor", "noteBkgColor"],
-    foreground: [
-      "primaryTextColor",
-      "secondaryTextColor",
-      "tertiaryTextColor",
-      "titleColor",
-      "actorTextColor",
-      "signalTextColor",
-      "labelTextColor",
-      "loopTextColor",
-      "noteTextColor",
-    ],
-    border: [
-      "primaryBorderColor",
-      "secondaryBorderColor",
-      "tertiaryBorderColor",
-      "nodeBorder",
-      "clusterBorder",
-      "actorBorder",
-      "actorLineColor",
-      "labelBoxBorderColor",
-      "noteBorderColor",
-    ],
-    "muted-foreground": ["lineColor", "signalColor", "activationBorderColor"],
-    font: ["fontFamily"],
-  };
-  for (const [token, names] of Object.entries(mapping)) {
-    if (palette[token]) for (const name of names) themeVariables[name] = palette[token];
-  }
+  const themeVariables = mermaidPalette(
+    palette,
+    typeof document !== "undefined" && document.documentElement.classList.contains("dark"),
+  );
   return {
     startOnLoad: false,
     securityLevel: "strict",

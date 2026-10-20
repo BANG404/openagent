@@ -109,6 +109,9 @@ Verify cross-axis composition and exact upstream palette values in
 user precedence and native light/dark + English/Chinese through the plugin
 presentation black-box runner. Confirm actual rendered control foregrounds,
 radius, font loading, menus and chart palettes, not just root variable strings.
+Diagram palette acceptance uses `bun run test:blackbox:mermaid-themes` for the
+built-in theme and all ten packages across both modes/locales. The chat owner
+documents its four rendering surfaces, contrast assertions and fixture setup.
 `bun run test:blackbox:semantic-themes` installs the collection from
 `plugins/<id>` into an explicit isolated `plugin-presentation` home and Pilot
 socket. It checks all ten packages in light/dark and English/Chinese, captures

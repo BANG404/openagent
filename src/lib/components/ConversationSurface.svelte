@@ -810,13 +810,13 @@
   }
 
   :global([data-streamdown-mermaid] [data-mermaid-svg] .grid .tick text) {
-    fill: var(--muted-foreground) !important;
+    fill: var(--foreground) !important;
     font-size: 11px !important;
     font-weight: 500 !important;
   }
 
   :global([data-streamdown-mermaid] [data-mermaid-svg] .sectionTitle) {
-    fill: var(--muted-foreground) !important;
+    fill: var(--foreground) !important;
     font-size: 13px !important;
     font-weight: 600 !important;
   }

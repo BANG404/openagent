@@ -125,6 +125,16 @@
   Mermaid MCP Apps package and use the generic successful-result/approval gate.
   Historical successful `render_mermaid` records remain readable previews;
   pending history must not automatically execute a removed tool.
+  All host diagram paths use the resolved semantic palette, explicit Mermaid
+  `darkMode`, matching card text, and themed ER attribute rows. Never leave
+  Mermaid's white attribute-row defaults under dark text settings. Run
+  `bun run test:blackbox:mermaid-themes` with an isolated `mermaid-theme` home,
+  explicit Pilot socket and verified Windows main HWND. It installs all ten
+  collection packages and checks built-in plus installed themes, light/dark and
+  English/Chinese, across Markdown, AGUI, historical tool previews and the real
+  offline plugin resource. Six diagram families cover text/background contrast,
+  ER rows, live switching, editor identity/edits and error recovery; evidence
+  stays in the printed temporary directory.
   Keep other unresolved calls' approval lifecycle and optimistic sibling
   resolutions keyed by request ID. Only the first pending call in execution
   order awaits input; later siblings stay hidden until Runtime advances.

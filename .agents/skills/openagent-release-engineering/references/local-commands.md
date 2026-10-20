@@ -37,6 +37,11 @@ Public development without SDK permissions uses `bun run dev:prepare` then
 Use `bun run dev` for frontend-only work. See
 [development Runtime refresh](development-runtime.md) for reload ordering and
 build-directory ownership.
+For renderer theme qualification, `bun run test:blackbox:mermaid-themes` retains
+its per-renderer color measurements and native captures in a temporary directory,
+restores fixture settings, and removes only the theme packages it installed.
+The chat owner's Mermaid contract defines the isolated home/socket and matrix;
+the independent Mermaid package must be built before this acceptance command.
 
 ## Verify and build
 

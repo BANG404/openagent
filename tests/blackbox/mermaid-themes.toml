@@ -1,0 +1,21 @@
+[scenario]
+name = "Mermaid theme surfaces retain their canvas on unrelated appearance mutations"
+fail_fast = true
+global_timeout_ms = 15000
+
+[[step]]
+name = "real Markdown, AGUI, historical preview and opaque MCP editor are mounted"
+action = "eval"
+script = '''(async () => {
+  const root = document.querySelector('#mermaid-theme-fixture');
+  if (!root || root.querySelectorAll('[data-renderer]').length !== 4) throw Error('Missing renderer surface');
+  if (!root.querySelector('[data-agui-mermaid] [data-mermaid-svg]>svg')) throw Error('AGUI diagram missing');
+  const frame = root.querySelector('iframe');
+  if (!frame || frame.contentDocument || !frame.sandbox.contains('allow-scripts')) throw Error('MCP sandbox changed');
+  const diagrams = [...root.querySelectorAll('[data-mermaid-svg]>svg')];
+  document.documentElement.style.setProperty('--mermaid-irrelevant-fixture', '1');
+  await new Promise(done => setTimeout(done, 500));
+  if (diagrams.length !== 3 || diagrams.some(node => !node.isConnected)) throw Error('Unrelated change replaced a diagram');
+  document.documentElement.style.removeProperty('--mermaid-irrelevant-fixture');
+  return 'All four renderer surfaces and stable SVG identity verified';
+})()'''

@@ -344,6 +344,14 @@ host-owned renderer tool. The package returns prepared source, and its sandboxed
 UI performs rendering/validation, follows live host locale/theme and preserves
 source edits. It uses the same MCP approval and successful-result gate as other
 apps. No CDN, parent DOM or special Mermaid transport is needed.
+MCP Apps host context includes resolved standard `styles.variables` for primary,
+secondary and tertiary backgrounds, primary/secondary text, primary border and
+the sans font stack. Mounted apps receive palette changes within the same color
+mode as well as light/dark and locale changes, without replacing their iframe.
+Equivalent appearance updates must not send redundant palette notifications.
+Packages consume these optional style variables and retain their own defaults
+when absent. Verify the offline Mermaid editor alongside AGUI through
+`test:blackbox:mermaid-themes`; the package owns its renderer and release bytes.
 
 The host also provides the documented `window.openai` compatibility extensions:
 `toolInput`, `toolOutput`, `toolResponseMetadata`, `callTool`,

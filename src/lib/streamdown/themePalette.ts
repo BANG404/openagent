@@ -37,11 +37,13 @@ export function readThemePalette(): Record<string, string> {
 }
 
 export function observeThemePalette(update: () => void): () => void {
-  let palette = JSON.stringify(readThemePalette());
+  const key = () =>
+    JSON.stringify([document.documentElement.classList.contains("dark"), readThemePalette()]);
+  let palette = key();
   const observer = new MutationObserver(() => {
     // Focus, overlays and repeated appearance application also mutate the root.
     // Only actual renderer palette changes should replace a zoomed diagram.
-    const next = JSON.stringify(readThemePalette());
+    const next = key();
     if (next === palette) return;
     palette = next;
     update();
