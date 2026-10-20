@@ -170,6 +170,19 @@ try {
         await until("!!document.querySelector('.user-msg')");
         assert.equal(await evaluate("!!document.querySelector('.user-content-edit')"), "false");
         assert.equal(await evaluate("!!document.querySelector('.edit-actions.show')"), "false");
+
+        // Exercise reader navigation separately so its focus handling cannot
+        // discard the staged edit before the assertions above.
+        await pilot([
+          "click",
+          '.msg-action-btn[aria-label="Read in book mode"],.msg-action-btn[aria-label="以书籍模式阅读"]',
+        ]);
+        await until("!!document.querySelector('.agent-book-dialog')");
+        await openConversation(otherId);
+        await until("!document.querySelector('.user-msg')");
+        assert.equal(await evaluate("!!document.querySelector('.agent-book-dialog')"), "false");
+        await openConversation(id);
+        await until("!!document.querySelector('.user-msg')");
       }
       await pilot(["logs", "--level", "error"]);
     }
@@ -184,5 +197,5 @@ try {
   model.close();
 }
 console.log(
-  `Normal chat polling preserved embedded/fullscreen Mermaid zoom and user edits in four themes/locales before and after reload. Artifacts: ${artifacts}`,
+  `Normal chat polling preserved book mode, embedded/fullscreen Mermaid zoom and user edits in four themes/locales before and after reload. Artifacts: ${artifacts}`,
 );

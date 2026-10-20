@@ -112,8 +112,9 @@ Its synthetic preview requires no configured provider or saved conversation.
 loopback provider and disposable conversations. Set `OPENAGENT_HOME` to the
 selected isolated instance, with its workspace at `<OPENAGENT_HOME>/workspace`,
 and `TAURI_PILOT_SOCKET` to that instance's socket. It observes successful real
-queue polls while checking Mermaid zoom and message-editor focus/selection,
-then checks navigation and reload in four theme/locale pairs. It restores
+queue polls while checking book-mode retention, Mermaid zoom and message-editor
+focus/selection. It also checks book close/reopen and dismissal on actual
+conversation navigation, then repeats after reload in four theme/locale pairs. It restores
 settings and removes fixture conversations. On Windows select the verified
 main HWND with `BLACKBOX_NATIVE_WINDOW_ID` for native screenshots.
 

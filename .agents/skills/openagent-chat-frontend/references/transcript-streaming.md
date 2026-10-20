@@ -457,6 +457,12 @@
   toolbar controls; keep only the two
   dedicated page-turn controls at the vertical center of the reading surface.
   The persisted body font size belongs to General settings.
+  Keep the reader selection until explicit close or an actual conversation ID
+  change. Stabilize the ID through a scalar derived value before the reset
+  effect: ordinary queue polls replace the parent view without navigating and
+  must not close the reader or cancel its pending lazy import.
+  `bun run test:blackbox:transcript-refresh` verifies this in the normal chat
+  shell across queue polls, explicit close/reopen, reload and conversation switches.
   The remote gateway preference projection must carry the persisted message
   layout, responsive two-column threshold, and book-mode font size so the
   desktop and paired browser render the same transcript reading preferences;
