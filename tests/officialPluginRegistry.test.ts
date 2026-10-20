@@ -157,6 +157,7 @@ describe("official plugin registry", () => {
       "openagent-theme-rhea",
       "openagent-theme-garden",
       "openagent-theme-rose-ink",
+      "mermaid",
     ]);
     expect(findOfficialPlugin(registry, "goal")?.sourceUrl).toBe(
       "https://github.com/BANG404/openagent-goal",

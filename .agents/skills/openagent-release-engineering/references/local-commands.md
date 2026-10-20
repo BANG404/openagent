@@ -182,3 +182,11 @@ The script refuses release commits outside `release/*` or `prepare/*`, or when
 release-managed files have uncommitted changes. It never creates or pushes a
 tag. Tagging and publishing belong exclusively to the qualified Release
 workflow; local reproduction is not authorization to publish.
+
+Native diagram qualification uses `bun run test:blackbox:mermaid-zoom` for default
+AGUI rendering and `bun run test:blackbox:mcp-ui-transcript` for the optional
+Mermaid package. The latter reads its built offline resource from
+`plugins/mermaid/ui/app.html`, serves it on an isolated temporary loopback endpoint,
+and verifies that MCP UI remains outside tool/process disclosures through live
+and durable rendering. Both require an explicit task-specific `TAURI_PILOT_SOCKET`
+and retain screenshots for light/dark and English/Chinese.

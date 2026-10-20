@@ -1,8 +1,27 @@
 import { describe, expect, test } from "bun:test";
 import { findNextComponentStart, parseComponentAt } from "../src/lib/streamdown/parser";
 import { evalArgs } from "../src/lib/streamdown/runtime";
+import { componentBlockExtension } from "../src/lib/streamdown/extensions";
 
 describe("component call parser", () => {
+  test("keeps multiline Mermaid source partial until the component closes", () => {
+    const source =
+      'Mermaid(source: """flowchart LR\n  A["Start"] --> B["Done"]\n""", title: "Flow")';
+    for (let end = source.indexOf('"""') + 3; end < source.length; end++) {
+      const token = componentBlockExtension.tokenizer?.(source.slice(0, end));
+      expect(token).toMatchObject({ name: "Mermaid", partial: true });
+    }
+    expect(componentBlockExtension.tokenizer?.(source)).toMatchObject({
+      name: "Mermaid",
+      partial: false,
+    });
+    const parsed = parseComponentAt(source, 0);
+    expect(parsed.ok && evalArgs(parsed.value.args)).toEqual({
+      source: 'flowchart LR\n  A["Start"] --> B["Done"]\n',
+      title: "Flow",
+    });
+  });
+
   test("parses nested components, containers, expressions, and escaped strings", () => {
     const source = String.raw`Card(title: "line\n\u263A", body: Text(value: "a" + "b"), options: {"enabled": true, count: -1.5e2, tags: [null, $name, ("x" + "y"),],}, note: """multi
 line""")`;

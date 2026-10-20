@@ -336,6 +336,15 @@ size-change notifications. Resource CSP and permission metadata are applied to
 the iframe, and tools with `visibility: ["app"]` are excluded from the model's
 tool catalog while remaining callable by the active app.
 
+The independent `plugins/mermaid/` package owns the optional offline Mermaid
+editor, its `render_mermaid` MCP tool and `ui://mermaid/editor.html` resource.
+The default host diagram is the reply-text AGUI `Mermaid(source: ..., title?:
+...)` component. Installing the package does not replace that default or add a
+host-owned renderer tool. The package returns prepared source, and its sandboxed
+UI performs rendering/validation, follows live host locale/theme and preserves
+source edits. It uses the same MCP approval and successful-result gate as other
+apps. No CDN, parent DOM or special Mermaid transport is needed.
+
 The host also provides the documented `window.openai` compatibility extensions:
 `toolInput`, `toolOutput`, `toolResponseMetadata`, `callTool`,
 `sendFollowUpMessage`, `widgetState`, `setWidgetState`, `uploadFile`,
@@ -617,3 +626,8 @@ each new Tauri operation, and frontend contract tests for registration and
 scope restoration. Visible sidebar changes require a real Tauri black-box
 scenario in light/dark themes and Chinese/English. Run `bun run check:skills`
 and `bun run check:docs` after documentation or routing changes.
+
+MCP UI tool records stay outside ordinary tool groups and process disclosures
+during streaming and after finalization/reload. This is host-wide behavior
+selected by MCP UI metadata, independent of package or tool names. App mounting
+still waits for approved successful results, while errors remain inspectable.

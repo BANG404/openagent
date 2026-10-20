@@ -6,6 +6,7 @@ global_timeout_ms = 30000
 [[step]]
 name = "retain the same SVG and view until source or palette changes"
 action = "eval"
+timeout_ms = 30000
 script = '''(async () => {
   const assert = (condition, message) => { if (!condition) throw new Error(message); };
   const wait = ms => new Promise(resolve => setTimeout(resolve, ms));

@@ -30,6 +30,37 @@ const message = (id: string, item: StreamItem): ChatMessage => ({
 });
 
 describe("tool-call grouping", () => {
+  test("MCP UI stays outside tool groups while streaming and the completed process fold", () => {
+    for (const result of [
+      undefined,
+      "Prepared",
+      '{"isError":true}',
+      "Tool call was denied by the user",
+    ]) {
+      const app = {
+        ...call("plugin_mermaid_render_mermaid", result),
+        mcpUi: { descriptor: { resource_uri: "ui://mermaid/editor.html" } },
+      };
+      const segments = groupStreamItems([
+        call("read_file", "contents"),
+        app,
+        call("write_file", "saved"),
+        { type: "text", content: "Diagram ready" },
+      ]);
+      expect(segments[1]).toMatchObject({ kind: "item", item: app });
+      expect(shouldDisplayToolCall(app, true)).toBe(true);
+      for (const status of ["running", "completed", "interrupted", "failed", "cancelled"]) {
+        const { processSegments, finalSegments } = partitionAssistantSegments(segments, status);
+        expect(
+          processSegments.some((segment) => segment.kind === "item" && segment.item === app),
+        ).toBe(false);
+        expect(
+          finalSegments.some((segment) => segment.kind === "item" && segment.item === app),
+        ).toBe(true);
+      }
+    }
+  });
+
   test("MCP apps mount only after successful execution, never during approval or denial", () => {
     const mcpUi = { resource: { uri: "ui://app" }, is_error: false };
     const pending = { ...call("render_app"), mcpUi };

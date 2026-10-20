@@ -27,7 +27,6 @@
   import { mermaidConfigFor } from "$lib/mermaidTheme";
   import { setLocale, locale, t, tr, type Locale, type TranslationKeys } from "$lib/i18n";
   import { pluginCommandText } from "$lib/pluginI18n";
-  import { renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
   import { resolveUserInput } from "$lib/chatStream";
   import { turnClock } from "$lib/processRecordState";
   import { encodeModelBinding } from "$lib/modelBinding";
@@ -101,7 +100,6 @@
   let viewportWidth = typeof window === "undefined" ? 1 : Math.max(window.innerWidth, 1);
   let sidebarWidthRatio = 0;
   let sidebarResizing = $state(false);
-  const handledMermaidInterrupts = new Set<string>();
   const remoteExecution = createRemoteExecutionController({
     client,
     get conversation() {
@@ -447,31 +445,6 @@
   });
   const shikiTheme = $derived(isDarkTheme ? "github-dark" : "github-light");
   const mermaidConfig = $derived(mermaidConfigFor(isDarkTheme));
-
-  $effect(() => {
-    const interrupt = activeInterrupt;
-    if (
-      !interrupt ||
-      interrupt.kind !== "render_mermaid" ||
-      handledMermaidInterrupts.has(interrupt.id) ||
-      !conversation
-    )
-      return;
-    const source = typeof interrupt.arguments.source === "string" ? interrupt.arguments.source : "";
-    handledMermaidInterrupts.add(interrupt.id);
-    void renderMermaidToolResult(source, mermaidConfig)
-      .then((result) =>
-        client.submitInterruptResponse({
-          convId: conversation!.conv_id,
-          interruptId: interrupt.id,
-          response: JSON.stringify(result),
-        }),
-      )
-      .catch((cause) => {
-        handledMermaidInterrupts.delete(interrupt.id);
-        error = cause instanceof Error ? cause.message : String(cause);
-      });
-  });
 
   onMount(() => {
     sidebarWidthRatio = sidebarWidth / viewportWidth;
@@ -922,8 +895,6 @@
               {/if}
               {#if activeInterrupt && hasInlineInterrupt}
                 <p class="inline-interrupt-hint">{$t("remoteCompleteInlineInterrupt")}</p>
-              {:else if activeInterrupt?.kind === "render_mermaid"}
-                <p class="inline-interrupt-hint">{$t("remoteRenderingMermaid")}</p>
               {:else if activeInterrupt?.kind === "ask_user" && conversation}
                 {@const request = interruptRequest(activeInterrupt, conversation.conv_id)}
                 {#key request.request_id}<UserInputForm

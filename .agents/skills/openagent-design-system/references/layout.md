@@ -78,3 +78,8 @@ beside the searchable Agent memory list, and backup/cleanup in a collapsed
 disclosure. The editor footer owns saved/unsaved feedback, Save, and Discard.
 Do not let expanding maintenance controls push the editor's actions outside
 the available body; each content pane retains its own bounded scroll region.
+
+AGUI Mermaid diagrams reuse the existing diagram canvas and controls. An optional
+user-authored title is the figure caption, with an 8px gap before the canvas.
+Partial components retain the shared AGUI skeleton; theme changes repaint the
+existing diagram through the shared palette observer.

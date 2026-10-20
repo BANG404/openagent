@@ -139,7 +139,7 @@ describe("external conversation hydration", () => {
       readFile(new URL("../src/lib/page/checkpoints.ts", import.meta.url), "utf8"),
     ]);
     expect(projection).toContain('if (toolUse.name === "render_mermaid") return [];');
-    expect(checkpoints).toContain("options.restoreMermaidRenderRequests(convId, tipCheckpoint)");
+    expect(checkpoints).not.toContain("restoreMermaidRenderRequests");
   });
 
   test("keeps a quick-chat user message that arrives during foreground hydration", () => {

@@ -68,7 +68,8 @@ export function groupStreamItems(items: StreamItem[]): StreamItemSegment[] {
     const item = items[index];
     if (
       item.type === "tool_call" &&
-      isRenderTool(item) &&
+      item.name === "render_mermaid" &&
+      !item.mcpUi &&
       toolCallStatus(item, false) === "failed"
     ) {
       index += 1;
@@ -86,7 +87,8 @@ export function groupStreamItems(items: StreamItem[]): StreamItemSegment[] {
       const next = items[end];
       if (
         next.type === "tool_call" &&
-        isRenderTool(next) &&
+        next.name === "render_mermaid" &&
+        !next.mcpUi &&
         toolCallStatus(next, false) === "failed"
       ) {
         end += 1;
@@ -347,7 +349,6 @@ export function canMountMcpApp(item: ToolCallItem): boolean {
 
 export function shouldDisplayToolCall(item: ToolCallItem, showRunning: boolean): boolean {
   const status = toolCallStatus(item, showRunning);
-  if (isRenderTool(item) && status === "failed") return false;
-  const isRenderPreview = item.name === "render_mermaid";
+  const isRenderPreview = item.name === "render_mermaid" && !item.mcpUi;
   return !isRenderPreview || status === "success";
 }

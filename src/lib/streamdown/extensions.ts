@@ -56,7 +56,7 @@ export const componentInlineExtension: Extension = {
 };
 
 /** Block-level variant: lets a multi-line component call (with """triple""" strings or nested objects) act as its own block. */
-export const componentBlockExtension: Extension = {
+export const componentBlockExtension = {
   name: "componentBlock",
   level: "block",
   applyInBlockParsing: true,
@@ -66,7 +66,7 @@ export const componentBlockExtension: Extension = {
     if (!m) return undefined;
     return m.index! + (m[1] ? 1 : 0);
   },
-  tokenizer(src: string): ComponentToken | undefined {
+  tokenizer(this: void, src: string): ComponentToken | undefined {
     // Must start at beginning of a line.
     const head = /^([A-Z]\w*)\(/.exec(src);
     if (!head) return undefined;
@@ -101,6 +101,6 @@ export const componentBlockExtension: Extension = {
     }
     return undefined;
   },
-};
+} satisfies Extension;
 
 export const customExtensions: Extension[] = [componentBlockExtension, componentInlineExtension];

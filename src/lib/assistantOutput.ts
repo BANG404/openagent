@@ -3,7 +3,7 @@ import type { ChatMessage, StreamItem } from "./types";
 const RENDER_TOOL_NAMES = new Set(["render_mermaid"]);
 
 export function isRenderTool(item: StreamItem): boolean {
-  return item.type === "tool_call" && RENDER_TOOL_NAMES.has(item.name);
+  return item.type === "tool_call" && (Boolean(item.mcpUi) || RENDER_TOOL_NAMES.has(item.name));
 }
 
 /**

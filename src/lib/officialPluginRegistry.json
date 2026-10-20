@@ -1118,6 +1118,30 @@
           }
         }
       }
+    },
+    {
+      "id": "mermaid",
+      "category": "development",
+      "discovery_category": "development",
+      "display_name": "Mermaid Diagrams",
+      "description": "Preview and edit Mermaid diagrams in chat.",
+      "repository": "https://github.com/BANG404/openagent-mermaid",
+      "homepage": "https://github.com/BANG404/openagent-mermaid",
+      "source_url": "https://github.com/BANG404/openagent-mermaid",
+      "i18n": {
+        "supported_locales": ["en", "zh"],
+        "default_locale": "en",
+        "translations": {
+          "en": {
+            "display_name": "Mermaid Diagrams",
+            "description": "Preview and edit Mermaid diagrams in chat."
+          },
+          "zh": {
+            "display_name": "Mermaid 图示",
+            "description": "在聊天中预览和编辑 Mermaid 图示。"
+          }
+        }
+      }
     }
   ]
 }

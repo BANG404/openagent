@@ -132,7 +132,6 @@
     pluginSidebarEntries,
     pluginSidebarRevision as pluginSidebarRevisionOf,
   } from "$lib/pluginSidebar";
-  import { renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
   import {
     ROOT_KEY,
     buildTreeFromCheckpoints,
@@ -403,9 +402,6 @@
   // A live approval may be clicked before its run has emitted the terminal
   // interruption event. Resume only after that event has finalized the turn.
   const interruptTerminalHandoffs = new InterruptTerminalHandoff();
-  // A restored render_mermaid request must be answered once even if its
-  // original frontend event was emitted while the transcript was mounting.
-  const handledMermaidInterrupts = new Set<string>();
   // Height of the input-area for dynamic message padding
   let inputAreaHeight = $state(120);
   // The user's explicit choice, written only by the title-bar toggle. It is the
@@ -1103,7 +1099,6 @@
       rightSidebarCollapseRequested = next;
     },
     mergeDurableFollowUpSuggestions,
-    restoreMermaidRenderRequests,
     refreshTaskUsagesForConversation,
   });
   const loadMessagesForConv = checkpoints.loadMessagesForConv;
@@ -1115,62 +1110,6 @@
   const loadFileChangesForConv = checkpoints.loadFileChangesForConv;
   const clearLiveFileChanges = checkpoints.clearLiveFileChanges;
   const reconcileLiveFileChanges = checkpoints.reconcileLiveFileChanges;
-
-  function restoreMermaidRenderRequests(
-    convId: string,
-    checkpoint: Awaited<ReturnType<typeof fetchRenderableCheckpoints>>[number],
-  ): void {
-    if (!tauriAvailable || isDevInspectorWindow || checkpoint.data.phase !== "interrupted") return;
-    const resolved = new Set(
-      checkpoint.data.messages
-        .filter((message) => message.role === "user")
-        .flatMap((message) => message.content)
-        .filter((content) => content.type === "tool_result")
-        .map((content) => String(content.tool_use_id)),
-    );
-    for (const content of checkpoint.data.messages.flatMap((message) =>
-      message.role === "assistant" ? message.content : [],
-    )) {
-      if (content.type !== "tool_use" || content.name !== "render_mermaid") continue;
-      const requestId = String(content.id);
-      if (resolved.has(requestId) || handledMermaidInterrupts.has(requestId)) continue;
-      const input = content.input as { source?: unknown } | undefined;
-      if (typeof input?.source !== "string" || !input.source.trim()) continue;
-      handledMermaidInterrupts.add(requestId);
-      const assistantMessageId = checkpoint.data.messages.find(
-        (message) => message.role === "assistant",
-      )?.id;
-      if (!assistantMessageId) continue;
-      void renderMermaidToolResult(input.source, mermaidConfig)
-        .then(async (result) => {
-          const response = JSON.stringify(result);
-          // During durable restore there is usually no in-memory interrupt
-          // channel yet. Submit first so the runtime queues the frontend
-          // result; resuming then consumes it while advancing the checkpoint.
-          await openAgent
-            .submitInterruptResponse({ convId, interruptId: requestId, response })
-            .catch(() => {
-              // A restored checkpoint may not be present in the runtime's
-              // in-memory snapshot map yet; resume below can still resolve it
-              // from durable conversation memory.
-            });
-          await openAgent.resumeInterrupt({
-            convId,
-            interruptId: requestId,
-            response,
-            branchId: activeBranchIds[convId] ?? null,
-            assistantMessageId,
-          });
-        })
-        .catch((error) => {
-          handledMermaidInterrupts.delete(requestId);
-          console.warn(
-            "Failed to restore Mermaid render result",
-            error instanceof Error ? error.message : String(error),
-          );
-        });
-    }
-  }
 
   /** Attach a follow-up approval to the already-finalized interrupted turn.
    * Intermediate approvals do not re-emit their ToolCall, so restricting the
@@ -1565,13 +1504,6 @@
         branchMessages,
         checkpoints,
       );
-      const tipMessage = [...computeActivePath(updatedTree)]
-        .reverse()
-        .find((message) => message.role === "assistant" && message.checkpointId);
-      const tipCheckpoint = tipMessage
-        ? checkpoints.find((item) => item.meta.checkpoint_id === tipMessage.checkpointId)
-        : undefined;
-      if (tipCheckpoint) restoreMermaidRenderRequests(convId, tipCheckpoint);
       branchMessages = pendingProjection.messages;
       if (pendingProjection.pendingRequest) {
         pendingUserInputs = {
@@ -2249,9 +2181,6 @@
       },
       set pendingUserInputs(next) {
         pendingUserInputs = next;
-      },
-      get mermaidConfig() {
-        return mermaidConfig;
       },
       get liveContextUsageByConversation() {
         return liveContextUsageByConversation;

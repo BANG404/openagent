@@ -53,6 +53,12 @@
   and retry tool cards; unknown MCP tool names remain readable as supplied.
 - Group consecutive ordinary ToolCalls into one collapsed summary row with
   independently expandable calls.
+  MCP UI tools are standalone presentation records from their first invocation
+  metadata through terminal reconciliation, including pending and failed calls.
+  Keep them outside tool groups and the completed process disclosure. Exercise
+  this boundary with `bun run test:blackbox:mcp-ui-transcript`: it loads the
+  independent Mermaid package's real offline resource and checks streaming,
+  completion, failure, iframe identity, reload, both themes and both locales.
 - Keep ordinary and enhanced file/search tool cards, grouped tool summaries,
   and both pending and completed `ask_user` surfaces on the same compact,
   transparent, neutral-perimeter grammar: one summary row followed by
@@ -98,20 +104,19 @@
   Run `bun run test:blackbox:interrupt-turn` against an isolated native instance
   to verify question answer/cancel, batched approvals, allow/deny, preserved
   record identity and waiting/terminal reload in all four themes/locales.
-- Render `render_mermaid` as a standalone transcript row from ToolCall source and
-  restore it from the matching durable ToolResult. Defer the preview until its
-  successful ToolResult arrives; never mount pending or failed render previews.
-  `render_mermaid` is frontend-assisted and never an approval request. When an
-  interrupted checkpoint is restored with an unresolved Mermaid call, re-run the
-  renderer and resume the owning conversation with its structured result so it
-  becomes the matching durable ToolResult instead of projecting an approval
-  button. Other unresolved calls in the same batch retain their own approval
-  lifecycle. Checkpoint hydration must
-  preserve optimistic sibling approval resolutions by request ID. When an
-  interrupted checkpoint contains multiple unresolved tool calls, only the
-  first call in execution order is awaiting input; later siblings stay hidden
-  until the runtime advances to them. This prevents an `ask_user` call from
-  making a sibling tool look like an approval request.
+- Default diagrams use reply-text AGUI `Mermaid(source: "...", title?: "...")`
+  through Streamdown's CustomToken dispatcher and the shared Mermaid renderer.
+  Triple-quoted multiline source is allowed. Unfinished components show a
+  skeleton; complete components render from text during streaming, finalization,
+  checkpoint reload and remote viewing. Invalid source stays inspectable with a
+  render error. No renderer result is submitted to Runtime and no diagram
+  interrupt is restored. Optional editable diagrams belong to the independent
+  Mermaid MCP Apps package and use the generic successful-result/approval gate.
+  Historical successful `render_mermaid` records remain readable previews;
+  pending history must not automatically execute a removed tool.
+  Keep other unresolved calls' approval lifecycle and optimistic sibling
+  resolutions keyed by request ID. Only the first pending call in execution
+  order awaits input; later siblings stay hidden until Runtime advances.
   Keep Mermaid renders serialized behind the underlying operation so the
   shared engine is never used concurrently. The shared renderer must also
   enforce a finite per-render timeout so a pathological diagram cannot block
@@ -129,16 +134,8 @@
   source, configuration and palette must retain the existing SVG and view.
   `bun run test:blackbox:transcript-refresh` covers actual queue polling in the
   normal chat shell, including fullscreen and restored history.
-  The main chat shell preloads the Mermaid module
-  before revealing the window so the first tool request does not spend the
-  Runtime response deadline on a cold dynamic import; a failed preload remains
-  retryable.
-  Keep ordinary failures inspectable; only failed render previews are hidden.
-- Return a Mermaid renderer result through the shared SDK client with the
-  request's owning conversation ID. The production Runtime is routed and
-  resolves the live renderer channel inside that conversation, because the
-  frontend request ID is ephemeral while remote snapshots expose the durable
-  tool-call ID.
+  The main chat shell preloads the Mermaid module alongside startup without
+  delaying the usable conversation shell; a failed preload remains retryable.
 - Keep status, file changes, background terminals, and package sidebar views in
   the same resizable desktop right sidebar. Show the sidebar and its title-bar
   entry only while at least one of those views has content. A package view is

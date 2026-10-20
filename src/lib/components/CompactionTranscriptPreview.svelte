@@ -141,7 +141,6 @@
     rightSidebarPanel: "status",
     rightSidebarCollapseRequested: false,
     mergeDurableFollowUpSuggestions: () => {},
-    restoreMermaidRenderRequests: () => {},
     refreshTaskUsagesForConversation: async () => {},
     findConversationLocation: () => null,
   });

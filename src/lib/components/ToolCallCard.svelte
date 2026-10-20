@@ -78,7 +78,7 @@
   });
 
   const mermaidArgs = $derived.by(() => {
-    if (name !== "render_mermaid") return null;
+    if (name !== "render_mermaid" || mcpUi) return null;
     return parsedArgs;
   });
 
@@ -96,7 +96,7 @@
   );
   const shouldDisplay = $derived(
     shouldDisplayToolCall(
-      { type: "tool_call", name, args, result } satisfies ToolCallItem,
+      { type: "tool_call", name, args, result, mcpUi } satisfies ToolCallItem,
       showRunning,
     ),
   );

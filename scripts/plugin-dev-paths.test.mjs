@@ -138,6 +138,7 @@ describe("tracked plugin development index", () => {
       "openagent-theme-rhea",
       "openagent-theme-garden",
       "openagent-theme-rose-ink",
+      "mermaid",
     ]);
     expect(result.stdout).not.toContain("absent.env");
     const path = spawnSync(process.execPath, [cli, "--path", "message-board"], {

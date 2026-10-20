@@ -143,5 +143,10 @@
     "path": "openagent-theme-rose-ink",
     "repository": "https://github.com/BANG404/openagent-theme-rose-ink.git",
     "branch": "main"
+  },
+  "mermaid": {
+    "path": "mermaid",
+    "repository": "https://github.com/BANG404/openagent-mermaid.git",
+    "branch": "main"
   }
 }

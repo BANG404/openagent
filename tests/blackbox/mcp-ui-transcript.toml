@@ -1,0 +1,15 @@
+[scenario]
+name = "MCP App remains outside transcript disclosure"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "completed app is visible outside tool and process groups"
+action = "eval"
+script = '''(() => {
+  const frame = document.querySelector('.mcp-app-frame');
+  if (!frame || frame.closest('.tool-call-group,.process-records') || getComputedStyle(frame).display === 'none') {
+    throw new Error('MCP UI was folded into transcript process details');
+  }
+  return true;
+})()'''

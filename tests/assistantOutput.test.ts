@@ -11,6 +11,22 @@ const assistantMessage = (overrides = {}) => ({
 });
 
 describe("final assistant output", () => {
+  test("starts presentation at an MCP UI tool even before its result arrives", () => {
+    const items = [
+      { type: "tool_call", name: "read_file", args: "{}", result: "ok" },
+      {
+        type: "tool_call",
+        name: "plugin_diagram",
+        args: "{}",
+        mcpUi: { descriptor: { resource_uri: "ui://diagram" } },
+      },
+      { type: "text", content: "Diagram explanation" },
+      { type: "tool_call", name: "update_goal", args: "{}", result: "ok" },
+    ];
+    expect(finalAssistantOutputStartIndex(items)).toBe(1);
+    expect(finalAssistantOutput(assistantMessage({ items }))).toBe("Diagram explanation");
+  });
+
   test("starts at the trailing final-output run", () => {
     const items = [
       { type: "text", content: "I will inspect it." },

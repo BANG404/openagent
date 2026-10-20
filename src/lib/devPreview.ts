@@ -13,6 +13,7 @@ export type StandaloneDevPreview =
   | "input-surfaces"
   | "media-sources"
   | "mermaid-finalization"
+  | "mcp-ui-transcript"
   | "pause-control"
   | "quote-context"
   | "permission-settings"
@@ -43,6 +44,7 @@ const PREVIEW_QUERIES: ReadonlyArray<[string, StandaloneDevPreview]> = [
   ["input-surfaces-preview", "input-surfaces"],
   ["media-sources-preview", "media-sources"],
   ["mermaid-finalization-preview", "mermaid-finalization"],
+  ["mcp-ui-transcript-preview", "mcp-ui-transcript"],
   ["reasoning-effort-preview", "reasoning-effort"],
   ["runtime-notice-preview", "runtime-notice"],
   ["streaming-transcript-preview", "streaming-transcript"],

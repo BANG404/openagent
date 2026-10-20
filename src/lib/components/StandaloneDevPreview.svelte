@@ -52,6 +52,7 @@
   import type { SlashCommand } from "$lib/composer/types";
   import MessageDivider from "$lib/components/MessageDivider.svelte";
   import MessageList from "$lib/components/MessageList.svelte";
+  import McpUiTranscriptPreview from "./McpUiTranscriptPreview.svelte";
   import ConversationTraceExportPreview from "$lib/components/ConversationTraceExportPreview.svelte";
   import RuntimeStatusPreview from "$lib/components/RuntimeStatusPreview.svelte";
   import ThinkingPreview from "$lib/components/ThinkingPreview.svelte";
@@ -249,6 +250,7 @@
     temporary: false,
   });
   let mermaidFinalized = $state(false);
+  let mermaidPreviewMode = $state<"valid" | "partial" | "invalid">("valid");
   let streamingMessagesElement = $state<HTMLElement | null>(null);
   let streamingFollowTail = $state(true);
   let streamingText = $state(
@@ -601,14 +603,11 @@
       content: locale === "zh" ? "下面是最终关系图。" : "Here is the final relationship diagram.",
     },
     {
-      type: "tool_call",
-      name: "render_mermaid",
-      args: JSON.stringify({
-        title: locale === "zh" ? "流式收敛" : "Streaming finalization",
-        source:
-          "flowchart LR\n  Stream[Live stream] --> Fold[Process fold]\n  Fold --> Diagram[Rendered diagram]",
-      }),
-      result: '{"ok":true,"status":"rendered"}',
+      type: "text",
+      content:
+        mermaidPreviewMode === "partial"
+          ? 'Mermaid(source: """flowchart LR\n  Stream -->'
+          : `Mermaid(title: ${JSON.stringify(locale === "zh" ? "流式收敛" : "Streaming finalization")}, source: ${JSON.stringify(mermaidPreviewMode === "invalid" ? "invalid Mermaid source" : "flowchart LR\n  Stream[Live stream] --> Fold[Process fold]\n  Fold --> Diagram[Rendered diagram]")})`,
     },
     {
       type: "text",
@@ -1507,6 +1506,8 @@
       onCancelUserInput={() => {}}
     />
   </main>
+{:else if preview === "mcp-ui-transcript"}
+  <McpUiTranscriptPreview theme={theme === "dark" ? "dark" : "light"} {locale} />
 {:else if preview === "mermaid-finalization"}
   <main
     class="mermaid-finalization-preview-stage bg-conversation-surface"
@@ -1526,6 +1527,15 @@
           ? "完成流式响应"
           : "Finalize stream"}
     </button>
+    <button data-mermaid-invalid onclick={() => (mermaidPreviewMode = "invalid")}
+      >{locale === "zh" ? "无效源码" : "Invalid source"}</button
+    >
+    <button data-mermaid-partial onclick={() => (mermaidPreviewMode = "partial")}
+      >{locale === "zh" ? "流式片段" : "Partial source"}</button
+    >
+    <button data-mermaid-recover onclick={() => (mermaidPreviewMode = "valid")}
+      >{locale === "zh" ? "恢复源码" : "Recover source"}</button
+    >
     <MessageList
       messages={mermaidFinalizationMessages}
       scrollElement={mermaidFinalizationMessagesElement}

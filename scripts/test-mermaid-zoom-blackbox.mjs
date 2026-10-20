@@ -44,6 +44,12 @@ try {
         pilot(["wait", "[data-mermaid-svg] > svg"]);
         pilot(["snapshot", "-i"]);
         pilot(["run", scenario]);
+        pilot(["click", "[data-mermaid-invalid]"]);
+        pilot(["wait", ".mermaid-render-error"]);
+        pilot(["click", "[data-mermaid-partial]"]);
+        pilot(["wait", ".skel"]);
+        pilot(["click", "[data-mermaid-recover]"]);
+        pilot(["wait", "[data-agui-mermaid] [data-mermaid-svg] > svg"]);
         captureBlackboxScreenshot(pilot, join(artifacts, `${theme}-${locale}-${pass}.png`));
       }
     }

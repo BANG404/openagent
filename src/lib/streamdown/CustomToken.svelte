@@ -5,6 +5,7 @@
   import UrlCard from "./components/Url.svelte";
   import ChartCard from "./components/Chart.svelte";
   import Media from "./components/Media.svelte";
+  import MermaidCard from "./components/Mermaid.svelte";
   import Skeleton from "./components/Skeleton.svelte";
 
   let {
@@ -26,6 +27,8 @@
   <UrlCard {args} rawArgs={token.args} />
 {:else if token.name === "Chart"}
   <ChartCard {args} rawArgs={token.args} {isDark} />
+{:else if token.name === "Mermaid"}
+  <MermaidCard {args} />
 {:else if token.name === "Image"}
   <Media {args} rawArgs={token.args} kind="image" />
 {:else if token.name === "Video"}

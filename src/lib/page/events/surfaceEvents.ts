@@ -13,7 +13,6 @@ import { replaceQuickChatShortcut } from "$lib/quickChatWindow";
 import { desktopOpenAgent as openAgent, invoke } from "$lib/openagent/tauriClient";
 import { DEV_MAIN_DEBUG_VISIBILITY_EVENT } from "$lib/devDebugVisibility";
 import { ONBOARDING_COMPLETE_EVENT } from "$lib/onboarding";
-import { renderMermaidToolResult } from "$lib/streamdown/mermaidRenderer";
 import { appendUserInput } from "$lib/chatStream";
 import { shouldNotifyAgentPluginUpdates } from "$lib/agentPluginUpdateCheck";
 import type { AgentRolesChangedEvent } from "$lib/roleEditorWindow";
@@ -409,30 +408,6 @@ export function registerSurfaceEvents(options: PageEventOptions, register: Regis
     }
     options.persistStreamDraft(key).catch(() => {});
   });
-  if (!options.isDevInspectorWindow) {
-    register<{
-      request_id: string;
-      conv_id: string;
-      title?: string | null;
-      source: string;
-    }>("chat-mermaid-render-request", (e) => {
-      const request = e.payload;
-      const result = renderMermaidToolResult(request.source, options.mermaidConfig).then(
-        JSON.stringify,
-      );
-      void result
-        .then((renderResult) =>
-          openAgent.submitInterruptResponse({
-            convId: request.conv_id,
-            interruptId: request.request_id,
-            response: renderResult,
-          }),
-        )
-        .catch((error) => {
-          console.warn("Failed to return Mermaid render result", error);
-        });
-    });
-  }
   register<{
     conv_id: string;
     flow_id: string;

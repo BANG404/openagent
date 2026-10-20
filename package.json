@@ -58,6 +58,7 @@
     "test:blackbox:quick-chat-submission": "bun scripts/test-quick-chat-submission-blackbox.mjs",
     "test:blackbox:user-message-markdown": "bun scripts/test-user-message-markdown-blackbox.mjs",
     "test:blackbox:mermaid-zoom": "bun scripts/test-mermaid-zoom-blackbox.mjs",
+    "test:blackbox:mcp-ui-transcript": "bun scripts/test-mcp-ui-transcript-blackbox.mjs",
     "test:blackbox:transcript-refresh": "bun scripts/test-transcript-refresh-blackbox.mjs",
     "test:blackbox:interrupt-turn": "bun scripts/test-interrupt-turn-blackbox.mjs",
     "test:blackbox:book-reader": "bun scripts/test-book-reader-blackbox.mjs",

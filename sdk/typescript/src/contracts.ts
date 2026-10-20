@@ -70,7 +70,7 @@ export interface RemotePreferences {
 
 export interface RemoteInterrupt {
   id: string;
-  kind: "ask_user" | "tool_approval" | "render_mermaid";
+  kind: "ask_user" | "tool_approval";
   tool_name: string;
   arguments: Record<string, unknown>;
   fields: AskUserField[];

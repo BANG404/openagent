@@ -59,10 +59,6 @@ interface CheckpointOptions {
   rightSidebarPanel: RightSidebarPanel;
   rightSidebarCollapseRequested: boolean;
   mergeDurableFollowUpSuggestions: (checkpoints: StartupConversationBundle["checkpoints"]) => void;
-  restoreMermaidRenderRequests: (
-    convId: string,
-    checkpoint: StartupConversationBundle["checkpoints"][number],
-  ) => void;
   refreshTaskUsagesForConversation: (convId: string) => Promise<void>;
   findConversationLocation: (convId: string) => {
     conversations: Conversation[];
@@ -277,13 +273,6 @@ export function createCheckpointController(options: CheckpointOptions) {
       activePath,
       checkpoints,
     );
-    const tipMessage = [...activePath]
-      .reverse()
-      .find((message) => message.role === "assistant" && message.checkpointId);
-    const tipCheckpoint = tipMessage
-      ? checkpoints.find((item) => item.meta.checkpoint_id === tipMessage.checkpointId)
-      : undefined;
-    if (tipCheckpoint) options.restoreMermaidRenderRequests(convId, tipCheckpoint);
     if (pendingProjection.pendingRequest) {
       options.pendingUserInputs = {
         ...options.pendingUserInputs,

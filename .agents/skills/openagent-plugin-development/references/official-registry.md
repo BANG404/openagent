@@ -77,7 +77,7 @@ do not determine the category. The optional catalog field `discovery_category`
 
 | Category | Primary purpose | Official packages |
 | --- | --- | --- |
-| `development` | Create, understand, debug, test or operate software and infrastructure | Plugin Developer, Context7, Fakechat, Firebase, GitHub, GitLab, Laravel Boost, Langfuse, Serena, Terraform |
+| `development` | Create, understand, debug, test or operate software and infrastructure | Plugin Developer, Context7, Fakechat, Firebase, GitHub, GitLab, Laravel Boost, Langfuse, Mermaid Diagrams, Serena, Terraform |
 | `projects` | Manage task and project records | Asana, Linear |
 | `channels` | Connect external messaging services to OpenAgent | iMessage |
 | `collaboration` | Multi-agent discussion, shared messages and handoffs | Chat Groups, Message Board |
@@ -333,3 +333,7 @@ responsive card grid. It shares max width, column minimum, gap, insets and card
 surfaces through `--plugin-*` application tokens with the settled marketplace.
 The plugin-layout native scenario covers category filtering and loading/settled
 geometry in light/dark and English/Chinese at narrow and wide surface sizes.
+
+Mermaid Diagrams is an optional offline MCP Apps editor for creating and inspecting
+software diagrams. Default diagrams remain reply-text AGUI Mermaid components;
+installing the package adds an explicitly requested editable tool.

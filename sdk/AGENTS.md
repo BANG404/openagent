@@ -47,3 +47,7 @@ in `.agents/skills/openagent-release-engineering/references/client-sdk.md`.
 Published `openagent-typescript-sdk.tar.gz` archives remain buildable source
 snapshots. `create-client-source-snapshot.mjs` includes source, lockfile, build
 configuration and documentation; these archives are separate from npm tarballs.
+
+Remote interrupt kinds are `ask_user` and `tool_approval`. Diagrams are ordinary
+assistant text (AGUI) or package MCP Apps; clients do not submit Mermaid renderer
+results through the interrupt transport.

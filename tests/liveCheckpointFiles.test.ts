@@ -62,7 +62,6 @@ function fixture() {
     rightSidebarPanel: "files",
     rightSidebarCollapseRequested: false,
     mergeDurableFollowUpSuggestions() {},
-    restoreMermaidRenderRequests() {},
     async refreshTaskUsagesForConversation() {},
     findConversationLocation: () => null,
   };

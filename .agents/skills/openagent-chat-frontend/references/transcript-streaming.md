@@ -398,7 +398,7 @@
   partition mounted at one stable template location across that status
   transition: revealing the process disclosure may hide its process children,
   but must not remount final rich output such as Mermaid previews.
-- Treat the first `render_mermaid` call as the process-disclosure
+- Treat the first historical `render_mermaid` call as the process-disclosure
   boundary: keep that render and every later record outside the collapsed work
   details, including later tools and reasoning. Before that boundary,
   package progress tools behave like ordinary tools and remain eligible for
@@ -556,3 +556,6 @@
   A package that exposes its own transcript surface owns
   sender, wake-target, and mention rendering in that surface; the main
   transcript only renders the host's generic plugin message projection.
+
+Default Mermaid output is an AGUI component inside ordinary assistant text. It
+follows the trailing final-text run and needs no ToolCall/ToolResult boundary.

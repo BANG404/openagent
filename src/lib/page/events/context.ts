@@ -17,7 +17,6 @@ import type { WorkspaceRouteResult } from "$lib/page/workspaceNavigation";
 import type { LatestRequest } from "$lib/latestRequest";
 import type { ChatStreamState } from "$lib/chatStreamState.svelte";
 import type { ComposerDraftStore, ComposerDraft } from "$lib/composerDrafts";
-import type { mermaidConfigFor } from "$lib/mermaidTheme";
 import type { InterruptTerminalHandoff } from "$lib/interruptResolutionTracker";
 import type { CachedRestoreSurface } from "$lib/startupRestoreCache";
 import type { LiveFileChange } from "$lib/fileChangeReconciliation";
@@ -51,7 +50,6 @@ export interface PageEventOptions {
   activeComposerDraft: ComposerDraft;
   activeBranchIds: Record<string, string>;
   pendingUserInputs: Record<string, UserInputRequest>;
-  readonly mermaidConfig: ReturnType<typeof mermaidConfigFor>;
   liveContextUsageByConversation: Record<string, TaskTokenUsage>;
   liveFileChangesPerConv: Record<string, LiveFileChange[]>;
   pendingCheckpointIds: Record<string, string>;

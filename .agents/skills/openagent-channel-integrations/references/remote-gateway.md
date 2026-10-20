@@ -152,3 +152,9 @@ navigation. The frame receives only props through postMessage.
   immediate `changed` result, including the no-op case.
 - Remote sessions are intentionally process-local; devices pair again after an
   application restart.
+
+Default Mermaid diagrams arrive as ordinary assistant text containing AGUI
+`Mermaid(source: ..., title?: ...)`. The paired client renders that text through
+the shared Streamdown dispatcher and never submits diagram renderer results or
+synthesizes diagram interrupts. Questions and approvals retain their durable
+Runtime ownership.

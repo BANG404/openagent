@@ -100,7 +100,8 @@ class Parser {
       this.pos += 3;
       const start = this.pos;
       const close = this.src.indexOf('"""', this.pos);
-      if (close < 0) return { ok: false, error: this.err('unterminated """string"""') };
+      if (close < 0)
+        return { ok: false, error: { message: 'unterminated """string"""', pos: this.src.length } };
       const text = this.src.slice(start, close);
       this.pos = close + 3;
       return { ok: true, value: text };
