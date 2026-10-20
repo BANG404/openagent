@@ -10,6 +10,13 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.88.1-beta.1] - 2026-10-20
+
+### Bug Fixes
+- **chat**: Isolate transcript effects from queue refreshes
+- **chat**: Preserve Mermaid zoom and user message editing focus
+- **chat**: Hide empty paused input queues
+
 ## [0.88.0-beta.1] - 2026-10-19
 
 ### Features
