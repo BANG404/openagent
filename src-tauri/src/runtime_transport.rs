@@ -9,7 +9,9 @@ use tauri::Emitter;
 use tokio::sync::Mutex;
 
 const MAX_PROXY_BODY_BYTES: usize = 64 * 1024 * 1024;
-const MAX_SSE_FRAME_BYTES: usize = 1024 * 1024;
+// MCP Apps allow 4 MiB resources. JSON escaping can expand their text sixfold;
+// reserve room for that resource and its tool/event envelope on the live path.
+const MAX_SSE_FRAME_BYTES: usize = 32 * 1024 * 1024;
 const HISTORY_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 
 // Only read-only desktop projections receive the interactive latency budget.
@@ -529,18 +531,14 @@ async fn relay_runtime_events(
         .error_for_status()
         .map_err(|error| format!("Runtime event connection was rejected: {error}"))?;
     let mut buffer = Vec::new();
+    let mut frame_scan_offset = 0;
     while let Some(chunk) = response
         .chunk()
         .await
         .map_err(|error| format!("Runtime event stream failed: {error}"))?
     {
-        if buffer.len().saturating_add(chunk.len()) > MAX_SSE_FRAME_BYTES {
-            return Err("Runtime event frame exceeds the desktop proxy limit".to_string());
-        }
         buffer.extend_from_slice(&chunk);
-        while let Some((frame_end, delimiter_len)) = find_sse_frame(&buffer) {
-            let frame = buffer.drain(..frame_end).collect::<Vec<_>>();
-            buffer.drain(..delimiter_len);
+        while let Some(frame) = take_sse_frame(&mut buffer, &mut frame_scan_offset)? {
             match parse_sse_frame(&frame)? {
                 Some((event, data)) if event == "runtime" => {
                     let projected: ProjectedRuntimeEvent = serde_json::from_str(&data)
@@ -657,16 +655,36 @@ async fn resume_local_plugin_daemon(
 }
 
 fn find_sse_frame(buffer: &[u8]) -> Option<(usize, usize)> {
-    buffer
+    let crlf = buffer
         .windows(4)
         .position(|window| window == b"\r\n\r\n")
-        .map(|index| (index, 4))
-        .or_else(|| {
-            buffer
-                .windows(2)
-                .position(|window| window == b"\n\n")
-                .map(|index| (index, 2))
-        })
+        .map(|index| (index, 4));
+    let lf = buffer
+        .windows(2)
+        .position(|window| window == b"\n\n")
+        .map(|index| (index, 2));
+    crlf.into_iter().chain(lf).min_by_key(|(index, _)| *index)
+}
+
+fn take_sse_frame(
+    buffer: &mut Vec<u8>,
+    scan_offset: &mut usize,
+) -> Result<Option<Vec<u8>>, String> {
+    let boundary = find_sse_frame(&buffer[*scan_offset..])
+        .map(|(end, delimiter)| (end + *scan_offset, delimiter));
+    let frame_bytes = boundary.map_or(buffer.len(), |(end, delimiter)| end + delimiter);
+    if frame_bytes > MAX_SSE_FRAME_BYTES {
+        return Err("Runtime event frame exceeds the desktop proxy limit".to_string());
+    }
+    let Some((frame_end, delimiter_len)) = boundary else {
+        // Revisit only a possibly split delimiter, not the whole large resource.
+        *scan_offset = buffer.len().saturating_sub(3);
+        return Ok(None);
+    };
+    let frame = buffer.drain(..frame_end).collect();
+    buffer.drain(..delimiter_len);
+    *scan_offset = 0;
+    Ok(Some(frame))
 }
 
 fn parse_sse_frame(frame: &[u8]) -> Result<Option<(String, String)>, String> {
@@ -689,8 +707,9 @@ mod tests {
     use super::{
         find_sse_frame, interactive_read_timeout, parse_method, parse_sse_frame,
         proxy_delivery_failure, proxy_route_label, proxy_runtime_asset_connection,
-        proxy_runtime_connection, resolve_api_url, validate_runtime_asset_request,
+        proxy_runtime_connection, resolve_api_url, take_sse_frame, validate_runtime_asset_request,
         validate_webview_product_request, RuntimeProxyRequest, HISTORY_READ_TIMEOUT,
+        MAX_SSE_FRAME_BYTES,
     };
     use crate::runtime_process::RuntimeConnection;
     use reqwest::{Method, Url};
@@ -1081,5 +1100,101 @@ mod tests {
             ))
         );
         assert_eq!(find_sse_frame(b"event: resync\n\nnext"), Some((13, 2)));
+    }
+
+    #[test]
+    fn relays_fragmented_maximum_mcp_resource_before_later_chat_events() {
+        // A legal 4 MiB resource with worst-case JSON escaping still fits.
+        let text = "\0".repeat(4 * 1024 * 1024);
+        let payload = serde_json::json!({
+            "name": "chat-tool-result",
+            "payload": { "mcp_ui": { "resource": { "text": text } } }
+        });
+        let wire = format!("event: runtime\ndata: {payload}\n\n");
+        let mut scan_offset = 0;
+        let mut buffer = Vec::new();
+        let mut frames = Vec::new();
+        for chunk in wire.as_bytes().chunks(256 * 1024) {
+            buffer.extend_from_slice(chunk);
+            while let Some(frame) = take_sse_frame(&mut buffer, &mut scan_offset).unwrap() {
+                frames.push(parse_sse_frame(&frame).unwrap().unwrap());
+            }
+        }
+        assert_eq!(frames.len(), 1);
+        let delivered: serde_json::Value = serde_json::from_str(&frames[0].1).unwrap();
+        assert_eq!(delivered, payload);
+        buffer.extend_from_slice(b"event: runtime\ndata: {\"name\":\"chat-chunk\"}\n\n");
+        let next = take_sse_frame(&mut buffer, &mut scan_offset)
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            parse_sse_frame(&next).unwrap().unwrap().1,
+            "{\"name\":\"chat-chunk\"}"
+        );
+        assert!(buffer.is_empty());
+    }
+
+    #[test]
+    fn bounds_individual_frames_instead_of_coalesced_network_chunks() {
+        let frame = vec![b'a'; MAX_SSE_FRAME_BYTES / 2 + 1];
+        let mut scan_offset = 0;
+        let mut buffer = [frame.as_slice(), b"\n\n", frame.as_slice(), b"\n\n"].concat();
+        assert!(buffer.len() > MAX_SSE_FRAME_BYTES);
+        assert_eq!(
+            take_sse_frame(&mut buffer, &mut scan_offset)
+                .unwrap()
+                .unwrap(),
+            frame
+        );
+        assert_eq!(
+            take_sse_frame(&mut buffer, &mut scan_offset)
+                .unwrap()
+                .unwrap(),
+            frame
+        );
+        assert!(take_sse_frame(&mut buffer, &mut scan_offset)
+            .unwrap()
+            .is_none());
+    }
+
+    #[test]
+    fn rejects_oversized_complete_and_unterminated_frames() {
+        let mut scan_offset = 0;
+        let mut buffer = vec![b'a'; MAX_SSE_FRAME_BYTES + 1];
+        assert!(take_sse_frame(&mut buffer, &mut scan_offset).is_err());
+        buffer.extend_from_slice(b"\n\n");
+        assert!(take_sse_frame(&mut buffer, &mut scan_offset).is_err());
+    }
+
+    #[test]
+    fn keeps_frame_order_and_accepts_a_split_delimiter_at_the_limit() {
+        let mut scan_offset = 0;
+        let mut buffer = b"first\n\nsecond\r\n\r\n".to_vec();
+        assert_eq!(
+            take_sse_frame(&mut buffer, &mut scan_offset)
+                .unwrap()
+                .unwrap(),
+            b"first"
+        );
+        assert_eq!(
+            take_sse_frame(&mut buffer, &mut scan_offset)
+                .unwrap()
+                .unwrap(),
+            b"second"
+        );
+        let mut scan_offset = 0;
+        let mut buffer = vec![b'a'; MAX_SSE_FRAME_BYTES - 4];
+        buffer.extend_from_slice(b"\r\n\r");
+        assert!(take_sse_frame(&mut buffer, &mut scan_offset)
+            .unwrap()
+            .is_none());
+        buffer.push(b'\n');
+        assert_eq!(
+            take_sse_frame(&mut buffer, &mut scan_offset)
+                .unwrap()
+                .unwrap()
+                .len(),
+            MAX_SSE_FRAME_BYTES - 4
+        );
     }
 }
