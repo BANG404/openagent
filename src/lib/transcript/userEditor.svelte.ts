@@ -24,9 +24,12 @@ export function createUserMessageEditor(options: Options) {
   let removedContextKeys = $state(new Set<string>());
   let editingTextarea = $state<HTMLTextAreaElement | null>(null);
   let expandedUserMessageIds = $state(new Set<string>());
+  const activeConversationId = $derived(options.activeConvId);
 
   $effect(() => {
-    options.activeConvId;
+    // Parent view refreshes can invalidate the getter without changing the
+    // conversation. Only an actual navigation may discard an in-progress edit.
+    void activeConversationId;
     cancelEdit();
   });
 

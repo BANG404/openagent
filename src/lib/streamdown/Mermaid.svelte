@@ -25,6 +25,9 @@
   let renderGeneration = 0;
   let themeRevision = $state(0);
   const source = $derived(token.text);
+  // Streamdown reconstructs its config getter on each read. Compare the render
+  // inputs by value so unrelated conversation-view refreshes cannot reset zoom.
+  const configKey = $derived(JSON.stringify(streamdown.mermaidConfig));
 
   onMount(() => observeThemePalette(() => themeRevision++));
 
@@ -164,7 +167,7 @@
 
   $effect(() => {
     void themeRevision;
-    const config = streamdown.mermaidConfig as MermaidConfig | undefined;
+    const config = configKey ? (JSON.parse(configKey) as MermaidConfig) : undefined;
     const code = source;
     const element = mermaidNode;
     if (!mermaidReady || !element) return;

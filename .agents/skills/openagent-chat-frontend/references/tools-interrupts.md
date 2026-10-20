@@ -114,6 +114,11 @@
   fullscreen. Actual palette changes still repaint. Verify embedded/fullscreen
   zoom, fit, palette refresh, finalization and reload in light/dark and English/
   Chinese with `bun run test:blackbox:mermaid-zoom` in an isolated Tauri window.
+  Compare Streamdown's reconstructed Mermaid configuration by value before
+  scheduling a render. A parent conversation-view refresh with identical
+  source, configuration and palette must retain the existing SVG and view.
+  `bun run test:blackbox:transcript-refresh` covers actual queue polling in the
+  normal chat shell, including fullscreen and restored history.
   The main chat shell preloads the Mermaid module
   before revealing the window so the first tool request does not spend the
   Runtime response deadline on a cold dynamic import; a failed preload remains

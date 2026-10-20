@@ -74,6 +74,11 @@ must never be offered while the Runtime is drained for component replacement.
   keyboard focus during editing; IME Enter/Escape and key code 229 belong to
   composition and must never submit or cancel the edit. Verify with
   `bun run test:blackbox:user-message-markdown` in both themes and locales.
+  Key navigation cancellation on a derived conversation ID: refreshing a
+  parent view (including the ordinary two-second input-queue poll) must not
+  discard the editor when that ID is unchanged. Verify unchanged and dirty
+  drafts, selection, focus, actual navigation and reload in the normal chat
+  shell with `bun run test:blackbox:transcript-refresh`.
 - Pair edit and regenerate actions with the nearest preceding user-authored
   message in transcript order, skipping tagged compaction replays. Do not
   require projected checkpoint IDs to match: a complete selected-tip snapshot

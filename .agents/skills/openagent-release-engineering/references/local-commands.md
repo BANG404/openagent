@@ -108,6 +108,14 @@ the isolated desktop scenario in the signed-in user's interactive session.
 `TAURI_PILOT_SOCKET`, repeats its scenario after navigation reload in four
 theme/locale pairs, and retains screenshots under the system temporary directory.
 Its synthetic preview requires no configured provider or saved conversation.
+`test:blackbox:transcript-refresh` instead uses the normal chat shell with a
+loopback provider and disposable conversations. Set `OPENAGENT_HOME` to the
+selected isolated instance, with its workspace at `<OPENAGENT_HOME>/workspace`,
+and `TAURI_PILOT_SOCKET` to that instance's socket. It observes successful real
+queue polls while checking Mermaid zoom and message-editor focus/selection,
+then checks navigation and reload in four theme/locale pairs. It restores
+settings and removes fixture conversations. On Windows select the verified
+main HWND with `BLACKBOX_NATIVE_WINDOW_ID` for native screenshots.
 
 The input-queue native runner holds its loopback provider while testing Stop
 with an empty inbox, checks the paused empty snapshot and reload, then releases
