@@ -217,6 +217,11 @@ transport with the real Mermaid stdio server and its resource above 1 MiB.
 Use an isolated multi-instance home and explicit pilot socket; its local provider
 holds the follow-up response open until the editor renders, then verifies
 completion and reload in all four theme/locale combinations.
+The provider asserts the original ToolResult contains actual render dimensions.
+Run the same script with `--invalid-source` to assert that a real Mermaid syntax
+error reaches the model as a failed ToolResult and survives checkpoint reload;
+app-only claim/completion tools must stay out of the model catalog. Both paths
+use the same isolated native instance and keep evidence under temporary reports.
 Pass `--bridge-fixture` directly to `scripts/test-mcp-ui-streaming-blackbox.mjs`
 to qualify the demo server's app-only tool and file bridge through ordinary chat,
 including close and reload, without the primary desktop dev API.

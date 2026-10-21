@@ -122,7 +122,8 @@
   checkpoint reload and remote viewing. Invalid source stays inspectable with a
   render error. No renderer result is submitted to Runtime and no diagram
   interrupt is restored. Optional editable diagrams belong to the independent
-  Mermaid MCP Apps package and use the generic successful-result/approval gate.
+  Mermaid MCP Apps package. Its opted-in MCP call waits for the sandbox renderer
+  and returns actual success/dimensions or a syntax error as its ToolResult.
   Historical successful `render_mermaid` records remain readable previews;
   pending history must not automatically execute a removed tool.
   The shared source normalizer accepts a missing newline after a leading
@@ -251,3 +252,12 @@
   cloning it for an approval-mode save, and keep snapshot, optimistic update,
   persistence, and rollback failures inside the queue's handled boundary so a
   failed selection cannot terminate or permanently poison later saves.
+
+Tools that explicitly declare `_meta["openagent/tool-result-from-app"]: true`
+may mount their MCP App during active streaming before their result arrives.
+Unresolved approvals, denial, failure, cancellation and pending history still
+block mounting. Other MCP Apps retain the successful-result gate. Pass
+`awaitingToolResult` explicitly so restored successful widgets never claim a
+new render job. Input notifications carry `openagent/tool-result-pending`;
+completion keeps the same iframe and preserves local edits. Rendering remains
+package-owned; Runtime stores the ordinary MCP ToolResult, including errors.

@@ -338,11 +338,39 @@ export function toolCallStatus(item: ToolCallItem, showRunning: boolean): ToolCa
   return "success";
 }
 
-export function canMountMcpApp(item: ToolCallItem): boolean {
+export function mcpAppReturnsToolResult(item: ToolCallItem): boolean {
+  const meta = item.mcpUi?.descriptor?.meta;
+  return Boolean(
+    meta &&
+    typeof meta === "object" &&
+    "openagent/tool-result-from-app" in meta &&
+    meta["openagent/tool-result-from-app"] === true,
+  );
+}
+
+export function canMountMcpApp(item: ToolCallItem, running = false): boolean {
+  const response =
+    typeof item.approval?.response === "string"
+      ? parseToolResultJson(item.approval.response)
+      : item.approval?.response;
+  const approved = Boolean(
+    response &&
+    typeof response === "object" &&
+    "values" in response &&
+    response.values &&
+    typeof response.values === "object" &&
+    "approved" in response.values &&
+    response.values.approved === true,
+  );
+  const awaitingApp =
+    mcpAppReturnsToolResult(item) &&
+    running &&
+    item.result === undefined &&
+    (!item.approval || approved);
   return (
     Boolean(item.mcpUi?.resource) &&
     !item.mcpUi?.is_error &&
-    toolCallStatus(item, false) === "success" &&
+    (toolCallStatus(item, false) === "success" || awaitingApp) &&
     (!item.approval || item.approval.state === "answered")
   );
 }

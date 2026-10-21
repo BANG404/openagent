@@ -27,6 +27,33 @@ export async function checkMcpUiInteractions({ evaluate, until, capture }) {
       ),
     );
   const initial = await widget("inspect");
+  assert.equal(initial.presentation.editorOpen, false, "Source editing starts collapsed");
+  assert.equal(
+    initial.presentation.statusHidden,
+    true,
+    "Successful diagrams keep the canvas clear",
+  );
+  assert.deepEqual(
+    initial.presentation.controls,
+    ["fit", "plus", "minus", "expand", "copy", "download"],
+    "Use the AGUI diagram toolbar",
+  );
+  evaluate(
+    `window.__mcpPreviousDownload=window.__OPENAGENT_DOWNLOAD__;window.__mcpDownloads=[];window.__OPENAGENT_DOWNLOAD__=file=>{window.__mcpDownloads.push({name:file.filename,mime:file.mimeType,size:file.content.length});};true`,
+  );
+  try {
+    for (const format of ["svg", "png"]) {
+      await widget("click", "download");
+      await widget("click", `download-${format}`);
+      await until(
+        `window.__mcpDownloads.some(file=>file.name==='mermaid-diagram.${format}' && file.size>100)`,
+      );
+    }
+  } finally {
+    evaluate(
+      `window.__OPENAGENT_DOWNLOAD__=window.__mcpPreviousDownload;delete window.__mcpPreviousDownload;true`,
+    );
+  }
   assert(
     initial.svg?.width > 50 && initial.svg?.height > 20,
     "The diagram must have visible geometry",

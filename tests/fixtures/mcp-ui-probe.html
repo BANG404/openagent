@@ -29,12 +29,24 @@
           mode: window.openai.displayMode,
           repairHidden: document.querySelector("#repair").hidden,
           status: document.querySelector("#status").textContent,
+          presentation: {
+            editorOpen: document.querySelector("#editor")?.open,
+            statusHidden: document.querySelector("#status").hidden,
+            labelFont: svg
+              ? getComputedStyle(svg.querySelector(".nodeLabel") || svg).fontFamily
+              : null,
+            controls: [...document.querySelectorAll("#controls > button")].map(
+              (button) => button.id,
+            ),
+          },
           dimensions: window.__mcpProbeContext?.containerDimensions,
           theme: window.__inspectMermaidTheme?.(document.querySelector("#diagram")),
         };
       } else if (action === "click") document.getElementById(value).click();
-      else if (action === "input") document.getElementById("source").value = value;
-      else if (action === "size")
+      else if (action === "input") {
+        document.getElementById("editor").open = true;
+        document.getElementById("source").value = value;
+      } else if (action === "size")
         parent.postMessage(
           { jsonrpc: "2.0", method: "ui/notifications/size-changed", params: value },
           "*",

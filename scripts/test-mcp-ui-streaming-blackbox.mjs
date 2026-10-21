@@ -7,9 +7,11 @@ import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { captureBlackboxScreenshot } from "./blackbox-screenshot.mjs";
+import { parseToolResultJson } from "../src/lib/toolResultJson.ts";
 
 const root = resolve(import.meta.dirname, "..");
 const bridgeFixture = process.argv.includes("--bridge-fixture");
+const invalidSource = process.argv.includes("--invalid-source");
 const toolName = bridgeFixture ? "render_demo_app" : "render_mermaid";
 const home = resolve(process.env.OPENAGENT_HOME || "");
 assert(
@@ -86,6 +88,13 @@ const model = createServer(async (request, response) => {
         entry.function?.name.endsWith(toolName),
       );
       assert(tool, "The real Mermaid tool must reach the provider catalog");
+      if (!bridgeFixture)
+        assert(
+          !tools.some((/** @type {any} */ entry) =>
+            /(?:claim_render|complete_render)$/.test(entry.function?.name || ""),
+          ),
+          "Renderer completion tools must stay app-only",
+        );
       if (bridgeFixture)
         assert(
           !tools.some((/** @type {any} */ entry) =>
@@ -104,7 +113,9 @@ const model = createServer(async (request, response) => {
                 arguments: bridgeFixture
                   ? { label: "Bridge streaming fixture" }
                   : {
-                      source: "flowchart LR\nStreaming --> Visible",
+                      source: invalidSource
+                        ? "flowchart LR\nA[Unclosed"
+                        : "flowchart LR\nStreaming --> Visible",
                       title: "Streaming fixture",
                     },
               },
@@ -114,6 +125,23 @@ const model = createServer(async (request, response) => {
       );
     } else {
       assert.equal(round, 2, "The fixture must complete in one tool round");
+      if (!bridgeFixture) {
+        const messages = JSON.parse(body).messages;
+        const outputs = messages
+          .filter((/** @type {any} */ item) => item.role === "tool")
+          .map((/** @type {any} */ item) => parseToolResultJson(item.content));
+        assert(
+          outputs.some((/** @type {any} */ output) =>
+            invalidSource
+              ? output?.ok === false && output.status === "error" && output.error?.message
+              : output?.ok === true &&
+                output.status === "rendered" &&
+                output.width > 0 &&
+                output.height > 0,
+          ),
+          "The model must receive the actual renderer ToolResult, including syntax failures",
+        );
+      }
       assert(
         !body.includes("text/html;profile=mcp-app"),
         "UI resources must stay out of provider history",
@@ -219,14 +247,21 @@ try {
         await evaluate(
           `window.__mcpStreamingFrame=document.querySelector('.mcp-app-frame iframe');true`,
         );
+      } else if (invalidSource) {
+        await until(
+          `!!document.querySelector('.tool-failed') && !document.querySelector('.mcp-app-frame')`,
+        );
       } else await until("window.__mcpRenderStatus?.status==='ready'");
+      await until(`!!document.querySelector('[data-running=true]')`);
+      for (let attempt = 0; attempt < 100 && !continuation && !modelError; attempt++)
+        await new Promise((done) => setTimeout(done, 100));
       assert.ifError(modelError);
       assert(
         continuation && !continuation.writableEnded,
         "The editor must render before the model finishes",
       );
       await pilot(["snapshot", "-i"]);
-      if (!bridgeFixture)
+      if (!bridgeFixture && !invalidSource)
         await pilot([
           "run",
           join(root, "tests/blackbox/mcp-ui-streaming.toml"),
@@ -250,17 +285,18 @@ try {
       await until(
         "document.body.textContent.includes('MCP streaming fixture finished.') && !!document.querySelector('[data-summary=true]')",
       );
-      assert.equal(
-        await evaluate(
-          "document.querySelector('.mcp-app-frame iframe')===window.__mcpStreamingFrame && window.__mcpStreamingFrame.isConnected",
-        ),
-        "true",
-        "Terminal reconciliation must retain the mounted editor",
-      );
+      if (!invalidSource)
+        assert.equal(
+          await evaluate(
+            "document.querySelector('.mcp-app-frame iframe')===window.__mcpStreamingFrame && window.__mcpStreamingFrame.isConnected",
+          ),
+          "true",
+          "Terminal reconciliation must retain the mounted editor",
+        );
       await evaluate("setTimeout(()=>location.reload(),100); true");
       await new Promise((done) => setTimeout(done, 500));
       await until(
-        "!!document.querySelector('.mcp-app-frame iframe') && document.body.textContent.includes('MCP streaming fixture finished.')",
+        `${invalidSource ? "!document.querySelector('.mcp-app-frame iframe')" : "!!document.querySelector('.mcp-app-frame iframe')"} && document.body.textContent.includes('MCP streaming fixture finished.')`,
       );
       if (bridgeFixture) {
         await until(
@@ -285,7 +321,9 @@ try {
       console.log(
         bridgeFixture
           ? `Passed ${theme}/${language}: app-only tool, file upload/download, streaming, completion, reload and close`
-          : `Passed ${theme}/${language}: ${resourceBytes} byte editor rendered during streaming and survived completion/reload`,
+          : invalidSource
+            ? `Passed ${theme}/${language}: actual syntax-error ToolResult reached the model and survived reload`
+            : `Passed ${theme}/${language}: ${resourceBytes} byte editor rendered during streaming and survived completion/reload`,
       );
     }
   await pilot(["logs", "--level", "error"]);

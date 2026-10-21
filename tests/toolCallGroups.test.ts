@@ -82,6 +82,37 @@ describe("tool-call grouping", () => {
     }
     expect(canMountMcpApp({ ...success, approval: { state: "answered" } })).toBe(true);
   });
+  test("opted-in app results mount during active execution, never from pending history or approval", () => {
+    const pending = {
+      ...call("render_app"),
+      mcpUi: {
+        resource: { uri: "ui://app" },
+        descriptor: { meta: { "openagent/tool-result-from-app": true } },
+      },
+    };
+    expect(canMountMcpApp(pending, true)).toBe(true);
+    expect(canMountMcpApp(pending)).toBe(false);
+    for (const state of ["pending", "cancelled", "unanswered"]) {
+      expect(canMountMcpApp({ ...pending, approval: { state } }, true)).toBe(false);
+    }
+    expect(
+      canMountMcpApp(
+        { ...pending, approval: { state: "answered", response: { values: { approved: false } } } },
+        true,
+      ),
+    ).toBe(false);
+    expect(
+      canMountMcpApp(
+        { ...pending, approval: { state: "answered", response: { values: { approved: true } } } },
+        true,
+      ),
+    ).toBe(true);
+    expect(canMountMcpApp({ ...pending, result: "Tool call was denied by the user" }, true)).toBe(
+      false,
+    );
+    expect(canMountMcpApp({ ...pending, result: '{"ok":false}' }, true)).toBe(false);
+    expect(canMountMcpApp({ ...pending, result: '{"ok":true}' })).toBe(true);
+  });
   test("groups only consecutive ordinary stream tool calls", () => {
     const segments = groupStreamItems([
       call("read_file", "ok"),
