@@ -7,6 +7,7 @@
   import { parseEditFilePreview } from "$lib/toolEditPreview";
   import {
     canMountMcpApp,
+    mcpAppReturnsToolResult,
     shouldDisplayToolCall,
     toolCallStatus,
     type ToolCallItem,
@@ -89,7 +90,10 @@
   });
   const resultText = $derived(result ?? "");
   const mountMcpApp = $derived(
-    canMountMcpApp({ type: "tool_call", name, args, result, mcpUi, approval }),
+    canMountMcpApp({ type: "tool_call", name, args, result, mcpUi, approval }, showRunning),
+  );
+  const showToolHeader = $derived(
+    !mountMcpApp || !mcpAppReturnsToolResult({ type: "tool_call", name, args, result, mcpUi }),
   );
   const status = $derived(
     toolCallStatus({ type: "tool_call", name, args, result } satisfies ToolCallItem, showRunning),
@@ -227,93 +231,95 @@
     <MermaidToolPreview args={mermaidArgs} {result} {mermaidConfig} />
   {:else}
     <div class="tool-call-card">
-      <div class="tool-call-header">
-        <button
-          class="tool-toggle"
-          aria-expanded={expanded}
-          aria-label={`${displayName}: ${statusText}. ${expanded ? $t("toolCallCollapse") : $t("toolCallExpand")}`}
-          onclick={onToggle}
-        >
-          <span class="tool-name">{displayName}</span>
-          {#if isFocusedTool}
-            {#if name === "exec_command" && command}
-              <span class="tool-arg-hint">{command}</span>
-            {:else if filePath}
-              <span class="tool-arg-hint">{shortPath(filePath)}</span>
-            {:else if getString(parsedArgs, "session_id")}
-              <span class="tool-arg-hint">{getString(parsedArgs, "session_id")}</span>
+      {#if showToolHeader}
+        <div class="tool-call-header">
+          <button
+            class="tool-toggle"
+            aria-expanded={expanded}
+            aria-label={`${displayName}: ${statusText}. ${expanded ? $t("toolCallCollapse") : $t("toolCallExpand")}`}
+            onclick={onToggle}
+          >
+            <span class="tool-name">{displayName}</span>
+            {#if isFocusedTool}
+              {#if name === "exec_command" && command}
+                <span class="tool-arg-hint">{command}</span>
+              {:else if filePath}
+                <span class="tool-arg-hint">{shortPath(filePath)}</span>
+              {:else if getString(parsedArgs, "session_id")}
+                <span class="tool-arg-hint">{getString(parsedArgs, "session_id")}</span>
+              {/if}
+              {#if resultSummary}
+                <span class="tool-result-pill">{resultSummary}</span>
+              {/if}
+            {:else if !expanded && argHint}
+              <span class="tool-arg-hint">{argHint}</span>
             {/if}
-            {#if resultSummary}
-              <span class="tool-result-pill">{resultSummary}</span>
-            {/if}
-          {:else if !expanded && argHint}
-            <span class="tool-arg-hint">{argHint}</span>
-          {/if}
-          <Tooltip text={statusText}>
-            <span
-              class="tool-status"
-              class:tool-done={status === "success"}
-              class:tool-failed={status === "failed"}
-              class:tool-running={status === "running"}
-              class:tool-pending={status === "waiting"}
-              class:tool-unanswered={status === "unanswered"}
-              class:tool-cancelled={status === "cancelled"}
-            >
-              <span aria-hidden="true"
-                >{status === "success"
-                  ? "✓"
-                  : status === "failed"
-                    ? "×"
-                    : status === "running"
-                      ? "…"
-                      : status === "unanswered"
-                        ? "—"
-                        : status === "cancelled"
-                          ? "×"
-                          : "○"}</span
+            <Tooltip text={statusText}>
+              <span
+                class="tool-status"
+                class:tool-done={status === "success"}
+                class:tool-failed={status === "failed"}
+                class:tool-running={status === "running"}
+                class:tool-pending={status === "waiting"}
+                class:tool-unanswered={status === "unanswered"}
+                class:tool-cancelled={status === "cancelled"}
               >
-              <span class="sr-only">{statusText}</span>
-            </span>
-          </Tooltip>
-          <span class="tool-chevron" class:expanded aria-hidden="true">
-            <svg
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M6 4l4 4-4 4" />
-            </svg>
-          </span>
-        </button>
-        {#if isFocusedTool && filePath}
-          <Tooltip text={$t("openContainingFolder")}>
-            {#snippet trigger(props)}
-              <button
-                {...props}
-                class="tool-icon-btn"
-                aria-label={$t("openContainingFolder")}
-                onclick={(event) => openContainingFolder(filePath, event)}
-              >
-                <svg
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
+                <span aria-hidden="true"
+                  >{status === "success"
+                    ? "✓"
+                    : status === "failed"
+                      ? "×"
+                      : status === "running"
+                        ? "…"
+                        : status === "unanswered"
+                          ? "—"
+                          : status === "cancelled"
+                            ? "×"
+                            : "○"}</span
                 >
-                  <path d="M1.8 4.5h4.4l1.2 1.4h6.8v6.6a1 1 0 0 1-1 1H2.8a1 1 0 0 1-1-1z" />
-                  <path d="M1.8 6h12.4" />
-                </svg>
-              </button>
-            {/snippet}
-          </Tooltip>
-        {/if}
-      </div>
+                <span class="sr-only">{statusText}</span>
+              </span>
+            </Tooltip>
+            <span class="tool-chevron" class:expanded aria-hidden="true">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M6 4l4 4-4 4" />
+              </svg>
+            </span>
+          </button>
+          {#if isFocusedTool && filePath}
+            <Tooltip text={$t("openContainingFolder")}>
+              {#snippet trigger(props)}
+                <button
+                  {...props}
+                  class="tool-icon-btn"
+                  aria-label={$t("openContainingFolder")}
+                  onclick={(event) => openContainingFolder(filePath, event)}
+                >
+                  <svg
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M1.8 4.5h4.4l1.2 1.4h6.8v6.6a1 1 0 0 1-1 1H2.8a1 1 0 0 1-1-1z" />
+                    <path d="M1.8 6h12.4" />
+                  </svg>
+                </button>
+              {/snippet}
+            </Tooltip>
+          {/if}
+        </div>
+      {/if}
 
       {#if approval?.state === "pending"}
         <ToolApprovalActions
@@ -327,7 +333,7 @@
         {#await import("./McpAppFrame.svelte")}
           <div class="mcp-app-loading" aria-busy="true" aria-label={$t("mcpApp")}></div>
         {:then module}
-          <module.default invocation={mcpUi} />
+          <module.default invocation={mcpUi} awaitingToolResult={result === undefined} />
         {:catch}
           <div class="mcp-app-loading" role="status">{$t("mcpAppUnavailable")}</div>
         {/await}

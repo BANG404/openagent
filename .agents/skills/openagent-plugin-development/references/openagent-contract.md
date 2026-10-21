@@ -340,10 +340,26 @@ The independent `plugins/mermaid/` package owns the optional offline Mermaid
 editor, its `render_mermaid` MCP tool and `ui://mermaid/editor.html` resource.
 The default host diagram is the reply-text AGUI `Mermaid(source: ..., title?:
 ...)` component. Installing the package does not replace that default or add a
-host-owned renderer tool. The package returns prepared source, and its sandboxed
-UI performs rendering/validation, follows live host locale/theme and preserves
-source edits. It uses the same MCP approval and successful-result gate as other
-apps. No CDN, parent DOM or special Mermaid transport is needed.
+host-owned renderer tool. The package waits for its sandboxed UI to render and
+returns the actual success/dimensions or render error as the original MCP
+ToolResult. It follows live locale/theme and preserves edits. The default
+surface matches the AGUI figure/canvas toolbar; source editing is a disclosure.
+No CDN or parent DOM access is needed.
+
+The generic optional `openagent/tool-result-from-app` extension is advertised
+by iframe host capabilities; the server first checks MCP Apps MIME support. Tools
+opt in with `_meta["openagent/tool-result-from-app"]: true`; only active calls
+may mount before receiving a result, with unresolved approvals still blocked.
+Tool-input notifications include `openagent/tool-result-pending`; history never
+claims new work. Packages must check support, wait until their server tool has
+actually executed, correlate one app-only completion per opaque render ID, and
+return a bounded failure when no frontend responds. Mermaid uses app-only
+`claim_render`/`complete_render` tools and a 25-second timeout. This adds no
+Runtime renderer or new checkpoint shape.
+
+`window.openai.downloadFile({name, mimeType, data})` / `ui/download-file` saves a
+base64 PNG or SVG through the existing host download action. Reject directory
+components and payloads above 16 MiB; never grant iframe filesystem access.
 MCP Apps host context includes resolved standard `styles.variables` for primary,
 secondary and tertiary backgrounds, primary/secondary text, primary border and
 the sans font stack. Mounted apps receive palette changes within the same color

@@ -88,3 +88,10 @@ AGUI Mermaid diagrams reuse the existing diagram canvas and controls. An optiona
 user-authored title is the figure caption, with an 8px gap before the canvas.
 Partial components retain the shared AGUI skeleton; theme changes repaint the
 existing diagram through the shared palette observer.
+
+The independent Mermaid MCP App follows the same diagram-first figure grammar:
+optional 500-weight title with an 8px gap, a 500px inline canvas with a quiet
+12px perimeter, and compact top-right fit/zoom/fullscreen/copy/download icons.
+Keep successful rendering status out of the canvas and source editing inside
+an initially collapsed disclosure. Use resolved host background, foreground,
+border and font values, preserving fullscreen space and local edits.

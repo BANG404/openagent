@@ -9,7 +9,10 @@
   import { mcpAppStyles } from "$lib/mcpAppStyles";
   import { observeThemePalette } from "$lib/streamdown/themePalette";
 
-  let { invocation }: { invocation: McpUiInvocation } = $props();
+  let {
+    invocation,
+    awaitingToolResult = false,
+  }: { invocation: McpUiInvocation; awaitingToolResult?: boolean } = $props();
 
   let frame = $state<HTMLIFrameElement | null>(null);
   let container = $state<HTMLElement | null>(null);
@@ -71,6 +74,7 @@
         maxHeight: 720,
       },
       toolInfo: { tool: { name: invocation.descriptor.tool_name } },
+      "openagent/conversation-id": invocation.conversation_id ?? "",
       openInAppUrl,
       styles: mcpAppStyles(),
       version: hostContextVersion,
@@ -291,6 +295,7 @@
     },
     selectFiles: function () { return request("ui/select-files", {}); },
     getFileDownloadUrl: function (value) { return request("ui/get-file-download-url", value || {}); },
+    downloadFile: function (value) { return request("ui/download-file", value || {}); },
     requestCheckout: function (session) { return request("ui/request-checkout", session || {}); },
     get widgetState() { return widgetState; },
     setWidgetState: function (state) {
@@ -355,7 +360,10 @@ ${scriptClose}`;
     post({
       jsonrpc: "2.0",
       method: "ui/notifications/tool-input",
-      params: { arguments: invocation.arguments },
+      params: {
+        arguments: invocation.arguments,
+        "openagent/tool-result-pending": awaitingToolResult,
+      },
     });
     const result: Record<string, unknown> =
       invocation.tool_result && typeof invocation.tool_result === "object"
@@ -441,6 +449,7 @@ ${scriptClose}`;
         widgetState = null;
       }
       const hostCapabilities = {
+        "openagent/tool-result-from-app": true,
         openLinks: {},
         serverTools: {},
         serverResources: {},
@@ -574,8 +583,35 @@ ${scriptClose}`;
       return;
     }
     if (method === "ui/download-file") {
+      if (params.data !== undefined) {
+        if (
+          typeof params.name !== "string" ||
+          !params.name ||
+          /[\\/]/.test(params.name) ||
+          typeof params.data !== "string" ||
+          params.data.length > 16 * 1024 * 1024 ||
+          !["image/svg+xml", "image/png"].includes(String(params.mimeType))
+        ) {
+          error(id, -32602, "Expected a bounded image download and a filename without directories");
+          return;
+        }
+        try {
+          if (!window.__OPENAGENT_DOWNLOAD__) throw new Error("Downloads unavailable");
+          const bytes = Uint8Array.from(atob(params.data), (character) => character.charCodeAt(0));
+          await window.__OPENAGENT_DOWNLOAD__({
+            filename: params.name,
+            content: bytes,
+            mimeType: String(params.mimeType),
+          });
+          response(id, {});
+        } catch (cause) {
+          error(id, -32000, String(cause));
+        }
+        return;
+      }
       const url = typeof params.url === "string" ? params.url : "";
       try {
+        if (!url) throw new Error("A download URL is required");
         const parsed = new URL(url, window.location.href);
         if (!["http:", "https:", "data:"].includes(parsed.protocol)) {
           throw new Error("only http(s) or data URLs are allowed");
