@@ -66,7 +66,7 @@ jobs:
         shell: bash
         run: |
           if git rev-parse HEAD^ >/dev/null 2>&1 \
-            && ! git diff --quiet HEAD^ HEAD -- .github/release.json; then
+            && [[ -n "$(git diff-tree --no-commit-id --name-only -r --cc HEAD -- .github/release.json)" ]]; then
             ready="$(node -p "JSON.parse(require('fs').readFileSync('.github/release.json', 'utf8')).ready")"
             if [[ "$ready" == "true" ]]; then
               bun scripts/release.mjs --verify

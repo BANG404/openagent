@@ -53,6 +53,10 @@ three verification routes:
   no capability coverage to reuse.
 - The always-present aggregate proves that every selected check passed. Release
   qualification and verified component receipts gate tagging and publication.
+- Automation detects newly changed release markers with Git's combined merge
+  diff. A merge that inherits the marker unchanged from either parent does not
+  create a release commit; ordinary marker edits and merge resolutions that
+  differ from every parent still invoke the complete release metadata verifier.
 - Creation of a Stable archive branch reports an all-zero GitHub `before` SHA;
   change detection falls back to the branch head's parent instead of treating
   the existing Beta snapshot as an entirely new repository.
