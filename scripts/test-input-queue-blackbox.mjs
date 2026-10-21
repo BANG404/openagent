@@ -192,11 +192,17 @@ try {
       await new Promise((done) => setTimeout(done, 500));
       await until("document.querySelectorAll('.chat-queue [data-queue-id]').length === 2");
       await pilot(["snapshot", "-i"]);
+      hold = true;
+      await pilot(["run", join(root, "tests/blackbox/input-queue-idle-send.toml")]);
+      hold = false;
+      releases.splice(0).forEach((release) => release());
       await pilot(["run", join(root, "tests/blackbox/input-queue-resume.toml")]);
       const ordered = requests.filter((request) => request.marker === marker);
-      assert.equal(ordered.length, 3, "Stop or reload dispatched an extra input");
+      assert.equal(ordered.length, 4, "Stop or reload dispatched an extra input");
       assert(
-        ordered[1].content.includes("third") && ordered[2].content.includes("edited-second"),
+        ordered[1].content.includes("after-stop-direct") &&
+          ordered[2].content.includes("third") &&
+          ordered[3].content.includes("edited-second"),
         "Runtime ignored native edit or ordering",
       );
       hold = true;
@@ -209,10 +215,14 @@ try {
         join(artifacts, `${theme}-${language}-empty-stop.xml`),
       ]);
       await screenshot(`${theme}-${language}-empty-stop.png`);
+      await pilot(["snapshot", "-i"]);
+      await pilot(["run", join(root, "tests/blackbox/input-queue-idle-send.toml")]);
       await evaluate("setTimeout(()=>location.reload(),100); true");
       await new Promise((done) => setTimeout(done, 500));
       await until("!!document.querySelector('[contenteditable=true][role=textbox]')");
       await until("!document.querySelector('.chat-queue') && !document.querySelector('.stop-btn')");
+      await pilot(["snapshot", "-i"]);
+      await pilot(["run", join(root, "tests/blackbox/input-queue-idle-send.toml")]);
       releases.splice(0).forEach((release) => release());
       const steeringId = await openConversation("steer");
       const beforeSteer = requests.length;
@@ -284,7 +294,9 @@ try {
         { cwd: join(root, "runtime"), env: process.env, windowsHide: true },
       );
       writeFileSync(join(artifacts, `${theme}-${language}-checkpoints.json`), records);
-      for (const command of ["renderability", "diagnose"]) {
+      for (const command of existsSync(join(home, "dev-api.json"))
+        ? ["renderability", "diagnose"]
+        : []) {
         const { stdout } = await execute(
           "python",
           [

@@ -108,7 +108,10 @@ card can open before its first submission; arbitrary filesystem paths remain den
 resolution tracking, and uses the shared Runtime input-queue projection. It receives
 the canonical conversation and composer draft through a typed writable facade;
 reconnect and durable state reconciliation use that same controller state.
-Queue acceptance clears only the unchanged submitted draft. Failed acceptance
+Ordinary idle submissions use `submitInput`; only active execution uses the
+queue, following the conversation UI owner's input boundary. Direct submission
+projects its stable optimistic user/assistant IDs until SSE reconciliation.
+Acceptance clears only the unchanged submitted draft. Failed acceptance
 preserves newer edits. SSE state includes the durable queue projection, so a
 reconnect restores pending items without client dispatch. The conversation UI
 owner documents queue controls and native acceptance.

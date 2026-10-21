@@ -131,9 +131,16 @@ four themes/locales. Its workspace is `<OPENAGENT_HOME>/workspace`; it restores
 settings and removes its conversations after the run.
 
 The input-queue native runner holds its loopback provider while testing Stop
-with an empty inbox, checks the paused empty snapshot and reload, then releases
-that request before starting the steering fixture. Keep these phases isolated
-so a provider completion cannot substitute for cancellation.
+with an empty inbox, checks the paused empty snapshot and reload, and sends
+again before and after reload while the provider remains held. The retained-inbox
+pass also sends directly before explicitly resuming earlier inputs. Keep these
+phases isolated so provider completion cannot substitute for cancellation.
+The remote-page runner explicitly projects active execution before queue tests
+and idle execution before direct-send tests; a paused inbox alone must not make
+the fixture active. Both runners retain all four theme/locale combinations.
+Queue checkpoint assertions and offline inspection also run in multi-instance
+windows; supplementary live diagnostics run only when that isolated home
+publishes its own development API manifest.
 
 Release automation preflight includes `lint:frontend` and `lint:actions`, both
 of which reject warnings. Quote dynamic values in Bash expansion patterns and

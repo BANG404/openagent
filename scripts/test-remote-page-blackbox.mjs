@@ -15,6 +15,11 @@ const scenario = fileURLToPath(new URL("../tests/blackbox/remote-page.toml", imp
 const execute = promisify(execFile);
 /** @type {Map<string, import('../sdk/typescript/src/contracts.ts').InputQueueSnapshot>} */
 const queues = new Map();
+/** @type {unknown[]} */
+let runs = [];
+let holdRun = false;
+/** @type {(() => void) | null} */
+let rejectRun = null;
 
 /** @param {string} id */
 function queueState(id) {
@@ -39,7 +44,7 @@ function conversationState(id) {
   return {
     conv_id: id,
     title: `Remote ${id}`,
-    phase: "final_completed",
+    phase: queueState(id)?.activeRunId ? "before_completion" : "final_completed",
     checkpoint_id: null,
     messages: [
       {
@@ -145,7 +150,19 @@ async function fixtureResponse(request) {
         for (const controller of controllers) controller.close();
       streams.clear();
     } else if (path === "/__fixture/online") offline = false;
-    return Response.json({ reads, uploads });
+    else if (path === "/__fixture/hold-run") holdRun = true;
+    else if (path === "/__fixture/reject-run") rejectRun?.();
+    else if (path === "/__fixture/running" || path === "/__fixture/idle") {
+      const id = "two-a";
+      const queue = queueState(id);
+      assert(queue);
+      queue.activeRunId = path.endsWith("/running") ? "fixture-active-run" : null;
+      for (const controller of streams.get(id) || [])
+        controller.enqueue(
+          encoder.encode(`event: state\ndata: ${JSON.stringify(conversationState(id))}\n\n`),
+        );
+    }
+    return Response.json({ reads, uploads, runs, pendingRun: !!rejectRun });
   }
   if (path === "/api/session")
     return session
@@ -206,6 +223,25 @@ async function fixtureResponse(request) {
         );
     }
     return Response.json(queue);
+  }
+  const runRoute = /^\/api\/conversations\/([^/]+)\/runs$/.exec(path);
+  if (runRoute && request.method === "POST") {
+    const input = await request.json();
+    assert(input.user_message_id && input.assistant_message_id);
+    if (holdRun) {
+      holdRun = false;
+      await new Promise((resolve) => {
+        rejectRun = () => resolve(null);
+      });
+      rejectRun = null;
+      return Response.json({ error: "Fixture direct submission failed" }, { status: 503 });
+    }
+    runs.push(input);
+    return Response.json({
+      type: "run_accepted",
+      conv_id: runRoute[1],
+      run_id: input.assistant_message_id,
+    });
   }
   const conversation = /^\/api\/conversations\/([^/]+)(?:\/(history|events))?$/.exec(path);
   if (conversation) {
@@ -286,6 +322,7 @@ try {
       offline = false;
       reads = 0;
       uploads = 0;
+      runs = [];
       queues.clear();
       lists = new Map([
         ["one", [meta("one-a"), meta("one-b")]],

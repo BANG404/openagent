@@ -245,6 +245,15 @@ Wait for a newly created desktop conversation to finish persistence before
 loading its queue. An existing conversation without branches has an empty queue;
 native queue fixtures must start without pre-creating a branch.
 
+Ordinary input enters the queue only while the conversation is running (live
+execution or the queue snapshot's active run). Idle, completed, failed and
+interrupted conversations submit directly through the shared SDK, including
+after reload. A paused queue or retained waiting/failed receipt alone is not
+execution: new idle input must start immediately without resuming or appending
+to that queue. Stop preserves earlier waiting inputs and their pause state;
+only explicit queue controls resume them.
+Refresh the queue projection on run-start as well as terminal events, so a
+directly started run exposes its current steering target without an inbox write.
 Ordinary input during execution waits for the next turn. The separate Add to
 current task action targets the displayed active run ID and keeps its model;
 a stale or finishing run rejects that action without moving the draft. The

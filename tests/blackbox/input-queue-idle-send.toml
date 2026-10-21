@@ -1,0 +1,36 @@
+[scenario]
+name = "idle send bypasses the paused inbox after Stop or reload"
+fail_fast = true
+global_timeout_ms = 60000
+
+[[step]]
+name = "start a new run without changing retained waiting inputs"
+action = "eval"
+script = '''(async()=>{
+  const probe=JSON.parse(sessionStorage.getItem('input-queue-fixture'));
+  const {desktopOpenAgent:client}=await import('/src/lib/openagent/tauriClient.ts');
+  const wait=async(check,why)=>{const end=Date.now()+20000;while(Date.now()<end){if(await check())return;await new Promise(r=>setTimeout(r,50));}throw new Error(why);};
+  const before=await client.getInputQueue(probe.convId);
+  if(before.activeRunId||!before.paused)throw new Error('expected a stopped conversation');
+  const text=`QUEUE_FIXTURE:${probe.marker} after-stop-direct-${crypto.randomUUID()}`;
+  const responseCount=()=>document.body.textContent.split(`Queue response ${probe.marker}`).length;
+  const responsesBefore=responseCount();
+  const editor=document.querySelector('[contenteditable=true][role=textbox]');editor.focus();
+  const range=document.createRange();range.selectNodeContents(editor);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);document.dispatchEvent(new Event('selectionchange'));
+  const clipboard=new DataTransfer();clipboard.setData('text/plain',text);editor.dispatchEvent(new ClipboardEvent('paste',{clipboardData:clipboard,bubbles:true,cancelable:true}));
+  await new Promise(r=>requestAnimationFrame(r));
+  const mutate=client.mutateInputQueue;let adds=0;
+  client.mutateInputQueue=async(id,action)=>{if(action.type==='add')adds++;return mutate.call(client,id,action);};
+  try {
+    document.querySelector('.send-btn').click();
+    await wait(()=>!!document.querySelector('.stop-btn')&&[...document.querySelectorAll('.user-msg')].some(row=>row.textContent.includes(text)),'idle input did not start a new turn');
+    await wait(async()=>!!(await client.getInputQueue(probe.convId)).activeRunId,'new run never became active');
+    await wait(()=>responseCount()>responsesBefore,'new provider response never arrived');
+    const during=await client.getInputQueue(probe.convId);
+    if(adds||!during.paused||JSON.stringify(during.items.map(item=>item.id))!==JSON.stringify(before.items.map(item=>item.id)))throw new Error('idle send appended to or resumed the paused queue');
+    document.querySelector('.stop-btn').click();
+    await wait(()=>!document.querySelector('.stop-btn'),'new run did not stop');
+    await wait(async()=>!(await client.getInputQueue(probe.convId)).activeRunId,'cancelled run did not settle');
+    return 'idle send bypassed the paused queue and retained earlier inputs';
+  } finally {client.mutateInputQueue=mutate;}
+})()'''

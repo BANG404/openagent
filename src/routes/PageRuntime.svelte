@@ -1984,6 +1984,7 @@
 
   function applyExternalChatRunStarted(event: ChatRunStartedEvent): void {
     if (event.workspace !== (workspacePath || "")) return;
+    void inputQueue.load(event.conv_id);
     const startedAt = Date.now();
     const userMessage: ChatMessage | undefined =
       event.user_visible === false
@@ -3262,7 +3263,7 @@
       return;
     }
 
-    if (activeConvId && !(activeConvId in pendingParentCk)) {
+    if (activeConvId && isCurrentStreaming && !(activeConvId in pendingParentCk)) {
       await submitComposerToQueue("next_turn");
       return;
     }

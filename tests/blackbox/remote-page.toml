@@ -216,6 +216,8 @@ script = '''(async()=>{
   const {en}=await import('/src/lib/i18n.en.ts');const {zh}=await import('/src/lib/i18n.zh.ts');const tr=key=>(language==='en'?en:zh)[key];
   const wait=async(read,why)=>{const end=Date.now()+10000;while(Date.now()<end){if(await read())return;await new Promise(r=>setTimeout(r,50));}throw new Error(why);};
   const fill=async(text)=>{const editor=document.querySelector('[contenteditable=true][role=textbox]');editor.focus();const range=document.createRange();range.selectNodeContents(editor);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);(() => { document.dispatchEvent(new Event('selectionchange')); const clipboard = new DataTransfer(); clipboard.setData('text/plain', ({bubbles:true,cancelable:true,inputType:'insertText',data:text}).data); editor.dispatchEvent(new ClipboardEvent('paste', {clipboardData:clipboard,bubbles:true,cancelable:true})); })();await new Promise(r=>requestAnimationFrame(r));};
+  await fetch('/__fixture/running');
+  await wait(()=>!!document.querySelector('.stop-btn'),'active execution was not projected');
   await fill('remote durable follow-up');
   const clipboard=new DataTransfer();clipboard.items.add(new File(['queue attachment'],'queue.txt',{type:'text/plain'}));
   document.querySelector('[contenteditable=true][role=textbox]').dispatchEvent(new ClipboardEvent('paste',{clipboardData:clipboard,bubbles:true,cancelable:true}));
@@ -239,4 +241,32 @@ script = '''(async()=>{
   await wait(()=>!document.querySelector('.chat-queue [data-queue-id]'),'queue clear was not projected');
   if(!document.querySelector('[contenteditable=true][role=textbox]').textContent.includes('unsent remote queue draft'))throw new Error('queue controls erased the composer');
   return 'scoped queue acceptance and controls retained the untouched composer';
+})()'''
+
+[[step]]
+name = "idle remote send bypasses a stopped paused queue"
+action = "eval"
+script = '''(async()=>{
+  const wait=async(read,why)=>{const end=Date.now()+10000;while(Date.now()<end){if(await read())return;await new Promise(r=>setTimeout(r,50));}throw new Error(why);};
+  await fetch('/__fixture/idle');
+  await wait(()=>!document.querySelector('.stop-btn'),'idle execution was not projected');
+  await fetch('/__fixture/hold-run');
+  try {
+    document.querySelector('.send-btn').click();
+    await wait(async()=>!!(await(await fetch('/__fixture/stats')).json()).pendingRun,'direct send never reached the transport');
+    const editor=document.querySelector('[contenteditable=true][role=textbox]');editor.focus();
+    const range=document.createRange();range.selectNodeContents(editor);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);document.dispatchEvent(new Event('selectionchange'));
+    const clipboard=new DataTransfer();clipboard.setData('text/plain','newer remote idle draft');editor.dispatchEvent(new ClipboardEvent('paste',{clipboardData:clipboard,bubbles:true,cancelable:true}));
+    await new Promise(r=>requestAnimationFrame(r));await fetch('/__fixture/reject-run');
+    await wait(()=>!document.querySelector('.send-btn').disabled&&!document.querySelector('.stop-btn'),'failed direct send left execution active');
+    if(!document.querySelector('[contenteditable=true][role=textbox]').textContent.includes('newer remote idle draft'))throw new Error('failed direct send erased newer edits');
+  } finally {await fetch('/__fixture/reject-run');}
+  document.querySelector('.send-btn').click();
+  await wait(async()=>{const stats=await(await fetch('/__fixture/stats')).json();return stats.runs.length===1;},'idle send did not use the run endpoint');
+  await wait(()=>!document.querySelector('[contenteditable=true][role=textbox]').textContent.trim(),'accepted direct input did not clear the draft');
+  const queue=await(await fetch('/api/conversations/two-a/input-queue')).json();
+  const stats=await(await fetch('/__fixture/stats')).json();
+  if(!queue.paused||queue.items.length||stats.runs[0].text!=='newer remote idle draft')throw new Error('idle send changed the paused queue or lost its input');
+  if(![...document.querySelectorAll('.user-msg')].some(row=>row.textContent.includes('newer remote idle draft')))throw new Error('direct input did not render optimistically');
+  return 'idle remote input started directly without resuming the inbox';
 })()'''

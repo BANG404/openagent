@@ -63,21 +63,47 @@ export function createRemoteExecutionController(options: ExecutionOptions) {
     const submittedContexts = options.contexts;
     const modelBinding = delivery === "steer" ? null : selectedModelBinding();
     const expectedRunId = sourceConvId ? inputQueue.snapshots[sourceConvId]?.activeRunId : null;
+    const enqueue = delivery === "steer" || options.running;
     options.busy = true;
     options.error = "";
     try {
       const convId = sourceConvId ?? (await options.createConversation());
-      await inputQueue.submit(
-        {
-          convId,
-          text,
-          attachments: submittedAttachments.map((attachment) => attachment.path),
-          contexts: submittedContexts,
-          modelBinding,
-        },
-        delivery,
-        delivery === "steer" ? expectedRunId : undefined,
-      );
+      const input = {
+        convId,
+        text,
+        attachments: submittedAttachments.map((attachment) => attachment.path),
+        contexts: submittedContexts,
+        modelBinding,
+      };
+      if (enqueue) {
+        await inputQueue.submit(input, delivery, delivery === "steer" ? expectedRunId : undefined);
+      } else {
+        const userMessageId = randomUuid();
+        const assistantMessageId = randomUuid();
+        optimisticUser = {
+          id: userMessageId,
+          role: "user",
+          content: text,
+          timestamp: Date.now(),
+          items: [
+            ...submittedContexts.map((context) => ({ type: "quote" as const, context })),
+            ...submittedAttachments.map((attachment) => ({
+              type: "attachment" as const,
+              attachment,
+            })),
+          ],
+        };
+        pendingAssistantMessageId = assistantMessageId;
+        try {
+          await options.client.submitInput({ ...input, userMessageId, assistantMessageId });
+        } catch (cause) {
+          if (pendingAssistantMessageId === assistantMessageId) {
+            optimisticUser = null;
+            pendingAssistantMessageId = null;
+          }
+          throw cause;
+        }
+      }
       if (paused && options.conversation?.conv_id === convId) await setStreamPaused(false);
       if (
         options.conversation?.conv_id === convId &&

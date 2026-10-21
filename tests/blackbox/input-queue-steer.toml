@@ -13,7 +13,9 @@ script = '''(async()=>{
   const sent=()=>!document.querySelector('[contenteditable=true][role=textbox]').textContent.trim();
   await fill(`QUEUE_FIXTURE:${probe.marker} steering-initial`);document.querySelector('.send-btn').click();
   await wait(()=>document.body.textContent.includes(`Queue response ${probe.marker}`),'steering target did not start');
-  await fill(`QUEUE_FIXTURE:${probe.marker} clear-before-consume`);document.querySelector('.steer-btn').click();await wait(sent,'clear fixture acceptance failed');
+  await fill(`QUEUE_FIXTURE:${probe.marker} clear-before-consume`);
+  await wait(()=>!!document.querySelector('.steer-btn'),'active run identity did not reach the composer');
+  document.querySelector('.steer-btn').click();await wait(sent,'clear fixture acceptance failed');
   await wait(()=>!!document.querySelector('.chat-queue li'),'clear fixture receipt missing');
   document.querySelector('.queue-header button:last-child').click();await wait(()=>!document.querySelector('.chat-queue li'),'steering clear failed');
   if([...document.querySelectorAll('.user-msg')].some(row=>row.textContent.includes('clear-before-consume')))throw new Error('cleared steering leaked into transcript');

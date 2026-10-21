@@ -42,15 +42,15 @@ script = '''(async()=>{
 })()'''
 
 [[step]]
-name = "a failed acceptance preserves edits made while the request is pending"
+name = "a failed idle submission preserves edits made while the request is pending"
 action = "eval"
 script = '''(async()=>{
   const {desktopOpenAgent:client}=await import('/src/lib/openagent/tauriClient.ts');
-  const original=client.mutateInputQueue;
+  const original=client.submitInput;
   const wait=async(read,why)=>{const end=Date.now()+10000;while(Date.now()<end){if(read())return;await new Promise(r=>setTimeout(r,50));}throw new Error(why);};
   const fill=async(text)=>{const e=document.querySelector('[contenteditable=true][role=textbox]');e.focus();const range=document.createRange();range.selectNodeContents(e);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);(() => { document.dispatchEvent(new Event('selectionchange')); const clipboard = new DataTransfer(); clipboard.setData('text/plain', ({bubbles:true,cancelable:true,inputType:'insertText',data:text}).data); e.dispatchEvent(new ClipboardEvent('paste', {clipboardData:clipboard,bubbles:true,cancelable:true})); })();await new Promise(r=>requestAnimationFrame(r));};
   let reject;
-  client.mutateInputQueue=()=>new Promise((_,fail)=>{reject=fail;});
+  client.submitInput=()=>new Promise((_,fail)=>{reject=fail;});
   try {
     await fill('acceptance-will-fail');document.querySelector('.send-btn').click();
     await wait(()=>!!reject,'submission did not reach the transport');
@@ -59,5 +59,5 @@ script = '''(async()=>{
     if(!document.querySelector('[contenteditable=true][role=textbox]').textContent.includes('newer-unsent-draft')||document.querySelectorAll('.chat-queue [data-queue-id]').length!==2)throw new Error('failed acceptance erased newer edits or changed the durable queue');
     await fill('unsent-stop-draft');
     return 'failed acceptance preserved the newer draft and pending inputs';
-  } finally { client.mutateInputQueue=original; }
+  } finally { client.submitInput=original; }
 })()'''
