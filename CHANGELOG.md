@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file.
 - **chat**: Move Mermaid to AGUI and optional MCP App
 
 ### Bug Fixes
+- **ci**: Repair release audit and interrupted download fixture
 - **runtime**: Upgrade Rig to 0.45
 - **chat**: Preserve checkpoint Mermaid source during rendering
 - **chat**: Queue input only during active runs
