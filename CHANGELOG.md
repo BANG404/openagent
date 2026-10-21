@@ -10,6 +10,24 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 - Refresh the English, Chinese, and website feature overviews around Cua Driver, lifecycle automation, in-window management, memory, background terminals, and the current web-content boundaries
 
+## [0.89.0-beta.1] - 2026-10-21
+
+### Features
+- **mermaid**: Return actual app render results
+- **chat**: Move Mermaid to AGUI and optional MCP App
+
+### Bug Fixes
+- **runtime**: Upgrade Rig to 0.45
+- **chat**: Preserve checkpoint Mermaid source during rendering
+- **chat**: Queue input only during active runs
+- **runtime**: Prevent deferred MCP UI tool deadlocks
+- **ui**: Apply active themes to all Mermaid renderers
+- **mcp**: Constrain app layouts and preserve display modes
+- **chat**: Keep book reader open during queue polling
+- **chat**: Render and restore MCP apps during streaming
+- **chat**: Restore live tool call events
+- **chat**: Preserve logical turns across human interrupts
+
 ## [0.88.1-beta.1] - 2026-10-20
 
 ### Bug Fixes
