@@ -1,0 +1,31 @@
+[scenario]
+name = "Checkpoint diagrams preserve labels and render after an inline flowchart declaration"
+fail_fast = true
+global_timeout_ms = 30000
+
+[[step]]
+name = "render both checkpoint diagrams while streaming and after completion"
+action = "eval"
+timeout_ms = 30000
+script = '''(async () => {
+  const assert = (condition, message) => { if (!condition) throw new Error(message); };
+  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+  const diagrams = () => [...document.querySelectorAll('[data-agui-mermaid] [data-mermaid-svg] > svg')];
+  for (let i = 0; i < 200 && !(diagrams().length === 2 && diagrams()[0].textContent.includes('用户请求')); i++) await wait(100);
+  assert(diagrams().length === 2, 'flowchart or following sequence diagram did not render');
+  assert(!document.querySelector('.mermaid-render-error'), 'checkpoint still has a render error');
+  const [flowchart, sequence] = diagrams();
+  assert(flowchart.textContent.includes('用户请求'), 'quoted flowchart label was corrupted');
+  assert(flowchart.textContent.includes('浏览器 browser_*'), 'flowchart punctuation was corrupted');
+  assert(sequence.textContent.includes('spawn_agent 委派'), 'following sequence message was corrupted');
+  const {parseChatMarkdown} = await import('/src/lib/streamdown/parseChatMarkdown.ts');
+  assert(parseChatMarkdown('**stream') === '**stream**', 'ordinary prose lost Markdown completion');
+  const complete = document.querySelector('.mermaid-finalization-control');
+  assert(!complete.disabled, 'fixture must begin streaming');
+  complete.click();
+  await wait(1200);
+  assert(complete.disabled, 'turn did not complete');
+  assert(diagrams()[0] === flowchart && diagrams()[1] === sequence, 'completion remounted a diagram');
+  assert(!document.querySelector('.mermaid-render-error'), 'completion introduced a render error');
+  return 'checkpoint flowchart, literal labels and subsequent sequence diagram survived completion';
+})()'''

@@ -16,6 +16,7 @@
   import { checkpointPanelChanges, fileDiffPreviewChanges } from "$lib/devFixtures/fileDiff";
   import { previewMentionItems } from "$lib/devFixtures/composerPalette";
   import { turnFooterFixture } from "$lib/devFixtures/turnFooter";
+  import { mermaidCheckpointTranscript } from "$lib/devFixtures/mermaidCheckpoint";
   import { terminalHistory } from "$lib/terminalHistory";
   import type { RightSidebarPanel } from "$lib/rightSidebar";
   import { defaultPermissionProfile, normalizeConfigShape } from "$lib/config";
@@ -250,7 +251,7 @@
     temporary: false,
   });
   let mermaidFinalized = $state(false);
-  let mermaidPreviewMode = $state<"valid" | "partial" | "invalid">("valid");
+  let mermaidPreviewMode = $state<"valid" | "partial" | "invalid" | "checkpoint">("valid");
   let streamingMessagesElement = $state<HTMLElement | null>(null);
   let streamingFollowTail = $state(true);
   let streamingText = $state(
@@ -605,9 +606,11 @@
     {
       type: "text",
       content:
-        mermaidPreviewMode === "partial"
-          ? 'Mermaid(source: """flowchart LR\n  Stream -->'
-          : `Mermaid(title: ${JSON.stringify(locale === "zh" ? "流式收敛" : "Streaming finalization")}, source: ${JSON.stringify(mermaidPreviewMode === "invalid" ? "invalid Mermaid source" : "flowchart LR\n  Stream[Live stream] --> Fold[Process fold]\n  Fold --> Diagram[Rendered diagram]")})`,
+        mermaidPreviewMode === "checkpoint"
+          ? mermaidCheckpointTranscript
+          : mermaidPreviewMode === "partial"
+            ? 'Mermaid(source: """flowchart LR\n  Stream -->'
+            : `Mermaid(title: ${JSON.stringify(locale === "zh" ? "流式收敛" : "Streaming finalization")}, source: ${JSON.stringify(mermaidPreviewMode === "invalid" ? "invalid Mermaid source" : "flowchart LR\n  Stream[Live stream] --> Fold[Process fold]\n  Fold --> Diagram[Rendered diagram]")})`,
     },
     {
       type: "text",
@@ -1535,6 +1538,9 @@
     >
     <button data-mermaid-recover onclick={() => (mermaidPreviewMode = "valid")}
       >{locale === "zh" ? "恢复源码" : "Recover source"}</button
+    >
+    <button data-mermaid-checkpoint onclick={() => (mermaidPreviewMode = "checkpoint")}
+      >{locale === "zh" ? "Checkpoint 图表" : "Checkpoint diagrams"}</button
     >
     <MessageList
       messages={mermaidFinalizationMessages}

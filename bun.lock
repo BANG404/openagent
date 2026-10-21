@@ -52,6 +52,9 @@
       },
     },
   },
+  "patchedDependencies": {
+    "svelte-streamdown@3.1.2": "patches/svelte-streamdown@3.1.2.patch",
+  },
   "overrides": {
     "adm-zip": "0.6.1",
     "brace-expansion": "5.0.12",

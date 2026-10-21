@@ -113,6 +113,11 @@ the isolated desktop scenario in the signed-in user's interactive session.
 `TAURI_PILOT_SOCKET`, repeats its scenario after navigation reload in four
 theme/locale pairs, and retains screenshots under the system temporary directory.
 Its synthetic preview requires no configured provider or saved conversation.
+It also replays the inline-declaration checkpoint diagrams, asserting literal
+labels and streaming completion. Keep the Bun-managed `svelte-streamdown` patch
+in `patchedDependencies` and `bun.lock`: it exposes the per-block incomplete-
+Markdown callback used by chat to preserve AGUI source. Verify patch application
+with the pinned Bun's frozen install before native renderer qualification.
 `test:blackbox:transcript-refresh` instead uses the normal chat shell with a
 loopback provider and disposable conversations. Set `OPENAGENT_HOME` to the
 selected isolated instance, with its workspace at `<OPENAGENT_HOME>/workspace`,

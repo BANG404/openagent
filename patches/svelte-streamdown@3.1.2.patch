@@ -1,0 +1,24 @@
+diff --git a/dist/Block.svelte b/dist/Block.svelte
+index b0a4b6f489414f4ceb7f11d53ab7e420d713958b..d1b5e3ed92ed4b743c17ce6d6dd84f49ca46f62d 100644
+--- a/dist/Block.svelte
++++ b/dist/Block.svelte
+@@ -18,3 +18,9 @@
+-	const tokens = $derived(
+-		lex(isStatic ? block : parseIncompleteMarkdown(block.trim()), streamdown.extensions)
+-	);
++	const tokens = $derived.by(() => {
++		const parser = streamdown.parseIncompleteMarkdown;
++		const source = isStatic || parser === false
++			? block
++			: typeof parser === 'function'
++				? parser(block.trim())
++				: parseIncompleteMarkdown(block.trim());
++		return lex(source, streamdown.extensions);
++	});
+diff --git a/dist/context.svelte.d.ts b/dist/context.svelte.d.ts
+index 07ea0432d20d367b7a942231c71f36feff007aa0..5cd8fdebec4b709c3675cbb31e577b6028fdd11e 100644
+--- a/dist/context.svelte.d.ts
++++ b/dist/context.svelte.d.ts
+@@ -104 +104 @@
+-    parseIncompleteMarkdown?: boolean;
++    parseIncompleteMarkdown?: boolean | ((text: string) => string);

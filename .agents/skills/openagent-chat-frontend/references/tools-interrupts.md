@@ -125,6 +125,18 @@
   Mermaid MCP Apps package and use the generic successful-result/approval gate.
   Historical successful `render_mermaid` records remain readable previews;
   pending history must not automatically execute a removed tool.
+  The shared source normalizer accepts a missing newline after a leading
+  `flowchart`/`graph` declaration with a recognized direction, separating its
+  first statement before parsing. Preserve existing semicolons/comments and all
+  node labels, quotes, arrows, entities and other diagram grammars. Triple-quoted
+  AGUI source preserves inner double quotes literally; they need no escaping.
+  Chat and retry renderers use `parseChatMarkdown` through Streamdown's patched
+  incomplete-Markdown hook. Independent complete/partial component blocks bypass
+  Markdown repair so labels such as `browser_*` never acquire balancing markers;
+  ordinary prose retains its streaming Markdown completion.
+  Do not rewrite stored checkpoint text. `test:blackbox:mermaid-zoom` also replays
+  the checkpoint's inline declaration and following sequence diagram through
+  streaming, completion and reload in both themes/locales.
   All host diagram paths use the resolved semantic palette, explicit Mermaid
   `darkMode`, matching card text, and themed ER attribute rows. Never leave
   Mermaid's white attribute-row defaults under dark text settings. Run

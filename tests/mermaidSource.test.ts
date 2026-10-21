@@ -2,7 +2,32 @@ import { describe, expect, test } from "bun:test";
 import { normalizeMermaidSource } from "../src/lib/streamdown/mermaidSource";
 
 describe("Mermaid source normalization", () => {
-  test("preserves source without attempting grammar repair", () => {
+  test("separates an inline first statement from the flowchart declaration", () => {
+    for (const kind of ["flowchart", "graph"]) {
+      for (const direction of ["TB", "TD", "BT", "RL", "LR"]) {
+        const body = 'A["用户请求"] --> B{"请求类型判断"}\n B -->|简单任务| C["直接处理"]';
+        expect(normalizeMermaidSource(`%% diagram\n\n${kind} ${direction} ${body}`)).toBe(
+          `%% diagram\n\n${kind} ${direction}\n${body}`,
+        );
+      }
+    }
+  });
+
+  test("preserves existing separators, comments, other diagrams and multiline labels", () => {
+    for (const source of [
+      'flowchart TD; A["Start"] --> B["End"]',
+      "flowchart TD ; A --> B",
+      "flowchart TD %% direction\n A --> B",
+      'flowchart TD\n A["label\nflowchart LR literal label"] --> B',
+      "sequenceDiagram\n A->>B: flowchart TD A --> B",
+      "flowchart TDX A --> B",
+      "flowchart TD",
+      "",
+    ])
+      expect(normalizeMermaidSource(source)).toBe(source);
+  });
+
+  test("preserves valid source including punctuation and labels", () => {
     const source = `flowchart TB
     subgraph Train["AgentGym-RL: 训练范式"]
         direction TB

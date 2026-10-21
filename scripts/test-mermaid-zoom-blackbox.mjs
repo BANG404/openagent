@@ -10,6 +10,9 @@ import { captureBlackboxScreenshot } from "./blackbox-screenshot.mjs";
 assert(process.env.TAURI_PILOT_SOCKET, "select the isolated native window explicitly");
 const artifacts = mkdtempSync(join(tmpdir(), "openagent-mermaid-zoom-"));
 const scenario = fileURLToPath(new URL("../tests/blackbox/mermaid-zoom.toml", import.meta.url));
+const checkpointScenario = fileURLToPath(
+  new URL("../tests/blackbox/mermaid-checkpoint.toml", import.meta.url),
+);
 /** @param {string[]} args */
 function pilot(args) {
   const result = spawnSync("tauri-pilot", [...args, "--window", "main"], {
@@ -51,6 +54,15 @@ try {
         pilot(["click", "[data-mermaid-recover]"]);
         pilot(["wait", "[data-agui-mermaid] [data-mermaid-svg] > svg"]);
         captureBlackboxScreenshot(pilot, join(artifacts, `${theme}-${locale}-${pass}.png`));
+        pilot(["navigate", preview.href]);
+        pilot(["wait", "[data-mermaid-svg] > svg"]);
+        pilot(["snapshot", "-i"]);
+        pilot(["click", "[data-mermaid-checkpoint]"]);
+        pilot(["run", checkpointScenario]);
+        captureBlackboxScreenshot(
+          pilot,
+          join(artifacts, `${theme}-${locale}-${pass}-checkpoint.png`),
+        );
       }
     }
   }

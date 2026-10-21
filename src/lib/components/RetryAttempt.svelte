@@ -6,6 +6,7 @@
   import CustomToken from "$lib/streamdown/CustomToken.svelte";
   import { chatMarkdownTheme } from "$lib/streamdown/chatMarkdownTheme";
   import { customExtensions } from "$lib/streamdown/extensions";
+  import { parseChatMarkdown } from "$lib/streamdown/parseChatMarkdown";
   import type { ComponentToken } from "$lib/streamdown/extensions";
   import type { StreamItem } from "$lib/types";
   import type { MermaidConfig } from "$lib/mermaidTheme";
@@ -54,6 +55,7 @@
             controls={{ table: false }}
             components={{ code: Code, mermaid: Mermaid, math: ChatMath }}
             extensions={customExtensions}
+            parseIncompleteMarkdown={parseChatMarkdown}
             theme={chatMarkdownTheme}
             {shikiTheme}
             {mermaidConfig}
