@@ -27,6 +27,13 @@ directories.
 
 ## Module-level acceptance
 
+The host's `resource_download::tests` mid-body disconnect fixture waits for the
+downloader's progress callback to acknowledge the written prefix before closing
+the response socket. Bound that handshake with a timeout; an immediate
+write-and-close can let the HTTP decoder report truncation before exposing any
+body bytes, which does not exercise resume. Keep the recoverable-state assertions
+defined in [update verification](../../openagent-update-delivery/references/update-verification.md).
+
 Conversation inbox reads and writes pass only the exact `/input-queue` product
 route through the desktop proxy; read deadlines apply to snapshots, while
 accepted writes retain their ordinary completion semantics. Run

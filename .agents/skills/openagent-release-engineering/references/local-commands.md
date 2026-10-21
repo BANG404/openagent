@@ -10,6 +10,11 @@ checks and rejects mismatches with an upgrade instruction. Bun 1.3.14 is the
 qualified Windows runner for the bounded Bash publication tests; older 1.2.x
 runners can fail in `spawnSync` with an apparent allocation error.
 
+Keep Vite on the patched 6.4 line (minimum 6.4.5) and regenerate `bun.lock`
+with the pinned Bun when updating it. Release frontend qualification keeps
+`bun audit` blocking; verify dependency fixes against that same audit rather
+than ignoring advisories.
+
 ## Prepare and run
 
 In a fresh checkout or isolated task worktree:

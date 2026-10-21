@@ -345,6 +345,7 @@ mod tests {
         let digest = format!("{:x}", Sha256::digest(b"abcdefgh"));
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let address = listener.local_addr().unwrap();
+        let (prefix_written, prefix_received) = tokio::sync::oneshot::channel();
         let server = tokio::spawn(async move {
             let (mut socket, _) = listener.accept().await.unwrap();
             let mut request = [0; 4096];
@@ -352,6 +353,12 @@ mod tests {
             socket
                 .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 8\r\nConnection: close\r\n\r\nabc")
                 .await
+                .unwrap();
+            // Let the client consume and persist the prefix before injecting EOF.
+            // Otherwise the HTTP decoder can report the truncated body first.
+            tokio::time::timeout(std::time::Duration::from_secs(10), prefix_received)
+                .await
+                .expect("client did not persist the response prefix")
                 .unwrap();
             socket.shutdown().await.unwrap();
             drop(socket);
@@ -364,11 +371,21 @@ mod tests {
         });
         let url = Url::parse(&format!("http://{address}/artifact")).unwrap();
         let client = Client::new();
-        assert!(
-            artifact(&client, url.clone(), fixture.path(), 8, &digest, |_, _| {})
-                .await
-                .is_err()
-        );
+        let mut prefix_written = Some(prefix_written);
+        assert!(artifact(
+            &client,
+            url.clone(),
+            fixture.path(),
+            8,
+            &digest,
+            |received, _| {
+                if received == 3 {
+                    prefix_written.take().unwrap().send(()).unwrap();
+                }
+            }
+        )
+        .await
+        .is_err());
         assert_eq!(
             tokio::fs::read(fixture.path().join(format!("{digest}.partial")))
                 .await
