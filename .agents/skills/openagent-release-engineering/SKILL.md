@@ -31,3 +31,6 @@ This skill owns build, CI and publication; update-delivery owns running-componen
 | Documentation site deployment | [GitHub Pages](references/github-pages.md) |
 | Selective R2 downloads and retention | [Release mirror](references/release-mirror.md) |
 | Commit titles and scopes | [Commit conventions](references/commit-conventions.md) |
+
+
+OpenAgent issue automation is owned by `.agents/skills/issue-worker/`; its `deploy/codex/deliver.py` invokes this repository preflight and publishes only to `alpha`. Keep the package `deliver` script and its credential-free controller tests synchronized with that owner.

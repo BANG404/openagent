@@ -153,7 +153,9 @@
     "test:blackbox:desktop-exit": "bun scripts/test-desktop-exit-blackbox.mjs",
     "generate:protocol": "bun scripts/generate-protocol-types.mjs",
     "check:protocol": "bun scripts/generate-protocol-types.mjs --check",
-    "test:blackbox:runtime-transport": "bun scripts/test-runtime-transport-blackbox.mjs"
+    "test:blackbox:runtime-transport": "bun scripts/test-runtime-transport-blackbox.mjs",
+    "deliver": "python3 deploy/codex/deliver.py",
+    "test:codex-container": "python3 -B deploy/codex/smoke-container.py"
   },
   "license": "GPL-3.0-or-later",
   "overrides": {

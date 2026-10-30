@@ -1,0 +1,23 @@
+[Unit]
+Description=OpenAgent Codex issue worker and CI/CD failure collector
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Environment=PATH=%h/.local/bin:%h/.bun/bin:/snap/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PYTHONUNBUFFERED=1
+Environment=CC=%h/.local/bin/cc
+WorkingDirectory=%h/.local/share/openagent-codex
+# Activate existing LXD membership even when the user manager has stale groups.
+ExecStart=/usr/bin/sg lxd -c "/bin/bash '%h/.local/share/openagent-codex/controller/run-worker.sh'"
+ExecStopPost=/usr/bin/sg lxd -c "/usr/bin/python3 '%h/.local/share/openagent-codex/controller/task_container.py' --root '%h/.local/share/openagent-codex'"
+Restart=always
+RestartSec=30
+KillMode=control-group
+TimeoutStopSec=180
+UMask=0077
+
+[Install]
+WantedBy=default.target

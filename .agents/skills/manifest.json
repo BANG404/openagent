@@ -19,7 +19,10 @@
     },
     {
       "skill": "openagent-chat-frontend",
-      "paths": ["src/lib/", "src/routes/"]
+      "paths": [
+        "src/lib/",
+        "src/routes/"
+      ]
     },
     {
       "skill": "openagent-desktop-host",
@@ -56,7 +59,12 @@
     },
     {
       "skill": "openagent-release-engineering",
-      "paths": [".github/", "scripts/", "package.json", "bun.lock"]
+      "paths": [
+        ".github/",
+        "scripts/",
+        "package.json",
+        "bun.lock"
+      ]
     },
     {
       "skill": "openagent-channel-integrations",
@@ -101,12 +109,22 @@
       ]
     },
     {
+      "skill": "issue-worker",
+      "paths": [
+        "deploy/codex/",
+        "scripts/codex-tests/"
+      ]
+    },
+    {
       "skill": "tauri-pilot",
       "paths": []
     },
     {
       "skill": "playwright",
-      "paths": ["scripts/test-browser-preview.mjs", ".playwright/"]
+      "paths": [
+        "scripts/test-browser-preview.mjs",
+        ".playwright/"
+      ]
     },
     {
       "skill": "wait-for-pr-ci",

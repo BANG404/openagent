@@ -104,9 +104,9 @@ export function buildExecPlan(options) {
     cwd: repo,
     encoding: "utf8",
   }).trim();
-  if (branch !== "main") {
+  if (branch !== "alpha") {
     throw new Error(
-      "Launch OWT tasks from the default directory on main; do not switch its branch.",
+      "Launch OWT tasks from the default directory on alpha; do not switch its branch.",
     );
   }
   const writableParent = dirname(repo);
@@ -117,7 +117,7 @@ export function buildExecPlan(options) {
     codexBin,
     maxConcurrency: Math.min(options.maxConcurrency, options.tasks.length),
     tasks: options.tasks.map((taskPrompt, index) => {
-      const prompt = `Use $deliver-via-owt and the OWT workflow: reuse a suitable isolated conversation worktree or create one when needed, keep the default directory on main, verify and fast-forward the result, then clean up only task-owned temporary resources.\n\n${taskPrompt}`;
+      const prompt = `Use $deliver-via-owt and the OWT workflow: reuse a suitable isolated conversation worktree or create one when needed, keep the default directory on alpha, verify and fast-forward the result, then clean up only task-owned temporary resources.\n\n${taskPrompt}`;
       return {
         id: `task-${index + 1}`,
         prompt,

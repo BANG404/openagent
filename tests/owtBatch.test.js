@@ -42,7 +42,7 @@ function createRepository() {
   temporaryRoots.push(root);
   const repo = join(root, "repo");
   mkdirSync(repo);
-  git(repo, ["init", "--initial-branch=main"]);
+  git(repo, ["init", "--initial-branch=alpha"]);
   git(repo, ["config", "user.name", "OpenAgent Test"]);
   git(repo, ["config", "user.email", "openagent@example.com"]);
   git(repo, ["config", "core.autocrlf", "false"]);
@@ -55,7 +55,7 @@ function createRepository() {
 function createTask(repo, root, name, file) {
   const branch = `agent/${name}`;
   const worktree = join(root, `worktree-${name}`);
-  git(repo, ["worktree", "add", "-b", branch, worktree, "main"]);
+  git(repo, ["worktree", "add", "-b", branch, worktree, "alpha"]);
   writeFileSync(join(worktree, file), `${name}\n`);
   git(worktree, ["add", file]);
   git(worktree, ["commit", "-m", `test: ${name}`]);
@@ -161,7 +161,7 @@ process.exit(${fail ? 23 : 0});
     }
   }, 20_000);
 
-  test("validates and commits detached work, updates local main and retains the same checkout", () => {
+  test("validates and commits detached work, updates local alpha and retains the same checkout", () => {
     const { repo, worktree, base } = createConversation();
     stageFeature(worktree);
     const worktrees = git(repo, ["worktree", "list", "--porcelain"]);
@@ -187,8 +187,8 @@ process.exit(${fail ? 23 : 0});
     expect(git(repo, ["rev-parse", "HEAD"])).toBe(result.verifiedHead);
     expect(git(worktree, ["rev-parse", "HEAD"])).toBe(result.verifiedHead);
     expect(git(worktree, ["branch", "--show-current"])).toBe("");
-    expect(git(repo, ["branch", "--format=%(refname:short)"])).toBe("main");
-    expect(git(repo, ["branch", "--show-current"])).toBe("main");
+    expect(git(repo, ["branch", "--format=%(refname:short)"])).toBe("alpha");
+    expect(git(repo, ["branch", "--show-current"])).toBe("alpha");
     expect(git(repo, ["worktree", "list", "--porcelain"]).match(/worktree /g)).toHaveLength(
       worktrees.match(/worktree /g).length,
     );
@@ -210,7 +210,7 @@ process.exit(${fail ? 23 : 0});
     expect(existsSync(worktree)).toBe(true);
   }, 20_000);
 
-  test("merges concurrent main commits in the conversation and revalidates the combined tree", () => {
+  test("merges concurrent alpha commits in the conversation and revalidates the combined tree", () => {
     const { repo, worktree, base } = createConversation();
     stageFeature(worktree);
     let checks = 0;
@@ -234,7 +234,7 @@ process.exit(${fail ? 23 : 0});
     expect(readFileSync(join(repo, "concurrent.txt"), "utf8")).toBe("other task\n");
   }, 20_000);
 
-  test("failed validation preserves the reviewed index and leaves main unchanged", () => {
+  test("failed validation preserves the reviewed index and leaves alpha unchanged", () => {
     const { repo, worktree, base } = createConversation();
     stageFeature(worktree);
     const status = git(worktree, ["status", "--porcelain"]);
@@ -274,7 +274,7 @@ process.exit(${fail ? 23 : 0});
     expect(git(worktree, ["status", "--porcelain"])).toBe("");
   }, 20_000);
 
-  test("source changes during verification cannot reach main", () => {
+  test("source changes during verification cannot reach alpha", () => {
     const { repo, worktree, base } = createConversation();
     stageFeature(worktree);
     expect(() =>
@@ -286,7 +286,7 @@ process.exit(${fail ? 23 : 0});
     expect(git(worktree, ["show", ":feature.txt"])).toBe("changed while validating");
   }, 20_000);
 
-  test("dirty main blocks automatic integration without changing developer bytes or staging", () => {
+  test("dirty alpha blocks automatic integration without changing developer bytes or staging", () => {
     const { repo, worktree, base } = createConversation();
     stageFeature(worktree);
     stageFeature(repo, "base.txt", "developer staged\n");
@@ -304,7 +304,7 @@ process.exit(${fail ? 23 : 0});
     expect(git(worktree, ["log", "-1", "--format=%s"])).toBe("feat: task");
   }, 20_000);
 
-  test("a merge conflict stays in the conversation and preserves the committed main", () => {
+  test("a merge conflict stays in the conversation and preserves the committed alpha", () => {
     const { repo, worktree, base } = createConversation();
     stageFeature(worktree, "base.txt", "task content\n");
     stageFeature(repo, "base.txt", "concurrent content\n");
@@ -328,7 +328,7 @@ process.exit(${fail ? 23 : 0});
     const verify = () => {
       throw new Error("must not verify rejected input");
     };
-    expect(() => finishWorktree(worktree, { base: "main" }, verify)).toThrow("full immutable");
+    expect(() => finishWorktree(worktree, { base: "alpha" }, verify)).toThrow("full immutable");
     expect(() => finishWorktree(repo, { base }, verify)).toThrow("isolated task checkout");
     stageFeature(worktree);
     expect(() => finishWorktree(worktree, { base }, verify)).toThrow("require --message");
@@ -340,9 +340,9 @@ process.exit(${fail ? 23 : 0});
     expect(git(repo, ["rev-parse", "HEAD"])).toBe(base);
   }, 20_000);
 
-  test("refuses rewritten main ancestry without changing either history", () => {
+  test("refuses rewritten alpha ancestry without changing either history", () => {
     const { repo, worktree } = createConversation();
-    // Record a newer main base, then model an external history rewrite.
+    // Record a newer alpha base, then model an external history rewrite.
     stageFeature(repo, "new-base.txt", "new base\n");
     git(repo, ["commit", "-m", "test: newer recorded base"]);
     const base = git(repo, ["rev-parse", "HEAD"]);
@@ -365,7 +365,7 @@ describe("OWT batch coordination", () => {
     const task = createTask(repo, root, "conversation", "feature.txt");
     task.branch = "codex/conversation";
     git(task.worktree, ["branch", "-m", task.branch]);
-    createBatch(repo, { batchId: "batch-conversation", defaultBranch: "main", base });
+    createBatch(repo, { batchId: "batch-conversation", defaultBranch: "alpha", base });
     await runCoordinator(repo, [
       "register",
       "--batch",
@@ -413,7 +413,7 @@ describe("OWT batch coordination", () => {
     expect(readFileSync(join(task.worktree, "next.txt"), "utf8")).toBe(
       "untracked conversation work\n",
     );
-    expect(git(repo, ["branch", "--show-current"])).toBe("main");
+    expect(git(repo, ["branch", "--show-current"])).toBe("alpha");
     expect(git(repo, ["rev-parse", "HEAD"])).toBe(integrationHead);
     expect(readFileSync(join(repo, "feature.txt"), "utf8")).toBe("conversation\n");
     expect(existsSync(election.integrationWorktree)).toBe(false);
@@ -423,7 +423,7 @@ describe("OWT batch coordination", () => {
     const { root, repo, base } = createRepository();
     const task = createTask(repo, root, "invalid", "feature.txt");
     const batchId = "batch-invalid";
-    createBatch(repo, { batchId, defaultBranch: "main", base });
+    createBatch(repo, { batchId, defaultBranch: "alpha", base });
     const options = {
       batchId,
       taskId: task.taskId,
@@ -433,7 +433,7 @@ describe("OWT batch coordination", () => {
     expect(() => registerTask(repo, { ...options, cleanup: "delete" })).toThrow(
       "Task cleanup must be remove or retain",
     );
-    expect(() => registerTask(repo, { ...options, branch: "main", worktreePath: repo })).toThrow(
+    expect(() => registerTask(repo, { ...options, branch: "alpha", worktreePath: repo })).toThrow(
       "A batch task cannot use the default branch",
     );
     expect(batchStatus(repo, { batchId }).tasks).toEqual([]);
@@ -469,7 +469,7 @@ describe("OWT batch coordination", () => {
     const { root, repo, base } = createRepository();
     const first = createTask(repo, root, "first", "first.txt");
     const second = createTask(repo, root, "second", "second.txt");
-    createBatch(repo, { batchId: "batch-one", defaultBranch: "main", base });
+    createBatch(repo, { batchId: "batch-one", defaultBranch: "alpha", base });
     register(repo, "batch-one", first);
     register(repo, "batch-one", second);
     sealBatch(repo, { batchId: "batch-one" });
@@ -502,7 +502,7 @@ describe("OWT batch coordination", () => {
       verifiedHead: integrationHead,
     });
     expect(finalized).toMatchObject({ action: "integrated", finalHead: integrationHead });
-    expect(git(repo, ["rev-parse", "main"])).toBe(integrationHead);
+    expect(git(repo, ["rev-parse", "alpha"])).toBe(integrationHead);
 
     const cleaned = cleanupBatch(repo, {
       batchId: "batch-one",
@@ -515,10 +515,10 @@ describe("OWT batch coordination", () => {
     expect(batchStatus(repo, { batchId: "batch-one" }).cleanedAt).toBeString();
   }, 20_000);
 
-  test("asks the integrator to refresh when main advances", () => {
+  test("asks the integrator to refresh when alpha advances", () => {
     const { root, repo, base } = createRepository();
     const task = createTask(repo, root, "feature", "feature.txt");
-    createBatch(repo, { batchId: "batch-refresh", defaultBranch: "main", base });
+    createBatch(repo, { batchId: "batch-refresh", defaultBranch: "alpha", base });
     register(repo, "batch-refresh", task);
     sealBatch(repo, { batchId: "batch-refresh" });
     const election = markTaskReady(task.worktree, {
@@ -553,13 +553,13 @@ describe("OWT batch coordination", () => {
       verifiedHead: integrationHead,
     });
     expect(finalized).toMatchObject({ action: "integrated", finalHead: integrationHead });
-    expect(git(repo, ["rev-parse", "main"])).toBe(integrationHead);
+    expect(git(repo, ["rev-parse", "alpha"])).toBe(integrationHead);
   }, 20_000);
 
   test("rejects ready state when the asserted preflight head is stale", () => {
     const { root, repo, base } = createRepository();
     const task = createTask(repo, root, "stale", "stale.txt");
-    createBatch(repo, { batchId: "batch-stale", defaultBranch: "main", base });
+    createBatch(repo, { batchId: "batch-stale", defaultBranch: "alpha", base });
     register(repo, "batch-stale", task);
     sealBatch(repo, { batchId: "batch-stale" });
     writeFileSync(join(task.worktree, "later.txt"), "later\n");
@@ -578,7 +578,7 @@ describe("OWT batch coordination", () => {
   test("does not strand a ready task before the batch is sealed", () => {
     const { root, repo, base } = createRepository();
     const task = createTask(repo, root, "unsealed", "unsealed.txt");
-    createBatch(repo, { batchId: "batch-unsealed", defaultBranch: "main", base });
+    createBatch(repo, { batchId: "batch-unsealed", defaultBranch: "alpha", base });
     register(repo, "batch-unsealed", task);
 
     expect(
@@ -599,7 +599,7 @@ describe("OWT batch coordination", () => {
     const { root, repo, base } = createRepository();
     const first = createTask(repo, root, "race-first", "race-first.txt");
     const second = createTask(repo, root, "race-second", "race-second.txt");
-    createBatch(repo, { batchId: "batch-race", defaultBranch: "main", base });
+    createBatch(repo, { batchId: "batch-race", defaultBranch: "alpha", base });
     register(repo, "batch-race", first);
     register(repo, "batch-race", second);
     sealBatch(repo, { batchId: "batch-race" });
@@ -634,7 +634,7 @@ describe("OWT batch coordination", () => {
     const { root, repo, base } = createRepository();
     const first = createTask(repo, root, "overlap-first", "shared.txt");
     const second = createTask(repo, root, "overlap-second", "shared.txt");
-    createBatch(repo, { batchId: "batch-overlap", defaultBranch: "main", base });
+    createBatch(repo, { batchId: "batch-overlap", defaultBranch: "alpha", base });
     register(repo, "batch-overlap", first);
     register(repo, "batch-overlap", second);
     sealBatch(repo, { batchId: "batch-overlap" });
@@ -678,7 +678,7 @@ describe("OWT batch coordination", () => {
     git(second.worktree, ["add", "shared.txt"]);
     git(second.worktree, ["commit", "-m", "modify shared file"]);
     second.head = git(second.worktree, ["rev-parse", "HEAD"]);
-    createBatch(repo, { batchId: "batch-delete-overlap", defaultBranch: "main", base });
+    createBatch(repo, { batchId: "batch-delete-overlap", defaultBranch: "alpha", base });
     register(repo, "batch-delete-overlap", first);
     register(repo, "batch-delete-overlap", second);
     sealBatch(repo, { batchId: "batch-delete-overlap" });
@@ -701,7 +701,7 @@ describe("OWT batch coordination", () => {
   test("heartbeats and recovers an abandoned integration lease", () => {
     const { root, repo, base } = createRepository();
     const task = createTask(repo, root, "recover", "recover.txt");
-    createBatch(repo, { batchId: "batch-recover", defaultBranch: "main", base });
+    createBatch(repo, { batchId: "batch-recover", defaultBranch: "alpha", base });
     register(repo, "batch-recover", task);
     sealBatch(repo, { batchId: "batch-recover" });
     expect(taskEnvironment(repo, { batchId: "batch-recover", taskId: task.taskId })).toMatchObject({

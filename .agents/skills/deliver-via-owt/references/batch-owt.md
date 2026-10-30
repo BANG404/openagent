@@ -12,7 +12,7 @@ HEAD before starting task agents:
 
 ```bash
 bun .agents/skills/deliver-via-owt/scripts/coordinate-owt-batch.mjs create \
-  --repo . --batch <batch-id> --default main --base HEAD
+  --repo . --batch <batch-id> --default alpha --base HEAD
 ```
 
 Select each task worktree by [the OWT selection rules](owt.md#select-the-worktree-before-creating-one).

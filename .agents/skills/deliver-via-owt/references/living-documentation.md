@@ -52,13 +52,13 @@ private SDK gitlink.
 - Public documentation contains no private SDK implementation detail.
 - Delivery used the [short Codex path](codex-worktree.md) for eligible
   conversation worktrees or [ordinary OWT](owt.md) when needed: verified
-  commits are fast-forwarded into local `main`, task-created temporary resources
+  commits are fast-forwarded into local `alpha`, task-created temporary resources
   are cleaned up, and reused worktrees stay with their manager. Report actual
-  push status separately. The default directory stays on `main` for developer
+  push status separately. The default directory stays on `alpha` for developer
   debugging. Private SDK delivery follows its owner.
 - The delivery contract's recorded local base, explicit preflight baseline,
   preservation rules, and concurrent-integration checks were respected.
 - A batch coordinates the same OWT workflow using an explicit manifest for
   membership and one elected integrator for combined verification. It retains
   its completion record after safe cleanup. A blocked handoff remains pending
-  integration while the default directory stays on `main`.
+  integration while the default directory stays on `alpha`.

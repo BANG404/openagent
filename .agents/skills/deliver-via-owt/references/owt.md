@@ -2,9 +2,9 @@
 
 OWT supports Codex-managed and ordinary Git worktrees. For a conversation in an
 eligible isolated checkout, prefer [the short Codex path](codex-worktree.md):
-validate, commit, and return automatically to local `main` without a task branch
+validate, commit, and return automatically to local `alpha` without a task branch
 or batch. Use the ordinary steps below when Codex-managed worktrees are
-unavailable. No prompt prefix selects a mode. Keep the default worktree on local `main`
+unavailable. No prompt prefix selects a mode. Keep the default worktree on local `alpha`
 for developer debugging; implement and validate in an isolated task worktree.
 Reuse the conversation's worktree when it meets the selection rules below.
 Never switch the default worktree to a task or integration branch.
@@ -18,19 +18,19 @@ explicitly includes waiting for actual GitHub PR checks.
 ## Select the worktree before creating one
 
 Resolve the current checkout with `git rev-parse --show-toplevel`, then inspect
-`git worktree list --porcelain` to locate the default directory on local `main`.
+`git worktree list --porcelain` to locate the default directory on local `alpha`.
 The current checkout is not necessarily the default directory. Record both
-absolute paths, the committed local `main` SHA, task branch, and cleanup owner.
+absolute paths, the committed local `alpha` SHA, task branch, and cleanup owner.
 Do not infer ownership from the directory name or location. If the default
-directory cannot be identified on `main`, preserve the checkouts and resolve
-that ownership before delivery; never switch an unrelated checkout to `main`.
+directory cannot be identified on `alpha`, preserve the checkouts and resolve
+that ownership before delivery; never switch an unrelated checkout to `alpha`.
 
 - In an existing isolated conversation worktree (including Codex-managed or
   permanent worktrees), reuse it for this task when it belongs to this repository
   and has no unrelated commits, staged edits, working edits, or untracked files.
-  Inspect status and the complete diff from local `main`; imported local changes
+  Inspect status and the complete diff from local `alpha`; imported local changes
   are not automatically task-owned. Preserve another task's worktree.
-- For a new task, require `HEAD` to equal the recorded local `main` SHA. A clean
+- For a new task, require `HEAD` to equal the recorded local `alpha` SHA. A clean
   worktree on an older ancestor may fast-forward to that SHA before editing.
   Never reset or rebase a checkout to make it eligible. A resumed task may keep
   its identified task changes and original recorded base; inspect them first.
@@ -38,11 +38,11 @@ that ownership before delivery; never switch an unrelated checkout to `main`.
   short Codex path also accepts detached HEAD without creating a branch. Only
   the ordinary branch workflow or an explicitly coordinated batch needs a
   unique `agent/<task-slug>` branch at that `HEAD`; do not create a second
-  worktree. Never use `main` as a task branch.
+  worktree. Never use `alpha` as a task branch.
 - When starting in the default directory, or when the current checkout is
   ineligible, prefer Codex's managed creation when available, using the recorded
-  local `main` SHA. Otherwise create a unique `agent/<task-slug>` branch and new sibling worktree
-  from the recorded committed local `main` SHA. Leave the original checkout and
+  local `alpha` SHA. Otherwise create a unique `agent/<task-slug>` branch and new sibling worktree
+  from the recorded committed local `alpha` SHA. Leave the original checkout and
   its changes intact, and report the selected task path.
 
 Only temporary worktrees and branches created by this task are eligible for
@@ -59,7 +59,7 @@ layout through implementation and handoff; plugin destinations are owned by
 ## Isolated task worktree, then fast-forward
 
 1. Keep the public host's default worktree on its local default branch
-   (`main` in OpenAgent); do not switch it. Select the task worktree above.
+   (`alpha` in OpenAgent); do not switch it. Select the task worktree above.
    Its recorded local default SHA is the authoritative OWT base even when it
    differs from the remote default. Fetch the upstream for awareness, but
    never merge, rebase, reset, or otherwise reconcile remote history as part
@@ -113,7 +113,7 @@ layout through implementation and handoff; plugin destinations are owned by
    committed advance makes that fast-forward fail, repeat this merge,
    preflight, and fast-forward loop until the handoff succeeds. Do not
    stash or include unrelated default-worktree changes. A blocked handoff keeps
-   the default worktree on `main` and preserves the committed task for recovery;
+   the default worktree on `alpha` and preserves the committed task for recovery;
    report it as pending integration, not delivered.
 8. Confirm the intended commits and paths are now on the local default
    branch. Remove only clean, registered, task-created temporary worktrees
@@ -125,7 +125,7 @@ layout through implementation and handoff; plugin destinations are owned by
    the user's authorization separately from local OWT completion.
 
 Codex Handoff may move a task branch into the default checkout. It does not
-replace the verified fast-forward above: keep the default directory on `main`
+replace the verified fast-forward above: keep the default directory on `alpha`
 and integrate from the task checkout instead.
 
 ### Recovery and cleanup

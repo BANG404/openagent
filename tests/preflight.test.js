@@ -26,8 +26,8 @@ function commandIds(modules) {
 
 describe("local preflight plan", () => {
   test("uses the local default branch for OWT branches", () => {
-    expect(selectPreflightBase({ currentBranch: "agent/feature" })).toBe("main");
-    expect(selectPreflightBase({ currentBranch: "main" })).toBe("origin/main");
+    expect(selectPreflightBase({ currentBranch: "agent/feature" })).toBe("alpha");
+    expect(selectPreflightBase({ currentBranch: "alpha" })).toBe("origin/alpha");
   });
 
   test("preserves an explicit task or CI baseline", () => {

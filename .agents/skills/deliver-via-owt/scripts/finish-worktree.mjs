@@ -39,13 +39,13 @@ function defaultWorktree(repo) {
   const matches = git(repo, ["worktree", "list", "--porcelain", "-z"])
     .split("\0\0")
     .map((record) => record.split("\0"))
-    .filter((fields) => fields.includes("branch refs/heads/main"));
+    .filter((fields) => fields.includes("branch refs/heads/alpha"));
   const path = matches[0]?.find((field) => field.startsWith("worktree "))?.slice(9);
   if (matches.length !== 1 || !path) {
-    throw new Error("Identify one registered local main worktree before delivery.");
+    throw new Error("Identify one registered local alpha worktree before delivery.");
   }
   if (normalizedPath(path) === normalizedPath(repo)) {
-    throw new Error("Run finish-worktree from the isolated task checkout, not local main.");
+    throw new Error("Run finish-worktree from the isolated task checkout, not local alpha.");
   }
   return path;
 }
@@ -77,11 +77,11 @@ function preflight(repo, base) {
     env: process.env,
   });
   if (result.error) throw result.error;
-  if (result.status !== 0) throw new Error("Preflight failed; local main was not updated.");
+  if (result.status !== 0) throw new Error("Preflight failed; local alpha was not updated.");
 }
 
 /**
- * Validate, commit the reviewed index, and deliver an isolated checkout to main.
+ * Validate, commit the reviewed index, and deliver an isolated checkout to alpha.
  * Detached HEAD and existing task branches share the same path. No worktree,
  * task branch, batch manifest, push, or directory cleanup is created here.
  *
@@ -91,14 +91,14 @@ function preflight(repo, base) {
  */
 export function finishWorktree(repo, options, verify = preflight) {
   if (!/^[0-9a-f]{40}(?:[0-9a-f]{24})?$/i.test(options.base)) {
-    throw new Error("--base must be the full immutable local main SHA recorded before editing.");
+    throw new Error("--base must be the full immutable local alpha SHA recorded before editing.");
   }
   const root = git(repo, ["rev-parse", "--show-toplevel"]);
   const destination = defaultWorktree(root);
   const base = git(root, ["rev-parse", "--verify", `${options.base}^{commit}`]);
   const branch = git(root, ["branch", "--show-current"]);
-  if (!isAncestor(root, base, "HEAD") || !isAncestor(root, base, "refs/heads/main")) {
-    throw new Error("Task and local main must descend from the recorded local base.");
+  if (!isAncestor(root, base, "HEAD") || !isAncestor(root, base, "refs/heads/alpha")) {
+    throw new Error("Task and local alpha must descend from the recorded local base.");
   }
   requireStagedOnly(root);
   const staged = git(root, ["write-tree"]) !== git(root, ["rev-parse", "HEAD^{tree}"]);
@@ -107,7 +107,7 @@ export function finishWorktree(repo, options, verify = preflight) {
   }
   let verifiedHead = "";
   let taskCommit = "";
-  // Bound automatic retries when other deliveries continuously advance main.
+  // Bound automatic retries when other deliveries continuously advance alpha.
   for (let attempt = 0; attempt < 5; attempt += 1) {
     requireStagedOnly(root);
     if (git(root, ["branch", "--show-current"]) !== branch) {
@@ -135,12 +135,12 @@ export function finishWorktree(repo, options, verify = preflight) {
     taskCommit ||= verifiedHead;
     const result = withLocalDeliveryLock(root, () => {
       if (normalizedPath(defaultWorktree(root)) !== normalizedPath(destination)) {
-        throw new Error("Local main moved to another checkout; inspect before retrying.");
+        throw new Error("Local alpha moved to another checkout; inspect before retrying.");
       }
       const defaultHead = git(destination, ["rev-parse", "HEAD"]);
       if (!isAncestor(root, base, defaultHead)) {
         throw new Error(
-          "Local main no longer descends from the recorded base; preserve both histories.",
+          "Local alpha no longer descends from the recorded base; preserve both histories.",
         );
       }
       requireClean(destination);
@@ -163,7 +163,7 @@ export function finishWorktree(repo, options, verify = preflight) {
         throw error;
       }
       if (!isAncestor(root, verifiedHead, git(destination, ["rev-parse", "HEAD"]))) {
-        throw new Error("Local main did not retain the verified delivery.");
+        throw new Error("Local alpha did not retain the verified delivery.");
       }
       return { refresh: "" };
     });
@@ -171,7 +171,7 @@ export function finishWorktree(repo, options, verify = preflight) {
       return {
         action: "integrated",
         defaultWorktree: destination,
-        defaultBranch: "main",
+        defaultBranch: "alpha",
         taskCommit,
         verifiedHead,
         taskBranch: branch || null,
@@ -182,7 +182,7 @@ export function finishWorktree(repo, options, verify = preflight) {
     // Preserve both histories. A real conflict remains in this task checkout.
     git(root, ["merge", "--no-edit", result.refresh]);
   }
-  throw new Error("Local main kept advancing; task commits are preserved. Retry finish-worktree.");
+  throw new Error("Local alpha kept advancing; task commits are preserved. Retry finish-worktree.");
 }
 
 /** @param {string[]} args */
@@ -201,7 +201,7 @@ function parseArguments(args) {
     options[key] = value;
   }
   if (!options["--base"])
-    throw new Error("--base must be the local main SHA recorded before editing.");
+    throw new Error("--base must be the local alpha SHA recorded before editing.");
   return { repo: options["--repo"] ?? ".", base: options["--base"], message: options["--message"] };
 }
 

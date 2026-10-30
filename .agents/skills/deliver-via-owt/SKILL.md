@@ -1,13 +1,13 @@
 ---
 name: deliver-via-owt
-description: "Use for OpenAgent repository changes. Prefer the simple Codex worktree path: validate and return automatically to local main, leaving cleanup to Codex. Use ordinary OWT when managed worktrees are unavailable, and batches only for joint delivery."
+description: "Use for OpenAgent repository changes. Prefer the simple Codex worktree path: validate and return automatically to local alpha, leaving cleanup to Codex. Use ordinary OWT when managed worktrees are unavailable, and batches only for joint delivery."
 metadata:
   category: repository-delivery
 ---
 
 # Repository delivery
 
-Preserve unrelated work and record the committed local `main` base before editing.
+Preserve unrelated work and record the committed local `alpha` base before editing.
 
 | Task | Read |
 | --- | --- |

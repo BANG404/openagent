@@ -47,7 +47,7 @@ export function collectPreflightChanges(baseRef) {
  * Select the local baseline used by preflight when the caller did not provide
  * one explicitly. OWT task and integration branches are based on the local
  * default branch, which may contain unpublished commits that are not present
- * in origin/main yet. Comparing those branches with origin/main would
+ * in origin/alpha yet. Comparing those branches with origin/alpha would
  * rerun every check for the entire unpublished stack.
  *
  * @param {{ explicitBase?: string; currentBranch?: string; localDefaultBranch?: string }} options
@@ -55,14 +55,14 @@ export function collectPreflightChanges(baseRef) {
 export function selectPreflightBase({
   explicitBase = "",
   currentBranch = "",
-  localDefaultBranch = "main",
+  localDefaultBranch = "alpha",
 } = {}) {
   const requested = explicitBase.trim();
   if (requested) return requested;
   if (currentBranch.startsWith("agent/") && localDefaultBranch.trim()) {
     return localDefaultBranch.trim();
   }
-  return "origin/main";
+  return "origin/alpha";
 }
 
 /**

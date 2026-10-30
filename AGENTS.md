@@ -2,11 +2,10 @@
 OpenAgent is a Tauri 2 app: SvelteKit owns UI, `crates/` owns public product Rust, `sdk/typescript` owns public clients,
 `runtime` is the private execution submodule, and `src-tauri` is a thin desktop host. The project is in active debugging; do
 not add compatibility paths unless the task explicitly requires them.
-
 Keep this file at or below 150 lines. It is a routing map and repository boundary, not a complete development manual. Put product behavior, architecture,
 repeatable procedures, and fragile subsystem invariants in focused workspace
 skills; keep private Runtime internals in its repository.
-
+Use English for repository content and commit messages. GitHub Issue titles, descriptions, and agent progress/blocker/completion comments use Simplified Chinese; preserve technical identifiers, labels, URLs and machine-readable markers. Reply in the user’s language.
 ## Route the task before editing
 Read every applicable owner before changing files:
 
@@ -15,6 +14,7 @@ Read every applicable owner before changing files:
 | Change prompt assembly, skill routing, or agent documentation validation | `.agents/skills/agent-prompt-infrastructure/SKILL.md` |
 | Implement product behavior or subsystem changes | The matching `openagent-*` owner below |
 | Verify browser-visible behavior | `.agents/skills/playwright/SKILL.md` |
+| Maintain Issue dispatch, LXD containers or controller installation | `.agents/skills/issue-worker/SKILL.md` |
 | Deliver repository changes | `.agents/skills/deliver-via-owt/SKILL.md` |
 
 The `openagent-*` skills own implementation; starting skills route verification and delivery. File ownership comes from `.agents/skills/manifest.json`; load secondary contracts only for affected cross-boundary behavior.
@@ -59,8 +59,8 @@ cd src-tauri && cargo check
 
 Before committing, inspect the complete diff, stage intended new files, and run
 `bun run preflight`. It evaluates the branch, index, worktree, and untracked
-filenames against the selected baseline. Manual verification on `main` uses `origin/main`; OWT delivery passes the recorded local
-`main` SHA so unpublished local commits do not expand the task scope. Set
+filenames against the selected baseline. Manual verification on `alpha` uses `origin/alpha`; OWT delivery passes the recorded local
+`alpha` SHA so unpublished local commits do not expand the task scope. Set
 `PREFLIGHT_BASE` or pass `--base <ref>` when a batch coordinator records a
 different immutable base. Use `--dry-run` to inspect the plan.
 
@@ -145,6 +145,6 @@ layout-stable skeleton.
   `tauri-pilot` black-box scenario, including light/dark themes and Chinese/English where applicable. See `.agents/skills/openagent-desktop-host/references/native-verification.md`.
 
 ## Delivery
-Every repository-changing task uses `deliver-via-owt`: prefer the simple Codex worktree path with automatic validation and return to local `main`; use ordinary OWT when managed worktrees are unavailable. The skill owns selection, integration, and cleanup; keep the default directory on `main` for debugging.
+Every repository-changing task uses `deliver-via-owt`: prefer the simple Codex worktree path with automatic validation and return to local `alpha`; use ordinary OWT when managed worktrees are unavailable. The skill owns selection, integration, and cleanup; keep the default directory on `alpha` for debugging.
 Batches coordinate concurrent tasks; the skill owns preservation, reconciliation, and cleanup.
-The workspace owner authorizes plugin updates and pushes, and proactive synchronization and pushes of verified repository changes to remote `main` without further confirmation. User instructions override delivery.
+The workspace owner authorizes plugin updates and pushes, and proactive synchronization and pushes of verified repository changes to remote `alpha` without further confirmation. Routine completed development automatically validates, creates a Conventional Commit and pushes to `origin/alpha`; current task instructions override delivery. Read-only work creates no commit. The Issue controller owns its independent clone and invokes verified delivery; see [issue-worker](.agents/skills/issue-worker/SKILL.md).
