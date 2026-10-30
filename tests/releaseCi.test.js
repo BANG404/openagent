@@ -77,7 +77,12 @@ describe("release CI verification", () => {
     expect(ciWorkflow).toContain("workflow_call:");
     expect(ciWorkflow).toContain("pull_request:");
     expect(ciWorkflow).toContain("schedule:");
-    expect(ciWorkflow).not.toContain("\n  push:");
+    expect(ciWorkflow).toContain("\n  push:\n    branches: [alpha, beta, rc, main]\n");
+    const tier = ciWorkflow.match(
+      / {6}- name: Resolve verification tier\n(?<step>[\s\S]*?)\n {6}- name:/,
+    )?.groups?.step;
+    expect(tier).toBeDefined();
+    expect(tier).not.toContain('"$CI_EVENT" == "push"');
     expect(ciWorkflow).toContain('"$CI_EVENT" == "workflow_call"');
     expect(ciWorkflow).toContain("steps.tier.outputs.integration == 'true'");
     expect(ciWorkflow).toContain("full: ${{ needs.changes.outputs.full == 'true' }}");
@@ -86,6 +91,19 @@ describe("release CI verification", () => {
     expect(frontendWorkflow).toContain("uses: ./.github/workflows/build-frontend.yml");
     expect(nativeWorkflow).toContain("if: inputs.full && inputs.platform");
     expect(sdkWorkflow).toContain("if: inputs.full && inputs.rust");
+  });
+
+  test("checks the entire pushed delta without the administrator PR bypass", () => {
+    expect(ciWorkflow).toContain(
+      'if [[ "$CI_EVENT_NAME" == "pull_request" && -n "$CI_PR_AUTHOR" ]]; then',
+    );
+    expect(ciWorkflow).toContain(
+      "CI_BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}",
+    );
+    expect(ciWorkflow).toContain(
+      "CI_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}",
+    );
+    expect(ciWorkflow).toContain("- name: Require every selected module to pass");
   });
 
   test("keeps fast SDK validation separate from release qualification", () => {

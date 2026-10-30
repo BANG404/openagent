@@ -14,15 +14,18 @@ errors.
 `ci.yml` classifies changed paths before calling reusable workflows and applies
 three verification routes:
 
-- Pull requests from contributors without administrator permission and merge
-  candidates run fast checks only for modules
+- Pushes to `alpha`, `beta`, `rc`, and `main`, pull requests from contributors
+  without administrator permission, and merge candidates run fast checks only for modules
   selected by the exact base-to-head path delta. Frontend checks stop after
   type, lint, format, and tests; native checks run host Rust quality and quick
   resource or contract validation without Windows/macOS matrices or embedding
-  runtime execution.
+  runtime execution. Pushes always use module checks, including pushes by administrators. Push
+  classification and affected tests use the entire `github.event.before` to
+  `github.sha` delta, including every commit in a multi-commit push. Branch
+  filters exclude task branches and tag pushes. Push checks use the same
+  always-present `CI / Required` aggregate as pull requests.
 - Administrator-authored PRs perform only a repository-permission check, then
-  publish the successful aggregate without module checks or review. Ordinary
-  pushes to `main` do not trigger CI.
+  publish the successful aggregate without module checks or review.
 - Nightly schedules and manual dispatches force every module through complete
   qualification. Release calls use the same complete tier for components without
   a matching [signed qualification receipt](component-reuse.md): frontend production build and bundle
